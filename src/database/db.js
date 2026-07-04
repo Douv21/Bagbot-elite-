@@ -143,6 +143,28 @@ function initDatabase() {
       timestamp INTEGER
     )
   `).run();
+
+  // 13. Configuration du jeu de devinette de mot/phrase
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS game_config (
+      guild_id TEXT PRIMARY KEY,
+      secret_phrase TEXT,
+      reward_money INTEGER DEFAULT 0,
+      reward_xp INTEGER DEFAULT 0,
+      reward_role_id TEXT,
+      is_active INTEGER DEFAULT 0
+    )
+  `).run();
+
+  // 14. Lettres trouvées par l'utilisateur
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS user_letters (
+      guild_id TEXT,
+      user_id TEXT,
+      unlocked_letters TEXT,
+      PRIMARY KEY (guild_id, user_id)
+    )
+  `).run();
 }
 
 // --- Fonctions utilitaires de base de données ---

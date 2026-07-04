@@ -110,6 +110,40 @@ module.exports = {
       xpCooldowns.set(cooldownKey, now);
       const randomXp = Math.floor(Math.random() * 11) + 15; // 15 à 25 XP
       await addXP(message.guild, message.member, randomXp, message.channel);
+
+      // --- JEU DE DEVINETTE (RECHERCHE DE LETTRE) ---
+      const game = db.prepare('SELECT * FROM game_config WHERE guild_id = ? AND is_active = 1').get(guildId);
+      if (game) {
+        // 15% de chance de trouver une lettre
+        if (Math.random() < 0.15) {
+          const phrase = game.secret_phrase.toUpperCase();
+          // Trouver toutes les lettres uniques de A à Z
+          const allLetters = [...new Set(phrase.replace(/[^A-Z]/g, ''))];
+          
+          if (allLetters.length > 0) {
+            const userRecord = db.prepare('SELECT unlocked_letters FROM user_letters WHERE guild_id = ? AND user_id = ?').get(guildId, userId);
+            const unlocked = userRecord ? userRecord.unlocked_letters.split('') : [];
+            
+            const remainingLetters = allLetters.filter(l => !unlocked.includes(l));
+            
+            if (remainingLetters.length > 0) {
+              const newLetter = remainingLetters[Math.floor(Math.random() * remainingLetters.length)];
+              unlocked.push(newLetter);
+              
+              db.prepare('INSERT OR REPLACE INTO user_letters (guild_id, user_id, unlocked_letters) VALUES (?, ?, ?)')
+                .run(guildId, userId, unlocked.join(''));
+              
+              const gameEmbed = new EmbedBuilder()
+                .setTitle('🔍 Lettre Trouvée !')
+                .setDescription(`✨ Bravo <@${userId}> ! Tu as découvert la lettre **${newLetter}** du mot/phrase secret.\nUtilise \`/jeu statut\` pour voir tes lettres trouvées !`)
+                .setColor('#F1C40F')
+                .setTimestamp();
+              
+              message.channel.send({ content: `<@${userId}>`, embeds: [gameEmbed] }).catch(console.error);
+            }
+          }
+        }
+      }
     }
   }
 };
