@@ -38,8 +38,8 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
   let newXp = data.xp + xpToAdd;
   let newLevel = data.level;
 
-  // Calcul du seuil d'XP requis pour monter de niveau : 5 * (Lvl^2) + 50 * Lvl + 100
-  const xpNeededForNextLevel = (lvl) => 5 * (lvl * lvl) + 50 * lvl + 100;
+  // Calcul du seuil d'XP requis pour monter de niveau (formule exponentielle de Bagbot-lite : 100 * 1.2^lvl)
+  const xpNeededForNextLevel = (lvl) => Math.max(1, Math.round(100 * Math.pow(1.2, Math.max(0, lvl))));
 
   let levelUp = false;
   while (newXp >= xpNeededForNextLevel(newLevel)) {

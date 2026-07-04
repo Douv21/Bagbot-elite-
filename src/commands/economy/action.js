@@ -32,11 +32,11 @@ module.exports = {
   async execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
     const target = interaction.options.getUser('membre');
-    const guildId = interaction.guild.id;
+    const guildId = interaction.guild ? interaction.guild.id : null;
     const userId = interaction.user.id;
 
-    // Récupérer l'économie pour mettre à jour le karma
-    const economy = getEconomy(guildId, userId);
+    // Récupérer l'économie pour mettre à jour le karma (uniquement en serveur)
+    const economy = guildId ? getEconomy(guildId, userId) : null;
 
     let title = '';
     let description = '';
@@ -65,8 +65,8 @@ module.exports = {
       }
 
       karmaChange = 1;
-      // 30% de chance d'obtenir un petit pourboire (5-15 pièces) de la cible charmée
-      const success = Math.random() < 0.3;
+      // 30% de chance d'obtenir un petit pourboire (5-15 pièces) de la cible charmée (uniquement en serveur)
+      const success = guildId ? (Math.random() < 0.3) : false;
       
       if (success) {
         coinsChange = Math.floor(Math.random() * 11) + 5; // 5 à 15 pièces
@@ -97,11 +97,13 @@ module.exports = {
       color = '#2ECC71';
     }
 
-    // Appliquer les changements d'économie/karma
-    updateEconomy(guildId, userId, {
-      wallet: economy.wallet + coinsChange,
-      karma: economy.karma + karmaChange
-    });
+    // Appliquer les changements d'économie/karma uniquement en serveur
+    if (guildId && economy) {
+      updateEconomy(guildId, userId, {
+        wallet: economy.wallet + coinsChange,
+        karma: economy.karma + karmaChange
+      });
+    }
 
     const embed = new EmbedBuilder()
       .setTitle(title)
@@ -109,10 +111,12 @@ module.exports = {
       .setColor(color)
       .setTimestamp();
 
-    if (karmaChange > 0 || coinsChange > 0) {
+    if (guildId && (karmaChange > 0 || coinsChange > 0)) {
       let footerText = `Gains : ✨ +${karmaChange} Karma`;
       if (coinsChange > 0) footerText += ` | 💰 +${coinsChange} Pièces`;
       embed.setFooter({ text: footerText });
+    } else if (!guildId) {
+      embed.setFooter({ text: '💬 Exécuté en message privé (sans gain d\'argent, de karma ou d\'xp)' });
     }
 
     await interaction.reply({ embeds: [embed] });
