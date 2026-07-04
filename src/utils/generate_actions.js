@@ -270,8 +270,8 @@ module.exports = {
 };
 `;
 
-  fs.writeFileSync(path.join(targetDir, \`\${act.name}.js\`), content, 'utf8');
-  console.log(\`Action \${act.name} créée.\`);
+  fs.writeFileSync(path.join(targetDir, `${act.name}.js`), content, 'utf8');
+  console.log(`Action ${act.name} créée.`);
 });
 
 console.log('Toutes les actions ont été créées !');
