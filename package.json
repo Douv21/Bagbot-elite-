@@ -1,0 +1,14 @@
+{
+  "name": "bagbot-elite",
+  "version": "1.0.0",
+  "description": "Bot Discord complet avec modération, économie, leveling et logs",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.15.3",
+    "better-sqlite3": "^9.6.0",
+    "dotenv": "^16.4.5"
+  }
+}
