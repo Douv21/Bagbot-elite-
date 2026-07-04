@@ -199,7 +199,7 @@ const { getEconomy, updateEconomy } = require('../../database/db');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('${act.name}')
-    .setDescription('${act.description.replace(/'/g, "\\'")}')
+    .setDescription("${act.description}")
     .addUserOption(option => option.setName('cible').setDescription('Personne ciblée (optionnel)').setRequired(false))
     .setDMPermission(true),
 
@@ -247,7 +247,7 @@ module.exports = {
       : \`${act.targetMessage}\`;
 
     const embed = new EmbedBuilder()
-      .setTitle('${act.title}')
+      .setTitle("${act.title}")
       .setDescription(actionMessage)
       .setColor(0x8B0000)
       .setAuthor({ name: author.username, iconURL: author.displayAvatarURL({ dynamic: true }) })
