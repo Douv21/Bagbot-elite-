@@ -30,6 +30,19 @@ module.exports = {
           embed.setImage(config.leave_image);
         }
 
+        if (config.leave_author_name) {
+          embed.setAuthor({
+            name: formatWelcomeLeaveMessage(config.leave_author_name, member),
+            iconURL: config.leave_author_icon ? formatWelcomeLeaveMessage(config.leave_author_icon, member) : null
+          });
+        }
+
+        if (config.leave_footer) {
+          embed.setFooter({
+            text: formatWelcomeLeaveMessage(config.leave_footer, member)
+          });
+        }
+
         channel.send({ embeds: [embed] }).catch(console.error);
       }
     }

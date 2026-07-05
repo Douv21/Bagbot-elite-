@@ -78,8 +78,19 @@ function initDatabase() {
       leave_title TEXT,
       leave_desc TEXT,
       leave_color TEXT DEFAULT '#FF0000',
+      welcome_thumbnail INTEGER DEFAULT 1,
+      welcome_image TEXT,
+      welcome_author_name TEXT,
+      welcome_author_icon TEXT,
+      welcome_footer TEXT,
+      leave_title TEXT,
+      leave_desc TEXT,
+      leave_color TEXT DEFAULT '#FF0000',
       leave_thumbnail INTEGER DEFAULT 1,
-      leave_image TEXT
+      leave_image TEXT,
+      leave_author_name TEXT,
+      leave_author_icon TEXT,
+      leave_footer TEXT
     )
   `).run();
 
@@ -88,6 +99,24 @@ function initDatabase() {
   } catch (e) {}
   try {
     db.prepare('ALTER TABLE welcome_leave ADD COLUMN leave_image TEXT').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE welcome_leave ADD COLUMN welcome_author_name TEXT').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE welcome_leave ADD COLUMN welcome_author_icon TEXT').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE welcome_leave ADD COLUMN welcome_footer TEXT').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE welcome_leave ADD COLUMN leave_author_name TEXT').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE welcome_leave ADD COLUMN leave_author_icon TEXT').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE welcome_leave ADD COLUMN leave_footer TEXT').run();
   } catch (e) {}
 
   // 7. Configuration de la Quarantaine

@@ -104,6 +104,32 @@ const express = require('express');
 const apiApp = express();
 const API_PORT = process.env.BOT_API_PORT || 49602;
 
+apiApp.use(express.json());
+
+apiApp.get('/bot/info', (req, res) => {
+  if (!client.user) {
+    return res.status(503).json({ error: 'Bot not ready' });
+  }
+  res.json({
+    username: client.user.username,
+    avatarURL: client.user.displayAvatarURL({ dynamic: true })
+  });
+});
+
+apiApp.post('/bot/avatar', async (req, res) => {
+  try {
+    const { avatar_url } = req.body;
+    if (!avatar_url) {
+      return res.status(400).json({ error: 'Avatar URL is required' });
+    }
+    await client.user.setAvatar(avatar_url);
+    res.json({ success: true, avatarURL: client.user.displayAvatarURL({ dynamic: true }) });
+  } catch (error) {
+    console.error('Error setting bot avatar:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 apiApp.get('/guilds', (req, res) => {
   const guilds = client.guilds.cache.map(guild => ({
     id: guild.id,

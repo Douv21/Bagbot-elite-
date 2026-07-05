@@ -111,6 +111,8 @@
                     <div class="discord-message-header">
                       <span class="discord-bot-name">Bagbot Elite</span>
                       <span class="discord-bot-tag">BOT</span>
+                      <button type="button" id="btn-change-bot-avatar" class="discord-header-btn" title="Modifier l'image globale du bot"><i class="fa-solid fa-camera"></i> Changer l'image</button>
+                      <input type="url" id="bot-avatar-url-input" class="discord-bot-avatar-input" placeholder="Lien de la nouvelle image du bot..." style="display:none;">
                       <span class="discord-timestamp">Aujourd'hui à 08:31</span>
                     </div>
 
@@ -119,6 +121,13 @@
                       <!-- Left color bar -->
                       <div class="discord-embed-left-bar" id="discord-left-bar"></div>
                       
+                      <!-- Embed Author Area -->
+                      <div class="discord-embed-author-container" id="discord-author-box">
+                        <img id="embed-author-icon-img" src="" alt="" style="display:none;">
+                        <input type="text" id="embed-author-name-input" class="discord-embed-author-name-field" placeholder="Auteur (Nom du serveur, etc)...">
+                        <input type="url" id="embed-author-icon-input" class="discord-embed-author-icon-field" placeholder="Lien de l'icône de l'auteur (URL)..." style="display:none;">
+                      </div>
+
                       <div class="discord-embed-body-content">
                         <div class="discord-embed-main-text">
                           <!-- Title Input -->
@@ -149,6 +158,11 @@
                           <span>Cliquez pour définir une grande image (URL)</span>
                         </div>
                         <input type="url" id="embed-image-input" placeholder="Lien de la grande image (optionnel)..." style="display:none;" class="discord-embed-image-url-field">
+                      </div>
+
+                      <!-- Embed Footer Area -->
+                      <div class="discord-embed-footer-container">
+                        <input type="text" id="embed-footer-input" class="discord-embed-footer-field" placeholder="Bas de page (Footer)...">
                       </div>
                     </div>
                   </div>

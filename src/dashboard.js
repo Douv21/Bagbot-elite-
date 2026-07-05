@@ -232,6 +232,44 @@ app.get('/api/roles', async (req, res) => {
   }
 });
 
+// Obtenir les informations du bot (nom et avatar réel)
+app.get('/api/bot/info', async (req, res) => {
+  try {
+    const botApiPort = process.env.BOT_API_PORT || 49602;
+    const response = await fetch(`http://127.0.0.1:${botApiPort}/bot/info`).catch(() => null);
+    if (response && response.ok) {
+      const data = await response.json();
+      res.json(data);
+    } else {
+      res.json({ username: 'Bagbot Elite', avatarURL: 'https://cdn.discordapp.com/embed/avatars/0.png' });
+    }
+  } catch (error) {
+    res.json({ username: 'Bagbot Elite', avatarURL: 'https://cdn.discordapp.com/embed/avatars/0.png' });
+  }
+});
+
+// Changer l'avatar du bot globalement
+app.post('/api/bot/avatar', async (req, res) => {
+  try {
+    const { avatar_url } = req.body;
+    const botApiPort = process.env.BOT_API_PORT || 49602;
+    const response = await fetch(`http://127.0.0.1:${botApiPort}/bot/avatar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ avatar_url })
+    }).catch(() => null);
+
+    if (response && response.ok) {
+      const data = await response.json();
+      res.json(data);
+    } else {
+      res.status(500).json({ error: 'Erreur lors du changement d\'avatar' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- API DE CONFIGURATION SQLITE ---
 
 // 1. Obtenir toute la configuration d'un serveur
@@ -253,11 +291,17 @@ app.get('/api/config', (req, res) => {
         welcome_color: '#00FF00',
         welcome_thumbnail: 1,
         welcome_image: null,
+        welcome_author_name: null,
+        welcome_author_icon: null,
+        welcome_footer: null,
         leave_title: '👋 Au revoir',
         leave_desc: 'Au revoir {user} !',
         leave_color: '#FF0000',
         leave_thumbnail: 1,
-        leave_image: null
+        leave_image: null,
+        leave_author_name: null,
+        leave_author_icon: null,
+        leave_footer: null
       };
     }
 
@@ -317,20 +361,20 @@ app.post('/api/config/welcome-leave', (req, res) => {
 
     const {
       welcome_channel, leave_channel, welcome_title, welcome_desc,
-      welcome_color, welcome_thumbnail, welcome_image, leave_title, leave_desc,
-      leave_color, leave_thumbnail, leave_image
+      welcome_color, welcome_thumbnail, welcome_image, welcome_author_name, welcome_author_icon, welcome_footer,
+      leave_title, leave_desc, leave_color, leave_thumbnail, leave_image, leave_author_name, leave_author_icon, leave_footer
     } = req.body;
 
     db.prepare(`
       INSERT OR REPLACE INTO welcome_leave (
         guild_id, welcome_channel, leave_channel, welcome_title, welcome_desc,
-        welcome_color, welcome_thumbnail, welcome_image, leave_title, leave_desc,
-        leave_color, leave_thumbnail, leave_image
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        welcome_color, welcome_thumbnail, welcome_image, welcome_author_name, welcome_author_icon, welcome_footer,
+        leave_title, leave_desc, leave_color, leave_thumbnail, leave_image, leave_author_name, leave_author_icon, leave_footer
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       guildId, welcome_channel || null, leave_channel || null, welcome_title || '', welcome_desc || '',
-      welcome_color || '#00FF00', welcome_thumbnail ? 1 : 0, welcome_image || null, leave_title || '', leave_desc || '',
-      leave_color || '#FF0000', leave_thumbnail ? 1 : 0, leave_image || null
+      welcome_color || '#00FF00', welcome_thumbnail ? 1 : 0, welcome_image || null, welcome_author_name || null, welcome_author_icon || null, welcome_footer || null,
+      leave_title || '', leave_desc || '', leave_color || '#FF0000', leave_thumbnail ? 1 : 0, leave_image || null, leave_author_name || null, leave_author_icon || null, leave_footer || null
     );
 
     res.json({ success: true });

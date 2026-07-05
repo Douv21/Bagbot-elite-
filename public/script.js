@@ -35,7 +35,10 @@ document.addEventListener('DOMContentLoaded', () => {
     desc: 'Bienvenue {user} sur le serveur !',
     color: '#00ff00',
     thumbnail: true,
-    image_url: ''
+    image_url: '',
+    author_name: '',
+    author_icon: '',
+    footer: ''
   };
   let leaveData = {
     channel_id: '',
@@ -43,7 +46,10 @@ document.addEventListener('DOMContentLoaded', () => {
     desc: 'Au revoir {user} !',
     color: '#ff0000',
     thumbnail: true,
-    image_url: ''
+    image_url: '',
+    author_name: '',
+    author_icon: '',
+    footer: ''
   };
 
   // Tab switching logic
@@ -209,6 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function loadGuildConfiguration() {
+    fetchBotInfo();
     fetch('/api/config')
       .then(res => res.json())
       .then(config => {
@@ -220,7 +227,10 @@ document.addEventListener('DOMContentLoaded', () => {
           desc: wl.welcome_desc || 'Bienvenue {user} sur le serveur !',
           color: wl.welcome_color || '#00ff00',
           thumbnail: wl.welcome_thumbnail !== undefined ? !!wl.welcome_thumbnail : true,
-          image_url: wl.welcome_image || ''
+          image_url: wl.welcome_image || '',
+          author_name: wl.welcome_author_name || '',
+          author_icon: wl.welcome_author_icon || '',
+          footer: wl.welcome_footer || ''
         };
         leaveData = {
           channel_id: wl.leave_channel || '',
@@ -228,7 +238,10 @@ document.addEventListener('DOMContentLoaded', () => {
           desc: wl.leave_desc || 'Au revoir {user} !',
           color: wl.leave_color || '#ff0000',
           thumbnail: wl.leave_thumbnail !== undefined ? !!wl.leave_thumbnail : true,
-          image_url: wl.leave_image || ''
+          image_url: wl.leave_image || '',
+          author_name: wl.leave_author_name || '',
+          author_icon: wl.leave_author_icon || '',
+          footer: wl.leave_footer || ''
         };
         updateInteractiveEditor();
 
@@ -275,6 +288,22 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('discord-left-bar').style.borderColor = data.color;
     document.getElementById('embed-thumbnail-checkbox').checked = data.thumbnail;
     
+    // Author Name and Icon
+    document.getElementById('embed-author-name-input').value = data.author_name;
+    document.getElementById('embed-author-icon-input').value = data.author_icon;
+    const authorImg = document.getElementById('embed-author-icon-img');
+    if (data.author_icon) {
+      authorImg.src = data.author_icon;
+      authorImg.style.display = 'block';
+      document.getElementById('embed-author-icon-input').style.display = 'block';
+    } else {
+      authorImg.style.display = 'none';
+      document.getElementById('embed-author-icon-input').style.display = 'none';
+    }
+
+    // Footer
+    document.getElementById('embed-footer-input').value = data.footer;
+
     if (data.thumbnail) {
       document.getElementById('discord-thumbnail-img').style.display = 'block';
       document.getElementById('thumbnail-toggle-text').textContent = 'Photo Active';
@@ -297,6 +326,19 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('embed-image-input').value = '';
       document.getElementById('embed-image-input').style.display = 'none';
     }
+  }
+
+  function fetchBotInfo() {
+    fetch('/api/bot/info')
+      .then(res => res.json())
+      .then(info => {
+        const avatarUrl = info.avatarURL || 'https://cdn.discordapp.com/embed/avatars/0.png';
+        document.getElementById('bot-avatar-preview').src = avatarUrl;
+        document.querySelectorAll('.discord-bot-name').forEach(el => {
+          el.textContent = info.username || 'Bagbot Elite';
+        });
+      })
+      .catch(console.error);
   }
 
   document.getElementById('edit-mode-select').addEventListener('change', updateInteractiveEditor);
@@ -336,6 +378,61 @@ document.addEventListener('DOMContentLoaded', () => {
       welcomeData.desc = e.target.value;
     } else {
       leaveData.desc = e.target.value;
+    }
+  });
+
+  document.getElementById('embed-author-name-input').addEventListener('input', (e) => {
+    const mode = document.getElementById('edit-mode-select').value;
+    if (mode === 'welcome') {
+      welcomeData.author_name = e.target.value;
+    } else {
+      leaveData.author_name = e.target.value;
+    }
+  });
+
+  document.getElementById('discord-author-box').addEventListener('click', (e) => {
+    if (e.target.id === 'embed-author-name-input' || e.target.id === 'embed-author-icon-input') return;
+    const iconInput = document.getElementById('embed-author-icon-input');
+    if (iconInput.style.display === 'none') {
+      iconInput.style.display = 'block';
+      iconInput.focus();
+    } else {
+      if (!iconInput.value) {
+        iconInput.style.display = 'none';
+      }
+    }
+  });
+
+  document.getElementById('embed-author-icon-input').addEventListener('input', (e) => {
+    const mode = document.getElementById('edit-mode-select').value;
+    const url = e.target.value;
+    if (mode === 'welcome') {
+      welcomeData.author_icon = url;
+    } else {
+      leaveData.author_icon = url;
+    }
+    
+    const img = document.getElementById('embed-author-icon-img');
+    if (url) {
+      img.src = url;
+      img.style.display = 'block';
+    } else {
+      img.style.display = 'none';
+    }
+  });
+
+  document.getElementById('embed-author-icon-input').addEventListener('blur', (e) => {
+    if (!e.target.value) {
+      e.target.style.display = 'none';
+    }
+  });
+
+  document.getElementById('embed-footer-input').addEventListener('input', (e) => {
+    const mode = document.getElementById('edit-mode-select').value;
+    if (mode === 'welcome') {
+      welcomeData.footer = e.target.value;
+    } else {
+      leaveData.footer = e.target.value;
     }
   });
 
@@ -386,6 +483,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  document.getElementById('btn-change-bot-avatar').addEventListener('click', () => {
+    const urlInput = document.getElementById('bot-avatar-url-input');
+    if (urlInput.style.display === 'none') {
+      urlInput.style.display = 'block';
+      urlInput.focus();
+    } else {
+      if (!urlInput.value) {
+        urlInput.style.display = 'none';
+      }
+    }
+  });
+
+  document.getElementById('bot-avatar-url-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const avatar_url = e.target.value;
+      if (!avatar_url) return;
+      
+      showToast('Mise à jour de l\'avatar du bot...');
+      fetch('/api/bot/avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar_url })
+      })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          showToast('Avatar du bot mis à jour avec succès !');
+          e.target.value = '';
+          e.target.style.display = 'none';
+          fetchBotInfo();
+        } else {
+          showToast('Erreur: ' + (resData.error || 'inconnue'), true);
+        }
+      })
+      .catch(err => showToast('Erreur: ' + err.message, true));
+    }
+  });
+
   // --- SUBMISSIONS ---
 
   // 1. Welcome / Leave
@@ -398,13 +534,19 @@ document.addEventListener('DOMContentLoaded', () => {
       welcome_color: welcomeData.color,
       welcome_thumbnail: welcomeData.thumbnail,
       welcome_image: welcomeData.image_url,
+      welcome_author_name: welcomeData.author_name,
+      welcome_author_icon: welcomeData.author_icon,
+      welcome_footer: welcomeData.footer,
 
       leave_channel: leaveData.channel_id,
       leave_title: leaveData.title,
       leave_desc: leaveData.desc,
       leave_color: leaveData.color,
       leave_thumbnail: leaveData.thumbnail,
-      leave_image: leaveData.image_url
+      leave_image: leaveData.image_url,
+      leave_author_name: leaveData.author_name,
+      leave_author_icon: leaveData.author_icon,
+      leave_footer: leaveData.footer
     };
 
     saveConfig('/api/config/welcome-leave', data);
