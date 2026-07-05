@@ -102,7 +102,7 @@ client.once('ready', async () => {
 // API server pour exposer les guilds du bot
 const express = require('express');
 const apiApp = express();
-const API_PORT = process.env.BOT_API_PORT || 49502;
+const API_PORT = process.env.BOT_API_PORT || 49602;
 
 apiApp.get('/guilds', (req, res) => {
   const guilds = client.guilds.cache.map(guild => ({

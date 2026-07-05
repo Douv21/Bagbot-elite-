@@ -5,7 +5,7 @@ const path = require('path');
 const { db } = require('./database/db');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 49601;
 
 // Trust proxy (pour HTTPS/Nginx)
 app.set('trust proxy', 1);
@@ -37,7 +37,7 @@ app.get('/', (req, res) => {
 // Route de connexion Discord OAuth2
 app.get('/login', (req, res) => {
   const clientId = process.env.DISCORD_CLIENT_ID;
-  const redirectUri = encodeURIComponent(process.env.DISCORD_CALLBACK_URL || `http://192.168.1.133:49501/callback`);
+  const redirectUri = encodeURIComponent(process.env.DISCORD_CALLBACK_URL || `http://192.168.1.133:49601/callback`);
   const scope = encodeURIComponent('identify guilds guilds.members.read');
   res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`);
 });
@@ -60,7 +60,7 @@ app.get('/callback', async (req, res) => {
         client_secret: process.env.DISCORD_CLIENT_SECRET,
         grant_type: 'authorization_code',
         code: code,
-        redirect_uri: process.env.DISCORD_CALLBACK_URL || `http://192.168.1.133:49501/callback`,
+        redirect_uri: process.env.DISCORD_CALLBACK_URL || `http://192.168.1.133:49601/callback`,
       }),
     });
 
@@ -142,7 +142,7 @@ app.get('/api/guilds', async (req, res) => {
     const filteredGuilds = [];
 
     // Récupérer les serveurs où le bot est présent via l'API locale du bot
-    const botApiPort = process.env.BOT_API_PORT || 49502;
+    const botApiPort = process.env.BOT_API_PORT || 49602;
     const botGuildsResponse = await fetch(`http://127.0.0.1:${botApiPort}/guilds`).catch(() => null);
 
     let botGuilds = [];
@@ -198,7 +198,7 @@ app.get('/api/channels', async (req, res) => {
     if (!req.session.user || !req.session.selectedGuild) {
       return res.json([]);
     }
-    const botApiPort = process.env.BOT_API_PORT || 49502;
+    const botApiPort = process.env.BOT_API_PORT || 49602;
     const response = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${req.session.selectedGuild}/channels`).catch(() => null);
     if (response && response.ok) {
       const channels = await response.json();
@@ -218,7 +218,7 @@ app.get('/api/roles', async (req, res) => {
     if (!req.session.user || !req.session.selectedGuild) {
       return res.json([]);
     }
-    const botApiPort = process.env.BOT_API_PORT || 49502;
+    const botApiPort = process.env.BOT_API_PORT || 49602;
     const response = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${req.session.selectedGuild}/roles`).catch(() => null);
     if (response && response.ok) {
       const roles = await response.json();
