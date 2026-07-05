@@ -64,6 +64,7 @@
         <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique</button>
         <button class="tab-btn" data-tab="tab-leveling"><i class="fa-solid fa-arrow-trend-up"></i> Niveaux & Rôles</button>
         <button class="tab-btn" data-tab="tab-gifs"><i class="fa-solid fa-file-video"></i> GIFs d'action</button>
+        <button class="tab-btn" data-tab="tab-game"><i class="fa-solid fa-gamepad"></i> Jeu Mot Caché</button>
       </aside>
 
       <!-- Form Content -->
@@ -205,14 +206,25 @@
             <h2 class="section-title"><i class="fa-solid fa-mask"></i> Système de Confessions Anonymes</h2>
             <form id="form-confessions" class="glass-form">
               <div class="card glass">
-                <p>Permettez à vos membres d'envoyer des confessions de manière totalement anonyme via la commande `/confesser`.</p>
-                <div class="form-group">
-                  <label for="confessions_channel">Salon des confessions :</label>
-                  <select id="confessions_channel" class="channel-select">
-                    <option value="">Désactivé</option>
-                  </select>
-                  <small class="form-help">Les confessions anonymes seront publiées dans ce salon.</small>
-                </div>
+                <p>Permettez à vos membres d'envoyer des confessions de manière totalement anonyme via la commande `/confesser` dans un ou plusieurs salons configurés.</p>
+                
+                <table class="config-table">
+                  <thead>
+                    <tr>
+                      <th>Salon cible</th>
+                      <th>Nom personnalisé de l'embed</th>
+                      <th style="width: 250px;">Activer fil de discussion anonyme (Thread)</th>
+                      <th style="width: 80px;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="confessions-list">
+                    <!-- Dynamic rows will be inserted here -->
+                  </tbody>
+                </table>
+                
+                <button type="button" class="btn btn-add" id="btn-add-confession-row" style="margin-top: 15px;">
+                  <i class="fa-solid fa-plus"></i> Ajouter un salon de confession
+                </button>
               </div>
               <div class="actions-bar">
                 <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer confessions</button>
@@ -498,6 +510,64 @@
               </form>
             </div>
           </div>
+
+          <!-- Tab: Jeu Mot Caché -->
+          <div id="tab-game" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-gamepad"></i> Jeu du Mot Caché</h2>
+            <form id="form-game" class="glass-form">
+              <div class="card glass">
+                <p>Configurez le jeu du mot ou phrase cachée. Les membres débloquent des lettres au hasard en parlant et essaient de deviner le mot pour remporter des récompenses.</p>
+                
+                <div class="form-row" style="margin-bottom: 15px;">
+                  <div class="form-group checkbox-group">
+                    <label class="switch-label">
+                      <input type="checkbox" id="game_is_active">
+                      <span class="slider"></span>
+                      Activer le jeu du mot caché
+                    </label>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="game_secret_phrase">Mot ou Phrase secrète :</label>
+                  <input type="text" id="game_secret_phrase" placeholder="EXEMPLE: BONJOUR LE MONDE" style="text-transform: uppercase;">
+                  <small class="form-help">Les lettres de la phrase seront masquées par des tirets. Les symboles (comme ?, ;, !, -, etc.) s'affichent automatiquement en clair.</small>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="game_reward_money">Récompense en pièces (Argent) :</label>
+                    <input type="number" id="game_reward_money" min="0" value="0">
+                  </div>
+                  <div class="form-group">
+                    <label for="game_reward_xp">Récompense en XP :</label>
+                    <input type="number" id="game_reward_xp" min="0" value="0">
+                  </div>
+                  <div class="form-group">
+                    <label for="game_reward_role_id">Rôle de récompense :</label>
+                    <select id="game_reward_role_id" class="role-select">
+                      <option value="">Aucun rôle</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row" style="margin-top: 15px;">
+                  <div class="form-group checkbox-group">
+                    <label class="switch-label" style="color: #ff4757;">
+                      <input type="checkbox" id="game_reset_progress">
+                      <span class="slider"></span>
+                      Réinitialiser la progression des membres (Recommandé si vous modifiez la phrase)
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="actions-bar">
+                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer & Lancer le Jeu</button>
+              </div>
+            </form>
+          </div>
+        </div>
         </div>
       </section>
     </main>

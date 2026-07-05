@@ -18,12 +18,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const formAddShopItem = document.getElementById('form-add-shop-item');
   const formAddLevelReward = document.getElementById('form-add-level-reward');
   const formLevelingSettings = document.getElementById('form-leveling-settings');
+  const formGame = document.getElementById('form-game');
 
   // Lists
   const shopItemsList = document.getElementById('shop-items-list');
   const levelRewardsList = document.getElementById('level-rewards-list');
+  const confessionsList = document.getElementById('confessions-list');
 
   // State
+  let confessionsListState = [];
   let currentUser = null;
   let channelsList = [];
   let rolesList = [];
@@ -247,9 +250,18 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         updateInteractiveEditor();
 
-        // Confessions
-        const conf = config.confession || {};
-        document.getElementById('confessions_channel').value = conf.channel_id || '';
+        // Confessions (salons multiples)
+        confessionsListState = config.confessions || [];
+        renderConfessions(confessionsListState);
+
+        // Jeu Mot Caché
+        const game = config.game_config || {};
+        document.getElementById('game_is_active').checked = !!game.is_active;
+        document.getElementById('game_secret_phrase').value = game.secret_phrase || '';
+        document.getElementById('game_reward_money').value = game.reward_money ?? 0;
+        document.getElementById('game_reward_xp').value = game.reward_xp ?? 0;
+        document.getElementById('game_reward_role_id').value = game.reward_role_id || '';
+        document.getElementById('game_reset_progress').checked = false;
 
         // Quarantaine
         const quar = config.quarantine || {};
@@ -570,8 +582,132 @@ document.addEventListener('DOMContentLoaded', () => {
   // 2. Confessions
   formConfessions.addEventListener('submit', (e) => {
     e.preventDefault();
-    const channel_id = document.getElementById('confessions_channel').value;
-    saveConfig('/api/config/confessions', { channel_id });
+    const validConfessions = confessionsListState.filter(c => c.channel_id);
+    saveConfig('/api/config/confessions', { channels: validConfessions });
+  });
+
+  // Ajouter une ligne de confession
+  document.getElementById('btn-add-confession-row').addEventListener('click', () => {
+    confessionsListState.push({
+      channel_id: '',
+      confession_name: '💬 Confession Anonyme',
+      use_thread: 0
+    });
+    renderConfessions(confessionsListState);
+  });
+
+  function renderConfessions(channels) {
+    confessionsList.innerHTML = '';
+    
+    if (channels.length === 0) {
+      confessionsList.innerHTML = `
+        <tr>
+          <td colspan="4" class="text-center" style="color: #8e9297;">Aucun salon de confession configuré. Cliquez sur le bouton ci-dessous pour en ajouter un.</td>
+        </tr>
+      `;
+      return;
+    }
+    
+    channels.forEach((ch, idx) => {
+      const row = document.createElement('tr');
+      
+      // Target channel select
+      const tdChannel = document.createElement('td');
+      const select = document.createElement('select');
+      select.className = 'inner-select';
+      select.required = true;
+      select.innerHTML = '<option value="">Sélectionner un salon</option>';
+      channelsList.forEach(c => {
+        if (c.type === 0 || c.type === 5) {
+          const option = document.createElement('option');
+          option.value = c.id;
+          option.textContent = `# ${c.name}`;
+          if (c.id === ch.channel_id) option.selected = true;
+          select.appendChild(option);
+        }
+      });
+      select.addEventListener('change', (e) => {
+        ch.channel_id = e.target.value;
+      });
+      tdChannel.appendChild(select);
+      
+      // Custom title input
+      const tdTitle = document.createElement('td');
+      const inputTitle = document.createElement('input');
+      inputTitle.type = 'text';
+      inputTitle.className = 'inner-input';
+      inputTitle.placeholder = 'ex: 💬 Confession Anonyme';
+      inputTitle.value = ch.confession_name || '💬 Confession Anonyme';
+      inputTitle.addEventListener('input', (e) => {
+        ch.confession_name = e.target.value;
+      });
+      tdTitle.appendChild(inputTitle);
+      
+      // Thread checkbox
+      const tdThread = document.createElement('td');
+      const labelSwitch = document.createElement('label');
+      labelSwitch.className = 'switch-label';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = ch.use_thread === 1;
+      checkbox.addEventListener('change', (e) => {
+        ch.use_thread = e.target.checked ? 1 : 0;
+      });
+      const spanSlider = document.createElement('span');
+      spanSlider.className = 'slider';
+      labelSwitch.appendChild(checkbox);
+      labelSwitch.appendChild(spanSlider);
+      tdThread.appendChild(labelSwitch);
+      
+      // Actions delete button
+      const tdActions = document.createElement('td');
+      const btnDel = document.createElement('button');
+      btnDel.type = 'button';
+      btnDel.className = 'btn-delete-gif';
+      btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
+      btnDel.addEventListener('click', () => {
+        confessionsListState.splice(idx, 1);
+        renderConfessions(confessionsListState);
+      });
+      tdActions.appendChild(btnDel);
+      
+      row.appendChild(tdChannel);
+      row.appendChild(tdTitle);
+      row.appendChild(tdThread);
+      row.appendChild(tdActions);
+      
+      confessionsList.appendChild(row);
+    });
+  }
+
+  // 7. Jeu du Mot Caché
+  formGame.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = {
+      is_active: document.getElementById('game_is_active').checked,
+      secret_phrase: document.getElementById('game_secret_phrase').value,
+      reward_money: parseInt(document.getElementById('game_reward_money').value) || 0,
+      reward_xp: parseInt(document.getElementById('game_reward_xp').value) || 0,
+      reward_role_id: document.getElementById('game_reward_role_id').value || null,
+      reset_progress: document.getElementById('game_reset_progress').checked
+    };
+
+    fetch('/api/config/game', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(resData => {
+      if (resData.success) {
+        showToast('Configuration du jeu enregistrée !');
+        document.getElementById('game_reset_progress').checked = false;
+        loadGuildConfiguration();
+      } else {
+        showToast('Erreur: ' + resData.error, true);
+      }
+    })
+    .catch(err => showToast('Erreur: ' + err.message, true));
   });
 
   // 3. Quarantaine

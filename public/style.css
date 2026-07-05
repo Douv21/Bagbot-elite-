@@ -951,3 +951,48 @@ body {
 .discord-avatar-container:hover::after {
   opacity: 1;
 }
+
+/* Table Inputs and selects */
+.inner-select, .inner-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  padding: 8px 12px !important;
+  border-radius: 4px !important;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.inner-select:focus, .inner-input:focus {
+  border-color: #5865f2 !important;
+}
+
+.config-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.config-table th, .config-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
+}
+
+.config-table th {
+  background: rgba(0, 0, 0, 0.4);
+  color: #b9bbbe;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.config-table tr:hover {
+  background: rgba(255, 255, 255, 0.01);
+}

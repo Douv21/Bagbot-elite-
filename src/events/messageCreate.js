@@ -21,6 +21,27 @@ module.exports = {
     const guildId = message.guild.id;
     const userId = message.author.id;
 
+    // --- FILTRAGE ET ANONYMISATION DES COMMENTAIRES DE CONFESSIONS ---
+    if (message.channel.isThread()) {
+      const parentId = message.channel.parentId;
+      if (parentId) {
+        const confessionChannel = db.prepare('SELECT * FROM confessions WHERE guild_id = ? AND channel_id = ?').get(guildId, parentId);
+        if (confessionChannel && confessionChannel.use_thread === 1) {
+          // Supprimer le message original pour préserver l'anonymat
+          await message.delete().catch(() => null);
+
+          // Renvoyer le message de manière anonyme
+          const anonEmbed = new EmbedBuilder()
+            .setDescription(message.content)
+            .setColor('#8E44AD')
+            .setTimestamp();
+          
+          await message.channel.send({ embeds: [anonEmbed] }).catch(console.error);
+          return; // Arrêter le traitement pour éviter le spam/XP sur ce message anonymisé
+        }
+      }
+    }
+
     // --- AUTOMODÉRATION ---
     
     // Ignorer l'automodération pour les administrateurs

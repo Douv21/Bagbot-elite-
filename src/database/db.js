@@ -60,9 +60,18 @@ function initDatabase() {
     CREATE TABLE IF NOT EXISTS confessions (
       guild_id TEXT,
       channel_id TEXT,
+      confession_name TEXT,
+      use_thread INTEGER DEFAULT 0,
       PRIMARY KEY (guild_id, channel_id)
     )
   `).run();
+
+  try {
+    db.prepare('ALTER TABLE confessions ADD COLUMN confession_name TEXT').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE confessions ADD COLUMN use_thread INTEGER DEFAULT 0').run();
+  } catch (e) {}
 
   // 6. Configuration de Bienvenue & Départ
   db.prepare(`
@@ -303,6 +312,21 @@ const deleteActionGif = (guildId, id) => {
   return db.prepare('DELETE FROM action_gifs WHERE guild_id = ? AND id = ?').run(guildId, id);
 };
 
+const getConfessions = (guildId) => {
+  return db.prepare('SELECT * FROM confessions WHERE guild_id = ?').all(guildId);
+};
+
+const addConfession = (guildId, channelId, confessionName, useThread) => {
+  return db.prepare(`
+    INSERT OR REPLACE INTO confessions (guild_id, channel_id, confession_name, use_thread)
+    VALUES (?, ?, ?, ?)
+  `).run(guildId, channelId, confessionName || 'Confession', useThread ? 1 : 0);
+};
+
+const deleteConfession = (guildId, channelId) => {
+  return db.prepare('DELETE FROM confessions WHERE guild_id = ? AND channel_id = ?').run(guildId, channelId);
+};
+
 module.exports = {
   db,
   initDatabase,
@@ -315,5 +339,8 @@ module.exports = {
   getActionGifs,
   getAllActionGifs,
   addActionGif,
-  deleteActionGif
+  deleteActionGif,
+  getConfessions,
+  addConfession,
+  deleteConfession
 };

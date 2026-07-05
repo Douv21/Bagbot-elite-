@@ -342,8 +342,14 @@ app.get('/api/config', (req, res) => {
     }
 
     // Confessions
-    const confessions = db.prepare('SELECT channel_id FROM confessions WHERE guild_id = ?').all(guildId);
+    const confessions = db.prepare('SELECT * FROM confessions WHERE guild_id = ?').all(guildId);
     const confessionChannel = confessions.length > 0 ? confessions[0].channel_id : null;
+
+    // Configuration Jeu Mot Caché
+    let gameConfig = db.prepare('SELECT * FROM game_config WHERE guild_id = ?').get(guildId);
+    if (!gameConfig) {
+      gameConfig = { secret_phrase: '', reward_money: 0, reward_xp: 0, reward_role_id: null, is_active: 0 };
+    }
 
     // Quarantaine
     let quarantine = db.prepare('SELECT * FROM quarantine_config WHERE guild_id = ?').get(guildId);
@@ -377,6 +383,8 @@ app.get('/api/config', (req, res) => {
     res.json({
       welcome_leave: welcomeLeave,
       confession: { channel_id: confessionChannel },
+      confessions: confessions,
+      game_config: gameConfig,
       quarantine: quarantine,
       logs: logs,
       shop: shopItems,
@@ -426,12 +434,23 @@ app.post('/api/config/confessions', (req, res) => {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { channel_id } = req.body;
-
-    db.prepare('DELETE FROM confessions WHERE guild_id = ?').run(guildId);
-    if (channel_id) {
-      db.prepare('INSERT INTO confessions (guild_id, channel_id) VALUES (?, ?)').run(guildId, channel_id);
+    const { channels } = req.body; // Un tableau de { channel_id, confession_name, use_thread }
+    if (!Array.isArray(channels)) {
+      return res.status(400).json({ error: 'Un tableau de salons est requis.' });
     }
+
+    db.transaction(() => {
+      db.prepare('DELETE FROM confessions WHERE guild_id = ?').run(guildId);
+      const stmt = db.prepare(`
+        INSERT INTO confessions (guild_id, channel_id, confession_name, use_thread)
+        VALUES (?, ?, ?, ?)
+      `);
+      for (const ch of channels) {
+        if (ch.channel_id) {
+          stmt.run(guildId, ch.channel_id, ch.confession_name || 'Confession Anonyme', ch.use_thread ? 1 : 0);
+        }
+      }
+    })();
 
     res.json({ success: true });
   } catch (error) {
@@ -576,6 +595,40 @@ app.post('/api/config/leveling', (req, res) => {
       announce_channel || 'current',
       announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !'
     );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 11. Sauvegarder la configuration du jeu Mot Caché
+app.post('/api/config/game', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { secret_phrase, reward_money, reward_xp, reward_role_id, is_active, reset_progress } = req.body;
+
+    const phraseUpper = (secret_phrase || '').toUpperCase();
+
+    db.prepare(`
+      INSERT OR REPLACE INTO game_config (guild_id, secret_phrase, reward_money, reward_xp, reward_role_id, is_active)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      guildId,
+      phraseUpper,
+      reward_money !== undefined ? parseInt(reward_money) : 0,
+      reward_xp !== undefined ? parseInt(reward_xp) : 0,
+      reward_role_id || null,
+      is_active ? 1 : 0
+    );
+
+    // Réinitialiser les lettres trouvées par les utilisateurs si demandé
+    if (reset_progress) {
+      db.prepare('DELETE FROM user_letters WHERE guild_id = ?').run(guildId);
+    }
 
     res.json({ success: true });
   } catch (error) {
