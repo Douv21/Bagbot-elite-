@@ -135,7 +135,7 @@ module.exports = {
               
               const gameEmbed = new EmbedBuilder()
                 .setTitle('🔍 Lettre Trouvée !')
-                .setDescription(`✨ Bravo <@${userId}> ! Tu as découvert la lettre **${newLetter}** du mot/phrase secret.\nUtilise \`/jeu statut\` pour voir tes lettres trouvées !`)
+                .setDescription(`✨ Bravo <@${userId}> ! Tu as découvert la lettre **${newLetter}** du mot/phrase secret.\nUtilise \`/mot-cache statut\` pour voir tes lettres trouvées !`)
                 .setColor('#F1C40F')
                 .setTimestamp();
               

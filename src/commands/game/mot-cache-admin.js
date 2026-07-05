@@ -3,8 +3,8 @@ const { db } = require('../../database/db');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('game-admin')
-    .setDescription('Administrer le jeu de devinette de mot/phrase (Staff uniquement)')
+    .setName('mot-cache-admin')
+    .setDescription('Administrer le jeu du mot caché (Staff uniquement)')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addSubcommand(subcommand =>
       subcommand
@@ -56,8 +56,8 @@ module.exports = {
       }
 
       const embed = new EmbedBuilder()
-        .setTitle('🎮 Nouveau Jeu de Devinette !')
-        .setDescription(`Le staff a configuré un mot/phrase mystère !\n\n**À deviner :**\n\`${display.trim()}\`\n\nParlez dans les salons textuels pour débloquer des lettres au hasard !\nUtilisez \`/jeu statut\` pour voir votre avancement et \`/jeu deviner <proposition>\` pour proposer une réponse.`)
+        .setTitle('🎮 Nouveau Jeu du Mot Caché !')
+        .setDescription(`Le staff a configuré un mot/phrase mystère !\n\n**À deviner :**\n\`${display.trim()}\`\n\nParlez dans les salons textuels pour débloquer des lettres au hasard !\nUtilisez \`/mot-cache statut\` pour voir votre avancement et \`/mot-cache deviner <proposition>\` pour proposer une réponse.`)
         .setColor('#F1C40F')
         .setTimestamp();
 

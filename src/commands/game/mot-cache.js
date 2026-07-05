@@ -4,12 +4,12 @@ const { addXP } = require('../../utils/helpers');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('jeu')
-    .setDescription('Jouer au jeu de devinette de mot/phrase mystère')
+    .setName('mot-cache')
+    .setDescription('Jouer au jeu du mot caché')
     .addSubcommand(subcommand =>
       subcommand
         .setName('statut')
-        .setDescription('Voir votre progression et le mot mystère actuel')
+        .setDescription('Voir votre progression et le mot caché actuel')
     )
     .addSubcommand(subcommand =>
       subcommand
@@ -26,7 +26,7 @@ module.exports = {
     const game = db.prepare('SELECT * FROM game_config WHERE guild_id = ? AND is_active = 1').get(guildId);
 
     if (!game) {
-      return interaction.reply({ content: '❌ Il n\'y a pas de jeu de devinette actif sur ce serveur en ce moment.', ephemeral: true });
+      return interaction.reply({ content: '❌ Il n\'y a pas de jeu du mot caché actif sur ce serveur en ce moment.', ephemeral: true });
     }
 
     if (subcommand === 'statut') {
@@ -56,7 +56,7 @@ module.exports = {
       }
 
       const embed = new EmbedBuilder()
-        .setTitle('🎮 Votre progression - Phrase Mystère')
+        .setTitle('🎮 Votre progression - Jeu du Mot Caché')
         .setDescription(`Voici votre grille personnalisée en fonction des lettres que vous avez trouvées :\n\n\`${display.trim()}\``)
         .setColor('#F1C40F')
         .addFields(
