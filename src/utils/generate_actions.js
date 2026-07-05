@@ -194,7 +194,7 @@ if (!fs.existsSync(targetDir)) {
 
 actions.forEach(act => {
   const content = `const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getEconomy, updateEconomy } = require('../../database/db');
+const { getEconomy, updateEconomy, getActionGifs } = require('../../database/db');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -252,6 +252,14 @@ module.exports = {
       .setColor(0x8B0000)
       .setAuthor({ name: author.username, iconURL: author.displayAvatarURL({ dynamic: true }) })
       .setTimestamp();
+
+    if (guildId) {
+      const gifs = getActionGifs(guildId, '${act.name}');
+      if (gifs.length > 0) {
+        const randomGif = gifs[Math.floor(Math.random() * gifs.length)].gif_url;
+        embed.setImage(randomGif);
+      }
+    }
 
     if (guildId) {
       embed.setDescription(\`\${actionMessage}\\n\\n💰 **+\${reward} pièces**  ·  ✨ **+\${karmaReward} Karma**\`);

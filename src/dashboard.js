@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
-const { db } = require('./database/db');
+const { db, getAllActionGifs, addActionGif, deleteActionGif } = require('./database/db');
 
 const app = express();
 const PORT = process.env.PORT || 49601;
@@ -252,10 +252,12 @@ app.get('/api/config', (req, res) => {
         welcome_desc: 'Bienvenue {user} sur le serveur !',
         welcome_color: '#00FF00',
         welcome_thumbnail: 1,
+        welcome_image: null,
         leave_title: '👋 Au revoir',
         leave_desc: 'Au revoir {user} !',
         leave_color: '#FF0000',
-        leave_thumbnail: 1
+        leave_thumbnail: 1,
+        leave_image: null
       };
     }
 
@@ -315,20 +317,20 @@ app.post('/api/config/welcome-leave', (req, res) => {
 
     const {
       welcome_channel, leave_channel, welcome_title, welcome_desc,
-      welcome_color, welcome_thumbnail, leave_title, leave_desc,
-      leave_color, leave_thumbnail
+      welcome_color, welcome_thumbnail, welcome_image, leave_title, leave_desc,
+      leave_color, leave_thumbnail, leave_image
     } = req.body;
 
     db.prepare(`
       INSERT OR REPLACE INTO welcome_leave (
         guild_id, welcome_channel, leave_channel, welcome_title, welcome_desc,
-        welcome_color, welcome_thumbnail, leave_title, leave_desc,
-        leave_color, leave_thumbnail
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        welcome_color, welcome_thumbnail, welcome_image, leave_title, leave_desc,
+        leave_color, leave_thumbnail, leave_image
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       guildId, welcome_channel || null, leave_channel || null, welcome_title || '', welcome_desc || '',
-      welcome_color || '#00FF00', welcome_thumbnail ? 1 : 0, leave_title || '', leave_desc || '',
-      leave_color || '#FF0000', leave_thumbnail ? 1 : 0
+      welcome_color || '#00FF00', welcome_thumbnail ? 1 : 0, welcome_image || null, leave_title || '', leave_desc || '',
+      leave_color || '#FF0000', leave_thumbnail ? 1 : 0, leave_image || null
     );
 
     res.json({ success: true });
@@ -495,6 +497,57 @@ app.post('/api/config/leveling', (req, res) => {
       announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !'
     );
 
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- API POUR LES GIFS D'ACTION ---
+
+// 11. Récupérer tous les GIFs d'action du serveur
+app.get('/api/config/action-gifs', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const gifs = getAllActionGifs(guildId);
+    res.json(gifs);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 12. Ajouter un GIF d'action
+app.post('/api/config/action-gifs/add', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { action_name, gif_url } = req.body;
+    if (!action_name || !gif_url) {
+      return res.status(400).json({ error: 'Nom de l\'action et URL du GIF requis' });
+    }
+
+    addActionGif(guildId, action_name, gif_url);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 13. Supprimer un GIF d'action
+app.post('/api/config/action-gifs/delete', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: 'ID requis' });
+
+    deleteActionGif(guildId, id);
     res.json({ success: true });
   } catch (error) {
     console.error(error);

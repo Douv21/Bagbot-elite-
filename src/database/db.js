@@ -74,12 +74,21 @@ function initDatabase() {
       welcome_desc TEXT,
       welcome_color TEXT DEFAULT '#00FF00',
       welcome_thumbnail INTEGER DEFAULT 1,
+      welcome_image TEXT,
       leave_title TEXT,
       leave_desc TEXT,
       leave_color TEXT DEFAULT '#FF0000',
-      leave_thumbnail INTEGER DEFAULT 1
+      leave_thumbnail INTEGER DEFAULT 1,
+      leave_image TEXT
     )
   `).run();
+
+  try {
+    db.prepare('ALTER TABLE welcome_leave ADD COLUMN welcome_image TEXT').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE welcome_leave ADD COLUMN leave_image TEXT').run();
+  } catch (e) {}
 
   // 7. Configuration de la Quarantaine
   db.prepare(`
@@ -176,6 +185,16 @@ function initDatabase() {
       announce_msg TEXT DEFAULT 'Bravo {user} ! Tu passes au niveau {level} !'
     )
   `).run();
+
+  // 16. GIFs pour les commandes d'action
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS action_gifs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT,
+      action_name TEXT,
+      gif_url TEXT
+    )
+  `).run();
 }
 
 // --- Fonctions utilitaires de base de données ---
@@ -234,6 +253,23 @@ const updateLevelingConfig = (guildId, data) => {
   db.prepare(`UPDATE leveling_config SET ${assignments} WHERE guild_id = ?`).run(...values, guildId);
 };
 
+// Action GIFs
+const getActionGifs = (guildId, actionName) => {
+  return db.prepare('SELECT * FROM action_gifs WHERE guild_id = ? AND action_name = ?').all(guildId, actionName);
+};
+
+const getAllActionGifs = (guildId) => {
+  return db.prepare('SELECT * FROM action_gifs WHERE guild_id = ?').all(guildId);
+};
+
+const addActionGif = (guildId, actionName, gifUrl) => {
+  return db.prepare('INSERT INTO action_gifs (guild_id, action_name, gif_url) VALUES (?, ?, ?)').run(guildId, actionName, gifUrl);
+};
+
+const deleteActionGif = (guildId, id) => {
+  return db.prepare('DELETE FROM action_gifs WHERE guild_id = ? AND id = ?').run(guildId, id);
+};
+
 module.exports = {
   db,
   initDatabase,
@@ -242,5 +278,9 @@ module.exports = {
   getLeveling,
   updateLeveling,
   getLevelingConfig,
-  updateLevelingConfig
+  updateLevelingConfig,
+  getActionGifs,
+  getAllActionGifs,
+  addActionGif,
+  deleteActionGif
 };

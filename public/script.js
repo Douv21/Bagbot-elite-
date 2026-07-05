@@ -28,6 +28,24 @@ document.addEventListener('DOMContentLoaded', () => {
   let channelsList = [];
   let rolesList = [];
 
+  // Interactive Welcome / Leave State
+  let welcomeData = {
+    channel_id: '',
+    title: '👋 Bienvenue',
+    desc: 'Bienvenue {user} sur le serveur !',
+    color: '#00ff00',
+    thumbnail: true,
+    image_url: ''
+  };
+  let leaveData = {
+    channel_id: '',
+    title: '👋 Au revoir',
+    desc: 'Au revoir {user} !',
+    color: '#ff0000',
+    thumbnail: true,
+    image_url: ''
+  };
+
   // Tab switching logic
   const tabBtns = document.querySelectorAll('.tab-btn');
   const tabContents = document.querySelectorAll('.tab-content');
@@ -39,6 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
       tabContents.forEach(c => c.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById(tabId).classList.add('active');
+      
+      if (tabId === 'tab-gifs') {
+        fetchAndRenderGifs();
+      }
     });
   });
 
@@ -192,17 +214,23 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(config => {
         // Welcome / Leave
         const wl = config.welcome_leave || {};
-        document.getElementById('welcome_channel').value = wl.welcome_channel || '';
-        document.getElementById('welcome_title').value = wl.welcome_title || '';
-        document.getElementById('welcome_desc').value = wl.welcome_desc || '';
-        document.getElementById('welcome_color').value = wl.welcome_color || '#00ff00';
-        document.getElementById('welcome_thumbnail').checked = !!wl.welcome_thumbnail;
-
-        document.getElementById('leave_channel').value = wl.leave_channel || '';
-        document.getElementById('leave_title').value = wl.leave_title || '';
-        document.getElementById('leave_desc').value = wl.leave_desc || '';
-        document.getElementById('leave_color').value = wl.leave_color || '#ff0000';
-        document.getElementById('leave_thumbnail').checked = !!wl.leave_thumbnail;
+        welcomeData = {
+          channel_id: wl.welcome_channel || '',
+          title: wl.welcome_title || '👋 Bienvenue',
+          desc: wl.welcome_desc || 'Bienvenue {user} sur le serveur !',
+          color: wl.welcome_color || '#00ff00',
+          thumbnail: wl.welcome_thumbnail !== undefined ? !!wl.welcome_thumbnail : true,
+          image_url: wl.welcome_image || ''
+        };
+        leaveData = {
+          channel_id: wl.leave_channel || '',
+          title: wl.leave_title || '👋 Au revoir',
+          desc: wl.leave_desc || 'Au revoir {user} !',
+          color: wl.leave_color || '#ff0000',
+          thumbnail: wl.leave_thumbnail !== undefined ? !!wl.leave_thumbnail : true,
+          image_url: wl.leave_image || ''
+        };
+        updateInteractiveEditor();
 
         // Confessions
         const conf = config.confession || {};
@@ -234,23 +262,149 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(console.error);
   }
 
+  // --- INTERACTIVE EMBED EDITOR BINDINGS ---
+
+  function updateInteractiveEditor() {
+    const mode = document.getElementById('edit-mode-select').value;
+    const data = mode === 'welcome' ? welcomeData : leaveData;
+
+    document.getElementById('target-channel-select').value = data.channel_id;
+    document.getElementById('embed-color-picker').value = data.color;
+    document.getElementById('embed-title-input').value = data.title;
+    document.getElementById('embed-desc-field').value = data.desc;
+    document.getElementById('discord-left-bar').style.borderColor = data.color;
+    document.getElementById('embed-thumbnail-checkbox').checked = data.thumbnail;
+    
+    if (data.thumbnail) {
+      document.getElementById('discord-thumbnail-img').style.display = 'block';
+      document.getElementById('thumbnail-toggle-text').textContent = 'Photo Active';
+      document.getElementById('discord-thumbnail-box').style.opacity = '1';
+    } else {
+      document.getElementById('discord-thumbnail-img').style.display = 'none';
+      document.getElementById('thumbnail-toggle-text').textContent = 'Masquée';
+      document.getElementById('discord-thumbnail-box').style.opacity = '0.6';
+    }
+
+    if (data.image_url) {
+      document.getElementById('discord-image-img').src = data.image_url;
+      document.getElementById('discord-image-img').style.display = 'block';
+      document.getElementById('discord-image-overlay').style.display = 'none';
+      document.getElementById('embed-image-input').value = data.image_url;
+      document.getElementById('embed-image-input').style.display = 'block';
+    } else {
+      document.getElementById('discord-image-img').style.display = 'none';
+      document.getElementById('discord-image-overlay').style.display = 'flex';
+      document.getElementById('embed-image-input').value = '';
+      document.getElementById('embed-image-input').style.display = 'none';
+    }
+  }
+
+  document.getElementById('edit-mode-select').addEventListener('change', updateInteractiveEditor);
+
+  document.getElementById('target-channel-select').addEventListener('change', (e) => {
+    const mode = document.getElementById('edit-mode-select').value;
+    if (mode === 'welcome') {
+      welcomeData.channel_id = e.target.value;
+    } else {
+      leaveData.channel_id = e.target.value;
+    }
+  });
+
+  document.getElementById('embed-color-picker').addEventListener('input', (e) => {
+    const mode = document.getElementById('edit-mode-select').value;
+    const color = e.target.value;
+    if (mode === 'welcome') {
+      welcomeData.color = color;
+    } else {
+      leaveData.color = color;
+    }
+    document.getElementById('discord-left-bar').style.borderColor = color;
+  });
+
+  document.getElementById('embed-title-input').addEventListener('input', (e) => {
+    const mode = document.getElementById('edit-mode-select').value;
+    if (mode === 'welcome') {
+      welcomeData.title = e.target.value;
+    } else {
+      leaveData.title = e.target.value;
+    }
+  });
+
+  document.getElementById('embed-desc-field').addEventListener('input', (e) => {
+    const mode = document.getElementById('edit-mode-select').value;
+    if (mode === 'welcome') {
+      welcomeData.desc = e.target.value;
+    } else {
+      leaveData.desc = e.target.value;
+    }
+  });
+
+  document.getElementById('discord-thumbnail-box').addEventListener('click', () => {
+    const mode = document.getElementById('edit-mode-select').value;
+    const data = mode === 'welcome' ? welcomeData : leaveData;
+    data.thumbnail = !data.thumbnail;
+    updateInteractiveEditor();
+  });
+
+  document.getElementById('discord-image-box').addEventListener('click', (e) => {
+    if (e.target.id === 'embed-image-input') return;
+    const input = document.getElementById('embed-image-input');
+    if (input.style.display === 'none') {
+      input.style.display = 'block';
+      input.focus();
+    } else {
+      if (!input.value) {
+        input.style.display = 'none';
+      }
+    }
+  });
+
+  document.getElementById('embed-image-input').addEventListener('input', (e) => {
+    const mode = document.getElementById('edit-mode-select').value;
+    const url = e.target.value;
+    if (mode === 'welcome') {
+      welcomeData.image_url = url;
+    } else {
+      leaveData.image_url = url;
+    }
+    
+    const img = document.getElementById('discord-image-img');
+    const overlay = document.getElementById('discord-image-overlay');
+    if (url) {
+      img.src = url;
+      img.style.display = 'block';
+      overlay.style.display = 'none';
+    } else {
+      img.style.display = 'none';
+      overlay.style.display = 'flex';
+    }
+  });
+
+  document.getElementById('embed-image-input').addEventListener('blur', (e) => {
+    if (!e.target.value) {
+      e.target.style.display = 'none';
+    }
+  });
+
   // --- SUBMISSIONS ---
 
   // 1. Welcome / Leave
   formWelcomeLeave.addEventListener('submit', (e) => {
     e.preventDefault();
     const data = {
-      welcome_channel: document.getElementById('welcome_channel').value,
-      welcome_title: document.getElementById('welcome_title').value,
-      welcome_desc: document.getElementById('welcome_desc').value,
-      welcome_color: document.getElementById('welcome_color').value,
-      welcome_thumbnail: document.getElementById('welcome_thumbnail').checked,
+      welcome_channel: welcomeData.channel_id,
+      welcome_title: welcomeData.title,
+      welcome_desc: welcomeData.desc,
+      welcome_color: welcomeData.color,
+      welcome_thumbnail: welcomeData.thumbnail,
+      welcome_image: welcomeData.image_url,
 
-      leave_channel: document.getElementById('leave_channel').value,
-      leave_title: document.getElementById('leave_title').value,
-      leave_desc: document.getElementById('leave_desc').value,
-      leave_color: document.getElementById('leave_color').value,
-      leave_thumbnail: document.getElementById('leave_thumbnail').checked
+      leave_channel: leaveData.channel_id,
+      leave_title: leaveData.title,
+      leave_desc: leaveData.desc,
+      leave_color: leaveData.color,
+      leave_thumbnail: leaveData.thumbnail,
+      leave_image: leaveData.image_url
     };
 
     saveConfig('/api/config/welcome-leave', data);
@@ -472,4 +626,93 @@ document.addEventListener('DOMContentLoaded', () => {
       toast.classList.remove('show');
     }, 3000);
   }
+
+  // --- ACTION GIFS MANAGER ---
+
+  function fetchAndRenderGifs() {
+    const selectedAction = document.getElementById('select-action-view').value;
+    const container = document.getElementById('gifs-grid-container');
+    container.innerHTML = '<p class="text-center" style="grid-column: 1/-1;">Chargement des GIFs...</p>';
+    
+    fetch('/api/config/action-gifs')
+      .then(res => res.json())
+      .then(gifs => {
+        const actionGifs = gifs.filter(g => g.action_name === selectedAction);
+        container.innerHTML = '';
+        if (actionGifs.length === 0) {
+          container.innerHTML = '<p class="text-center" style="grid-column: 1/-1; color: #8e9297;">Aucun GIF configuré pour cette action.</p>';
+          return;
+        }
+        
+        actionGifs.forEach(gif => {
+          const card = document.createElement('div');
+          card.className = 'gif-card';
+          
+          const img = document.createElement('img');
+          img.src = gif.gif_url;
+          img.alt = gif.action_name;
+          card.appendChild(img);
+          
+          const overlay = document.createElement('div');
+          overlay.className = 'gif-card-overlay';
+          
+          const delBtn = document.createElement('button');
+          delBtn.className = 'btn-delete-gif';
+          delBtn.innerHTML = '<i class="fa-solid fa-trash"></i> Supprimer';
+          delBtn.addEventListener('click', () => {
+            if (confirm('Voulez-vous supprimer ce GIF ?')) {
+              fetch('/api/config/action-gifs/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: gif.id })
+              })
+              .then(res => res.json())
+              .then(resData => {
+                if (resData.success) {
+                  showToast('GIF supprimé !');
+                  fetchAndRenderGifs();
+                } else {
+                  alert('Erreur lors de la suppression.');
+                }
+              });
+            }
+          });
+          
+          overlay.appendChild(delBtn);
+          card.appendChild(overlay);
+          container.appendChild(card);
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        container.innerHTML = '<p class="text-center" style="grid-column: 1/-1; color: var(--danger-color);">Erreur de chargement des GIFs.</p>';
+      });
+  }
+
+  document.getElementById('select-action-view').addEventListener('change', fetchAndRenderGifs);
+
+  const formAddGif = document.getElementById('form-add-gif');
+  formAddGif.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const action_name = document.getElementById('gif_action_name').value;
+    const gif_url = document.getElementById('gif_url').value;
+    
+    fetch('/api/config/action-gifs/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action_name, gif_url })
+    })
+    .then(res => res.json())
+    .then(resData => {
+      if (resData.success) {
+        showToast('GIF ajouté avec succès !');
+        document.getElementById('gif_url').value = '';
+        document.getElementById('select-action-view').value = action_name;
+        fetchAndRenderGifs();
+      } else {
+        alert('Erreur lors de l\'ajout du GIF.');
+      }
+    })
+    .catch(console.error);
+  });
 });

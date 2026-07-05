@@ -26,6 +26,10 @@ module.exports = {
           embed.setThumbnail(member.user.displayAvatarURL({ dynamic: true }));
         }
 
+        if (config.leave_image) {
+          embed.setImage(config.leave_image);
+        }
+
         channel.send({ embeds: [embed] }).catch(console.error);
       }
     }

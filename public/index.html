@@ -63,6 +63,7 @@
         <button class="tab-btn" data-tab="tab-logs"><i class="fa-solid fa-list-check"></i> Logs d'activité</button>
         <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique</button>
         <button class="tab-btn" data-tab="tab-leveling"><i class="fa-solid fa-arrow-trend-up"></i> Niveaux & Rôles</button>
+        <button class="tab-btn" data-tab="tab-gifs"><i class="fa-solid fa-file-video"></i> GIFs d'action</button>
       </aside>
 
       <!-- Form Content -->
@@ -76,68 +77,87 @@
         <div id="config-forms" style="display: none;">
           <!-- Tab: Welcome / Leave -->
           <div id="tab-welcome" class="tab-content active">
-            <h2 class="section-title"><i class="fa-solid fa-door-open"></i> Configuration des messages d'arrivée & de départ</h2>
+            <h2 class="section-title"><i class="fa-solid fa-door-open"></i> Éditeur interactif d'Arrivées & Départs</h2>
+            
             <form id="form-welcome-leave" class="glass-form">
-              <!-- Welcome Settings -->
-              <div class="form-section card glass">
-                <h3><i class="fa-solid fa-user-plus text-success"></i> Message de Bienvenue (Welcome)</h3>
+              <!-- Selection and Global Config -->
+              <div class="card glass form-row" style="margin-bottom: 20px;">
                 <div class="form-group">
-                  <label for="welcome_channel">Salon d'envoi :</label>
-                  <select id="welcome_channel" name="welcome_channel" class="channel-select">
+                  <label for="edit-mode-select"><i class="fa-solid fa-pen-to-square"></i> Mode d'édition :</label>
+                  <select id="edit-mode-select">
+                    <option value="welcome" selected>Message de Bienvenue (Welcome)</option>
+                    <option value="leave">Message de Départ (Leave)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="target-channel-select"><i class="fa-solid fa-hashtag"></i> Salon d'envoi :</label>
+                  <select id="target-channel-select" class="channel-select">
                     <option value="">Désactivé</option>
                   </select>
                 </div>
                 <div class="form-group">
-                  <label for="welcome_title">Titre de l'embed :</label>
-                  <input type="text" id="welcome_title" name="welcome_title" placeholder="Ex: Bienvenue sur le serveur !">
+                  <label for="embed-color-picker"><i class="fa-solid fa-palette"></i> Couleur de la barre :</label>
+                  <input type="color" id="embed-color-picker" value="#00ff00" style="padding: 2px; height: 42px; width: 100%;">
                 </div>
-                <div class="form-group">
-                  <label for="welcome_desc">Description (Message) :</label>
-                  <textarea id="welcome_desc" name="welcome_desc" rows="4" placeholder="Ex: Bienvenue {user} ! Passe un super moment avec nous ! Utilisez {memberCount} pour afficher le nombre de membres."></textarea>
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="welcome_color">Couleur de l'embed :</label>
-                    <input type="color" id="welcome_color" name="welcome_color" value="#00ff00">
+              </div>
+
+              <!-- Interactive Discord Embed Preview -->
+              <div class="card glass discord-preview-container">
+                <div class="discord-message">
+                  <div class="discord-avatar-container">
+                    <img class="discord-avatar" id="bot-avatar-preview" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot Avatar">
                   </div>
-                  <div class="form-group checkbox-group">
-                    <input type="checkbox" id="welcome_thumbnail" name="welcome_thumbnail" checked>
-                    <label for="welcome_thumbnail">Afficher la photo de profil du membre</label>
+                  <div class="discord-message-content">
+                    <div class="discord-message-header">
+                      <span class="discord-bot-name">Bagbot Elite</span>
+                      <span class="discord-bot-tag">BOT</span>
+                      <span class="discord-timestamp">Aujourd'hui à 08:31</span>
+                    </div>
+
+                    <!-- Embed Card -->
+                    <div class="discord-embed" id="discord-embed-card">
+                      <!-- Left color bar -->
+                      <div class="discord-embed-left-bar" id="discord-left-bar"></div>
+                      
+                      <div class="discord-embed-body-content">
+                        <div class="discord-embed-main-text">
+                          <!-- Title Input -->
+                          <div class="discord-embed-title-container">
+                            <input type="text" id="embed-title-input" class="discord-embed-title-field" placeholder="Cliquez pour ajouter un titre..." value="👋 Bienvenue">
+                          </div>
+                          <!-- Description Textarea -->
+                          <div class="discord-embed-desc-container">
+                            <textarea id="embed-desc-field" class="discord-embed-desc-field" placeholder="Cliquez pour écrire le message..." rows="3">Bienvenue {user} sur le serveur !</textarea>
+                          </div>
+                        </div>
+
+                        <!-- Thumbnail Area -->
+                        <div class="discord-embed-thumbnail" id="discord-thumbnail-box">
+                          <img id="discord-thumbnail-img" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Avatar">
+                          <div class="thumbnail-toggle-overlay">
+                            <input type="checkbox" id="embed-thumbnail-checkbox" checked style="display:none;">
+                            <span id="thumbnail-toggle-text">Photo Active</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Large Image Area -->
+                      <div class="discord-embed-image-box" id="discord-image-box">
+                        <img id="discord-image-img" src="" alt="" style="display:none;">
+                        <div class="discord-image-input-overlay" id="discord-image-overlay">
+                          <i class="fa-solid fa-image"></i>
+                          <span>Cliquez pour définir une grande image (URL)</span>
+                        </div>
+                        <input type="url" id="embed-image-input" placeholder="Lien de la grande image (optionnel)..." style="display:none;" class="discord-embed-image-url-field">
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Leave Settings -->
-              <div class="form-section card glass">
-                <h3><i class="fa-solid fa-user-minus text-danger"></i> Message de Départ (Leave)</h3>
-                <div class="form-group">
-                  <label for="leave_channel">Salon d'envoi :</label>
-                  <select id="leave_channel" name="leave_channel" class="channel-select">
-                    <option value="">Désactivé</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="leave_title">Titre de l'embed :</label>
-                  <input type="text" id="leave_title" name="leave_title" placeholder="Ex: Un membre nous a quitté">
-                </div>
-                <div class="form-group">
-                  <label for="leave_desc">Description (Message) :</label>
-                  <textarea id="leave_desc" name="leave_desc" rows="4" placeholder="Ex: {user} a quitté le serveur. À bientôt !"></textarea>
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="leave_color">Couleur de l'embed :</label>
-                    <input type="color" id="leave_color" name="leave_color" value="#ff0000">
-                  </div>
-                  <div class="form-group checkbox-group">
-                    <input type="checkbox" id="leave_thumbnail" name="leave_thumbnail" checked>
-                    <label for="leave_thumbnail">Afficher la photo de profil du membre</label>
-                  </div>
-                </div>
-              </div>
-
+              <!-- Save button -->
               <div class="actions-bar">
-                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer la configuration</button>
+                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer cette configuration</button>
               </div>
             </form>
           </div>
@@ -343,6 +363,94 @@
                   </select>
                 </div>
                 <button type="submit" class="btn btn-add"><i class="fa-solid fa-plus"></i> Ajouter la récompense</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Tab: Action GIFs -->
+          <div id="tab-gifs" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-file-video"></i> GIFs pour les Commandes d'Action</h2>
+            
+            <!-- GIFs list and previews -->
+            <div class="card glass mb-4">
+              <h3>GIFs configurés par Action</h3>
+              <div class="form-group">
+                <label for="select-action-view">Sélectionner une action pour voir ses GIFs :</label>
+                <select id="select-action-view">
+                  <option value="69">69</option>
+                  <option value="agenouiller">Agenouiller</option>
+                  <option value="attrape">Attrape</option>
+                  <option value="batailleoreiller">Bataille d'oreillers</option>
+                  <option value="branler">Branler</option>
+                  <option value="calin" selected>Câlin</option>
+                  <option value="caresser">Caresser</option>
+                  <option value="chatouiller">Chatouiller</option>
+                  <option value="collier">Collier</option>
+                  <option value="danser">Danser</option>
+                  <option value="embrasser">Embrasser</option>
+                  <option value="lecher">Lécher</option>
+                  <option value="mordre">Mordre</option>
+                  <option value="mouiller">Mouiller</option>
+                  <option value="orgasme">Orgasme</option>
+                  <option value="punir">Punir</option>
+                  <option value="reanimer">Réanimer</option>
+                  <option value="reconforter">Réconforter</option>
+                  <option value="reveiller">Réveiller</option>
+                  <option value="rose">Rose</option>
+                  <option value="seduire">Séduire</option>
+                  <option value="sodo">Sodo</option>
+                  <option value="sucer">Sucer</option>
+                  <option value="tirercheveux">Tirer les cheveux</option>
+                  <option value="touche">Touche</option>
+                  <option value="vin">Vin</option>
+                </select>
+              </div>
+
+              <div class="gifs-grid" id="gifs-grid-container">
+                <!-- Dynamically generated GIF preview cards -->
+              </div>
+            </div>
+
+            <!-- Add GIF Form -->
+            <div class="card glass">
+              <h3>Ajouter un GIF pour une action</h3>
+              <form id="form-add-gif" class="inner-form">
+                <div class="form-group">
+                  <label for="gif_action_name">Action :</label>
+                  <select id="gif_action_name" required>
+                    <option value="69">69</option>
+                    <option value="agenouiller">Agenouiller</option>
+                    <option value="attrape">Attrape</option>
+                    <option value="batailleoreiller">Bataille d'oreillers</option>
+                    <option value="branler">Branler</option>
+                    <option value="calin" selected>Câlin</option>
+                    <option value="caresser">Caresser</option>
+                    <option value="chatouiller">Chatouiller</option>
+                    <option value="collier">Collier</option>
+                    <option value="danser">Danser</option>
+                    <option value="embrasser">Embrasser</option>
+                    <option value="lecher">Lécher</option>
+                    <option value="mordre">Mordre</option>
+                    <option value="mouiller">Mouiller</option>
+                    <option value="orgasme">Orgasme</option>
+                    <option value="punir">Punir</option>
+                    <option value="reanimer">Réanimer</option>
+                    <option value="reconforter">Réconforter</option>
+                    <option value="reveiller">Réveiller</option>
+                    <option value="rose">Rose</option>
+                    <option value="seduire">Séduire</option>
+                    <option value="sodo">Sodo</option>
+                    <option value="sucer">Sucer</option>
+                    <option value="tirercheveux">Tirer les cheveux</option>
+                    <option value="touche">Touche</option>
+                    <option value="vin">Vin</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="gif_url">Lien du GIF (URL) :</label>
+                  <input type="url" id="gif_url" required placeholder="https://media.giphy.com/media/.../giphy.gif">
+                </div>
+                <button type="submit" class="btn btn-add"><i class="fa-solid fa-plus"></i> Ajouter le GIF</button>
               </form>
             </div>
           </div>
