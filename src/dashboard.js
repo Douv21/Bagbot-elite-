@@ -294,6 +294,7 @@ app.get('/api/config', (req, res) => {
         welcome_author_name: null,
         welcome_author_icon: null,
         welcome_footer: null,
+        welcome_role_filter: null,
         leave_title: '👋 Au revoir',
         leave_desc: 'Au revoir {user} !',
         leave_color: '#FF0000',
@@ -361,19 +362,19 @@ app.post('/api/config/welcome-leave', (req, res) => {
 
     const {
       welcome_channel, leave_channel, welcome_title, welcome_desc,
-      welcome_color, welcome_thumbnail, welcome_image, welcome_author_name, welcome_author_icon, welcome_footer,
+      welcome_color, welcome_thumbnail, welcome_image, welcome_author_name, welcome_author_icon, welcome_footer, welcome_role_filter,
       leave_title, leave_desc, leave_color, leave_thumbnail, leave_image, leave_author_name, leave_author_icon, leave_footer
     } = req.body;
 
     db.prepare(`
       INSERT OR REPLACE INTO welcome_leave (
         guild_id, welcome_channel, leave_channel, welcome_title, welcome_desc,
-        welcome_color, welcome_thumbnail, welcome_image, welcome_author_name, welcome_author_icon, welcome_footer,
+        welcome_color, welcome_thumbnail, welcome_image, welcome_author_name, welcome_author_icon, welcome_footer, welcome_role_filter,
         leave_title, leave_desc, leave_color, leave_thumbnail, leave_image, leave_author_name, leave_author_icon, leave_footer
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       guildId, welcome_channel || null, leave_channel || null, welcome_title || '', welcome_desc || '',
-      welcome_color || '#00FF00', welcome_thumbnail ? 1 : 0, welcome_image || null, welcome_author_name || null, welcome_author_icon || null, welcome_footer || null,
+      welcome_color || '#00FF00', welcome_thumbnail ? 1 : 0, welcome_image || null, welcome_author_name || null, welcome_author_icon || null, welcome_footer || null, welcome_role_filter || null,
       leave_title || '', leave_desc || '', leave_color || '#FF0000', leave_thumbnail ? 1 : 0, leave_image || null, leave_author_name || null, leave_author_icon || null, leave_footer || null
     );
 

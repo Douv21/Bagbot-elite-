@@ -92,13 +92,43 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
           desc += `\n\n🏆 **Récompense débloquée :** Tu as obtenu le rôle <@&${rewardThisLevel.role_id}> !`;
         }
 
+        let cardAttachment = null;
+        try {
+          const generateCard = require('../carte/holographique');
+          const memberEconomy = db.prepare('SELECT karma FROM economy WHERE guild_id = ? AND user_id = ?').get(guildId, userId);
+          const currentKarma = memberEconomy ? memberEconomy.karma : 0;
+          
+          let rewardRoleName = 'Nouveau Niveau !';
+          if (rewardThisLevel) {
+            const roleObj = guild.roles.cache.get(rewardThisLevel.role_id);
+            if (roleObj) rewardRoleName = roleObj.name;
+          }
+
+          const cardPayload = {
+            roleName: rewardRoleName,
+            panelTitle: "NIVEAU SUPÉRIEUR",
+            displayNumStr: `LVL ${newLevel}`,
+            xpPercent: 1.0,
+            barLabel: `Félicitations pour le niveau ${newLevel} !`,
+            karma: currentKarma
+          };
+          
+          cardAttachment = await generateCard(member, cardPayload, 'holographique');
+        } catch (error) {
+          console.error("Erreur génération de carte de level up:", error);
+        }
+
         const embed = new EmbedBuilder()
           .setTitle('🎉 Nouvelle Montée de Niveau !')
           .setDescription(desc)
           .setColor('#F1C40F')
           .setTimestamp();
 
-        targetChannel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(console.error);
+        if (cardAttachment) {
+          targetChannel.send({ content: `<@${userId}>`, embeds: [embed], files: [cardAttachment] }).catch(console.error);
+        } else {
+          targetChannel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(console.error);
+        }
       }
     }
   }

@@ -83,6 +83,7 @@ function initDatabase() {
       welcome_author_name TEXT,
       welcome_author_icon TEXT,
       welcome_footer TEXT,
+      welcome_role_filter TEXT,
       leave_title TEXT,
       leave_desc TEXT,
       leave_color TEXT DEFAULT '#FF0000',
@@ -108,6 +109,9 @@ function initDatabase() {
   } catch (e) {}
   try {
     db.prepare('ALTER TABLE welcome_leave ADD COLUMN welcome_footer TEXT').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE welcome_leave ADD COLUMN welcome_role_filter TEXT').run();
   } catch (e) {}
   try {
     db.prepare('ALTER TABLE welcome_leave ADD COLUMN leave_author_name TEXT').run();

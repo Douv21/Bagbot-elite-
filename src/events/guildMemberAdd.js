@@ -9,7 +9,7 @@ module.exports = {
 
     // --- SYSTÈME DE BIENVENUE ---
     const config = db.prepare('SELECT * FROM welcome_leave WHERE guild_id = ?').get(guildId);
-    if (config && config.welcome_channel) {
+    if (config && config.welcome_channel && !config.welcome_role_filter) {
       const channel = member.guild.channels.cache.get(config.welcome_channel);
       if (channel) {
         const title = formatWelcomeLeaveMessage(config.welcome_title || 'Bienvenue !', member);

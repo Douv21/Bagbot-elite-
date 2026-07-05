@@ -38,7 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
     image_url: '',
     author_name: '',
     author_icon: '',
-    footer: ''
+    footer: '',
+    role_filter: ''
   };
   let leaveData = {
     channel_id: '',
@@ -230,7 +231,8 @@ document.addEventListener('DOMContentLoaded', () => {
           image_url: wl.welcome_image || '',
           author_name: wl.welcome_author_name || '',
           author_icon: wl.welcome_author_icon || '',
-          footer: wl.welcome_footer || ''
+          footer: wl.welcome_footer || '',
+          role_filter: wl.welcome_role_filter || ''
         };
         leaveData = {
           channel_id: wl.leave_channel || '',
@@ -303,6 +305,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Footer
     document.getElementById('embed-footer-input').value = data.footer;
+
+    const filterGroup = document.getElementById('welcome-role-filter-group');
+    if (mode === 'welcome') {
+      filterGroup.style.display = 'block';
+      document.getElementById('welcome-role-filter-select').value = welcomeData.role_filter || '';
+    } else {
+      filterGroup.style.display = 'none';
+    }
 
     if (data.thumbnail) {
       document.getElementById('discord-thumbnail-img').style.display = 'block';
@@ -436,6 +446,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  document.getElementById('welcome-role-filter-select').addEventListener('change', (e) => {
+    welcomeData.role_filter = e.target.value;
+  });
+
   document.getElementById('discord-thumbnail-box').addEventListener('click', () => {
     const mode = document.getElementById('edit-mode-select').value;
     const data = mode === 'welcome' ? welcomeData : leaveData;
@@ -537,6 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
       welcome_author_name: welcomeData.author_name,
       welcome_author_icon: welcomeData.author_icon,
       welcome_footer: welcomeData.footer,
+      welcome_role_filter: welcomeData.role_filter,
 
       leave_channel: leaveData.channel_id,
       leave_title: leaveData.title,
@@ -852,9 +867,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('select-action-view').value = action_name;
         fetchAndRenderGifs();
       } else {
-        alert('Erreur lors de l\'ajout du GIF.');
+        alert('Erreur lors de l\'ajout du GIF : ' + (resData.error || 'Erreur inconnue'));
       }
     })
-    .catch(console.error);
+    .catch(err => {
+      console.error(err);
+      alert('Erreur lors de l\'ajout du GIF : ' + err.message);
+    });
   });
 });
