@@ -110,7 +110,7 @@
               <!-- Interactive Discord Embed Preview -->
               <div class="card glass discord-preview-container">
                 <div class="discord-message">
-                  <div class="discord-avatar-container">
+                  <div class="discord-avatar-container" id="discord-avatar-click-container" title="Cliquez pour changer l'avatar du bot">
                     <img class="discord-avatar" id="bot-avatar-preview" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot Avatar">
                   </div>
                   <div class="discord-message-content">
@@ -118,7 +118,13 @@
                       <span class="discord-bot-name">Bagbot Elite</span>
                       <span class="discord-bot-tag">BOT</span>
                       <button type="button" id="btn-change-bot-avatar" class="discord-header-btn" title="Modifier l'image globale du bot"><i class="fa-solid fa-camera"></i> Changer l'image</button>
-                      <input type="url" id="bot-avatar-url-input" class="discord-bot-avatar-input" placeholder="Lien de la nouvelle image du bot..." style="display:none;">
+                      <div class="url-upload-wrapper" id="bot-avatar-wrapper" style="display:none; align-items: center; margin-left: 8px;">
+                        <input type="url" id="bot-avatar-url-input" class="discord-bot-avatar-input" placeholder="Lien de la nouvelle image du bot..." style="margin-left: 0; width: 160px !important;">
+                        <label class="btn-upload-label" title="Téléverser un avatar" style="padding: 2px 8px;">
+                          <i class="fa-solid fa-cloud-arrow-up" style="font-size: 0.75rem;"></i>
+                          <input type="file" id="bot-avatar-file-input" accept="image/*" style="display:none;">
+                        </label>
+                      </div>
                       <span class="discord-timestamp">Aujourd'hui à 08:31</span>
                     </div>
 
@@ -131,7 +137,13 @@
                       <div class="discord-embed-author-container" id="discord-author-box">
                         <img id="embed-author-icon-img" src="" alt="" style="display:none;">
                         <input type="text" id="embed-author-name-input" class="discord-embed-author-name-field" placeholder="Auteur (Nom du serveur, etc)...">
-                        <input type="url" id="embed-author-icon-input" class="discord-embed-author-icon-field" placeholder="Lien de l'icône de l'auteur (URL)..." style="display:none;">
+                        <div class="url-upload-wrapper" id="author-icon-wrapper" style="display:none; position: absolute; top: 100%; left: 0; z-index: 10;">
+                          <input type="url" id="embed-author-icon-input" class="discord-embed-author-icon-field" placeholder="Lien de l'icône de l'auteur (URL)..." style="position: static; width: 220px !important;">
+                          <label class="btn-upload-label" title="Téléverser une icône" style="padding: 4px 8px; background: rgba(0,0,0,0.9); border-color: #5865f2;">
+                            <i class="fa-solid fa-cloud-arrow-up" style="font-size: 0.75rem;"></i>
+                            <input type="file" class="file-upload-input" data-target="embed-author-icon-input" accept="image/*" style="display:none;">
+                          </label>
+                        </div>
                       </div>
 
                       <div class="discord-embed-body-content">
@@ -163,7 +175,13 @@
                           <i class="fa-solid fa-image"></i>
                           <span>Cliquez pour définir une grande image (URL)</span>
                         </div>
-                        <input type="url" id="embed-image-input" placeholder="Lien de la grande image (optionnel)..." style="display:none;" class="discord-embed-image-url-field">
+                        <div class="url-upload-wrapper" id="image-url-wrapper" style="display:none; margin-top: 8px;">
+                          <input type="url" id="embed-image-input" placeholder="Lien de la grande image (optionnel)..." class="discord-embed-image-url-field" style="display:block; flex: 1;">
+                          <label class="btn-upload-label" title="Téléverser une image" style="flex-shrink: 0; padding: 8px 12px; background: rgba(0,0,0,0.5);">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <input type="file" class="file-upload-input" data-target="embed-image-input" accept="image/*" style="display:none;">
+                          </label>
+                        </div>
                       </div>
 
                       <!-- Embed Footer Area -->
@@ -468,7 +486,13 @@
                 </div>
                 <div class="form-group">
                   <label for="gif_url">Lien du GIF (URL) :</label>
-                  <input type="url" id="gif_url" required placeholder="https://media.giphy.com/media/.../giphy.gif">
+                  <div class="url-upload-wrapper">
+                    <input type="url" id="gif_url" required placeholder="https://media.giphy.com/media/.../giphy.gif" style="flex: 1;">
+                    <label class="btn-upload-label" title="Téléverser un GIF/Image">
+                      <i class="fa-solid fa-cloud-arrow-up"></i>
+                      <input type="file" id="gif-file-input" accept="image/gif,image/jpeg,image/png" style="display:none;">
+                    </label>
+                  </div>
                 </div>
                 <button type="submit" class="btn btn-add"><i class="fa-solid fa-plus"></i> Ajouter le GIF</button>
               </form>

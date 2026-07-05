@@ -10,6 +10,41 @@ const PORT = process.env.PORT || 49601;
 // Trust proxy (pour HTTPS/Nginx)
 app.set('trust proxy', 1);
 
+// Configuration de Multer pour le téléversement de fichiers
+const multer = require('multer');
+const fs = require('fs');
+
+const uploadsDir = path.join(__dirname, '../public/uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storage });
+
+// Route générique pour téléverser des fichiers
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Aucun fichier téléversé' });
+    }
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.json({ success: true, url: fileUrl });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Middleware Session
 const isHttps = process.env.HTTPS_PROXY === 'true';
 app.use(session({

@@ -875,4 +875,115 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Erreur lors de l\'ajout du GIF : ' + err.message);
     });
   });
+
+  // --- INTERACTION CLIC AVATAR ET TELEVERSEMENT DE FICHIERS ---
+
+  // Cliquer sur l'avatar du bot pour modifier l'image
+  document.getElementById('discord-avatar-click-container').addEventListener('click', () => {
+    const wrapper = document.getElementById('bot-avatar-wrapper');
+    if (wrapper.style.display === 'none') {
+      wrapper.style.display = 'inline-flex';
+      document.getElementById('bot-avatar-url-input').focus();
+    } else {
+      wrapper.style.display = 'none';
+    }
+  });
+
+  // Gestionnaire de téléversement pour les inputs génériques (.file-upload-input)
+  document.querySelectorAll('.file-upload-input').forEach(input => {
+    input.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const targetId = e.target.getAttribute('data-target');
+      const targetInput = document.getElementById(targetId);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      showToast('Téléversement en cours...');
+      fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          showToast('Fichier téléversé avec succès !');
+          targetInput.value = resData.url;
+          // Déclencher l'événement 'input' pour rafraîchir l'embed Discord interactif
+          targetInput.dispatchEvent(new Event('input'));
+        } else {
+          showToast('Erreur: ' + resData.error, true);
+        }
+      })
+      .catch(err => showToast('Erreur de téléversement: ' + err.message, true));
+    });
+  });
+
+  // Téléversement d'avatar du bot
+  document.getElementById('bot-avatar-file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    showToast('Téléversement de l\'avatar...');
+    fetch('/api/upload', {
+      method: 'POST',
+      body: formData
+    })
+    .then(res => res.json())
+    .then(resData => {
+      if (resData.success) {
+        const avatar_url = resData.url;
+        showToast('Mise à jour de l\'avatar du bot...');
+        fetch('/api/bot/avatar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ avatar_url })
+        })
+        .then(res => res.json())
+        .then(avatarData => {
+          if (avatarData.success) {
+            showToast('Avatar du bot mis à jour avec succès !');
+            document.getElementById('bot-avatar-url-input').value = '';
+            document.getElementById('bot-avatar-wrapper').style.display = 'none';
+            fetchBotInfo();
+          } else {
+            showToast('Erreur avatar: ' + avatarData.error, true);
+          }
+        });
+      } else {
+        showToast('Erreur de téléversement: ' + resData.error, true);
+      }
+    })
+    .catch(err => showToast('Erreur: ' + err.message, true));
+  });
+
+  // Téléversement de GIF pour les actions
+  document.getElementById('gif-file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    showToast('Téléversement du GIF...');
+    fetch('/api/upload', {
+      method: 'POST',
+      body: formData
+    })
+    .then(res => res.json())
+    .then(resData => {
+      if (resData.success) {
+        showToast('GIF téléversé avec succès !');
+        document.getElementById('gif_url').value = resData.url;
+      } else {
+        showToast('Erreur: ' + resData.error, true);
+      }
+    })
+    .catch(err => showToast('Erreur: ' + err.message, true));
+  });
 });
