@@ -165,6 +165,17 @@ function initDatabase() {
       PRIMARY KEY (guild_id, user_id)
     )
   `).run();
+
+  // 15. Configuration du Leveling (min/max XP, canal et message d'annonce)
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS leveling_config (
+      guild_id TEXT PRIMARY KEY,
+      xp_min INTEGER DEFAULT 15,
+      xp_max INTEGER DEFAULT 25,
+      announce_channel TEXT DEFAULT 'current',
+      announce_msg TEXT DEFAULT 'Bravo {user} ! Tu passes au niveau {level} !'
+    )
+  `).run();
 }
 
 // --- Fonctions utilitaires de base de données ---
@@ -205,11 +216,31 @@ const updateLeveling = (guildId, userId, data) => {
   db.prepare(`UPDATE leveling SET ${assignments} WHERE guild_id = ? AND user_id = ?`).run(...values, guildId, userId);
 };
 
+// Leveling Config
+const getLevelingConfig = (guildId) => {
+  const row = db.prepare('SELECT * FROM leveling_config WHERE guild_id = ?').get(guildId);
+  if (!row) {
+    db.prepare('INSERT OR IGNORE INTO leveling_config (guild_id) VALUES (?)').run(guildId);
+    return { guild_id: guildId, xp_min: 15, xp_max: 25, announce_channel: 'current', announce_msg: 'Bravo {user} ! Tu passes au niveau {level} !' };
+  }
+  return row;
+};
+
+const updateLevelingConfig = (guildId, data) => {
+  getLevelingConfig(guildId); // Assure la création
+  const keys = Object.keys(data);
+  const assignments = keys.map(k => `${k} = ?`).join(', ');
+  const values = keys.map(k => data[k]);
+  db.prepare(`UPDATE leveling_config SET ${assignments} WHERE guild_id = ?`).run(...values, guildId);
+};
+
 module.exports = {
   db,
   initDatabase,
   getEconomy,
   updateEconomy,
   getLeveling,
-  updateLeveling
+  updateLeveling,
+  getLevelingConfig,
+  updateLevelingConfig
 };

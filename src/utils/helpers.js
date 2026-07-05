@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const { db, getLeveling, updateLeveling } = require('../database/db');
+const { db, getLeveling, updateLeveling, getLevelingConfig } = require('../database/db');
 
 // Remplacer les variables pour les messages de bienvenue/départ
 function formatWelcomeLeaveMessage(text, member) {
@@ -55,29 +55,50 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
   });
 
   if (levelUp) {
-    // Annonce du level up par embed
-    if (channelToNotify) {
-      const embed = new EmbedBuilder()
-        .setTitle('🎉 Montée de Niveau !')
-        .setDescription(`Félicitations <@${userId}>, tu viens de passer au **niveau ${newLevel}** ! 🚀`)
-        .setColor('#FFA500')
-        .setTimestamp();
-      
-      channelToNotify.send({ content: `<@${userId}>`, embeds: [embed] }).catch(console.error);
-    }
-
     // Gestion des récompenses de rôles
     const rewards = db.prepare('SELECT role_id FROM level_rewards WHERE guild_id = ? AND level <= ?').all(guildId, newLevel);
-    
     if (rewards.length > 0) {
       const roleIds = rewards.map(r => r.role_id);
-      
-      // Ajouter les nouveaux rôles de récompense
       for (const roleId of roleIds) {
         const role = guild.roles.cache.get(roleId);
         if (role && !member.roles.cache.has(roleId)) {
           await member.roles.add(role).catch(console.error);
         }
+      }
+    }
+
+    // Vérifier s'il y a un rôle de récompense débloqué spécifiquement à ce niveau
+    const rewardThisLevel = db.prepare('SELECT role_id FROM level_rewards WHERE guild_id = ? AND level = ?').get(guildId, newLevel);
+
+    // Annonce du level up
+    const lvlConfig = getLevelingConfig(guildId);
+    const announceChannelSetting = lvlConfig.announce_channel || 'current';
+
+    if (announceChannelSetting !== 'disabled') {
+      let targetChannel = null;
+      if (announceChannelSetting === 'current') {
+        targetChannel = channelToNotify;
+      } else {
+        targetChannel = guild.channels.cache.get(announceChannelSetting);
+      }
+
+      if (targetChannel) {
+        let msgTemplate = lvlConfig.announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !';
+        let desc = msgTemplate
+          .replace(/{user}/g, `<@${userId}>`)
+          .replace(/{level}/g, newLevel);
+
+        if (rewardThisLevel) {
+          desc += `\n\n🏆 **Récompense débloquée :** Tu as obtenu le rôle <@&${rewardThisLevel.role_id}> !`;
+        }
+
+        const embed = new EmbedBuilder()
+          .setTitle('🎉 Nouvelle Montée de Niveau !')
+          .setDescription(desc)
+          .setColor('#F1C40F')
+          .setTimestamp();
+
+        targetChannel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(console.error);
       }
     }
   }

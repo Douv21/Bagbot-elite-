@@ -281,13 +281,25 @@ app.get('/api/config', (req, res) => {
     // Récompenses de niveaux
     const levelRewards = db.prepare('SELECT * FROM level_rewards WHERE guild_id = ? ORDER BY level ASC').all(guildId);
 
+    // Configuration Leveling
+    let levelingConfig = db.prepare('SELECT * FROM leveling_config WHERE guild_id = ?').get(guildId);
+    if (!levelingConfig) {
+      levelingConfig = {
+        xp_min: 15,
+        xp_max: 25,
+        announce_channel: 'current',
+        announce_msg: 'Bravo {user} ! Tu passes au niveau {level} !'
+      };
+    }
+
     res.json({
       welcome_leave: welcomeLeave,
       confession: { channel_id: confessionChannel },
       quarantine: quarantine,
       logs: logs,
       shop: shopItems,
-      level_rewards: levelRewards
+      level_rewards: levelRewards,
+      leveling_config: levelingConfig
     });
   } catch (error) {
     console.error('Erreur chargement config:', error);
@@ -457,6 +469,32 @@ app.post('/api/config/level-rewards/delete', (req, res) => {
     const { level } = req.body;
 
     db.prepare('DELETE FROM level_rewards WHERE guild_id = ? AND level = ?').run(guildId, level);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 10. Sauvegarder la configuration de leveling (min/max XP, annonce)
+app.post('/api/config/leveling', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { xp_min, xp_max, announce_channel, announce_msg } = req.body;
+
+    db.prepare(`
+      INSERT OR REPLACE INTO leveling_config (guild_id, xp_min, xp_max, announce_channel, announce_msg)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(
+      guildId,
+      xp_min !== undefined ? parseInt(xp_min) : 15,
+      xp_max !== undefined ? parseInt(xp_max) : 25,
+      announce_channel || 'current',
+      announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !'
+    );
+
     res.json({ success: true });
   } catch (error) {
     console.error(error);

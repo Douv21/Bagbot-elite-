@@ -273,6 +273,40 @@
           <div id="tab-leveling" class="tab-content">
             <h2 class="section-title"><i class="fa-solid fa-arrow-trend-up"></i> Configuration des Niveaux & Rôles Récompenses</h2>
             
+            <!-- Leveling Settings Form -->
+            <div class="card glass mb-4">
+              <h3>Réglages des gains & annonces d'XP</h3>
+              <form id="form-leveling-settings" class="inner-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="xp_min">Gain XP minimum (par message) :</label>
+                    <input type="number" id="xp_min" required min="1" placeholder="Ex: 15">
+                  </div>
+                  <div class="form-group">
+                    <label for="xp_max">Gain XP maximum (par message) :</label>
+                    <input type="number" id="xp_max" required min="1" placeholder="Ex: 25">
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="announce_channel">Salon pour l'annonce de niveau :</label>
+                  <select id="announce_channel" class="announce-channel-select">
+                    <option value="current">Salon actuel (où le membre parle)</option>
+                    <option value="disabled">Désactiver les annonces</option>
+                  </select>
+                  <small class="form-help">Salon où le message d'annonce de niveau sera envoyé.</small>
+                </div>
+
+                <div class="form-group">
+                  <label for="announce_msg">Message de niveau supérieur (Level Up) :</label>
+                  <textarea id="announce_msg" rows="3" placeholder="Ex: Bravo {user} ! Tu passes au niveau {level} !"></textarea>
+                  <small class="form-help">Placeholders supportés : <code>{user}</code> (mention de l'utilisateur), <code>{level}</code> (nouveau niveau).</small>
+                </div>
+
+                <button type="submit" class="btn btn-save" style="margin-top: 8px; width: auto;"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les réglages</button>
+              </form>
+            </div>
+
             <!-- Rewards list -->
             <div class="card glass mb-4">
               <h3>Rôles Récompenses Actuels</h3>

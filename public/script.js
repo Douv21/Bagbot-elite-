@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const formLogs = document.getElementById('form-logs');
   const formAddShopItem = document.getElementById('form-add-shop-item');
   const formAddLevelReward = document.getElementById('form-add-level-reward');
+  const formLevelingSettings = document.getElementById('form-leveling-settings');
 
   // Lists
   const shopItemsList = document.getElementById('shop-items-list');
@@ -152,6 +153,23 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
+    // Populate Announce Channels
+    const announceSelects = document.querySelectorAll('.announce-channel-select');
+    announceSelects.forEach(select => {
+      select.innerHTML = `
+        <option value="current">Salon actuel (où le membre parle)</option>
+        <option value="disabled">Désactiver les annonces</option>
+      `;
+      channelsList.forEach(ch => {
+        if (ch.type === 0 || ch.type === 5) {
+          const option = document.createElement('option');
+          option.value = ch.id;
+          option.textContent = `# ${ch.name}`;
+          select.appendChild(option);
+        }
+      });
+    });
+
     // Populate Roles
     const roleSelects = document.querySelectorAll('.role-select');
     roleSelects.forEach(select => {
@@ -205,6 +223,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Level Rewards
         renderLevelRewards(config.level_rewards || []);
+
+        // Leveling Config
+        const lvl = config.leveling_config || {};
+        document.getElementById('xp_min').value = lvl.xp_min ?? 15;
+        document.getElementById('xp_max').value = lvl.xp_max ?? 25;
+        document.getElementById('announce_channel').value = lvl.announce_channel || 'current';
+        document.getElementById('announce_msg').value = lvl.announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !';
       })
       .catch(console.error);
   }
@@ -252,6 +277,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const channel_id = document.getElementById('logs_channel').value;
     const events = document.getElementById('logs_events').value;
     saveConfig('/api/config/logs', { channel_id, events });
+  });
+
+  // 5. Leveling Settings
+  formLevelingSettings.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = {
+      xp_min: parseInt(document.getElementById('xp_min').value),
+      xp_max: parseInt(document.getElementById('xp_max').value),
+      announce_channel: document.getElementById('announce_channel').value,
+      announce_msg: document.getElementById('announce_msg').value
+    };
+    saveConfig('/api/config/leveling', data);
   });
 
   // Helper Save function

@@ -1,5 +1,5 @@
 const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
-const { getLeveling, updateLeveling, db } = require('../database/db');
+const { getLeveling, updateLeveling, getLevelingConfig, db } = require('../database/db');
 const { addXP, sendLog } = require('../utils/helpers');
 
 // Cooldowns pour l'XP (1 message max toutes les 60 secondes pour XP)
@@ -108,7 +108,11 @@ module.exports = {
 
     if (!userCooldown || (now - userCooldown) > 60000) {
       xpCooldowns.set(cooldownKey, now);
-      const randomXp = Math.floor(Math.random() * 11) + 15; // 15 à 25 XP
+      const lvlConfig = getLevelingConfig(guildId);
+      const minXp = lvlConfig.xp_min ?? 15;
+      const maxXp = lvlConfig.xp_max ?? 25;
+      const range = Math.max(1, maxXp - minXp + 1);
+      const randomXp = Math.floor(Math.random() * range) + minXp;
       await addXP(message.guild, message.member, randomXp, message.channel);
 
       // --- JEU DE DEVINETTE (RECHERCHE DE LETTRE) ---
