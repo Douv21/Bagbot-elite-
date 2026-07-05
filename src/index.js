@@ -99,5 +99,65 @@ client.once('ready', async () => {
   }
 });
 
+// API server pour exposer les guilds du bot
+const express = require('express');
+const apiApp = express();
+const API_PORT = process.env.BOT_API_PORT || 49502;
+
+apiApp.get('/guilds', (req, res) => {
+  const guilds = client.guilds.cache.map(guild => ({
+    id: guild.id,
+    name: guild.name,
+    icon: guild.icon
+  }));
+  res.json(guilds);
+});
+
+apiApp.get('/guilds/:guildId/channels', async (req, res) => {
+  try {
+    const guild = client.guilds.cache.get(req.params.guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    await guild.channels.fetch();
+    const channels = guild.channels.cache.map(channel => ({
+      id: channel.id,
+      name: channel.name || 'Unknown',
+      type: channel.type
+    }));
+    res.json(channels);
+  } catch (error) {
+    console.error('Error fetching channels:', error);
+    res.status(500).json({ error: 'Error fetching channels' });
+  }
+});
+
+apiApp.get('/guilds/:guildId/roles', async (req, res) => {
+  try {
+    const guild = client.guilds.cache.get(req.params.guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    await guild.roles.fetch();
+    const roles = guild.roles.cache.map(role => ({
+      id: role.id,
+      name: role.name,
+      color: role.color,
+      position: role.position
+    }));
+    res.json(roles);
+  } catch (error) {
+    console.error('Error fetching roles:', error);
+    res.status(500).json({ error: 'Error fetching roles' });
+  }
+});
+
+apiApp.listen(API_PORT, '127.0.0.1', () => {
+  console.log(`✓ Bot Local API running on port ${API_PORT}`);
+});
+
 // Connexion du bot
 client.login(process.env.DISCORD_TOKEN);
+
+// Lancement du Dashboard Premium
+require('./dashboard');

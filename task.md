@@ -1,0 +1,26 @@
+# Liste des tâches - Bagbot Elite
+
+- `[x]` Étape 1 : Initialisation locale du projet
+  - `[x]` Configurer `package.json` et installer les dépendances
+- `[x]` Étape 2 : Développement de la Base de Données
+  - `[x]` Créer `src/database/db.js` et définir les schémas SQLite
+- `[x]` Étape 3 : Développement du Code du Bot
+  - `[x]` Développer les handlers de commandes et d'événements
+  - `[x]` Développer le système de leveling (texte + vocal) exponentiel de Bagbot-lite (base 100, facteur 1.2)
+  - `[x]` Développer le système d'économie et d'actions (work, rob, crime, fish, actions interactives)
+  - `[x]` Développer la boutique configurable (shop, buy, inventory)
+  - `[x]` Développer les confessions (canaux illimités)
+  - `[x]` Développer le système de bienvenue et départ avec embeds configurables
+  - `[x]` Développer le système de quarantaine
+  - `[x]` Développer le système de modération (kick, ban, timeout, clear)
+  - `[x]` Développer l'automodération (anti-spam, anti-liens, anti-invites)
+  - `[x]` Développer les logs d'activité
+  - `[x]` Créer les commandes de statistiques solde, karma, niveau reprenant les rangs de Bagbot-lite
+  - `[x]` Intégrer le système de rendu de cartes graphiques Canvas pour `/solde`, `/karma`, et `/niveau`
+  - `[x]` Renommer le jeu de devinette en `/mot-cache` et `/mot-cache-admin`
+- `[x]` Étape 4 : Git et GitHub
+  - `[x]` Pousser le code final et les ressources sur le dépôt GitHub `https://github.com/Douv21/Bagbot-elite-`
+- `[x]` Étape 5 : Déploiement sur Debian
+  - `[x]` Puller le code sur le serveur
+  - `[x]` Installer la dépendance `@napi-rs/canvas` sur Debian
+  - `[x]` Lancer et redémarrer le bot avec PM2 pour appliquer les cartes graphiques et les renommages de commandes

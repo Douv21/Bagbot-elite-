@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bagbot Elite - Dashboard</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Background Glows -->
+  <div class="glow-1"></div>
+  <div class="glow-2"></div>
+
+  <!-- Login Section (Non Authenticated) -->
+  <div id="login-container" class="card glass">
+    <div class="brand">
+      <i class="fa-solid fa-crown logo-icon"></i>
+      <h1>Bagbot Elite</h1>
+      <p>Configurez et gérez votre bot Discord en toute simplicité.</p>
+    </div>
+    <a href="/login" class="btn btn-discord">
+      <i class="fa-brands fa-discord"></i> Se connecter avec Discord
+    </a>
+  </div>
+
+  <!-- Dashboard Container (Authenticated) -->
+  <div id="dashboard-container" style="display: none;">
+    <!-- Navigation Bar -->
+    <header class="navbar glass">
+      <div class="nav-brand">
+        <i class="fa-solid fa-crown"></i>
+        <span>Bagbot Elite</span>
+      </div>
+      
+      <div class="guild-selector">
+        <label for="guild-select"><i class="fa-solid fa-server"></i> Serveur :</label>
+        <select id="guild-select">
+          <option value="">-- Choisir un serveur --</option>
+        </select>
+      </div>
+
+      <div class="user-profile">
+        <img id="user-avatar" src="" alt="Avatar">
+        <span id="user-name">Username</span>
+        <a href="/logout" class="btn btn-logout" title="Se déconnecter"><i class="fa-solid fa-right-from-bracket"></i></a>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="dashboard-main">
+      <!-- Sidebar Tabs -->
+      <aside class="sidebar glass">
+        <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées / Départs</button>
+        <button class="tab-btn" data-tab="tab-confessions"><i class="fa-solid fa-mask"></i> Confessions</button>
+        <button class="tab-btn" data-tab="tab-quarantine"><i class="fa-solid fa-shield-halved"></i> Quarantaine</button>
+        <button class="tab-btn" data-tab="tab-logs"><i class="fa-solid fa-list-check"></i> Logs d'activité</button>
+        <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique</button>
+        <button class="tab-btn" data-tab="tab-leveling"><i class="fa-solid fa-arrow-trend-up"></i> Niveaux & Rôles</button>
+      </aside>
+
+      <!-- Form Content -->
+      <section class="content-area">
+        <div id="no-guild-selected" class="card glass text-center">
+          <i class="fa-solid fa-arrow-pointer select-arrow-icon"></i>
+          <h2>Aucun serveur sélectionné</h2>
+          <p>Veuillez sélectionner un serveur Discord dans le menu déroulant en haut pour commencer la configuration.</p>
+        </div>
+
+        <div id="config-forms" style="display: none;">
+          <!-- Tab: Welcome / Leave -->
+          <div id="tab-welcome" class="tab-content active">
+            <h2 class="section-title"><i class="fa-solid fa-door-open"></i> Configuration des messages d'arrivée & de départ</h2>
+            <form id="form-welcome-leave" class="glass-form">
+              <!-- Welcome Settings -->
+              <div class="form-section card glass">
+                <h3><i class="fa-solid fa-user-plus text-success"></i> Message de Bienvenue (Welcome)</h3>
+                <div class="form-group">
+                  <label for="welcome_channel">Salon d'envoi :</label>
+                  <select id="welcome_channel" name="welcome_channel" class="channel-select">
+                    <option value="">Désactivé</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="welcome_title">Titre de l'embed :</label>
+                  <input type="text" id="welcome_title" name="welcome_title" placeholder="Ex: Bienvenue sur le serveur !">
+                </div>
+                <div class="form-group">
+                  <label for="welcome_desc">Description (Message) :</label>
+                  <textarea id="welcome_desc" name="welcome_desc" rows="4" placeholder="Ex: Bienvenue {user} ! Passe un super moment avec nous ! Utilisez {memberCount} pour afficher le nombre de membres."></textarea>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="welcome_color">Couleur de l'embed :</label>
+                    <input type="color" id="welcome_color" name="welcome_color" value="#00ff00">
+                  </div>
+                  <div class="form-group checkbox-group">
+                    <input type="checkbox" id="welcome_thumbnail" name="welcome_thumbnail" checked>
+                    <label for="welcome_thumbnail">Afficher la photo de profil du membre</label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Leave Settings -->
+              <div class="form-section card glass">
+                <h3><i class="fa-solid fa-user-minus text-danger"></i> Message de Départ (Leave)</h3>
+                <div class="form-group">
+                  <label for="leave_channel">Salon d'envoi :</label>
+                  <select id="leave_channel" name="leave_channel" class="channel-select">
+                    <option value="">Désactivé</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="leave_title">Titre de l'embed :</label>
+                  <input type="text" id="leave_title" name="leave_title" placeholder="Ex: Un membre nous a quitté">
+                </div>
+                <div class="form-group">
+                  <label for="leave_desc">Description (Message) :</label>
+                  <textarea id="leave_desc" name="leave_desc" rows="4" placeholder="Ex: {user} a quitté le serveur. À bientôt !"></textarea>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="leave_color">Couleur de l'embed :</label>
+                    <input type="color" id="leave_color" name="leave_color" value="#ff0000">
+                  </div>
+                  <div class="form-group checkbox-group">
+                    <input type="checkbox" id="leave_thumbnail" name="leave_thumbnail" checked>
+                    <label for="leave_thumbnail">Afficher la photo de profil du membre</label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="actions-bar">
+                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer la configuration</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Tab: Confessions -->
+          <div id="tab-confessions" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-mask"></i> Système de Confessions Anonymes</h2>
+            <form id="form-confessions" class="glass-form">
+              <div class="card glass">
+                <p>Permettez à vos membres d'envoyer des confessions de manière totalement anonyme via la commande `/confesser`.</p>
+                <div class="form-group">
+                  <label for="confessions_channel">Salon des confessions :</label>
+                  <select id="confessions_channel" class="channel-select">
+                    <option value="">Désactivé</option>
+                  </select>
+                  <small class="form-help">Les confessions anonymes seront publiées dans ce salon.</small>
+                </div>
+              </div>
+              <div class="actions-bar">
+                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer confessions</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Tab: Quarantine -->
+          <div id="tab-quarantine" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-shield-halved"></i> Système de Quarantaine</h2>
+            <form id="form-quarantine" class="glass-form">
+              <div class="card glass">
+                <p>Isolez temporairement des membres suspects ou sous sanction en retirant leurs rôles et en les affectant à un salon verrouillé.</p>
+                <div class="form-group">
+                  <label for="quarantine_role">Rôle de Quarantaine :</label>
+                  <select id="quarantine_role" class="role-select">
+                    <option value="">Sélectionner un rôle</option>
+                  </select>
+                  <small class="form-help">Ce rôle sera attribué au membre en quarantaine (et tous ses autres rôles seront temporairement retirés).</small>
+                </div>
+                <div class="form-group">
+                  <label for="quarantine_channel">Salon de Quarantaine :</label>
+                  <select id="quarantine_channel" class="channel-select">
+                    <option value="">Sélectionner un salon</option>
+                  </select>
+                  <small class="form-help">Le salon textuel réservé pour communiquer avec les personnes isolées.</small>
+                </div>
+              </div>
+              <div class="actions-bar">
+                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer quarantaine</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Tab: Logs -->
+          <div id="tab-logs" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-list-check"></i> Logs d'Activité</h2>
+            <form id="form-logs" class="glass-form">
+              <div class="card glass">
+                <p>Suivez les modifications/suppressions de messages et les allées et venues des membres de votre serveur.</p>
+                <div class="form-group">
+                  <label for="logs_channel">Salon des Logs :</label>
+                  <select id="logs_channel" class="channel-select">
+                    <option value="">Désactivé</option>
+                  </select>
+                  <small class="form-help">Tous les logs du bot seront envoyés dans ce salon.</small>
+                </div>
+                <div class="form-group">
+                  <label for="logs_events">Événements enregistrés :</label>
+                  <select id="logs_events">
+                    <option value="all">Tous les événements</option>
+                  </select>
+                </div>
+              </div>
+              <div class="actions-bar">
+                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les logs</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Tab: Shop -->
+          <div id="tab-shop" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-shop"></i> Gestion de la Boutique (Shop)</h2>
+            
+            <!-- Items list -->
+            <div class="card glass mb-4">
+              <h3>Boutique Actuelle</h3>
+              <div class="table-container">
+                <table class="premium-table">
+                  <thead>
+                    <tr>
+                      <th>Nom de l'objet</th>
+                      <th>Prix</th>
+                      <th>Description</th>
+                      <th>Rôle associé</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="shop-items-list">
+                    <tr>
+                      <td colspan="5" class="text-center">Aucun objet en vente pour le moment.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Add Item Form -->
+            <div class="card glass">
+              <h3>Ajouter un nouvel objet à la Boutique</h3>
+              <form id="form-add-shop-item" class="inner-form">
+                <div class="form-group">
+                  <label for="shop_item_name">Nom de l'objet :</label>
+                  <input type="text" id="shop_item_name" required placeholder="Ex: VIP Gold">
+                </div>
+                <div class="form-group">
+                  <label for="shop_item_price">Prix (en pièces) :</label>
+                  <input type="number" id="shop_item_price" required min="1" placeholder="Ex: 5000">
+                </div>
+                <div class="form-group">
+                  <label for="shop_item_desc">Description :</label>
+                  <input type="text" id="shop_item_desc" placeholder="Ex: Rôle VIP Gold donnant accès à des salons privés">
+                </div>
+                <div class="form-group">
+                  <label for="shop_item_role">Rôle à attribuer lors de l'achat (optionnel) :</label>
+                  <select id="shop_item_role" class="role-select">
+                    <option value="">Aucun rôle (Objet virtuel/custom)</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn btn-add"><i class="fa-solid fa-plus"></i> Ajouter l'objet</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Tab: Leveling & Rewards -->
+          <div id="tab-leveling" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-arrow-trend-up"></i> Configuration des Niveaux & Rôles Récompenses</h2>
+            
+            <!-- Rewards list -->
+            <div class="card glass mb-4">
+              <h3>Rôles Récompenses Actuels</h3>
+              <div class="table-container">
+                <table class="premium-table">
+                  <thead>
+                    <tr>
+                      <th>Niveau Requis</th>
+                      <th>Rôle Récompense</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="level-rewards-list">
+                    <tr>
+                      <td colspan="3" class="text-center">Aucun rôle de récompense configuré.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Add Reward Form -->
+            <div class="card glass">
+              <h3>Ajouter un rôle de récompense</h3>
+              <form id="form-add-level-reward" class="inner-form">
+                <div class="form-group">
+                  <label for="reward_level">Niveau requis :</label>
+                  <input type="number" id="reward_level" required min="1" placeholder="Ex: 5">
+                </div>
+                <div class="form-group">
+                  <label for="reward_role">Rôle à attribuer :</label>
+                  <select id="reward_role" class="role-select" required>
+                    <option value="">Sélectionner un rôle</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn btn-add"><i class="fa-solid fa-plus"></i> Ajouter la récompense</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast glass">Configuration enregistrée !</div>
+
+  <script src="script.js"></script>
+</body>
+</html>
