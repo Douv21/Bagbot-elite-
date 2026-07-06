@@ -194,7 +194,7 @@ if (!fs.existsSync(targetDir)) {
 
 actions.forEach(act => {
   const content = `const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getEconomy, updateEconomy, getActionGifs } = require('../../database/db');
+const { getEconomy, updateEconomy, getActionGifs, db } = require('../../database/db');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -255,20 +255,28 @@ module.exports = {
 
     const files = [];
     
+    let gifs = [];
     if (guildId) {
-      const gifs = getActionGifs(guildId, '${act.name}');
-      if (gifs.length > 0) {
-        const randomGif = gifs[Math.floor(Math.random() * gifs.length)].gif_url;
-        if (randomGif.startsWith('/uploads/')) {
-          const absPath = path.join(__dirname, '../../../public', randomGif);
-          if (fs.existsSync(absPath)) {
-            const filename = path.basename(randomGif);
-            files.push(new AttachmentBuilder(absPath, { name: filename }));
-            embed.setImage(\`attachment://\\\${filename}\`);
-          }
-        } else if (randomGif.startsWith('http://') || randomGif.startsWith('https://')) {
-          embed.setImage(randomGif);
+      gifs = getActionGifs(guildId, '${act.name}');
+    } else {
+      try {
+        gifs = db.prepare('SELECT * FROM action_gifs WHERE action_name = ?').all('${act.name}');
+      } catch (e) {
+        console.error('Erreur lecture gifs en MP:', e);
+      }
+    }
+
+    if (gifs && gifs.length > 0) {
+      const randomGif = gifs[Math.floor(Math.random() * gifs.length)].gif_url;
+      if (randomGif.startsWith('/uploads/')) {
+        const absPath = path.join(__dirname, '../../../public', randomGif);
+        if (fs.existsSync(absPath)) {
+          const filename = path.basename(randomGif);
+          files.push(new AttachmentBuilder(absPath, { name: filename }));
+          embed.setImage(\`attachment://\\\${filename}\`);
         }
+      } else if (randomGif.startsWith('http://') || randomGif.startsWith('https://')) {
+        embed.setImage(randomGif);
       }
     }
 

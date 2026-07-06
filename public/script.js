@@ -324,13 +324,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('embed-author-name-input').value = data.author_name;
     document.getElementById('embed-author-icon-input').value = data.author_icon;
     const authorImg = document.getElementById('embed-author-icon-img');
+    const authorIconWrapper = document.getElementById('author-icon-wrapper');
     if (data.author_icon) {
       authorImg.src = data.author_icon;
       authorImg.style.display = 'block';
-      document.getElementById('embed-author-icon-input').style.display = 'block';
+      authorIconWrapper.style.display = 'flex';
     } else {
       authorImg.style.display = 'none';
-      document.getElementById('embed-author-icon-input').style.display = 'none';
+      authorIconWrapper.style.display = 'none';
     }
 
     // Footer
@@ -359,12 +360,12 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('discord-image-img').style.display = 'block';
       document.getElementById('discord-image-overlay').style.display = 'none';
       document.getElementById('embed-image-input').value = data.image_url;
-      document.getElementById('embed-image-input').style.display = 'block';
+      document.getElementById('image-url-wrapper').style.display = 'flex';
     } else {
       document.getElementById('discord-image-img').style.display = 'none';
       document.getElementById('discord-image-overlay').style.display = 'flex';
       document.getElementById('embed-image-input').value = '';
-      document.getElementById('embed-image-input').style.display = 'none';
+      document.getElementById('image-url-wrapper').style.display = 'none';
     }
   }
 
@@ -431,14 +432,15 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('discord-author-box').addEventListener('click', (e) => {
-    if (e.target.id === 'embed-author-name-input' || e.target.id === 'embed-author-icon-input') return;
-    const iconInput = document.getElementById('embed-author-icon-input');
-    if (iconInput.style.display === 'none') {
-      iconInput.style.display = 'block';
-      iconInput.focus();
+    if (e.target.closest('#author-icon-wrapper') || e.target.id === 'embed-author-name-input') return;
+    const wrapper = document.getElementById('author-icon-wrapper');
+    const input = document.getElementById('embed-author-icon-input');
+    if (wrapper.style.display === 'none') {
+      wrapper.style.display = 'flex';
+      input.focus();
     } else {
-      if (!iconInput.value) {
-        iconInput.style.display = 'none';
+      if (!input.value) {
+        wrapper.style.display = 'none';
       }
     }
   });
@@ -463,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('embed-author-icon-input').addEventListener('blur', (e) => {
     if (!e.target.value) {
-      e.target.style.display = 'none';
+      document.getElementById('author-icon-wrapper').style.display = 'none';
     }
   });
 
@@ -488,14 +490,15 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('discord-image-box').addEventListener('click', (e) => {
-    if (e.target.id === 'embed-image-input') return;
+    if (e.target.closest('#image-url-wrapper')) return;
+    const wrapper = document.getElementById('image-url-wrapper');
     const input = document.getElementById('embed-image-input');
-    if (input.style.display === 'none') {
-      input.style.display = 'block';
+    if (wrapper.style.display === 'none') {
+      wrapper.style.display = 'flex';
       input.focus();
     } else {
       if (!input.value) {
-        input.style.display = 'none';
+        wrapper.style.display = 'none';
       }
     }
   });
@@ -523,18 +526,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('embed-image-input').addEventListener('blur', (e) => {
     if (!e.target.value) {
-      e.target.style.display = 'none';
+      document.getElementById('image-url-wrapper').style.display = 'none';
     }
   });
 
-  document.getElementById('btn-change-bot-avatar').addEventListener('click', () => {
-    const urlInput = document.getElementById('bot-avatar-url-input');
-    if (urlInput.style.display === 'none') {
-      urlInput.style.display = 'block';
-      urlInput.focus();
+  document.getElementById('btn-change-bot-avatar').addEventListener('click', (e) => {
+    if (e && e.target && e.target.closest('#bot-avatar-wrapper')) return;
+    const wrapper = document.getElementById('bot-avatar-wrapper');
+    const input = document.getElementById('bot-avatar-url-input');
+    if (wrapper.style.display === 'none') {
+      wrapper.style.display = 'flex';
+      input.focus();
     } else {
-      if (!urlInput.value) {
-        urlInput.style.display = 'none';
+      if (!input.value) {
+        wrapper.style.display = 'none';
       }
     }
   });
@@ -556,7 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (resData.success) {
           showToast('Avatar du bot mis à jour avec succès !');
           e.target.value = '';
-          e.target.style.display = 'none';
+          document.getElementById('bot-avatar-wrapper').style.display = 'none';
           fetchBotInfo();
         } else {
           showToast('Erreur: ' + (resData.error || 'inconnue'), true);
