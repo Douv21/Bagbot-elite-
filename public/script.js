@@ -283,6 +283,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const lvl = config.leveling_config || {};
         document.getElementById('xp_min').value = lvl.xp_min ?? 15;
         document.getElementById('xp_max').value = lvl.xp_max ?? 25;
+        document.getElementById('karma_min').value = lvl.karma_min ?? 1;
+        document.getElementById('karma_max').value = lvl.karma_max ?? 3;
+        document.getElementById('money_min').value = lvl.money_min ?? 2;
+        document.getElementById('money_max').value = lvl.money_max ?? 5;
+        document.getElementById('nsfw_xp_reward').value = lvl.nsfw_xp_reward ?? 0;
+        document.getElementById('nsfw_money_reward').value = lvl.nsfw_money_reward ?? 0;
         document.getElementById('announce_channel').value = lvl.announce_channel || 'current';
         document.getElementById('announce_msg').value = lvl.announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !';
       })
@@ -732,10 +738,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const data = {
       xp_min: parseInt(document.getElementById('xp_min').value),
       xp_max: parseInt(document.getElementById('xp_max').value),
+      karma_min: parseInt(document.getElementById('karma_min').value),
+      karma_max: parseInt(document.getElementById('karma_max').value),
+      money_min: parseInt(document.getElementById('money_min').value),
+      money_max: parseInt(document.getElementById('money_max').value),
+      nsfw_xp_reward: parseInt(document.getElementById('nsfw_xp_reward').value) || 0,
+      nsfw_money_reward: parseInt(document.getElementById('nsfw_money_reward').value) || 0,
       announce_channel: document.getElementById('announce_channel').value,
       announce_msg: document.getElementById('announce_msg').value
     };
     saveConfig('/api/config/leveling', data);
+  });
+
+  // Réinitialisation des messages NSFW (FEU)
+  document.getElementById('btn-reset-nsfw').addEventListener('click', () => {
+    if (!confirm('Voulez-vous vraiment réinitialiser les compteurs FEU (NSFW) de TOUS les membres sur ce serveur ?')) return;
+
+    fetch('/api/config/leveling/reset-nsfw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          showToast('Compteurs FEU réinitialisés avec succès !');
+        } else {
+          showToast('Erreur: ' + resData.error, true);
+        }
+      })
+      .catch(err => showToast(err.message, true));
   });
 
   // Helper Save function

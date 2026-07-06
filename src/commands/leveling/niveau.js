@@ -40,9 +40,9 @@ module.exports = {
       level:        leveling.level,
       xp:           leveling.xp,
       required:     xpRequired,
-      messages:     0,
-      voiceMinutes: 0,
-      streak:       0,
+      messages:     leveling.total_messages || 0,
+      voiceMinutes: leveling.voice_minutes || 0,
+      streak:       leveling.nsfw_messages || 0, // Mappé sur FEU dans card-worker.js
       karma:        economy.karma,
       roleName:     roleRewardName || 'AUCUN'
     };

@@ -120,7 +120,7 @@
                       <span class="discord-bot-tag">BOT</span>
                       <button type="button" id="btn-change-bot-avatar" class="discord-header-btn" title="Modifier l'image globale du bot"><i class="fa-solid fa-camera"></i> Changer l'image</button>
                       <div class="url-upload-wrapper" id="bot-avatar-wrapper" style="display:none; align-items: center; margin-left: 8px;">
-                        <input type="url" id="bot-avatar-url-input" class="discord-bot-avatar-input" placeholder="Lien de la nouvelle image du bot..." style="margin-left: 0; width: 160px !important;">
+                        <input type="text" id="bot-avatar-url-input" class="discord-bot-avatar-input" placeholder="Lien de la nouvelle image du bot..." style="margin-left: 0; width: 160px !important;">
                         <label class="btn-upload-label" title="Téléverser un avatar" style="padding: 2px 8px;">
                           <i class="fa-solid fa-cloud-arrow-up" style="font-size: 0.75rem;"></i>
                           <input type="file" id="bot-avatar-file-input" accept="image/*" style="display:none;">
@@ -139,7 +139,7 @@
                         <img id="embed-author-icon-img" src="" alt="" style="display:none;">
                         <input type="text" id="embed-author-name-input" class="discord-embed-author-name-field" placeholder="Auteur (Nom du serveur, etc)...">
                         <div class="url-upload-wrapper" id="author-icon-wrapper" style="display:none; position: absolute; top: 100%; left: 0; z-index: 10;">
-                          <input type="url" id="embed-author-icon-input" class="discord-embed-author-icon-field" placeholder="Lien de l'icône de l'auteur (URL)..." style="position: static; width: 220px !important;">
+                          <input type="text" id="embed-author-icon-input" class="discord-embed-author-icon-field" placeholder="Lien de l'icône de l'auteur (URL)..." style="position: static; width: 220px !important;">
                           <label class="btn-upload-label" title="Téléverser une icône" style="padding: 4px 8px; background: rgba(0,0,0,0.9); border-color: #5865f2;">
                             <i class="fa-solid fa-cloud-arrow-up" style="font-size: 0.75rem;"></i>
                             <input type="file" class="file-upload-input" data-target="embed-author-icon-input" accept="image/*" style="display:none;">
@@ -177,7 +177,7 @@
                           <span>Cliquez pour définir une grande image (URL)</span>
                         </div>
                         <div class="url-upload-wrapper" id="image-url-wrapper" style="display:none; margin-top: 8px;">
-                          <input type="url" id="embed-image-input" placeholder="Lien de la grande image (optionnel)..." class="discord-embed-image-url-field" style="display:block; flex: 1;">
+                          <input type="text" id="embed-image-input" placeholder="Lien de la grande image (optionnel)..." class="discord-embed-image-url-field" style="display:block; flex: 1;">
                           <label class="btn-upload-label" title="Téléverser une image" style="flex-shrink: 0; padding: 8px 12px; background: rgba(0,0,0,0.5);">
                             <i class="fa-solid fa-cloud-arrow-up"></i>
                             <input type="file" class="file-upload-input" data-target="embed-image-input" accept="image/*" style="display:none;">
@@ -357,6 +357,49 @@
                     <input type="number" id="xp_max" required min="1" placeholder="Ex: 25">
                   </div>
                 </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="karma_min">Gain Karma minimum (par message) :</label>
+                    <input type="number" id="karma_min" required min="0" placeholder="Ex: 1">
+                  </div>
+                  <div class="form-group">
+                    <label for="karma_max">Gain Karma maximum (par message) :</label>
+                    <input type="number" id="karma_max" required min="0" placeholder="Ex: 3">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="money_min">Gain Pièces minimum (par message) :</label>
+                    <input type="number" id="money_min" required min="0" placeholder="Ex: 2">
+                  </div>
+                  <div class="form-group">
+                    <label for="money_max">Gain Pièces maximum (par message) :</label>
+                    <input type="number" id="money_max" required min="0" placeholder="Ex: 5">
+                  </div>
+                </div>
+
+                <h3 style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;"><i class="fa-solid fa-fire" style="color: #ff4757;"></i> Récompenses & statistiques de messages NSFW (FEU)</h3>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="nsfw_xp_reward">XP Bonus par message NSFW :</label>
+                    <input type="number" id="nsfw_xp_reward" required min="0" placeholder="Ex: 5">
+                  </div>
+                  <div class="form-group">
+                    <label for="nsfw_money_reward">Pièces Bonus par message NSFW :</label>
+                    <input type="number" id="nsfw_money_reward" required min="0" placeholder="Ex: 10">
+                  </div>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 25px;">
+                  <button type="button" class="btn" id="btn-reset-nsfw" style="background: linear-gradient(135deg, #ff4757, #ff6b81); border: none; width: auto; font-size: 0.85rem; padding: 8px 14px;">
+                    <i class="fa-solid fa-trash-can"></i> Réinitialiser les compteurs FEU (NSFW) des membres
+                  </button>
+                  <small class="form-help" style="display:block; margin-top: 4px;">Remet à 0 le nombre de messages NSFW pour tous les utilisateurs du serveur.</small>
+                </div>
+
+                <h3 style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; margin-bottom: 15px;">Réglages des annonces</h3>
                 
                 <div class="form-group">
                   <label for="announce_channel">Salon pour l'annonce de niveau :</label>
@@ -499,7 +542,7 @@
                 <div class="form-group">
                   <label for="gif_url">Lien du GIF (URL) :</label>
                   <div class="url-upload-wrapper">
-                    <input type="url" id="gif_url" required placeholder="https://media.giphy.com/media/.../giphy.gif" style="flex: 1;">
+                    <input type="text" id="gif_url" required placeholder="https://media.giphy.com/media/.../giphy.gif" style="flex: 1;">
                     <label class="btn-upload-label" title="Téléverser un GIF/Image">
                       <i class="fa-solid fa-cloud-arrow-up"></i>
                       <input type="file" id="gif-file-input" accept="image/gif,image/jpeg,image/png" style="display:none;">

@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getEconomy } = require('../../database/db');
+const { getEconomy, getLeveling } = require('../../database/db');
 const genCard = require('../../carte/holographique');
 
 const WEALTH_RANKS = [
@@ -34,6 +34,7 @@ module.exports = {
     const guildId = interaction.guild ? interaction.guild.id : 'DM';
 
     const economy = getEconomy(guildId, targetUser.id);
+    const leveling = getLeveling(guildId, targetUser.id);
     const balance = economy.wallet + economy.bank;
     const karma = economy.karma;
 
@@ -48,9 +49,9 @@ module.exports = {
       level:         0,
       xp:            Math.max(0, progress),
       required:      Math.max(1, rangeSize),
-      messages:      0,
-      voiceMinutes:  0,
-      streak:        0,
+      messages:      leveling.total_messages || 0,
+      voiceMinutes:  leveling.voice_minutes || 0, // Mappé sur VOC
+      streak:        leveling.nsfw_messages || 0, // Mappé sur FEU dans card-worker.js
       karma,
       roleName:      'SOLDE CARD',
       expBarLabel:   rank.next === Infinity

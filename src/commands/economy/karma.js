@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getEconomy } = require('../../database/db');
+const { getEconomy, getLeveling } = require('../../database/db');
 const genCard = require('../../carte/holographique');
 
 const KARMA_RANKS = [
@@ -36,6 +36,7 @@ module.exports = {
     const guildId = interaction.guild ? interaction.guild.id : 'DM';
 
     const economy = getEconomy(guildId, targetUser.id);
+    const leveling = getLeveling(guildId, targetUser.id);
     const karma = economy.karma;
 
     const rank = getKarmaRank(karma);
@@ -49,9 +50,9 @@ module.exports = {
       level:           0,
       xp:              Math.max(0, progress),
       required:        Math.max(1, rangeSize),
-      messages:        0,
-      voiceMinutes:    0,
-      streak:          0,
+      messages:        leveling.total_messages || 0,
+      voiceMinutes:    leveling.voice_minutes || 0, // Mappé sur VOC
+      streak:          leveling.nsfw_messages || 0, // Mappé sur FEU dans card-worker.js
       karma,
       roleName:        'KARMA CARD',
       expBarLabel:     rank.next === Infinity
@@ -59,8 +60,8 @@ module.exports = {
         : `${karma.toLocaleString('fr-FR')} / ${nextThreshold.toLocaleString('fr-FR')} KARMA`,
       statsItems: [
         { icon: '⭐',  label: 'KARMA',    value: fmt(karma) },
-        { icon: '🔥',  label: 'FEU',      value: '0' },
-        { icon: 'MSG', label: 'MESSAGES', value: '0' },
+        { icon: '🔥',  label: 'FEU',      value: String(leveling.nsfw_messages || 0) },
+        { icon: 'MSG', label: 'MESSAGES', value: String(leveling.total_messages || 0) },
       ],
       rankDisplay:     rank.name,
       nextPanelTitle:  'PROCHAIN RANG',

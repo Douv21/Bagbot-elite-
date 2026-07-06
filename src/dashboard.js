@@ -375,6 +375,12 @@ app.get('/api/config', (req, res) => {
       levelingConfig = {
         xp_min: 15,
         xp_max: 25,
+        karma_min: 1,
+        karma_max: 3,
+        money_min: 2,
+        money_max: 5,
+        nsfw_xp_reward: 0,
+        nsfw_money_reward: 0,
         announce_channel: 'current',
         announce_msg: 'Bravo {user} ! Tu passes au niveau {level} !'
       };
@@ -583,19 +589,51 @@ app.post('/api/config/leveling', (req, res) => {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { xp_min, xp_max, announce_channel, announce_msg } = req.body;
+    const { 
+      xp_min, xp_max, 
+      karma_min, karma_max, 
+      money_min, money_max, 
+      nsfw_xp_reward, nsfw_money_reward, 
+      announce_channel, announce_msg 
+    } = req.body;
 
     db.prepare(`
-      INSERT OR REPLACE INTO leveling_config (guild_id, xp_min, xp_max, announce_channel, announce_msg)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO leveling_config (
+        guild_id, xp_min, xp_max, 
+        karma_min, karma_max, 
+        money_min, money_max, 
+        nsfw_xp_reward, nsfw_money_reward, 
+        announce_channel, announce_msg
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       guildId,
       xp_min !== undefined ? parseInt(xp_min) : 15,
       xp_max !== undefined ? parseInt(xp_max) : 25,
+      karma_min !== undefined ? parseInt(karma_min) : 1,
+      karma_max !== undefined ? parseInt(karma_max) : 3,
+      money_min !== undefined ? parseInt(money_min) : 2,
+      money_max !== undefined ? parseInt(money_max) : 5,
+      nsfw_xp_reward !== undefined ? parseInt(nsfw_xp_reward) : 0,
+      nsfw_money_reward !== undefined ? parseInt(nsfw_money_reward) : 0,
       announce_channel || 'current',
       announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !'
     );
 
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 10b. Réinitialiser les messages NSFW de tous les membres (FEU)
+app.post('/api/config/leveling/reset-nsfw', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    db.prepare('UPDATE leveling SET nsfw_messages = 0 WHERE guild_id = ?').run(guildId);
     res.json({ success: true });
   } catch (error) {
     console.error(error);

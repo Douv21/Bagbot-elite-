@@ -223,10 +223,47 @@ function initDatabase() {
       guild_id TEXT PRIMARY KEY,
       xp_min INTEGER DEFAULT 15,
       xp_max INTEGER DEFAULT 25,
+      karma_min INTEGER DEFAULT 1,
+      karma_max INTEGER DEFAULT 3,
+      money_min INTEGER DEFAULT 2,
+      money_max INTEGER DEFAULT 5,
+      nsfw_xp_reward INTEGER DEFAULT 0,
+      nsfw_money_reward INTEGER DEFAULT 0,
       announce_channel TEXT DEFAULT 'current',
       announce_msg TEXT DEFAULT 'Bravo {user} ! Tu passes au niveau {level} !'
     )
   `).run();
+
+  // Ajouter les colonnes de configuration de leveling / karma / nsfw si elles n'existent pas
+  try {
+    db.prepare('ALTER TABLE leveling_config ADD COLUMN karma_min INTEGER DEFAULT 1').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE leveling_config ADD COLUMN karma_max INTEGER DEFAULT 3').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE leveling_config ADD COLUMN money_min INTEGER DEFAULT 2').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE leveling_config ADD COLUMN money_max INTEGER DEFAULT 5').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE leveling_config ADD COLUMN nsfw_xp_reward INTEGER DEFAULT 0').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE leveling_config ADD COLUMN nsfw_money_reward INTEGER DEFAULT 0').run();
+  } catch (e) {}
+
+  // Ajouter les colonnes de statistiques utilisateurs dans leveling si elles n'existent pas
+  try {
+    db.prepare('ALTER TABLE leveling ADD COLUMN nsfw_messages INTEGER DEFAULT 0').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE leveling ADD COLUMN total_messages INTEGER DEFAULT 0').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE leveling ADD COLUMN voice_minutes INTEGER DEFAULT 0').run();
+  } catch (e) {}
 
   // 16. GIFs pour les commandes d'action
   db.prepare(`
@@ -264,7 +301,7 @@ const getLeveling = (guildId, userId) => {
   const row = db.prepare('SELECT * FROM leveling WHERE guild_id = ? AND user_id = ?').get(guildId, userId);
   if (!row) {
     db.prepare('INSERT OR IGNORE INTO leveling (guild_id, user_id) VALUES (?, ?)').run(guildId, userId);
-    return { guild_id: guildId, user_id: userId, xp: 0, level: 0, last_xp_message: 0 };
+    return { guild_id: guildId, user_id: userId, xp: 0, level: 0, last_xp_message: 0, nsfw_messages: 0, total_messages: 0, voice_minutes: 0 };
   }
   return row;
 };
@@ -282,7 +319,7 @@ const getLevelingConfig = (guildId) => {
   const row = db.prepare('SELECT * FROM leveling_config WHERE guild_id = ?').get(guildId);
   if (!row) {
     db.prepare('INSERT OR IGNORE INTO leveling_config (guild_id) VALUES (?)').run(guildId);
-    return { guild_id: guildId, xp_min: 15, xp_max: 25, announce_channel: 'current', announce_msg: 'Bravo {user} ! Tu passes au niveau {level} !' };
+    return { guild_id: guildId, xp_min: 15, xp_max: 25, karma_min: 1, karma_max: 3, money_min: 2, money_max: 5, nsfw_xp_reward: 0, nsfw_money_reward: 0, announce_channel: 'current', announce_msg: 'Bravo {user} ! Tu passes au niveau {level} !' };
   }
   return row;
 };

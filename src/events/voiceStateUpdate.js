@@ -69,6 +69,10 @@ async function handleVoiceLeave(guildId, member, channel) {
     db.prepare('DELETE FROM voice_xp WHERE guild_id = ? AND user_id = ?').run(guildId, userId);
     
     if (durationMins > 0) {
+      // Incrémenter les statistiques vocales cumulées
+      db.prepare('INSERT OR IGNORE INTO leveling (guild_id, user_id) VALUES (?, ?)').run(guildId, userId);
+      db.prepare('UPDATE leveling SET voice_minutes = voice_minutes + ? WHERE guild_id = ? AND user_id = ?').run(durationMins, guildId, userId);
+
       const xpToGive = durationMins * 10; // 10 XP par minute
       // On essaye d'envoyer la notification de level up dans le premier salon textuel disponible
       const systemChannel = member.guild.systemChannel || member.guild.channels.cache.find(c => c.isTextBased());
@@ -90,6 +94,10 @@ async function handleVoiceLeave(guildId, member, channel) {
       db.prepare('DELETE FROM voice_xp WHERE guild_id = ? AND user_id = ?').run(guildId, lastMember.id);
       
       if (durationMins > 0) {
+        // Incrémenter les statistiques vocales cumulées
+        db.prepare('INSERT OR IGNORE INTO leveling (guild_id, user_id) VALUES (?, ?)').run(guildId, lastMember.id);
+        db.prepare('UPDATE leveling SET voice_minutes = voice_minutes + ? WHERE guild_id = ? AND user_id = ?').run(durationMins, guildId, lastMember.id);
+
         const xpToGive = durationMins * 10;
         const systemChannel = member.guild.systemChannel || member.guild.channels.cache.find(c => c.isTextBased());
         await addXP(member.guild, lastMember, xpToGive, systemChannel);

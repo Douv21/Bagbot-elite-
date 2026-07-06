@@ -122,7 +122,23 @@ module.exports = {
       }
     }
 
-    // --- GAIN D'XP (LEVELING TEXTE) ---
+    // Assurer l'existence des enregistrements en base de données
+    getLeveling(guildId, userId);
+    
+    // Incrémenter le total de messages
+    db.prepare('UPDATE leveling SET total_messages = total_messages + 1 WHERE guild_id = ? AND user_id = ?').run(guildId, userId);
+
+    // Gérer l'incrémentation NSFW et récompenses
+    let nsfwRewardXp = 0;
+    let nsfwRewardMoney = 0;
+    if (message.channel.nsfw) {
+      db.prepare('UPDATE leveling SET nsfw_messages = nsfw_messages + 1 WHERE guild_id = ? AND user_id = ?').run(guildId, userId);
+      const lvlConfig = getLevelingConfig(guildId);
+      nsfwRewardXp = lvlConfig.nsfw_xp_reward || 0;
+      nsfwRewardMoney = lvlConfig.nsfw_money_reward || 0;
+    }
+
+    // --- GAIN D'XP, KARMA ET ARGENT (LEVELING TEXTE) ---
     const now = Date.now();
     const cooldownKey = `${guildId}-${userId}`;
     const userCooldown = xpCooldowns.get(cooldownKey);
@@ -130,11 +146,41 @@ module.exports = {
     if (!userCooldown || (now - userCooldown) > 60000) {
       xpCooldowns.set(cooldownKey, now);
       const lvlConfig = getLevelingConfig(guildId);
+
+      // Gain d'XP standard
       const minXp = lvlConfig.xp_min ?? 15;
       const maxXp = lvlConfig.xp_max ?? 25;
       const range = Math.max(1, maxXp - minXp + 1);
       const randomXp = Math.floor(Math.random() * range) + minXp;
       await addXP(message.guild, message.member, randomXp, message.channel);
+
+      // Gain de Karma
+      const minKarma = lvlConfig.karma_min ?? 1;
+      const maxKarma = lvlConfig.karma_max ?? 3;
+      const karmaRange = Math.max(1, maxKarma - minKarma + 1);
+      const randomKarma = Math.floor(Math.random() * karmaRange) + minKarma;
+
+      // Gain d'Argent (Solde)
+      const minMoney = lvlConfig.money_min ?? 2;
+      const maxMoney = lvlConfig.money_max ?? 5;
+      const moneyRange = Math.max(1, maxMoney - minMoney + 1);
+      const randomMoney = Math.floor(Math.random() * moneyRange) + minMoney;
+
+      // Ajouter le Karma et l'Argent (avec bonus NSFW inclus)
+      const totalMoney = randomMoney + nsfwRewardMoney;
+      
+      // Assurer l'existence de la table economy pour l'utilisateur
+      db.prepare('INSERT OR IGNORE INTO economy (guild_id, user_id) VALUES (?, ?)').run(guildId, userId);
+      db.prepare(`
+        UPDATE economy 
+        SET karma = karma + ?, wallet = wallet + ? 
+        WHERE guild_id = ? AND user_id = ?
+      `).run(randomKarma, totalMoney, guildId, userId);
+
+      // Appliquer le bonus d'XP NSFW éventuel
+      if (nsfwRewardXp > 0) {
+        await addXP(message.guild, message.member, nsfwRewardXp, message.channel);
+      }
 
       // --- JEU DE DEVINETTE (RECHERCHE DE LETTRE) ---
       const game = db.prepare('SELECT * FROM game_config WHERE guild_id = ? AND is_active = 1').get(guildId);
