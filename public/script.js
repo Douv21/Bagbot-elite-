@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // State
   let confessionsListState = [];
+  let guildsList = [];
   let currentUser = null;
   let channelsList = [];
   let rolesList = [];
@@ -108,18 +109,16 @@ document.addEventListener('DOMContentLoaded', () => {
       userAvatar.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; // default avatar
     }
 
-    // Load guilds list
     fetch('/api/guilds')
       .then(res => res.json())
       .then(guilds => {
+        guildsList = guilds;
         guilds.forEach(guild => {
           const option = document.createElement('option');
           option.value = guild.id;
           option.textContent = guild.name;
           guildSelect.appendChild(option);
         });
-
-        // Load pre-selected guild from session if any
         return fetch('/api/selected-guild');
       })
       .then(res => res.json())
@@ -309,6 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAutoroleRole(config.autoroles_on_role || []);
         renderActiveAutoroles(config.autorole_embeds || []);
         renderCountingChannels(config.counting_channels || []);
+        if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
       })
       .catch(console.error);
   }
@@ -1312,12 +1312,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('autorole-embed-buttons-preview');
     const noButtonsText = document.getElementById('no-buttons-text');
     
-    // Supprimer tout sauf le texte par défaut s'il n'y a rien
     container.innerHTML = '';
     
     if (autoroleButtonsList.length === 0) {
       noButtonsText.style.display = 'block';
       container.appendChild(noButtonsText);
+      
+      const previewButtonsContainer = document.getElementById('autorole-preview-buttons');
+      if (previewButtonsContainer) previewButtonsContainer.innerHTML = '';
       return;
     }
     noButtonsText.style.display = 'none';
@@ -1346,6 +1348,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
       container.appendChild(wrapper);
     });
+
+    // Mettre à jour l'aperçu en direct des boutons
+    const previewButtonsContainer = document.getElementById('autorole-preview-buttons');
+    if (previewButtonsContainer) {
+      previewButtonsContainer.innerHTML = '';
+      autoroleButtonsList.forEach(btn => {
+        const pBtn = document.createElement('button');
+        pBtn.type = 'button';
+        pBtn.style.padding = '6px 16px';
+        pBtn.style.fontSize = '0.85rem';
+        pBtn.style.borderRadius = '3px';
+        pBtn.style.border = 'none';
+        pBtn.style.cursor = 'default';
+        pBtn.style.display = 'inline-flex';
+        pBtn.style.alignItems = 'center';
+        pBtn.style.gap = '6px';
+        pBtn.style.fontWeight = '500';
+        
+        let bgColor = '#5865F2';
+        let textColor = '#ffffff';
+        if (btn.style === 'SECONDARY') { bgColor = '#4f545c'; }
+        else if (btn.style === 'SUCCESS') { bgColor = '#43b581'; }
+        else if (btn.style === 'DANGER') { bgColor = '#f04747'; }
+        
+        pBtn.style.background = bgColor;
+        pBtn.style.color = textColor;
+        pBtn.innerHTML = `<span>${btn.emoji || ''}</span> <span>${btn.label}</span>`;
+        previewButtonsContainer.appendChild(pBtn);
+      });
+    }
   }
 
   document.getElementById('form-create-autorole-embed').addEventListener('submit', (e) => {
@@ -1392,6 +1424,44 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(err => showToast(err.message, true));
   });
+
+  // --- LIVE PREVIEW POUR AUTO-RÔLES ---
+  const updateAutorolePreview = () => {
+    const title = document.getElementById('autorole-embed-title').value.trim() || 'Aperçu du titre';
+    const desc = document.getElementById('autorole-embed-desc').value.trim() || 'Aperçu de la description...';
+    const color = document.getElementById('autorole-embed-color').value;
+    const thumbnailOpt = document.getElementById('autorole-embed-thumbnail').value;
+    const imageUrl = document.getElementById('autorole-embed-image').value.trim();
+
+    document.getElementById('autorole-preview-title').textContent = title;
+    document.getElementById('autorole-preview-desc').textContent = desc;
+    document.getElementById('autorole-discord-embed').style.borderLeftColor = color;
+
+    const thumbnailImg = document.getElementById('autorole-preview-thumbnail');
+    const guildId = guildSelect.value;
+    const selectedGuildInfo = guildsList.find(g => g.id === guildId);
+    
+    if (thumbnailOpt === '1' && selectedGuildInfo && selectedGuildInfo.icon) {
+      thumbnailImg.src = `https://cdn.discordapp.com/icons/${selectedGuildInfo.id}/${selectedGuildInfo.icon}.png`;
+      thumbnailImg.style.display = 'block';
+    } else {
+      thumbnailImg.style.display = 'none';
+    }
+
+    const previewImg = document.getElementById('autorole-preview-image');
+    if (imageUrl) {
+      previewImg.src = imageUrl;
+      previewImg.style.display = 'block';
+    } else {
+      previewImg.style.display = 'none';
+    }
+  };
+
+  document.getElementById('autorole-embed-title').addEventListener('input', updateAutorolePreview);
+  document.getElementById('autorole-embed-desc').addEventListener('input', updateAutorolePreview);
+  document.getElementById('autorole-embed-color').addEventListener('input', updateAutorolePreview);
+  document.getElementById('autorole-embed-thumbnail').addEventListener('change', updateAutorolePreview);
+  document.getElementById('autorole-embed-image').addEventListener('input', updateAutorolePreview);
 
   // --- LOGIQUE INTERACTIVE DU COUNTING ---
 

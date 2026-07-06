@@ -261,96 +261,139 @@
             </div>
 
             <!-- 2. Création d'un Embed d'Auto-Rôle (Boutons cliquables) -->
+            <!-- 2. Création d'un Embed d'Auto-Rôle (Boutons cliquables) -->
             <div class="card glass" style="margin-top: 20px;">
               <h3><i class="fa-solid fa-rectangle-list"></i> Envoyer un embed d'auto-rôle avec boutons</h3>
               <p class="description-text">Créez un message embed interactif et envoyez-le dans un salon. Les membres pourront cliquer sur les boutons pour s'auto-attribuer les rôles configurés (effet bascule).</p>
               
-              <form id="form-create-autorole-embed" style="margin-top: 20px;">
-                <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 15px;">
-                  <div class="form-group" style="flex: 1;">
-                    <label for="autorole-embed-channel"><i class="fa-solid fa-hashtag"></i> Salon de destination :</label>
-                    <select id="autorole-embed-channel" class="channel-select" required>
-                      <option value="">-- Choisir un salon --</option>
-                    </select>
-                  </div>
-                  <div class="form-group" style="flex: 1;">
-                    <label for="autorole-embed-color"><i class="fa-solid fa-palette"></i> Couleur de l'embed :</label>
-                    <input type="color" id="autorole-embed-color" value="#5865F2" style="padding: 2px; height: 42px; width: 100%;">
-                  </div>
+              <div class="embed-creator-layout" style="display: flex; gap: 24px; flex-wrap: wrap; margin-top: 20px;">
+                <!-- Left Side: Form -->
+                <div class="embed-form-col" style="flex: 1.2; min-width: 320px;">
+                  <form id="form-create-autorole-embed">
+                    <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 15px;">
+                      <div class="form-group" style="flex: 1;">
+                        <label for="autorole-embed-channel"><i class="fa-solid fa-hashtag"></i> Salon de destination :</label>
+                        <select id="autorole-embed-channel" class="channel-select" required>
+                          <option value="">-- Choisir un salon --</option>
+                        </select>
+                      </div>
+                      <div class="form-group" style="flex: 1;">
+                        <label for="autorole-embed-color"><i class="fa-solid fa-palette"></i> Couleur de l'embed :</label>
+                        <input type="color" id="autorole-embed-color" value="#5865F2" style="padding: 2px; height: 42px; width: 100%;">
+                      </div>
+                    </div>
+
+                    <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 15px;">
+                      <div class="form-group" style="flex: 1;">
+                        <label for="autorole-embed-title">Titre de l'embed :</label>
+                        <input type="text" id="autorole-embed-title" placeholder="Ex: Choix des rôles" required>
+                      </div>
+                      <div class="form-group" style="flex: 1;">
+                        <label for="autorole-embed-thumbnail"><i class="fa-solid fa-image"></i> Inclure l'icône du serveur en miniature :</label>
+                        <select id="autorole-embed-thumbnail">
+                          <option value="0">Non</option>
+                          <option value="1">Oui</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 15px;">
+                      <label for="autorole-embed-desc">Description / Message :</label>
+                      <textarea id="autorole-embed-desc" rows="3" placeholder="Décrivez les rôles disponibles et comment les obtenir..." required></textarea>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 15px;">
+                      <label for="autorole-embed-image">Image principale (URL ou téléversement) :</label>
+                      <div class="url-upload-wrapper" id="autorole-image-wrapper" style="display: flex; gap: 10px;">
+                        <input type="text" id="autorole-embed-image" placeholder="Lien de la grande image de l'embed (Optionnel)..." style="flex: 1;">
+                        <label class="btn-upload-label" title="Téléverser une image" style="flex-shrink: 0; padding: 8px 12px; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
+                          <i class="fa-solid fa-cloud-arrow-up"></i>
+                          <input type="file" class="file-upload-input" data-target="autorole-embed-image" accept="image/*" style="display:none;">
+                        </label>
+                      </div>
+                    </div>
+
+                    <!-- Boutons associés (Roles Options) -->
+                    <div class="card" style="background: rgba(0, 0, 0, 0.2); border: 1px dashed rgba(255, 255, 255, 0.1); margin-bottom: 20px; padding: 15px;">
+                      <h4><i class="fa-solid fa-circle-play"></i> Boutons de rôles de cet embed</h4>
+                      <p class="description-text" style="font-size: 0.8rem; margin-bottom: 10px; color: #b9bbbe;">Ajoutez des boutons à cet embed. Chaque bouton correspond à un rôle à attribuer (5 maximum).</p>
+                      
+                      <div id="autorole-buttons-creator" style="display: flex; flex-direction: column; gap: 10px;">
+                        <div class="form-row" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                          <div class="form-group" style="flex: 2; min-width: 150px;">
+                            <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 5px; display: block;">Rôle à donner :</label>
+                            <select id="new-button-role" class="role-select">
+                              <option value="">-- Choisir un rôle --</option>
+                            </select>
+                          </div>
+                          <div class="form-group" style="flex: 2; min-width: 120px;">
+                            <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 5px; display: block;">Texte du bouton :</label>
+                            <input type="text" id="new-button-label" placeholder="Ex: Gaming">
+                          </div>
+                          <div class="form-group" style="flex: 1; min-width: 80px;">
+                            <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 5px; display: block;">Emoji :</label>
+                            <input type="text" id="new-button-emoji" placeholder="🎮">
+                          </div>
+                          <div class="form-group" style="flex: 1.5; min-width: 100px;">
+                            <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 5px; display: block;">Style :</label>
+                            <select id="new-button-style">
+                              <option value="PRIMARY">Bleu (Primary)</option>
+                              <option value="SECONDARY">Gris (Secondary)</option>
+                              <option value="SUCCESS">Vert (Success)</option>
+                              <option value="DANGER">Rouge (Danger)</option>
+                            </select>
+                          </div>
+                          <button type="button" id="btn-add-autorole-button" class="btn btn-add" style="height: 42px; margin-bottom: 0;"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+
+                        <div id="autorole-embed-buttons-preview" class="form-row" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; min-height: 40px; align-items: center;">
+                          <!-- Aperçu des boutons ajoutés -->
+                          <p style="color: #8e9297; font-style: italic; font-size: 0.85rem;" id="no-buttons-text">Aucun bouton configuré pour l'instant.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-save" style="width: 100%; height: 46px;"><i class="fa-solid fa-paper-plane"></i> Créer et Envoyer l'Embed d'Auto-Rôle</button>
+                  </form>
                 </div>
 
-                <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 15px;">
-                  <div class="form-group" style="flex: 1;">
-                    <label for="autorole-embed-title">Titre de l'embed :</label>
-                    <input type="text" id="autorole-embed-title" placeholder="Ex: Choix des rôles" required>
-                  </div>
-                  <div class="form-group" style="flex: 1;">
-                    <label for="autorole-embed-thumbnail"><i class="fa-solid fa-image"></i> Inclure l'icône du serveur en miniature :</label>
-                    <select id="autorole-embed-thumbnail">
-                      <option value="0">Non</option>
-                      <option value="1">Oui</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="form-group" style="margin-bottom: 15px;">
-                  <label for="autorole-embed-desc">Description / Message :</label>
-                  <textarea id="autorole-embed-desc" rows="3" placeholder="Décrivez les rôles disponibles et comment les obtenir..." required></textarea>
-                </div>
-
-                <div class="form-group" style="margin-bottom: 15px;">
-                  <label for="autorole-embed-image">Image principale (URL ou téléversement) :</label>
-                  <div class="url-upload-wrapper" id="autorole-image-wrapper" style="display: flex; gap: 10px;">
-                    <input type="text" id="autorole-embed-image" placeholder="Lien de la grande image de l'embed (Optionnel)..." style="flex: 1;">
-                    <label class="btn-upload-label" title="Téléverser une image" style="flex-shrink: 0; padding: 8px 12px; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
-                      <i class="fa-solid fa-cloud-arrow-up"></i>
-                      <input type="file" class="file-upload-input" data-target="autorole-embed-image" accept="image/*" style="display:none;">
-                    </label>
-                  </div>
-                </div>
-
-                <!-- Boutons associés (Roles Options) -->
-                <div class="card" style="background: rgba(0, 0, 0, 0.2); border: 1px dashed rgba(255, 255, 255, 0.1); margin-bottom: 20px; padding: 15px;">
-                  <h4><i class="fa-solid fa-circle-play"></i> Boutons de rôles de cet embed</h4>
-                  <p class="description-text" style="font-size: 0.8rem; margin-bottom: 10px; color: #b9bbbe;">Ajoutez des boutons à cet embed. Chaque bouton correspond à un rôle à attribuer (5 maximum).</p>
+                <!-- Right Side: Live Preview -->
+                <div class="embed-preview-col" style="flex: 0.8; min-width: 280px; display: flex; flex-direction: column; gap: 10px;">
+                  <h4 style="margin-bottom: 5px;"><i class="fa-solid fa-eye"></i> Aperçu de l'Embed</h4>
                   
-                  <div id="autorole-buttons-creator" style="display: flex; flex-direction: column; gap: 10px;">
-                    <div class="form-row" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
-                      <div class="form-group" style="flex: 2; min-width: 150px;">
-                        <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 5px; display: block;">Rôle à donner :</label>
-                        <select id="new-button-role" class="role-select">
-                          <option value="">-- Choisir un rôle --</option>
-                        </select>
+                  <div class="discord-preview-container" style="margin-top: 0; background: #36393f !important; border: 1px solid rgba(255, 255, 255, 0.05); padding: 16px; border-radius: 8px;">
+                    <div class="discord-message">
+                      <div class="discord-avatar-container">
+                        <img class="discord-avatar" id="autorole-bot-avatar-preview" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot Avatar">
                       </div>
-                      <div class="form-group" style="flex: 2; min-width: 120px;">
-                        <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 5px; display: block;">Texte du bouton :</label>
-                        <input type="text" id="new-button-label" placeholder="Ex: Gaming">
+                      <div class="discord-message-content">
+                        <div class="discord-message-header">
+                          <span class="discord-bot-name">Bagbot Elite</span>
+                          <span class="discord-bot-tag">BOT</span>
+                          <span class="discord-timestamp">Aujourd'hui à 12:00</span>
+                        </div>
+                        
+                        <div class="discord-embed" id="autorole-discord-embed" style="border-left: 4px solid #5865F2; background: #2f3136; padding: 12px; border-radius: 4px;">
+                          <div id="autorole-preview-title" style="color: #ffffff; font-weight: 700; font-size: 1rem; margin-bottom: 6px;">Aperçu du titre</div>
+                          
+                          <div style="display: flex; gap: 10px; justify-content: space-between;">
+                            <div style="flex-grow: 1;">
+                              <div id="autorole-preview-desc" style="color: #dcddde; font-size: 0.875rem; white-space: pre-wrap;">Aperçu de la description...</div>
+                            </div>
+                            <img id="autorole-preview-thumbnail" src="" alt="" style="width: 60px; height: 60px; border-radius: 4px; display: none; object-fit: cover;">
+                          </div>
+                          
+                          <img id="autorole-preview-image" src="" alt="" style="max-width: 100%; border-radius: 4px; margin-top: 8px; display: none;">
+                        </div>
+                        
+                        <div id="autorole-preview-buttons" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                          <!-- Boutons injectés en temps réel -->
+                        </div>
                       </div>
-                      <div class="form-group" style="flex: 1; min-width: 80px;">
-                        <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 5px; display: block;">Emoji :</label>
-                        <input type="text" id="new-button-emoji" placeholder="🎮">
-                      </div>
-                      <div class="form-group" style="flex: 1.5; min-width: 100px;">
-                        <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 5px; display: block;">Style :</label>
-                        <select id="new-button-style">
-                          <option value="PRIMARY">Bleu (Primary)</option>
-                          <option value="SECONDARY">Gris (Secondary)</option>
-                          <option value="SUCCESS">Vert (Success)</option>
-                          <option value="DANGER">Rouge (Danger)</option>
-                        </select>
-                      </div>
-                      <button type="button" id="btn-add-autorole-button" class="btn btn-add" style="height: 42px; margin-bottom: 0;"><i class="fa-solid fa-plus"></i></button>
-                    </div>
-
-                    <div id="autorole-embed-buttons-preview" class="form-row" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; min-height: 40px; align-items: center;">
-                      <!-- Aperçu des boutons ajoutés -->
-                      <p style="color: #8e9297; font-style: italic; font-size: 0.85rem;" id="no-buttons-text">Aucun bouton configuré pour l'instant.</p>
                     </div>
                   </div>
                 </div>
-
-                <button type="submit" class="btn btn-save" style="width: 100%; height: 46px;"><i class="fa-solid fa-paper-plane"></i> Créer et Envoyer l'Embed d'Auto-Rôle</button>
-              </form>
+              </div>
             </div>
 
             <!-- Liste des embeds actifs -->

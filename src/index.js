@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, REST, Routes, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, Collection, REST, Routes, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const { initDatabase } = require('./database/db');
@@ -17,7 +17,8 @@ const client = new Client({
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.DirectMessages
-  ]
+  ],
+  partials: [Partials.Channel, Partials.Message, Partials.Reaction]
 });
 
 client.commands = new Collection();
@@ -91,6 +92,35 @@ client.on('interactionCreate', async interaction => {
         console.error('Erreur attribution rôle bouton:', err);
         await interaction.editReply({ content: '❌ Une erreur est survenue lors de la mise à jour de vos rôles.' });
       }
+    } else if (customId === 'suite_invite_btn' || customId === 'suite_exclude_btn') {
+      const { getPrivateSuiteByChannel } = require('./database/db');
+      const suite = getPrivateSuiteByChannel(interaction.channelId);
+      
+      if (!suite) {
+        return interaction.reply({ content: '❌ Ce salon n\'est pas associé à une suite privée active.', ephemeral: true });
+      }
+
+      if (interaction.user.id !== suite.user_id) {
+        return interaction.reply({ content: `❌ Seul le propriétaire de la suite (<@${suite.user_id}>) peut gérer cette suite.`, ephemeral: true });
+      }
+
+      const { UserSelectMenuBuilder, ActionRowBuilder } = require('discord.js');
+      const isInvite = customId === 'suite_invite_btn';
+      
+      const selectMenu = new UserSelectMenuBuilder()
+        .setCustomId(isInvite ? 'suite_invite_select' : 'suite_exclude_select')
+        .setPlaceholder(isInvite ? 'Sélectionnez le membre à inviter...' : 'Sélectionnez le membre à exclure...');
+
+      const row = new ActionRowBuilder().addComponents(selectMenu);
+
+      const embed = new EmbedBuilder()
+        .setTitle(isInvite ? '➕ Inviter un membre' : '➖ Exclure un membre')
+        .setDescription(isInvite 
+          ? 'Choisissez le membre du serveur que vous souhaitez inviter dans votre suite privée.'
+          : 'Choisissez le membre que vous souhaitez retirer de votre suite privée.')
+        .setColor(isInvite ? '#43B581' : '#F04747');
+
+      return interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
     }
     return;
   }
@@ -112,6 +142,63 @@ client.on('interactionCreate', async interaction => {
         }
       }
       return;
+    }
+  }
+
+  if (interaction.isUserSelectMenu()) {
+    const customId = interaction.customId;
+    if (customId === 'suite_invite_select' || customId === 'suite_exclude_select') {
+      const { getPrivateSuiteByChannel } = require('./database/db');
+      const suite = getPrivateSuiteByChannel(interaction.channelId);
+
+      if (!suite) {
+        return interaction.reply({ content: '❌ Cette suite n\'existe plus.', ephemeral: true });
+      }
+
+      if (interaction.user.id !== suite.user_id) {
+        return interaction.reply({ content: '❌ Vous n\'êtes pas le propriétaire de cette suite.', ephemeral: true });
+      }
+
+      const targetId = interaction.values[0];
+      const channel = interaction.channel;
+      const isInvite = customId === 'suite_invite_select';
+
+      if (targetId === interaction.user.id) {
+        return interaction.reply({ content: '❌ Vous ne pouvez pas vous cibler vous-même.', ephemeral: true });
+      }
+
+      try {
+        if (isInvite) {
+          await channel.permissionOverwrites.create(targetId, {
+            ViewChannel: true,
+            SendMessages: true,
+            ReadMessageHistory: true,
+            EmbedLinks: true,
+            AttachFiles: true
+          });
+
+          const embed = new EmbedBuilder()
+            .setTitle('✅ Membre Invité')
+            .setDescription(`Le membre <@${targetId}> a été ajouté à votre suite privée. Il peut désormais voir et écrire dans ce salon.`)
+            .setColor('#43B581')
+            .setTimestamp();
+
+          return interaction.reply({ embeds: [embed], ephemeral: true });
+        } else {
+          await channel.permissionOverwrites.delete(targetId);
+
+          const embed = new EmbedBuilder()
+            .setTitle('❌ Membre Exclu')
+            .setDescription(`Le membre <@${targetId}> a été retiré de votre suite privée. Il ne peut plus voir ce salon.`)
+            .setColor('#F04747')
+            .setTimestamp();
+
+          return interaction.reply({ embeds: [embed], ephemeral: true });
+        }
+      } catch (err) {
+        console.error('Erreur gestion permissions suite:', err);
+        return interaction.reply({ content: '❌ Impossible de modifier les permissions pour cet utilisateur. Vérifiez mes permissions.', ephemeral: true });
+      }
     }
   }
 

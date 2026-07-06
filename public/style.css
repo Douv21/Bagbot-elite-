@@ -996,3 +996,82 @@ body {
 .config-table tr:hover {
   background: rgba(255, 255, 255, 0.01);
 }
+
+/* Presentation Smartphone/PC en automatique (Responsive Design) */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    align-items: center;
+    text-align: center;
+    border-radius: 0 0 12px 12px;
+  }
+  .nav-brand {
+    font-size: 1.3rem;
+  }
+  .guild-selector {
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+  }
+  .guild-selector select {
+    width: 100%;
+    text-align: center;
+  }
+  .user-profile {
+    width: 100%;
+    justify-content: center;
+  }
+  .dashboard-main {
+    padding: 0 16px 16px;
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    flex-direction: row;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 10px;
+    gap: 10px;
+    border-radius: 12px;
+  }
+  .sidebar::-webkit-scrollbar {
+    height: 4px;
+  }
+  .sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+  }
+  .tab-btn {
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+  .form-row {
+    flex-direction: column;
+    gap: 12px !important;
+  }
+  .url-upload-wrapper {
+    flex-direction: column;
+  }
+  .btn-upload-label {
+    width: 100%;
+    text-align: center;
+    padding: 12px !important;
+  }
+  .embed-creator-layout {
+    flex-direction: column;
+  }
+  .embed-form-col, .embed-preview-col {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+  table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+  }
+  .card {
+    padding: 16px;
+  }
+}

@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, ActionRowBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { db, getEconomy, updateEconomy, getPrivateSuite, updatePrivateSuiteExpiry, addPrivateSuite } = require('../../database/db');
 
 module.exports = {
@@ -166,6 +166,27 @@ module.exports = {
                    `Ce salon est strictement privé et réservé à vous seul.\n` +
                    `Il sera automatiquement supprimé le <t:${Math.floor(expiresAt / 1000)}:F> (<t:${Math.floor(expiresAt / 1000)}:R>).`
         }).catch(console.error);
+
+        // Envoyer le panel interactif de gestion
+        const panelEmbed = new EmbedBuilder()
+          .setTitle('🔑 Gestion de votre Suite Privée')
+          .setDescription('Utilisez les boutons ci-dessous pour gérer les accès à votre salon.\n\n*Les menus d\'invitation et d\'exclusion s\'afficheront sous forme de messages privés (embeds) visibles uniquement par vous.*')
+          .setColor('#5865F2');
+
+        const panelRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('suite_invite_btn')
+            .setLabel('Inviter un membre')
+            .setStyle(ButtonStyle.Success)
+            .setEmoji('➕'),
+          new ButtonBuilder()
+            .setCustomId('suite_exclude_btn')
+            .setLabel('Exclure un membre')
+            .setStyle(ButtonStyle.Danger)
+            .setEmoji('➖')
+        );
+
+        await textChannel.send({ embeds: [panelEmbed], components: [panelRow] }).catch(console.error);
 
         return interaction.editReply({ content: `🎉 Vous avez acheté une **${item.item_name}** pour **${item.price}** pièces ! Votre salon privatif <#${textChannel.id}> a été créé.` });
       } catch (err) {
