@@ -38,7 +38,7 @@ module.exports = {
               files.push(new AttachmentBuilder(absPath, { name }));
               embed.setImage(`attachment://${name}`);
             }
-          } else {
+          } else if (config.welcome_image.startsWith('http://') || config.welcome_image.startsWith('https://')) {
             embed.setImage(config.welcome_image);
           }
         }
@@ -51,7 +51,11 @@ module.exports = {
               const name = 'author_' + path.basename(authorIcon);
               files.push(new AttachmentBuilder(absPath, { name }));
               authorIcon = `attachment://${name}`;
+            } else {
+              authorIcon = null;
             }
+          } else if (!authorIcon.startsWith('http://') && !authorIcon.startsWith('https://')) {
+            authorIcon = null;
           }
         }
 
