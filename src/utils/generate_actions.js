@@ -264,7 +264,7 @@ module.exports = {
           if (fs.existsSync(absPath)) {
             const filename = path.basename(randomGif);
             files.push(new AttachmentBuilder(absPath, { name: filename }));
-            embed.setImage(`attachment://\${filename}`);
+            embed.setImage(\`attachment://\\\${filename}\`);
           }
         } else {
           embed.setImage(randomGif);
