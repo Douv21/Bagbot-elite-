@@ -15,7 +15,8 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildVoiceStates,
-    GatewayIntentBits.GuildMessageReactions
+    GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.DirectMessages
   ]
 });
 
@@ -92,6 +93,26 @@ client.on('interactionCreate', async interaction => {
       }
     }
     return;
+  }
+
+  if (interaction.isStringSelectMenu()) {
+    if (interaction.customId === 'boutique_acheter') {
+      const itemName = interaction.values[0];
+      const command = client.commands.get('boutique');
+      if (command) {
+        try {
+          await command.execute(interaction, itemName);
+        } catch (error) {
+          console.error('Erreur lors de l\'achat boutique via select menu:', error);
+          if (interaction.replied || interaction.deferred) {
+            await interaction.followUp({ content: '❌ Une erreur est survenue lors de l\'achat.', ephemeral: true });
+          } else {
+            await interaction.reply({ content: '❌ Une erreur est survenue lors de l\'achat.', ephemeral: true });
+          }
+        }
+      }
+      return;
+    }
   }
 
   if (!interaction.isChatInputCommand()) return;

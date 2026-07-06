@@ -1,15 +1,16 @@
-const { SlashCommandBuilder, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, ActionRowBuilder } = require('discord.js');
 const { db, getEconomy, updateEconomy, getPrivateSuite, updatePrivateSuiteExpiry, addPrivateSuite } = require('../../database/db');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('boutique')
     .setDescription('Afficher ou acheter dans la boutique')
-    .addStringOption(option => option.setName('acheter').setDescription('Nom de l\'article à acheter (laisser vide pour afficher la boutique)').setRequired(false)),
-  async execute(interaction) {
+    .addStringOption(option => option.setName('acheter').setDescription('Nom de l\'article à acheter (laisser vide pour afficher la boutique)').setRequired(false))
+    .setDMPermission(false),
+  async execute(interaction, selectedItemName = null) {
     const guildId = interaction.guild.id;
     const userId = interaction.user.id;
-    const itemName = interaction.options.getString('acheter');
+    const itemName = selectedItemName || (interaction.options && typeof interaction.options.getString === 'function' ? interaction.options.getString('acheter') : null);
 
     if (!itemName) {
       // Afficher la boutique (le catalogue)
@@ -41,7 +42,20 @@ module.exports = {
         embed.addFields({ name: `🛒 ${item.item_name}`, value: details, inline: false });
       });
 
-      return interaction.reply({ embeds: [embed] });
+      const selectOptions = items.slice(0, 25).map(item => ({
+        label: item.item_name.substring(0, 25),
+        description: `${item.price} pièces`,
+        value: item.item_name
+      }));
+
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId('boutique_acheter')
+        .setPlaceholder('Sélectionnez un article pour l\'acheter...')
+        .addOptions(selectOptions);
+
+      const row = new ActionRowBuilder().addComponents(selectMenu);
+
+      return interaction.reply({ embeds: [embed], components: [row] });
     }
 
     // Acheter l'article
