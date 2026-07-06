@@ -386,6 +386,23 @@ app.get('/api/config', (req, res) => {
       logs = { channel_id: null, events: 'all' };
     }
 
+    // Seeder de suites si manquantes
+    const suites = ['Suite Privée 1 Jour', 'Suite Privée 7 Jours', 'Suite Privée 1 Mois'];
+    const suitePrices = { 'Suite Privée 1 Jour': 500, 'Suite Privée 7 Jours': 2000, 'Suite Privée 1 Mois': 7000 };
+    const suiteDescs = {
+      'Suite Privée 1 Jour': 'Votre suite privée personnelle (salon textuel) pendant 24 heures.',
+      'Suite Privée 7 Jours': 'Votre suite privée personnelle (salon textuel) pendant une semaine.',
+      'Suite Privée 1 Mois': 'Votre suite privée personnelle (salon textuel) pendant un mois.'
+    };
+    
+    suites.forEach(sName => {
+      const exists = db.prepare('SELECT 1 FROM shop WHERE guild_id = ? AND item_name = ?').get(guildId, sName);
+      if (!exists) {
+        db.prepare('INSERT INTO shop (guild_id, item_name, price, description, role_id) VALUES (?, ?, ?, ?, ?)')
+          .run(guildId, sName, suitePrices[sName], suiteDescs[sName], null);
+      }
+    });
+
     // Boutique (Shop)
     const shopItems = db.prepare('SELECT * FROM shop WHERE guild_id = ?').all(guildId);
 
@@ -576,8 +593,30 @@ app.post('/api/config/shop/delete', (req, res) => {
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { item_name } = req.body;
+    if (item_name && item_name.toLowerCase().startsWith('suite privée')) {
+      return res.status(400).json({ error: 'Les suites privées ne peuvent pas être supprimées.' });
+    }
 
     db.prepare('DELETE FROM shop WHERE guild_id = ? AND item_name = ?').run(guildId, item_name);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 7.5 Modifier le prix d'un objet de la Boutique
+app.post('/api/config/shop/update-price', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { item_name, price } = req.body;
+    if (!item_name || price === undefined) {
+      return res.status(400).json({ error: 'Nom et prix requis' });
+    }
+
+    db.prepare('UPDATE shop SET price = ? WHERE guild_id = ? AND item_name = ?').run(price, guildId, item_name);
     res.json({ success: true });
   } catch (error) {
     console.error(error);

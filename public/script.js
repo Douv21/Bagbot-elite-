@@ -859,21 +859,67 @@ document.addEventListener('DOMContentLoaded', () => {
       const tr = document.createElement('tr');
       
       const roleName = item.role_id ? (rolesList.find(r => r.id === item.role_id)?.name || `<@&${item.role_id}>`) : 'Aucun';
+      const isSuite = item.item_name.toLowerCase().startsWith('suite privée');
+
+      const priceHTML = `
+        <div style="display: flex; align-items: center; gap: 5px;">
+          <span>💰</span>
+          <input type="number" class="inner-input shop-price-input" data-name="${item.item_name}" value="${item.price}" style="width: 90px; text-align: right; padding: 4px;">
+          <button class="btn btn-primary btn-save-price" data-name="${item.item_name}" style="padding: 5px 8px; font-size: 0.8rem;" title="Enregistrer le prix"><i class="fa-solid fa-floppy-disk"></i></button>
+        </div>
+      `;
+
+      const actionHTML = isSuite
+        ? `<span class="badge-lock" style="color: var(--text-muted); font-size: 0.9rem; font-weight: 600;"><i class="fa-solid fa-lock"></i> Permanent</span>`
+        : `<button class="btn btn-danger btn-delete-shop" data-name="${item.item_name}"><i class="fa-solid fa-trash-can"></i> Supprimer</button>`;
 
       tr.innerHTML = `
         <td><strong>${item.item_name}</strong></td>
-        <td>💰 ${item.price.toLocaleString('fr-FR')}</td>
+        <td>${priceHTML}</td>
         <td>${item.description || '—'}</td>
         <td><span class="role-badge">${roleName}</span></td>
-        <td><button class="btn btn-danger btn-delete-shop" data-name="${item.item_name}"><i class="fa-solid fa-trash-can"></i> Supprimer</button></td>
+        <td style="text-align: center; vertical-align: middle;">${actionHTML}</td>
       `;
 
-      tr.querySelector('.btn-delete-shop').addEventListener('click', () => {
-        deleteShopItem(item.item_name);
+      // Event listener pour sauvegarder le prix
+      tr.querySelector('.btn-save-price').addEventListener('click', () => {
+        const input = tr.querySelector('.shop-price-input');
+        const newPrice = parseInt(input.value);
+        updateShopItemPrice(item.item_name, newPrice);
       });
+
+      // Event listener pour supprimer
+      if (!isSuite) {
+        tr.querySelector('.btn-delete-shop').addEventListener('click', () => {
+          deleteShopItem(item.item_name);
+        });
+      }
 
       shopItemsList.appendChild(tr);
     });
+  }
+
+  function updateShopItemPrice(item_name, price) {
+    if (isNaN(price) || price < 0) {
+      showToast('Veuillez entrer un prix valide.', true);
+      return;
+    }
+
+    fetch('/api/config/shop/update-price', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ item_name, price })
+    })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          loadGuildConfiguration();
+          showToast('Prix de l\'article mis à jour avec succès !');
+        } else {
+          showToast('Erreur: ' + resData.error, true);
+        }
+      })
+      .catch(err => showToast(err.message, true));
   }
 
   function deleteShopItem(item_name) {
