@@ -43,43 +43,57 @@ module.exports = {
     }
 
     // --- AUTOMODÉRATION ---
-    
-    // Ignorer l'automodération pour les administrateurs
-    if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+    const automod = db.prepare('SELECT * FROM automod_config WHERE guild_id = ?').get(guildId) || {
+      anti_link: 0,
+      anti_spam: 0,
+      anti_massmention: 0,
+      anti_badwords: 0,
+      bypass_roles: '',
+      badwords_list: '',
+      spam_max_msgs: 5,
+      massmention_limit: 5
+    };
+
+    const bypassRoles = automod.bypass_roles ? automod.bypass_roles.split(',').map(r => r.trim()).filter(Boolean) : [];
+    const hasBypassRole = message.member ? message.member.roles.cache.some(r => bypassRoles.includes(r.id)) : false;
+
+    // Ignorer l'automodération pour les administrateurs et rôles bypass
+    if (message.member && !message.member.permissions.has(PermissionFlagsBits.Administrator) && !hasBypassRole) {
       let violated = false;
       let reason = '';
 
-      // 1. Anti-invites Discord
-      const inviteRegex = /(discord\.(gg|io|me|li)|discordapp\.com\/invite)\/[a-zA-Z0-9]+/i;
-      if (inviteRegex.test(message.content)) {
-        violated = true;
-        reason = 'Envoi d\'invitations Discord non autorisé';
+      // 1. Anti-liens généraux / invitations Discord
+      if (automod.anti_link === 1) {
+        const inviteRegex = /(discord\.(gg|io|me|li)|discordapp\.com\/invite)\/[a-zA-Z0-9]+/i;
+        const linkRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/gi;
+        if (inviteRegex.test(message.content) || linkRegex.test(message.content)) {
+          violated = true;
+          reason = 'Envoi de liens ou d\'invitations non autorisé';
+        }
       }
 
-      // 2. Anti-liens généraux (si activé, ou simple vérification)
-      const linkRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/gi;
-      if (!violated && linkRegex.test(message.content)) {
-        // Optionnel : on peut vérifier en base de données si l'anti-liens est actif.
-        // Ici on applique une règle de base (logs et suppression)
-        violated = true;
-        reason = 'Envoi de liens non autorisé';
+      // 2. Anti-insultes
+      if (!violated && automod.anti_badwords === 1) {
+        const customWords = automod.badwords_list ? automod.badwords_list.split(',').map(w => w.trim().toLowerCase()).filter(Boolean) : [];
+        const allBadwords = [...BANNED_WORDS, ...customWords];
+        const messageContentLower = message.content.toLowerCase();
+        if (allBadwords.some(word => messageContentLower.includes(word))) {
+          violated = true;
+          reason = 'Utilisation de langage inapproprié (mots interdits)';
+        }
       }
 
-      // 3. Anti-insultes
-      const messageContentLower = message.content.toLowerCase();
-      if (!violated && BANNED_WORDS.some(word => messageContentLower.includes(word))) {
-        violated = true;
-        reason = 'Utilisation de langage inapproprié';
+      // 3. Anti-Mass Mentions
+      if (!violated && automod.anti_massmention === 1) {
+        const limit = automod.massmention_limit || 5;
+        if (message.mentions.users.size > limit) {
+          violated = true;
+          reason = `Mentions excessives (> ${limit} utilisateurs)`;
+        }
       }
 
-      // 4. Anti-Mass Mentions (plus de 5 mentions)
-      if (!violated && message.mentions.users.size > 5) {
-        violated = true;
-        reason = 'Mass Mentions (> 5 utilisateurs)';
-      }
-
-      // 5. Anti-Spam
-      if (!violated) {
+      // 4. Anti-Spam
+      if (!violated && automod.anti_spam === 1) {
         const now = Date.now();
         if (!spamMap.has(userId)) {
           spamMap.set(userId, []);
@@ -87,13 +101,13 @@ module.exports = {
         const userMessages = spamMap.get(userId);
         userMessages.push(now);
 
-        // Filtrer les messages en dehors de la fenêtre SPAM_TIME
         const activeMessages = userMessages.filter(timestamp => now - timestamp < SPAM_TIME);
         spamMap.set(userId, activeMessages);
 
-        if (activeMessages.length > SPAM_THRESHOLD) {
+        const spamThreshold = automod.spam_max_msgs || 5;
+        if (activeMessages.length > spamThreshold) {
           violated = true;
-          reason = 'Spam de messages';
+          reason = 'Spam de messages trop rapide';
         }
       }
 
@@ -110,6 +124,14 @@ module.exports = {
           .then(msg => setTimeout(() => msg.delete().catch(() => {}), 5000))
           .catch(console.error);
 
+        // Enregistrer l'avertissement dans la base de données
+        try {
+          db.prepare('INSERT INTO warnings (guild_id, user_id, reason, moderator_id, timestamp) VALUES (?, ?, ?, ?, ?)')
+            .run(guildId, userId, `Auto-moderation: ${reason}`, client.user.id, Math.floor(Date.now() / 1000));
+        } catch (e) {
+          console.error('Erreur enregistrement warn automod:', e);
+        }
+
         // Enregistrer la sanction/log
         const logEmbed = new EmbedBuilder()
           .setTitle('🛡️ Automod - Message Supprimé')
@@ -117,7 +139,7 @@ module.exports = {
           .setColor('#FF8C00')
           .setTimestamp();
         
-        sendLog(message.guild, 'automod', logEmbed);
+        sendLog(message.guild, 'moderation', logEmbed);
         return; // Ne pas donner d'XP si automod s'applique
       }
     }

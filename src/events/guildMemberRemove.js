@@ -1,6 +1,8 @@
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, AttachmentBuilder } = require('discord.js');
 const { db } = require('../database/db');
 const { formatWelcomeLeaveMessage, sendLog } = require('../utils/helpers');
+const fs = require('fs');
+const path = require('path');
 
 module.exports = {
   name: 'guildMemberRemove',
@@ -22,18 +24,41 @@ module.exports = {
           .setColor(color)
           .setTimestamp();
 
+        const files = [];
+
         if (config.leave_thumbnail) {
           embed.setThumbnail(member.user.displayAvatarURL({ dynamic: true }));
         }
 
         if (config.leave_image) {
-          embed.setImage(config.leave_image);
+          if (config.leave_image.startsWith('/uploads/')) {
+            const absPath = path.join(__dirname, '../../public', config.leave_image);
+            if (fs.existsSync(absPath)) {
+              const name = path.basename(config.leave_image);
+              files.push(new AttachmentBuilder(absPath, { name }));
+              embed.setImage(`attachment://${name}`);
+            }
+          } else {
+            embed.setImage(config.leave_image);
+          }
+        }
+
+        let authorIcon = config.leave_author_icon;
+        if (authorIcon) {
+          if (authorIcon.startsWith('/uploads/')) {
+            const absPath = path.join(__dirname, '../../public', authorIcon);
+            if (fs.existsSync(absPath)) {
+              const name = 'author_' + path.basename(authorIcon);
+              files.push(new AttachmentBuilder(absPath, { name }));
+              authorIcon = `attachment://${name}`;
+            }
+          }
         }
 
         if (config.leave_author_name) {
           embed.setAuthor({
             name: formatWelcomeLeaveMessage(config.leave_author_name, member),
-            iconURL: config.leave_author_icon ? formatWelcomeLeaveMessage(config.leave_author_icon, member) : null
+            iconURL: authorIcon ? formatWelcomeLeaveMessage(authorIcon, member) : null
           });
         }
 
@@ -43,7 +68,7 @@ module.exports = {
           });
         }
 
-        channel.send({ embeds: [embed] }).catch(console.error);
+        channel.send({ embeds: [embed], files }).catch(console.error);
       }
     }
 

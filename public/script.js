@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const formAddLevelReward = document.getElementById('form-add-level-reward');
   const formLevelingSettings = document.getElementById('form-leveling-settings');
   const formGame = document.getElementById('form-game');
+  const formAutomod = document.getElementById('form-automod');
 
   // Lists
   const shopItemsList = document.getElementById('shop-items-list');
@@ -291,6 +292,17 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('nsfw_money_reward').value = lvl.nsfw_money_reward ?? 0;
         document.getElementById('announce_channel').value = lvl.announce_channel || 'current';
         document.getElementById('announce_msg').value = lvl.announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !';
+
+        // Automod Config
+        const am = config.automod_config || {};
+        document.getElementById('automod_anti_link').checked = am.anti_link === 1;
+        document.getElementById('automod_anti_spam').checked = am.anti_spam === 1;
+        document.getElementById('automod_anti_massmention').checked = am.anti_massmention === 1;
+        document.getElementById('automod_anti_badwords').checked = am.anti_badwords === 1;
+        document.getElementById('automod_spam_max_msgs').value = am.spam_max_msgs ?? 5;
+        document.getElementById('automod_massmention_limit').value = am.massmention_limit ?? 5;
+        document.getElementById('automod_badwords_list').value = am.badwords_list || '';
+        document.getElementById('automod_bypass_roles').value = am.bypass_roles || '';
       })
       .catch(console.error);
   }
@@ -767,6 +779,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })
       .catch(err => showToast(err.message, true));
+  });
+
+  // 5b. Automod Settings
+  formAutomod.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = {
+      anti_link: document.getElementById('automod_anti_link').checked ? 1 : 0,
+      anti_spam: document.getElementById('automod_anti_spam').checked ? 1 : 0,
+      anti_massmention: document.getElementById('automod_anti_massmention').checked ? 1 : 0,
+      anti_badwords: document.getElementById('automod_anti_badwords').checked ? 1 : 0,
+      spam_max_msgs: parseInt(document.getElementById('automod_spam_max_msgs').value) || 5,
+      massmention_limit: parseInt(document.getElementById('automod_massmention_limit').value) || 5,
+      badwords_list: document.getElementById('automod_badwords_list').value,
+      bypass_roles: document.getElementById('automod_bypass_roles').value
+    };
+    saveConfig('/api/config/automod', data);
   });
 
   // Helper Save function

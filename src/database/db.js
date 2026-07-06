@@ -274,6 +274,21 @@ function initDatabase() {
       gif_url TEXT
     )
   `).run();
+
+  // 17. Automod Config
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS automod_config (
+      guild_id TEXT PRIMARY KEY,
+      anti_link INTEGER DEFAULT 0,
+      anti_spam INTEGER DEFAULT 0,
+      anti_massmention INTEGER DEFAULT 0,
+      anti_badwords INTEGER DEFAULT 0,
+      bypass_roles TEXT DEFAULT '',
+      badwords_list TEXT DEFAULT '',
+      spam_max_msgs INTEGER DEFAULT 5,
+      massmention_limit INTEGER DEFAULT 5
+    )
+  `).run();
 }
 
 // --- Fonctions utilitaires de base de données ---
@@ -364,6 +379,27 @@ const deleteConfession = (guildId, channelId) => {
   return db.prepare('DELETE FROM confessions WHERE guild_id = ? AND channel_id = ?').run(guildId, channelId);
 };
 
+// Automod
+const getAutomodConfig = (guildId) => {
+  const row = db.prepare('SELECT * FROM automod_config WHERE guild_id = ?').get(guildId);
+  if (!row) {
+    db.prepare(`
+      INSERT OR IGNORE INTO automod_config (guild_id, anti_link, anti_spam, anti_massmention, anti_badwords, bypass_roles, badwords_list, spam_max_msgs, massmention_limit)
+      VALUES (?, 0, 0, 0, 0, '', '', 5, 5)
+    `).run(guildId);
+    return { guild_id: guildId, anti_link: 0, anti_spam: 0, anti_massmention: 0, anti_badwords: 0, bypass_roles: '', badwords_list: '', spam_max_msgs: 5, massmention_limit: 5 };
+  }
+  return row;
+};
+
+const updateAutomodConfig = (guildId, data) => {
+  getAutomodConfig(guildId); // Assure la création
+  const keys = Object.keys(data);
+  const assignments = keys.map(k => `${k} = ?`).join(', ');
+  const values = keys.map(k => data[k]);
+  db.prepare(`UPDATE automod_config SET ${assignments} WHERE guild_id = ?`).run(...values, guildId);
+};
+
 module.exports = {
   db,
   initDatabase,
@@ -379,5 +415,7 @@ module.exports = {
   deleteActionGif,
   getConfessions,
   addConfession,
-  deleteConfession
+  deleteConfession,
+  getAutomodConfig,
+  updateAutomodConfig
 };

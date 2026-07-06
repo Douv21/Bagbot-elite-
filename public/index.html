@@ -61,6 +61,7 @@
         <button class="tab-btn" data-tab="tab-confessions"><i class="fa-solid fa-mask"></i> Confessions</button>
         <button class="tab-btn" data-tab="tab-quarantine"><i class="fa-solid fa-shield-halved"></i> Quarantaine</button>
         <button class="tab-btn" data-tab="tab-logs"><i class="fa-solid fa-list-check"></i> Logs d'activité</button>
+        <button class="tab-btn" data-tab="tab-automod"><i class="fa-solid fa-user-shield"></i> Auto-Modération</button>
         <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique</button>
         <button class="tab-btn" data-tab="tab-leveling"><i class="fa-solid fa-arrow-trend-up"></i> Niveaux & Rôles</button>
         <button class="tab-btn" data-tab="tab-gifs"><i class="fa-solid fa-file-video"></i> GIFs d'action</button>
@@ -281,6 +282,105 @@
               </div>
               <div class="actions-bar">
                 <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les logs</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Tab: Automod -->
+          <div id="tab-automod" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-user-shield"></i> Configuration de l'Auto-Modération</h2>
+            <form id="form-automod" class="glass-form">
+              <div class="card glass mb-4">
+                <h3>Filtres d'Auto-Modération</h3>
+                <p class="section-subtitle">Activez et paramétrez les modules de protection automatique du serveur.</p>
+
+                <!-- Switched Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 15px;">
+                  
+                  <!-- Anti-Link Toggle -->
+                  <div class="glass" style="padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                      <h4 style="margin: 0 0 5px 0;"><i class="fa-solid fa-link" style="color: #3498db;"></i> Anti-Liens & Invites</h4>
+                      <p style="font-size: 0.8rem; color: #b9bbbe; margin: 0 0 15px 0;">Supprime automatiquement les liens et les invitations de serveurs Discord.</p>
+                    </div>
+                    <label class="switch-label" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                      <span>Activer</span>
+                      <input type="checkbox" id="automod_anti_link">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+
+                  <!-- Anti-Spam Toggle -->
+                  <div class="glass" style="padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                      <h4 style="margin: 0 0 5px 0;"><i class="fa-solid fa-bolt" style="color: #f1c40f;"></i> Anti-Spam</h4>
+                      <p style="font-size: 0.8rem; color: #b9bbbe; margin: 0 0 15px 0;">Limite la quantité de messages rapides envoyés par un même utilisateur.</p>
+                    </div>
+                    <label class="switch-label" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                      <span>Activer</span>
+                      <input type="checkbox" id="automod_anti_spam">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+
+                  <!-- Anti-Mass Mention Toggle -->
+                  <div class="glass" style="padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                      <h4 style="margin: 0 0 5px 0;"><i class="fa-solid fa-at" style="color: #9b59b6;"></i> Anti-Mass Mentions</h4>
+                      <p style="font-size: 0.8rem; color: #b9bbbe; margin: 0 0 15px 0;">Bloque les messages contenant un trop grand nombre de mentions d'utilisateurs.</p>
+                    </div>
+                    <label class="switch-label" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                      <span>Activer</span>
+                      <input type="checkbox" id="automod_anti_massmention">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+
+                  <!-- Anti-Badwords Toggle -->
+                  <div class="glass" style="padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                      <h4 style="margin: 0 0 5px 0;"><i class="fa-solid fa-ban" style="color: #e74c3c;"></i> Anti-Mots Interdits</h4>
+                      <p style="font-size: 0.8rem; color: #b9bbbe; margin: 0 0 15px 0;">Censure les insultes et les mots interdits configurés.</p>
+                    </div>
+                    <label class="switch-label" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                      <span>Activer</span>
+                      <input type="checkbox" id="automod_anti_badwords">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- Settings Card -->
+              <div class="card glass mb-4">
+                <h3>Réglages Avancés</h3>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="automod_spam_max_msgs">Seuil Anti-Spam (messages max / 3s) :</label>
+                    <input type="number" id="automod_spam_max_msgs" required min="2" max="20" placeholder="Ex: 5">
+                  </div>
+                  <div class="form-group">
+                    <label for="automod_massmention_limit">Limite de Mentions par message :</label>
+                    <input type="number" id="automod_massmention_limit" required min="1" max="50" placeholder="Ex: 5">
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                  <label for="automod_badwords_list">Liste de mots interdits personnalisés (séparés par des virgules) :</label>
+                  <textarea id="automod_badwords_list" rows="3" placeholder="mot1, mot2, expression interdite..."></textarea>
+                  <small class="form-help">Ces mots s'ajouteront à la liste d'insultes standard intégrée au bot.</small>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                  <label for="automod_bypass_roles">Rôles ignorés par l'Auto-Modération (Bypass) :</label>
+                  <input type="text" id="automod_bypass_roles" placeholder="Insérer des IDs de rôles séparés par des virgules">
+                  <small class="form-help">Les membres possédant ces rôles ne seront pas affectés par les filtres.</small>
+                </div>
+              </div>
+
+              <div class="actions-bar">
+                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer l'Auto-Modération</button>
               </div>
             </form>
           </div>

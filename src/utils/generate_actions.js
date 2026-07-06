@@ -253,11 +253,22 @@ module.exports = {
       .setAuthor({ name: author.username, iconURL: author.displayAvatarURL({ dynamic: true }) })
       .setTimestamp();
 
+    const files = [];
+    
     if (guildId) {
       const gifs = getActionGifs(guildId, '${act.name}');
       if (gifs.length > 0) {
         const randomGif = gifs[Math.floor(Math.random() * gifs.length)].gif_url;
-        embed.setImage(randomGif);
+        if (randomGif.startsWith('/uploads/')) {
+          const absPath = path.join(__dirname, '../../../public', randomGif);
+          if (fs.existsSync(absPath)) {
+            const filename = path.basename(randomGif);
+            files.push(new AttachmentBuilder(absPath, { name: filename }));
+            embed.setImage(`attachment://\${filename}`);
+          }
+        } else {
+          embed.setImage(randomGif);
+        }
       }
     }
 
@@ -272,10 +283,14 @@ module.exports = {
     await interaction.reply({
       content: mention,
       embeds: [embed],
+      files: files,
       allowedMentions: mention ? { users: [target.id] } : { parse: [] }
     });
   }
 };
+const { AttachmentBuilder } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
 `;
 
   fs.writeFileSync(path.join(targetDir, `${act.name}.js`), content, 'utf8');

@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
-const { db, getAllActionGifs, addActionGif, deleteActionGif } = require('./database/db');
+const { db, getAllActionGifs, addActionGif, deleteActionGif, getAutomodConfig, updateAutomodConfig } = require('./database/db');
 
 const app = express();
 const PORT = process.env.PORT || 49601;
@@ -386,6 +386,8 @@ app.get('/api/config', (req, res) => {
       };
     }
 
+    const automodConfig = getAutomodConfig(guildId);
+
     res.json({
       welcome_leave: welcomeLeave,
       confession: { channel_id: confessionChannel },
@@ -395,7 +397,8 @@ app.get('/api/config', (req, res) => {
       logs: logs,
       shop: shopItems,
       level_rewards: levelRewards,
-      leveling_config: levelingConfig
+      leveling_config: levelingConfig,
+      automod_config: automodConfig
     });
   } catch (error) {
     console.error('Erreur chargement config:', error);
@@ -719,6 +722,35 @@ app.post('/api/config/action-gifs/delete', (req, res) => {
     if (!id) return res.status(400).json({ error: 'ID requis' });
 
     deleteActionGif(guildId, id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 14. Sauvegarder la configuration d'automodération
+app.post('/api/config/automod', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const {
+      anti_link, anti_spam, anti_massmention, anti_badwords,
+      bypass_roles, badwords_list, spam_max_msgs, massmention_limit
+    } = req.body;
+
+    updateAutomodConfig(guildId, {
+      anti_link: anti_link ? 1 : 0,
+      anti_spam: anti_spam ? 1 : 0,
+      anti_massmention: anti_massmention ? 1 : 0,
+      anti_badwords: anti_badwords ? 1 : 0,
+      bypass_roles: bypass_roles || '',
+      badwords_list: badwords_list || '',
+      spam_max_msgs: spam_max_msgs !== undefined ? parseInt(spam_max_msgs) : 5,
+      massmention_limit: massmention_limit !== undefined ? parseInt(massmention_limit) : 5
+    });
+
     res.json({ success: true });
   } catch (error) {
     console.error(error);
