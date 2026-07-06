@@ -81,7 +81,28 @@ module.exports = {
 
           channel.send({ embeds: [embed], files }).catch(console.error);
         }
+    }
+
+    // --- SYSTÈME D'AUTO-RÔLE SUR OBTENTION DE RÔLE ---
+    try {
+      const addedRoles = newMember.roles.cache.filter(role => !oldMember.roles.cache.has(role.id));
+      if (addedRoles.size > 0) {
+        const triggerRoles = db.prepare('SELECT trigger_role_id, target_role_id FROM autoroles_on_role WHERE guild_id = ?').all(guildId);
+        if (triggerRoles.length > 0) {
+          const botMember = newMember.guild.members.me;
+          for (const role of addedRoles.values()) {
+            const matches = triggerRoles.filter(t => t.trigger_role_id === role.id);
+            for (const match of matches) {
+              const targetRole = newMember.guild.roles.cache.get(match.target_role_id);
+              if (targetRole && !newMember.roles.cache.has(targetRole.id) && targetRole.position < botMember.roles.highest.position) {
+                await newMember.roles.add(targetRole.id).catch(() => {});
+              }
+            }
+          }
+        }
       }
+    } catch (err) {
+      console.error('Erreur attribution auto-rôle sur obtention:', err);
     }
   }
 };

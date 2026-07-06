@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, REST, Routes, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const { initDatabase } = require('./database/db');
@@ -59,6 +59,41 @@ for (const file of eventFiles) {
 
 // Événement d'interaction (Slash Commands)
 client.on('interactionCreate', async interaction => {
+  if (interaction.isButton()) {
+    const customId = interaction.customId;
+    if (customId.startsWith('autorole_')) {
+      const roleId = customId.split('_')[1];
+      if (!roleId) return;
+
+      try {
+        await interaction.deferReply({ ephemeral: true });
+        const member = interaction.member;
+        const role = interaction.guild.roles.cache.get(roleId);
+        
+        if (!role) {
+          return interaction.editReply({ content: '❌ Ce rôle n\'existe plus sur ce serveur.' });
+        }
+
+        const botMember = interaction.guild.members.me;
+        if (role.position >= botMember.roles.highest.position) {
+          return interaction.editReply({ content: '❌ Je n\'ai pas les permissions suffisantes pour vous attribuer ce rôle (le rôle est au-dessus de mon rôle le plus élevé).' });
+        }
+
+        if (member.roles.cache.has(roleId)) {
+          await member.roles.remove(roleId);
+          await interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été retiré.` });
+        } else {
+          await member.roles.add(roleId);
+          await interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été attribué.` });
+        }
+      } catch (err) {
+        console.error('Erreur attribution rôle bouton:', err);
+        await interaction.editReply({ content: '❌ Une erreur est survenue lors de la mise à jour de vos rôles.' });
+      }
+    }
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) return;
 
   const command = client.commands.get(interaction.commandName);
@@ -94,6 +129,10 @@ client.once('ready', async () => {
     );
 
     console.log('Commandes d\'application (/) enregistrées avec succès.');
+    
+    // Nettoyage automatique des suites privées toutes les 60 secondes
+    setInterval(() => checkExpiredSuites(client), 60000);
+    checkExpiredSuites(client);
   } catch (error) {
     console.error('Erreur lors de l\'enregistrement des commandes slash :', error);
   }
@@ -130,6 +169,83 @@ apiApp.post('/bot/avatar', async (req, res) => {
     res.json({ success: true, avatarURL: client.user.displayAvatarURL({ dynamic: true }) });
   } catch (error) {
     console.error('Error setting bot avatar:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+apiApp.post('/bot/send-autorole', async (req, res) => {
+  try {
+    const { guildId, channelId, title, description, color, thumbnail, imageUrl, options } = req.body;
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Guild not found' });
+    const channel = guild.channels.cache.get(channelId);
+    if (!channel) return res.status(404).json({ error: 'Channel not found' });
+
+    const embed = new EmbedBuilder()
+      .setTitle(title || 'Choix des Rôles')
+      .setDescription(description || 'Cliquez sur les boutons ci-dessous pour obtenir ou retirer des rôles.')
+      .setColor(color || '#5865F2')
+      .setTimestamp();
+    
+    if (thumbnail) {
+      embed.setThumbnail(guild.iconURL({ dynamic: true }) || 'https://cdn.discordapp.com/embed/avatars/0.png');
+    }
+    
+    const files = [];
+    if (imageUrl) {
+      if (imageUrl.startsWith('/uploads/')) {
+        const absPath = path.join(__dirname, '../public', imageUrl);
+        if (fs.existsSync(absPath)) {
+          const name = path.basename(imageUrl);
+          files.push(new AttachmentBuilder(absPath, { name }));
+          embed.setImage(`attachment://${name}`);
+        }
+      } else if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        embed.setImage(imageUrl);
+      }
+    }
+
+    const row = new ActionRowBuilder();
+    options.forEach(opt => {
+      let styleCode = ButtonStyle.Primary;
+      if (opt.style === 'SECONDARY') styleCode = ButtonStyle.Secondary;
+      else if (opt.style === 'SUCCESS') styleCode = ButtonStyle.Success;
+      else if (opt.style === 'DANGER') styleCode = ButtonStyle.Danger;
+
+      const btn = new ButtonBuilder()
+        .setCustomId(`autorole_${opt.role_id}`)
+        .setLabel(opt.label || 'Rôle')
+        .setStyle(styleCode);
+      if (opt.emoji) btn.setEmoji(opt.emoji);
+      row.addComponents(btn);
+    });
+
+    const payload = { embeds: [embed] };
+    if (files.length > 0) payload.files = files;
+    if (options.length > 0) payload.components = [row];
+
+    const message = await channel.send(payload);
+    res.json({ success: true, messageId: message.id });
+  } catch (error) {
+    console.error('Error sending autorole embed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+apiApp.post('/bot/delete-message', async (req, res) => {
+  try {
+    const { guildId, channelId, messageId } = req.body;
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Guild not found' });
+    const channel = guild.channels.cache.get(channelId);
+    if (!channel) return res.status(404).json({ error: 'Channel not found' });
+    const message = await channel.messages.fetch(messageId).catch(() => null);
+    if (message) {
+      await message.delete();
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting message:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -185,6 +301,43 @@ apiApp.get('/guilds/:guildId/roles', async (req, res) => {
 apiApp.listen(API_PORT, '127.0.0.1', () => {
   console.log(`✓ Bot Local API running on port ${API_PORT}`);
 });
+
+async function checkExpiredSuites(client) {
+  try {
+    const now = Date.now();
+    const { getAllPrivateSuites, deletePrivateSuite } = require('./database/db');
+    const suites = getAllPrivateSuites();
+    
+    for (const suite of suites) {
+      if (suite.expires_at <= now) {
+        const guild = client.guilds.cache.get(suite.guild_id);
+        if (guild) {
+          const txtChan = guild.channels.cache.get(suite.text_channel_id);
+          const vcChan = guild.channels.cache.get(suite.voice_channel_id);
+
+          if (txtChan) {
+            await txtChan.send('⏳ **Cette suite privée a expiré et va être supprimée...**').catch(() => {});
+            setTimeout(async () => {
+              await txtChan.delete().catch(() => {});
+            }, 5000);
+          }
+          if (vcChan) {
+            await vcChan.delete().catch(() => {});
+          }
+
+          const user = await client.users.fetch(suite.user_id).catch(() => null);
+          if (user) {
+            await user.send(`⏳ Votre suite privée sur le serveur **${guild.name}** a expiré et ses salons ont été supprimés.`).catch(() => {});
+          }
+        }
+
+        deletePrivateSuite(suite.guild_id, suite.user_id);
+      }
+    }
+  } catch (err) {
+    console.error('Erreur nettoyage suites privées:', err);
+  }
+}
 
 // Connexion du bot
 client.login(process.env.DISCORD_TOKEN);

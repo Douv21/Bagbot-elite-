@@ -58,7 +58,9 @@
       <!-- Sidebar Tabs -->
       <aside class="sidebar glass">
         <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées / Départs</button>
+        <button class="tab-btn" data-tab="tab-autoroles"><i class="fa-solid fa-tags"></i> Auto-Rôles</button>
         <button class="tab-btn" data-tab="tab-confessions"><i class="fa-solid fa-mask"></i> Confessions</button>
+        <button class="tab-btn" data-tab="tab-counting"><i class="fa-solid fa-calculator"></i> Counting</button>
         <button class="tab-btn" data-tab="tab-quarantine"><i class="fa-solid fa-shield-halved"></i> Quarantaine</button>
         <button class="tab-btn" data-tab="tab-logs"><i class="fa-solid fa-list-check"></i> Logs d'activité</button>
         <button class="tab-btn" data-tab="tab-automod"><i class="fa-solid fa-user-shield"></i> Auto-Modération</button>
@@ -202,6 +204,165 @@
             </form>
           </div>
 
+          <!-- Tab: Auto-Rôles -->
+          <div id="tab-autoroles" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-tags"></i> Système d'Auto-Rôles</h2>
+            
+            <!-- 1. Auto-Rôles à l'arrivée (Join) et sur Obtention (Upgrade) -->
+            <div class="row" style="display: flex; gap: 20px; flex-wrap: wrap;">
+              <div class="col-md-6" style="flex: 1; min-width: 300px; margin-bottom: 20px;">
+                <div class="card glass">
+                  <h3><i class="fa-solid fa-user-plus"></i> Attribution automatique à l'arrivée</h3>
+                  <p class="description-text">Définissez les rôles qui seront automatiquement attribués aux nouveaux membres lorsqu'ils rejoignent le serveur.</p>
+                  
+                  <form id="form-add-autorole-join" class="form-row" style="margin-top: 15px; display: flex; gap: 10px;">
+                    <div class="form-group" style="flex: 1;">
+                      <select id="autorole-join-select" class="role-select" required>
+                        <option value="">-- Choisir un rôle --</option>
+                      </select>
+                    </div>
+                    <button type="submit" class="btn btn-add" style="height: 42px;"><i class="fa-solid fa-plus"></i> Ajouter</button>
+                  </form>
+                  
+                  <ul id="autorole-join-list" class="shop-list" style="margin-top: 15px; padding-left: 0; list-style: none;">
+                    <!-- Rôles de join -->
+                  </ul>
+                </div>
+              </div>
+
+              <div class="col-md-6" style="flex: 1; min-width: 300px; margin-bottom: 20px;">
+                <div class="card glass">
+                  <h3><i class="fa-solid fa-arrow-up-from-bracket"></i> Rôle attribué lors de l'obtention d'un rôle</h3>
+                  <p class="description-text">Attribue automatiquement un rôle cible lorsqu'un membre se voit attribuer un rôle déclencheur.</p>
+                  
+                  <form id="form-add-autorole-role" style="margin-top: 15px;">
+                    <div class="form-row" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                      <div class="form-group" style="flex: 1;">
+                        <label for="autorole-trigger-select">Si le rôle est obtenu :</label>
+                        <select id="autorole-trigger-select" class="role-select" required>
+                          <option value="">-- Déclencheur --</option>
+                        </select>
+                      </div>
+                      <div class="form-group" style="flex: 1;">
+                        <label for="autorole-target-select">Attribuer le rôle :</label>
+                        <select id="autorole-target-select" class="role-select" required>
+                          <option value="">-- Rôle cible --</option>
+                        </select>
+                      </div>
+                    </div>
+                    <button type="submit" class="btn btn-add" style="width: 100%; height: 42px;"><i class="fa-solid fa-plus"></i> Créer la liaison</button>
+                  </form>
+                  
+                  <ul id="autorole-role-list" class="shop-list" style="margin-top: 15px; padding-left: 0; list-style: none;">
+                    <!-- Rôles d'upgrade -->
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Création d'un Embed d'Auto-Rôle (Boutons cliquables) -->
+            <div class="card glass" style="margin-top: 20px;">
+              <h3><i class="fa-solid fa-rectangle-list"></i> Envoyer un embed d'auto-rôle avec boutons</h3>
+              <p class="description-text">Créez un message embed interactif et envoyez-le dans un salon. Les membres pourront cliquer sur les boutons pour s'auto-attribuer les rôles configurés (effet bascule).</p>
+              
+              <form id="form-create-autorole-embed" style="margin-top: 20px;">
+                <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 15px;">
+                  <div class="form-group" style="flex: 1;">
+                    <label for="autorole-embed-channel"><i class="fa-solid fa-hashtag"></i> Salon de destination :</label>
+                    <select id="autorole-embed-channel" class="channel-select" required>
+                      <option value="">-- Choisir un salon --</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="flex: 1;">
+                    <label for="autorole-embed-color"><i class="fa-solid fa-palette"></i> Couleur de l'embed :</label>
+                    <input type="color" id="autorole-embed-color" value="#5865F2" style="padding: 2px; height: 42px; width: 100%;">
+                  </div>
+                </div>
+
+                <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 15px;">
+                  <div class="form-group" style="flex: 1;">
+                    <label for="autorole-embed-title">Titre de l'embed :</label>
+                    <input type="text" id="autorole-embed-title" placeholder="Ex: Choix des rôles" required>
+                  </div>
+                  <div class="form-group" style="flex: 1;">
+                    <label for="autorole-embed-thumbnail"><i class="fa-solid fa-image"></i> Inclure l'icône du serveur en miniature :</label>
+                    <select id="autorole-embed-thumbnail">
+                      <option value="0">Non</option>
+                      <option value="1">Oui</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                  <label for="autorole-embed-desc">Description / Message :</label>
+                  <textarea id="autorole-embed-desc" rows="3" placeholder="Décrivez les rôles disponibles et comment les obtenir..." required></textarea>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                  <label for="autorole-embed-image">Image principale (URL ou téléversement) :</label>
+                  <div class="url-upload-wrapper" id="autorole-image-wrapper" style="display: flex; gap: 10px;">
+                    <input type="text" id="autorole-embed-image" placeholder="Lien de la grande image de l'embed (Optionnel)..." style="flex: 1;">
+                    <label class="btn-upload-label" title="Téléverser une image" style="flex-shrink: 0; padding: 8px 12px; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
+                      <i class="fa-solid fa-cloud-arrow-up"></i>
+                      <input type="file" class="file-upload-input" data-target="autorole-embed-image" accept="image/*" style="display:none;">
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Boutons associés (Roles Options) -->
+                <div class="card" style="background: rgba(0, 0, 0, 0.2); border: 1px dashed rgba(255, 255, 255, 0.1); margin-bottom: 20px; padding: 15px;">
+                  <h4><i class="fa-solid fa-circle-play"></i> Boutons de rôles de cet embed</h4>
+                  <p class="description-text" style="font-size: 0.8rem; margin-bottom: 10px; color: #b9bbbe;">Ajoutez des boutons à cet embed. Chaque bouton correspond à un rôle à attribuer (5 maximum).</p>
+                  
+                  <div id="autorole-buttons-creator" style="display: flex; flex-direction: column; gap: 10px;">
+                    <div class="form-row" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                      <div class="form-group" style="flex: 2; min-width: 150px;">
+                        <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 5px; display: block;">Rôle à donner :</label>
+                        <select id="new-button-role" class="role-select">
+                          <option value="">-- Choisir un rôle --</option>
+                        </select>
+                      </div>
+                      <div class="form-group" style="flex: 2; min-width: 120px;">
+                        <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 5px; display: block;">Texte du bouton :</label>
+                        <input type="text" id="new-button-label" placeholder="Ex: Gaming">
+                      </div>
+                      <div class="form-group" style="flex: 1; min-width: 80px;">
+                        <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 5px; display: block;">Emoji :</label>
+                        <input type="text" id="new-button-emoji" placeholder="🎮">
+                      </div>
+                      <div class="form-group" style="flex: 1.5; min-width: 100px;">
+                        <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 5px; display: block;">Style :</label>
+                        <select id="new-button-style">
+                          <option value="PRIMARY">Bleu (Primary)</option>
+                          <option value="SECONDARY">Gris (Secondary)</option>
+                          <option value="SUCCESS">Vert (Success)</option>
+                          <option value="DANGER">Rouge (Danger)</option>
+                        </select>
+                      </div>
+                      <button type="button" id="btn-add-autorole-button" class="btn btn-add" style="height: 42px; margin-bottom: 0;"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+
+                    <div id="autorole-embed-buttons-preview" class="form-row" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; min-height: 40px; align-items: center;">
+                      <!-- Aperçu des boutons ajoutés -->
+                      <p style="color: #8e9297; font-style: italic; font-size: 0.85rem;" id="no-buttons-text">Aucun bouton configuré pour l'instant.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-save" style="width: 100%; height: 46px;"><i class="fa-solid fa-paper-plane"></i> Créer et Envoyer l'Embed d'Auto-Rôle</button>
+              </form>
+            </div>
+
+            <!-- Liste des embeds actifs -->
+            <div class="card glass" style="margin-top: 20px;">
+              <h3><i class="fa-solid fa-list-check"></i> Embeds d'auto-rôles actifs</h3>
+              <p class="description-text">Voici les embeds d'auto-rôles actuellement envoyés sur votre serveur Discord.</p>
+              <div id="active-autoroles-container" style="margin-top: 15px; display: flex; flex-direction: column; gap: 15px;">
+                <!-- Liste d'embeds actifs -->
+              </div>
+            </div>
+          </div>
+
           <!-- Tab: Confessions -->
           <div id="tab-confessions" class="tab-content">
             <h2 class="section-title"><i class="fa-solid fa-mask"></i> Système de Confessions Anonymes</h2>
@@ -231,6 +392,65 @@
                 <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer confessions</button>
               </div>
             </form>
+          </div>
+
+          <!-- Tab: Counting -->
+          <div id="tab-counting" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-calculator"></i> Salons de Comptage (Counting)</h2>
+            
+            <div class="card glass">
+              <h3><i class="fa-solid fa-circle-plus"></i> Ajouter un salon de comptage</h3>
+              <p class="description-text">Configurez un salon textuel où les membres comptent ensemble. En cas d'erreur ou de double-comptage, le compteur se réinitialise !</p>
+              
+              <form id="form-add-counting-channel" style="margin-top: 20px;">
+                <div class="form-row" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                  <div class="form-group" style="flex: 2; min-width: 200px;">
+                    <label for="counting-channel-select"><i class="fa-solid fa-hashtag"></i> Salon textuel :</label>
+                    <select id="counting-channel-select" class="channel-select" required>
+                      <option value="">-- Choisir un salon --</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="flex: 1.5; min-width: 150px;">
+                    <label for="counting-mode-select">Mode de comptage :</label>
+                    <select id="counting-mode-select" required>
+                      <option value="normal">Normal (1, 2, 3...)</option>
+                      <option value="math">Mathématique (2+2, (3+5)*2...)</option>
+                      <option value="reverse">Inversé (Compte à rebours)</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="flex: 1; min-width: 100px;">
+                    <label for="counting-start-number">Départ :</label>
+                    <input type="number" id="counting-start-number" value="0" step="any" required>
+                  </div>
+                  <button type="submit" class="btn btn-add" style="height: 42px; margin-bottom: 0;"><i class="fa-solid fa-plus"></i> Ajouter</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Liste des salons de comptage -->
+            <div class="card glass" style="margin-top: 20px;">
+              <h3><i class="fa-solid fa-list-ol"></i> Salons de comptage configurés</h3>
+              <p class="description-text">Liste des salons de comptage actifs et leurs statistiques actuelles.</p>
+              
+              <div class="table-responsive" style="margin-top: 15px; overflow-x: auto;">
+                <table class="config-table" style="width: 100%;">
+                  <thead>
+                    <tr>
+                      <th>Salon</th>
+                      <th>Mode</th>
+                      <th>Valeur Actuelle</th>
+                      <th>Valeur de Départ</th>
+                      <th>Meilleur Score</th>
+                      <th>Dernier Auteur</th>
+                      <th style="width: 100px;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="counting-channels-list-tbody">
+                    <!-- Salons de comptage insérés dynamiquement -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <!-- Tab: Quarantine -->

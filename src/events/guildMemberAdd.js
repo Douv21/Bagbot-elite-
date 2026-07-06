@@ -107,6 +107,24 @@ module.exports = {
       }
     }
 
+    // --- SYSTÈME D'AUTO-RÔLE À L'ARRIVÉE ---
+    if (!isQuarantined) {
+      try {
+        const joinRoles = db.prepare('SELECT role_id FROM autoroles_on_join WHERE guild_id = ?').all(guildId);
+        if (joinRoles.length > 0) {
+          const botMember = member.guild.members.me;
+          for (const row of joinRoles) {
+            const role = member.guild.roles.cache.get(row.role_id);
+            if (role && role.position < botMember.roles.highest.position) {
+              await member.roles.add(role.id).catch(() => {});
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Erreur attribution rôles de bienvenue:', err);
+      }
+    }
+
     // --- LOG D'ARRIVÉE ---
     const logEmbed = new EmbedBuilder()
       .setTitle('📥 Nouveau Membre')

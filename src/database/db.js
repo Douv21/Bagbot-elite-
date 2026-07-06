@@ -289,6 +289,76 @@ function initDatabase() {
       massmention_limit INTEGER DEFAULT 5
     )
   `).run();
+
+  // 18. Auto-rôles embeds
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS autorole_embeds (
+      guild_id TEXT,
+      message_id TEXT PRIMARY KEY,
+      channel_id TEXT,
+      title TEXT,
+      description TEXT,
+      color TEXT DEFAULT '#5865F2',
+      thumbnail INTEGER DEFAULT 0,
+      image_url TEXT
+    )
+  `).run();
+
+  // 19. Auto-rôles options (boutons)
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS autorole_options (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      message_id TEXT,
+      role_id TEXT,
+      label TEXT,
+      emoji TEXT,
+      style TEXT DEFAULT 'PRIMARY'
+    )
+  `).run();
+
+  // 20. Auto-rôles à l'arrivée
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS autoroles_on_join (
+      guild_id TEXT,
+      role_id TEXT,
+      PRIMARY KEY (guild_id, role_id)
+    )
+  `).run();
+
+  // 21. Auto-rôles sur obtention de rôle
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS autoroles_on_role (
+      guild_id TEXT,
+      trigger_role_id TEXT,
+      target_role_id TEXT,
+      PRIMARY KEY (guild_id, trigger_role_id, target_role_id)
+    )
+  `).run();
+
+  // 22. Salons de comptage (counting)
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS counting_channels (
+      guild_id TEXT,
+      channel_id TEXT PRIMARY KEY,
+      mode TEXT DEFAULT 'normal',
+      current_number REAL DEFAULT 0,
+      last_user_id TEXT,
+      high_score REAL DEFAULT 0,
+      start_number REAL DEFAULT 0
+    )
+  `).run();
+
+  // 23. Suites privées
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS private_suites (
+      guild_id TEXT,
+      user_id TEXT,
+      text_channel_id TEXT,
+      voice_channel_id TEXT,
+      expires_at INTEGER,
+      PRIMARY KEY (guild_id, user_id)
+    )
+  `).run();
 }
 
 // --- Fonctions utilitaires de base de données ---
@@ -400,6 +470,115 @@ const updateAutomodConfig = (guildId, data) => {
   db.prepare(`UPDATE automod_config SET ${assignments} WHERE guild_id = ?`).run(...values, guildId);
 };
 
+// Auto-Rôles Embeds & Options
+const getAutoroleEmbeds = (guildId) => {
+  return db.prepare('SELECT * FROM autorole_embeds WHERE guild_id = ?').all(guildId);
+};
+
+const getAutoroleOptions = (messageId) => {
+  return db.prepare('SELECT * FROM autorole_options WHERE message_id = ?').all(messageId);
+};
+
+const addAutoroleEmbed = (guildId, messageId, channelId, title, description, color, thumbnail, imageUrl) => {
+  return db.prepare(`
+    INSERT INTO autorole_embeds (guild_id, message_id, channel_id, title, description, color, thumbnail, image_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(guildId, messageId, channelId, title, description, color, thumbnail, imageUrl);
+};
+
+const addAutoroleOption = (messageId, roleId, label, emoji, style) => {
+  return db.prepare(`
+    INSERT INTO autorole_options (message_id, role_id, label, emoji, style)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(messageId, roleId, label, emoji, style);
+};
+
+const deleteAutoroleEmbed = (guildId, messageId) => {
+  db.prepare('DELETE FROM autorole_options WHERE message_id = ?').run(messageId);
+  return db.prepare('DELETE FROM autorole_embeds WHERE guild_id = ? AND message_id = ?').run(guildId, messageId);
+};
+
+// Auto-Rôles à l'arrivée
+const getAutorolesOnJoin = (guildId) => {
+  return db.prepare('SELECT * FROM autoroles_on_join WHERE guild_id = ?').all(guildId);
+};
+
+const addAutoroleOnJoin = (guildId, roleId) => {
+  return db.prepare('INSERT OR IGNORE INTO autoroles_on_join (guild_id, role_id) VALUES (?, ?)').run(guildId, roleId);
+};
+
+const deleteAutoroleOnJoin = (guildId, roleId) => {
+  return db.prepare('DELETE FROM autoroles_on_join WHERE guild_id = ? AND role_id = ?').run(guildId, roleId);
+};
+
+// Auto-Rôles sur obtention
+const getAutorolesOnRole = (guildId) => {
+  return db.prepare('SELECT * FROM autoroles_on_role WHERE guild_id = ?').all(guildId);
+};
+
+const addAutoroleOnRole = (guildId, triggerRoleId, targetRoleId) => {
+  return db.prepare('INSERT OR IGNORE INTO autoroles_on_role (guild_id, trigger_role_id, target_role_id) VALUES (?, ?, ?)').run(guildId, triggerRoleId, targetRoleId);
+};
+
+const deleteAutoroleOnRole = (guildId, triggerRoleId, targetRoleId) => {
+  return db.prepare('DELETE FROM autoroles_on_role WHERE guild_id = ? AND trigger_role_id = ? AND target_role_id = ?').run(guildId, triggerRoleId, targetRoleId);
+};
+
+// Counting Channels
+const getCountingChannels = (guildId) => {
+  return db.prepare('SELECT * FROM counting_channels WHERE guild_id = ?').all(guildId);
+};
+
+const getCountingChannel = (channelId) => {
+  return db.prepare('SELECT * FROM counting_channels WHERE channel_id = ?').get(channelId);
+};
+
+const addCountingChannel = (guildId, channelId, mode, startNumber) => {
+  return db.prepare(`
+    INSERT OR REPLACE INTO counting_channels (guild_id, channel_id, mode, current_number, high_score, start_number)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(guildId, channelId, mode, startNumber, 0, startNumber);
+};
+
+const updateCountingChannel = (channelId, data) => {
+  const keys = Object.keys(data);
+  const assignments = keys.map(k => `${k} = ?`).join(', ');
+  const values = keys.map(k => data[k]);
+  return db.prepare(`UPDATE counting_channels SET ${assignments} WHERE channel_id = ?`).run(...values, channelId);
+};
+
+const deleteCountingChannel = (guildId, channelId) => {
+  return db.prepare('DELETE FROM counting_channels WHERE guild_id = ? AND channel_id = ?').run(guildId, channelId);
+};
+
+// Private Suites
+const getPrivateSuite = (guildId, userId) => {
+  return db.prepare('SELECT * FROM private_suites WHERE guild_id = ? AND user_id = ?').get(guildId, userId);
+};
+
+const getPrivateSuiteByChannel = (channelId) => {
+  return db.prepare('SELECT * FROM private_suites WHERE text_channel_id = ? OR voice_channel_id = ?').get(channelId, channelId);
+};
+
+const getAllPrivateSuites = () => {
+  return db.prepare('SELECT * FROM private_suites').all();
+};
+
+const addPrivateSuite = (guildId, userId, textChannelId, voiceChannelId, expiresAt) => {
+  return db.prepare(`
+    INSERT OR REPLACE INTO private_suites (guild_id, user_id, text_channel_id, voice_channel_id, expires_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(guildId, userId, textChannelId, voiceChannelId, expiresAt);
+};
+
+const deletePrivateSuite = (guildId, userId) => {
+  return db.prepare('DELETE FROM private_suites WHERE guild_id = ? AND user_id = ?').run(guildId, userId);
+};
+
+const updatePrivateSuiteExpiry = (guildId, userId, expiresAt) => {
+  return db.prepare('UPDATE private_suites SET expires_at = ? WHERE guild_id = ? AND user_id = ?').run(expiresAt, guildId, userId);
+};
+
 module.exports = {
   db,
   initDatabase,
@@ -417,5 +596,27 @@ module.exports = {
   addConfession,
   deleteConfession,
   getAutomodConfig,
-  updateAutomodConfig
+  updateAutomodConfig,
+  getAutoroleEmbeds,
+  getAutoroleOptions,
+  addAutoroleEmbed,
+  addAutoroleOption,
+  deleteAutoroleEmbed,
+  getAutorolesOnJoin,
+  addAutoroleOnJoin,
+  deleteAutoroleOnJoin,
+  getAutorolesOnRole,
+  addAutoroleOnRole,
+  deleteAutoroleOnRole,
+  getCountingChannels,
+  getCountingChannel,
+  addCountingChannel,
+  updateCountingChannel,
+  deleteCountingChannel,
+  getPrivateSuite,
+  getPrivateSuiteByChannel,
+  getAllPrivateSuites,
+  addPrivateSuite,
+  deletePrivateSuite,
+  updatePrivateSuiteExpiry
 };

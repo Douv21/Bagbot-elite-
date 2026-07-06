@@ -2,7 +2,30 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
-const { db, getAllActionGifs, addActionGif, deleteActionGif, getAutomodConfig, updateAutomodConfig } = require('./database/db');
+const { 
+  db, 
+  getAllActionGifs, 
+  addActionGif, 
+  deleteActionGif, 
+  getAutomodConfig, 
+  updateAutomodConfig,
+  getAutoroleEmbeds,
+  getAutoroleOptions,
+  addAutoroleEmbed,
+  addAutoroleOption,
+  deleteAutoroleEmbed,
+  getAutorolesOnJoin,
+  addAutoroleOnJoin,
+  deleteAutoroleOnJoin,
+  getAutorolesOnRole,
+  addAutoroleOnRole,
+  deleteAutoroleOnRole,
+  getCountingChannels,
+  getCountingChannel,
+  addCountingChannel,
+  updateCountingChannel,
+  deleteCountingChannel
+} = require('./database/db');
 
 const app = express();
 const PORT = process.env.PORT || 49601;
@@ -388,6 +411,17 @@ app.get('/api/config', (req, res) => {
 
     const automodConfig = getAutomodConfig(guildId);
 
+    // Auto-rôles
+    const autoroleEmbeds = getAutoroleEmbeds(guildId);
+    for (const embed of autoroleEmbeds) {
+      embed.options = getAutoroleOptions(embed.message_id);
+    }
+    const autorolesOnJoin = getAutorolesOnJoin(guildId);
+    const autorolesOnRole = getAutorolesOnRole(guildId);
+
+    // Counting
+    const countingChannels = getCountingChannels(guildId);
+
     res.json({
       welcome_leave: welcomeLeave,
       confession: { channel_id: confessionChannel },
@@ -398,7 +432,11 @@ app.get('/api/config', (req, res) => {
       shop: shopItems,
       level_rewards: levelRewards,
       leveling_config: levelingConfig,
-      automod_config: automodConfig
+      automod_config: automodConfig,
+      autorole_embeds: autoroleEmbeds,
+      autoroles_on_join: autorolesOnJoin,
+      autoroles_on_role: autorolesOnRole,
+      counting_channels: countingChannels
     });
   } catch (error) {
     console.error('Erreur chargement config:', error);
@@ -758,6 +796,187 @@ app.post('/api/config/automod', (req, res) => {
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+// --- SYSTEM D'AUTO-ROLES ---
+
+// Envoyer et enregistrer un embed d'auto-rôle
+app.post('/api/config/autorole-embeds/add', async (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { channel_id, title, description, color, thumbnail, image_url, options } = req.body;
+    if (!channel_id) return res.status(400).json({ error: 'ID du salon requis' });
+
+    // 1. Communiquer avec l'API locale du bot pour envoyer l'embed et les boutons
+    const botApiPort = process.env.BOT_API_PORT || 49602;
+    const botResponse = await fetch(`http://127.0.0.1:${botApiPort}/bot/send-autorole`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        guildId,
+        channelId: channel_id,
+        title,
+        description,
+        color,
+        thumbnail: thumbnail ? 1 : 0,
+        imageUrl: image_url,
+        options: options || []
+      })
+    }).catch(() => null);
+
+    if (!botResponse || !botResponse.ok) {
+      const errText = botResponse ? await botResponse.text() : 'Le bot n\'est pas en ligne ou n\'a pas pu envoyer le message';
+      return res.status(500).json({ error: `Erreur du bot : ${errText}` });
+    }
+
+    const { messageId } = await botResponse.json();
+
+    // 2. Enregistrer dans SQLite
+    addAutoroleEmbed(guildId, messageId, channel_id, title, description, color, thumbnail ? 1 : 0, image_url);
+    if (options && options.length > 0) {
+      for (const opt of options) {
+        addAutoroleOption(messageId, opt.role_id, opt.label, opt.emoji, opt.style || 'PRIMARY');
+      }
+    }
+
+    res.json({ success: true, messageId });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Supprimer un embed d'auto-rôle
+app.post('/api/config/autorole-embeds/delete', async (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { message_id, channel_id } = req.body;
+    if (!message_id) return res.status(400).json({ error: 'ID de message requis' });
+
+    // 1. Essayer de supprimer le message sur Discord
+    const botApiPort = process.env.BOT_API_PORT || 49602;
+    await fetch(`http://127.0.0.1:${botApiPort}/bot/delete-message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guildId, channelId: channel_id, messageId: message_id })
+    }).catch(() => null);
+
+    // 2. Supprimer de SQLite
+    deleteAutoroleEmbed(guildId, message_id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Auto-rôles à l'arrivée
+app.post('/api/config/autoroles-on-join/add', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { role_id } = req.body;
+    if (!role_id) return res.status(400).json({ error: 'Rôle requis' });
+
+    addAutoroleOnJoin(guildId, role_id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/autoroles-on-join/delete', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { role_id } = req.body;
+    if (!role_id) return res.status(400).json({ error: 'Rôle requis' });
+
+    deleteAutoroleOnJoin(guildId, role_id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Auto-rôles sur obtention
+app.post('/api/config/autoroles-on-role/add', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { trigger_role_id, target_role_id } = req.body;
+    if (!trigger_role_id || !target_role_id) return res.status(400).json({ error: 'Rôles requis' });
+
+    addAutoroleOnRole(guildId, trigger_role_id, target_role_id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/autoroles-on-role/delete', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { trigger_role_id, target_role_id } = req.body;
+    if (!trigger_role_id || !target_role_id) return res.status(400).json({ error: 'Rôles requis' });
+
+    deleteAutoroleOnRole(guildId, trigger_role_id, target_role_id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- SYSTEM DE COMPTAGE (COUNTING) ---
+
+app.post('/api/config/counting/add', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { channel_id, mode, start_number } = req.body;
+    if (!channel_id || !mode) return res.status(400).json({ error: 'Informations incomplètes' });
+
+    const num = start_number !== undefined ? parseFloat(start_number) : 0;
+    addCountingChannel(guildId, channel_id, mode, num);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/counting/delete', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { channel_id } = req.body;
+    if (!channel_id) return res.status(400).json({ error: 'ID requis' });
+
+    deleteCountingChannel(guildId, channel_id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ Dashboard premium running on port ${PORT}`);
+  
+  try {
+    const ipRes = await fetch('https://api.ipify.org?format=json').then(r => r.json());
+    if (ipRes && ipRes.ip) {
+      console.log(`🔗 Lien d'accès externe (IP publique) : http://${ipRes.ip}:${PORT}`);
+      console.log(`💡 Note : Pour que ce lien fonctionne depuis l'extérieur de votre réseau, vous devez rediriger le port ${PORT} vers l'IP locale de votre machine (192.168.1.133) dans la configuration de votre box internet.`);
+    }
+  } catch (err) {
+    console.log('Impossible de récupérer automatiquement l\'IP publique (pas de connexion internet ou API inaccessible).');
+  }
 });

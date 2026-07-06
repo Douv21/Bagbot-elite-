@@ -1,6 +1,7 @@
 const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const { getLeveling, updateLeveling, getLevelingConfig, db } = require('../database/db');
 const { addXP, sendLog } = require('../utils/helpers');
+const { evaluateMath } = require('../utils/math_eval');
 
 // Cooldowns pour l'XP (1 message max toutes les 60 secondes pour XP)
 const xpCooldowns = new Map();
@@ -20,6 +21,72 @@ module.exports = {
 
     const guildId = message.guild.id;
     const userId = message.author.id;
+
+    // --- SYSTÈME DE COMPTAGE (COUNTING) ---
+    const countingChan = db.prepare('SELECT * FROM counting_channels WHERE guild_id = ? AND channel_id = ?').get(guildId, message.channel.id);
+    if (countingChan) {
+      const contentStr = message.content.trim();
+      let proposedNumber = null;
+      
+      if (countingChan.mode === 'math') {
+        proposedNumber = evaluateMath(contentStr);
+      } else {
+        if (/^-?[0-9.]+$/.test(contentStr)) {
+          proposedNumber = parseFloat(contentStr);
+        }
+      }
+
+      if (proposedNumber === null || isNaN(proposedNumber)) {
+        await message.react('❌').catch(() => {});
+        db.prepare('UPDATE counting_channels SET current_number = start_number, last_user_id = NULL WHERE channel_id = ?').run(message.channel.id);
+        await message.reply(`💥 **Erreur !** Ce n'est pas un nombre valide. Le compteur a été réinitialisé à **${countingChan.start_number}** !`).catch(() => {});
+        return;
+      }
+
+      if (countingChan.last_user_id === userId) {
+        await message.react('❌').catch(() => {});
+        db.prepare('UPDATE counting_channels SET current_number = start_number, last_user_id = NULL WHERE channel_id = ?').run(message.channel.id);
+        await message.reply(`💥 **Erreur !** <@${userId}>, tu ne peux pas compter deux fois de suite ! Le compteur a été réinitialisé à **${countingChan.start_number}** !`).catch(() => {});
+        return;
+      }
+
+      let isCorrect = false;
+      let nextNumber = 0;
+      if (countingChan.mode === 'reverse') {
+        nextNumber = countingChan.current_number - 1;
+        isCorrect = (proposedNumber === nextNumber);
+      } else {
+        nextNumber = countingChan.current_number + 1;
+        isCorrect = (proposedNumber === nextNumber);
+      }
+
+      if (isCorrect) {
+        await message.react('✅').catch(() => {});
+        
+        let newHighScore = countingChan.high_score;
+        if (countingChan.mode === 'reverse') {
+          const currentProgress = countingChan.start_number - nextNumber;
+          if (currentProgress > countingChan.high_score) {
+            newHighScore = currentProgress;
+          }
+        } else {
+          if (nextNumber > countingChan.high_score) {
+            newHighScore = nextNumber;
+          }
+        }
+
+        db.prepare('UPDATE counting_channels SET current_number = ?, last_user_id = ?, high_score = ? WHERE channel_id = ?')
+          .run(nextNumber, userId, newHighScore, message.channel.id);
+      } else {
+        await message.react('❌').catch(() => {});
+        db.prepare('UPDATE counting_channels SET current_number = start_number, last_user_id = NULL WHERE channel_id = ?').run(message.channel.id);
+        const expected = countingChan.mode === 'reverse' 
+          ? (countingChan.current_number - 1) 
+          : (countingChan.current_number + 1);
+        await message.reply(`💥 **Erreur !** Le nombre attendu était **${expected}** (tu as écrit **${proposedNumber}**). Le compteur a été réinitialisé à **${countingChan.start_number}** !`).catch(() => {});
+      }
+      return;
+    }
 
     // --- FILTRAGE ET ANONYMISATION DES COMMENTAIRES DE CONFESSIONS ---
     if (message.channel.isThread()) {

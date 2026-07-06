@@ -303,6 +303,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('automod_massmention_limit').value = am.massmention_limit ?? 5;
         document.getElementById('automod_badwords_list').value = am.badwords_list || '';
         document.getElementById('automod_bypass_roles').value = am.bypass_roles || '';
+
+        // Auto-rôles & Counting renders
+        renderAutoroleJoin(config.autoroles_on_join || []);
+        renderAutoroleRole(config.autoroles_on_role || []);
+        renderActiveAutoroles(config.autorole_embeds || []);
+        renderCountingChannels(config.counting_channels || []);
       })
       .catch(console.error);
   }
@@ -1178,4 +1184,413 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(err => showToast('Erreur: ' + err.message, true));
   });
+
+  // --- LOGIQUE INTERACTIVE D'AUTO-RÔLES ---
+
+  let autoroleButtonsList = []; // Stocke { role_id, label, emoji, style }
+
+  document.getElementById('form-add-autorole-join').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const role_id = document.getElementById('autorole-join-select').value;
+    if (!role_id) return;
+    fetch('/api/config/autoroles-on-join/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role_id })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        showToast('Rôle de join ajouté !');
+        loadGuildConfiguration();
+      } else {
+        showToast('Erreur: ' + data.error, true);
+      }
+    })
+    .catch(err => showToast(err.message, true));
+  });
+
+  document.getElementById('form-add-autorole-role').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const trigger_role_id = document.getElementById('autorole-trigger-select').value;
+    const target_role_id = document.getElementById('autorole-target-select').value;
+    if (!trigger_role_id || !target_role_id) return;
+    fetch('/api/config/autoroles-on-role/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trigger_role_id, target_role_id })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        showToast('Liaison de rôle créée !');
+        loadGuildConfiguration();
+      } else {
+        showToast('Erreur: ' + data.error, true);
+      }
+    })
+    .catch(err => showToast(err.message, true));
+  });
+
+  document.getElementById('btn-add-autorole-button').addEventListener('click', () => {
+    const role_id = document.getElementById('new-button-role').value;
+    const label = document.getElementById('new-button-label').value.trim();
+    const emoji = document.getElementById('new-button-emoji').value.trim();
+    const style = document.getElementById('new-button-style').value;
+
+    if (!role_id) {
+      alert('Veuillez sélectionner un rôle.');
+      return;
+    }
+    if (!label) {
+      alert('Veuillez saisir un libellé pour le bouton.');
+      return;
+    }
+    if (autoroleButtonsList.length >= 5) {
+      alert('Vous pouvez ajouter un maximum de 5 boutons.');
+      return;
+    }
+
+    autoroleButtonsList.push({ role_id, label, emoji, style });
+    
+    // Reset inputs
+    document.getElementById('new-button-role').value = '';
+    document.getElementById('new-button-label').value = '';
+    document.getElementById('new-button-emoji').value = '';
+    document.getElementById('new-button-style').value = 'PRIMARY';
+
+    renderButtonsCreatorPreview();
+  });
+
+  function renderButtonsCreatorPreview() {
+    const container = document.getElementById('autorole-embed-buttons-preview');
+    const noButtonsText = document.getElementById('no-buttons-text');
+    
+    // Supprimer tout sauf le texte par défaut s'il n'y a rien
+    container.innerHTML = '';
+    
+    if (autoroleButtonsList.length === 0) {
+      noButtonsText.style.display = 'block';
+      container.appendChild(noButtonsText);
+      return;
+    }
+    noButtonsText.style.display = 'none';
+
+    autoroleButtonsList.forEach((btn, index) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'badge';
+      wrapper.style.padding = '8px 12px';
+      wrapper.style.background = 'rgba(255,255,255,0.05)';
+      wrapper.style.border = '1px solid rgba(255,255,255,0.1)';
+      wrapper.style.borderRadius = '4px';
+      wrapper.style.display = 'inline-flex';
+      wrapper.style.alignItems = 'center';
+      wrapper.style.gap = '8px';
+
+      const styleLabel = btn.style === 'SUCCESS' ? 'Vert' : (btn.style === 'DANGER' ? 'Rouge' : (btn.style === 'SECONDARY' ? 'Gris' : 'Bleu'));
+      wrapper.innerHTML = `
+        <span style="font-weight: 500;">${btn.emoji || ''} ${btn.label} (${getRoleName(btn.role_id)}) [${styleLabel}]</span>
+        <button type="button" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 0.9rem;" title="Retirer ce bouton"><i class="fa-solid fa-xmark"></i></button>
+      `;
+
+      wrapper.querySelector('button').addEventListener('click', () => {
+        autoroleButtonsList.splice(index, 1);
+        renderButtonsCreatorPreview();
+      });
+
+      container.appendChild(wrapper);
+    });
+  }
+
+  document.getElementById('form-create-autorole-embed').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const channel_id = document.getElementById('autorole-embed-channel').value;
+    const title = document.getElementById('autorole-embed-title').value.trim();
+    const description = document.getElementById('autorole-embed-desc').value.trim();
+    const color = document.getElementById('autorole-embed-color').value;
+    const thumbnail = parseInt(document.getElementById('autorole-embed-thumbnail').value);
+    const image_url = document.getElementById('autorole-embed-image').value.trim();
+
+    if (autoroleButtonsList.length === 0) {
+      alert('Veuillez ajouter au moins un bouton de rôle.');
+      return;
+    }
+
+    showToast('Envoi de l\'embed d\'auto-rôle...');
+    fetch('/api/config/autorole-embeds/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        channel_id,
+        title,
+        description,
+        color,
+        thumbnail,
+        image_url,
+        options: autoroleButtonsList
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        showToast('Embed d\'auto-rôle envoyé et enregistré !');
+        document.getElementById('autorole-embed-title').value = '';
+        document.getElementById('autorole-embed-desc').value = '';
+        document.getElementById('autorole-embed-image').value = '';
+        autoroleButtonsList = [];
+        renderButtonsCreatorPreview();
+        loadGuildConfiguration();
+      } else {
+        showToast('Erreur: ' + data.error, true);
+      }
+    })
+    .catch(err => showToast(err.message, true));
+  });
+
+  // --- LOGIQUE INTERACTIVE DU COUNTING ---
+
+  document.getElementById('form-add-counting-channel').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const channel_id = document.getElementById('counting-channel-select').value;
+    const mode = document.getElementById('counting-mode-select').value;
+    const start_number = parseFloat(document.getElementById('counting-start-number').value);
+
+    fetch('/api/config/counting/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channel_id, mode, start_number })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        showToast('Salon de comptage configuré !');
+        loadGuildConfiguration();
+      } else {
+        showToast('Erreur: ' + data.error, true);
+      }
+    })
+    .catch(err => showToast(err.message, true));
+  });
+
+  // --- RENDERS POUR AUTO-ROLES ---
+
+  function renderAutoroleJoin(list) {
+    const container = document.getElementById('autorole-join-list');
+    container.innerHTML = '';
+    if (list.length === 0) {
+      container.innerHTML = '<li style="color: #8e9297; padding: 10px; font-style: italic;">Aucun rôle automatique configuré.</li>';
+      return;
+    }
+    list.forEach(item => {
+      const roleName = getRoleName(item.role_id);
+      const li = document.createElement('li');
+      li.className = 'shop-item';
+      li.style.display = 'flex';
+      li.style.justifyContent = 'space-between';
+      li.style.alignItems = 'center';
+      li.style.padding = '8px 12px';
+      li.style.background = 'rgba(255, 255, 255, 0.05)';
+      li.style.marginBottom = '5px';
+      li.style.borderRadius = '4px';
+
+      li.innerHTML = `
+        <span style="font-weight: 500;"><i class="fa-solid fa-user-tag" style="color: #5865F2;"></i> ${roleName}</span>
+        <button class="btn btn-delete btn-sm" style="padding: 4px 8px; font-size: 0.8rem;"><i class="fa-solid fa-trash"></i></button>
+      `;
+
+      li.querySelector('.btn-delete').addEventListener('click', () => {
+        fetch('/api/config/autoroles-on-join/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role_id: item.role_id })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            showToast('Rôle de join supprimé !');
+            loadGuildConfiguration();
+          } else {
+            showToast('Erreur: ' + data.error, true);
+          }
+        })
+        .catch(err => showToast(err.message, true));
+      });
+
+      container.appendChild(li);
+    });
+  }
+
+  function renderAutoroleRole(list) {
+    const container = document.getElementById('autorole-role-list');
+    container.innerHTML = '';
+    if (list.length === 0) {
+      container.innerHTML = '<li style="color: #8e9297; padding: 10px; font-style: italic;">Aucune liaison de rôle configurée.</li>';
+      return;
+    }
+    list.forEach(item => {
+      const triggerName = getRoleName(item.trigger_role_id);
+      const targetName = getRoleName(item.target_role_id);
+      const li = document.createElement('li');
+      li.className = 'shop-item';
+      li.style.display = 'flex';
+      li.style.justifyContent = 'space-between';
+      li.style.alignItems = 'center';
+      li.style.padding = '8px 12px';
+      li.style.background = 'rgba(255, 255, 255, 0.05)';
+      li.style.marginBottom = '5px';
+      li.style.borderRadius = '4px';
+
+      li.innerHTML = `
+        <span style="font-size: 0.9rem;">
+          <i class="fa-solid fa-tag" style="color: #E67E22;"></i> <strong>${triggerName}</strong> 
+          <i class="fa-solid fa-arrow-right" style="margin: 0 5px; font-size: 0.8rem; color: #8e9297;"></i> 
+          <strong>${targetName}</strong>
+        </span>
+        <button class="btn btn-delete btn-sm" style="padding: 4px 8px; font-size: 0.8rem;"><i class="fa-solid fa-trash"></i></button>
+      `;
+
+      li.querySelector('.btn-delete').addEventListener('click', () => {
+        fetch('/api/config/autoroles-on-role/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trigger_role_id: item.trigger_role_id, target_role_id: item.target_role_id })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            showToast('Liaison de rôle supprimée !');
+            loadGuildConfiguration();
+          } else {
+            showToast('Erreur: ' + data.error, true);
+          }
+        })
+        .catch(err => showToast(err.message, true));
+      });
+
+      container.appendChild(li);
+    });
+  }
+
+  function renderActiveAutoroles(list) {
+    const container = document.getElementById('active-autoroles-container');
+    container.innerHTML = '';
+    if (list.length === 0) {
+      container.innerHTML = '<p style="color: #8e9297; text-align: center; font-style: italic;">Aucun embed d\'auto-rôle actif.</p>';
+      return;
+    }
+    list.forEach(item => {
+      const channelName = getChannelName(item.channel_id);
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.background = 'rgba(255,255,255,0.03)';
+      card.style.border = '1px solid rgba(255,255,255,0.05)';
+      card.style.padding = '12px 15px';
+      card.style.borderRadius = '6px';
+      card.style.display = 'flex';
+      card.style.flexDirection = 'column';
+      card.style.gap = '8px';
+
+      const buttonsHtml = (item.options || []).map(opt => {
+        const styleClass = opt.style === 'SUCCESS' ? 'btn-save' : (opt.style === 'DANGER' ? 'btn-delete' : 'btn-add');
+        return `<span class="badge ${styleClass}" style="margin-right: 5px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+          ${opt.emoji || ''} ${opt.label} (${getRoleName(opt.role_id)})
+        </span>`;
+      }).join(' ');
+
+      card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h4 style="margin: 0; color: #fff;">${item.title}</h4>
+          <button class="btn btn-delete btn-sm" style="padding: 4px 8px; font-size: 0.8rem;"><i class="fa-solid fa-trash"></i> Supprimer de Discord</button>
+        </div>
+        <p style="margin: 2px 0; font-size: 0.85rem; color: #b9bbbe;">
+          <i class="fa-solid fa-hashtag"></i> Salon: <strong>${channelName}</strong> · ID Message: <code>${item.message_id}</code>
+        </p>
+        <p style="margin: 2px 0; font-size: 0.85rem; color: #8e9297; font-style: italic;">"${item.description}"</p>
+        <div style="margin-top: 5px; display: flex; flex-wrap: wrap; gap: 5px;">
+          ${buttonsHtml}
+        </div>
+      `;
+
+      card.querySelector('.btn-delete').addEventListener('click', () => {
+        if (!confirm('Voulez-vous vraiment supprimer cet embed d\'auto-rôle ? Le message sera supprimé de Discord et de la base de données.')) return;
+        fetch('/api/config/autorole-embeds/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message_id: item.message_id, channel_id: item.channel_id })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            showToast('Embed d\'auto-rôle supprimé !');
+            loadGuildConfiguration();
+          } else {
+            showToast('Erreur: ' + data.error, true);
+          }
+        })
+        .catch(err => showToast(err.message, true));
+      });
+
+      container.appendChild(card);
+    });
+  }
+
+  // --- RENDERS POUR COUNTING ---
+
+  function renderCountingChannels(list) {
+    const container = document.getElementById('counting-channels-list-tbody');
+    container.innerHTML = '';
+    if (list.length === 0) {
+      container.innerHTML = '<tr><td colspan="7" style="color: #8e9297; text-align: center; font-style: italic; padding: 15px;">Aucun salon de comptage configuré.</td></tr>';
+      return;
+    }
+    list.forEach(item => {
+      const channelName = getChannelName(item.channel_id);
+      const tr = document.createElement('tr');
+      
+      const modeLabel = item.mode === 'math' ? 'Mathématique' : (item.mode === 'reverse' ? 'Inversé' : 'Normal');
+
+      tr.innerHTML = `
+        <td style="font-weight: 600;"><i class="fa-solid fa-hashtag" style="color: #7289da;"></i> ${channelName}</td>
+        <td><span class="badge" style="background: rgba(114, 137, 218, 0.2); color: #7289da; padding: 4px 8px; border-radius: 4px;">${modeLabel}</span></td>
+        <td style="font-weight: bold; color: #fff;">${item.current_number}</td>
+        <td>${item.start_number}</td>
+        <td style="font-weight: bold; color: #2ecc71;">${item.high_score}</td>
+        <td>${item.last_user_id ? `<@${item.last_user_id}>` : '<span style="color:#8e9297; font-style:italic;">Aucun</span>'}</td>
+        <td>
+          <button class="btn btn-delete btn-sm" style="padding: 4px 8px; font-size: 0.8rem;"><i class="fa-solid fa-trash"></i> Retirer</button>
+        </td>
+      `;
+
+      tr.querySelector('.btn-delete').addEventListener('click', () => {
+        if (!confirm('Voulez-vous supprimer ce salon de comptage ? Les statistiques et le record seront effacés.')) return;
+        fetch('/api/config/counting/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel_id: item.channel_id })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            showToast('Salon de comptage retiré !');
+            loadGuildConfiguration();
+          } else {
+            showToast('Erreur: ' + data.error, true);
+          }
+        })
+        .catch(err => showToast(err.message, true));
+      });
+
+      container.appendChild(tr);
+    });
+  }
+
+  function getRoleName(roleId) {
+    const role = rolesList.find(r => r.id === roleId);
+    return role ? role.name : roleId;
+  }
+
+  function getChannelName(channelId) {
+    const chan = channelsList.find(c => c.id === channelId);
+    return chan ? chan.name : channelId;
+  }
 });
