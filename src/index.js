@@ -122,7 +122,11 @@ apiApp.post('/bot/avatar', async (req, res) => {
     if (!avatar_url) {
       return res.status(400).json({ error: 'Avatar URL is required' });
     }
-    await client.user.setAvatar(avatar_url);
+    let resolvedPath = avatar_url;
+    if (avatar_url.startsWith('/uploads/')) {
+      resolvedPath = path.join(__dirname, '../public', avatar_url);
+    }
+    await client.user.setAvatar(resolvedPath);
     res.json({ success: true, avatarURL: client.user.displayAvatarURL({ dynamic: true }) });
   } catch (error) {
     console.error('Error setting bot avatar:', error);
