@@ -463,11 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  document.getElementById('embed-author-icon-input').addEventListener('blur', (e) => {
-    if (!e.target.value) {
-      document.getElementById('author-icon-wrapper').style.display = 'none';
-    }
-  });
+
 
   document.getElementById('embed-footer-input').addEventListener('input', (e) => {
     const mode = document.getElementById('edit-mode-select').value;
@@ -524,11 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  document.getElementById('embed-image-input').addEventListener('blur', (e) => {
-    if (!e.target.value) {
-      document.getElementById('image-url-wrapper').style.display = 'none';
-    }
-  });
+
 
   document.getElementById('btn-change-bot-avatar').addEventListener('click', (e) => {
     if (e && e.target && e.target.closest('#bot-avatar-wrapper')) return;
