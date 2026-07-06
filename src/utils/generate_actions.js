@@ -254,6 +254,7 @@ module.exports = {
       .setTimestamp();
 
     const files = [];
+    const targetFiles = [];
     
     let gifs = [];
     if (guildId) {
@@ -273,6 +274,7 @@ module.exports = {
         if (fs.existsSync(absPath)) {
           const filename = path.basename(randomGif);
           files.push(new AttachmentBuilder(absPath, { name: filename }));
+          targetFiles.push(new AttachmentBuilder(absPath, { name: filename }));
           embed.setImage(\`attachment://\\\${filename}\`);
         }
       } else if (randomGif.startsWith('http://') || randomGif.startsWith('https://')) {
@@ -294,6 +296,18 @@ module.exports = {
       files: files,
       allowedMentions: mention ? { users: [target.id] } : { parse: [] }
     });
+
+    if (!guildId && target && target.id !== userId) {
+      try {
+        await target.send({
+          content: \`🔔 **<@\${userId}>** vous a fait une action en MP !\`,
+          embeds: [embed],
+          files: targetFiles
+        });
+      } catch (err) {
+        console.error('Impossible d\\\'envoyer le MP de l\\\'action à la cible :', err);
+      }
+    }
   }
 };
 const { AttachmentBuilder } = require('discord.js');
