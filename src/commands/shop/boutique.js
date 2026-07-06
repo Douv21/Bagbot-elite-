@@ -13,10 +13,17 @@ module.exports = {
 
     if (!itemName) {
       // Afficher la boutique (le catalogue)
-      const items = db.prepare('SELECT * FROM shop WHERE guild_id = ?').all(guildId);
+      let items = db.prepare('SELECT * FROM shop WHERE guild_id = ?').all(guildId);
 
       if (items.length === 0) {
-        return interaction.reply({ content: '❌ La boutique de ce serveur est vide pour le moment.', ephemeral: true });
+        db.prepare('INSERT OR REPLACE INTO shop (guild_id, item_name, price, description, role_id) VALUES (?, ?, ?, ?, ?)')
+          .run(guildId, 'Suite Privée 1 Jour', 500, 'Votre suite privée personnelle (salon textuel) pendant 24 heures.', null);
+        db.prepare('INSERT OR REPLACE INTO shop (guild_id, item_name, price, description, role_id) VALUES (?, ?, ?, ?, ?)')
+          .run(guildId, 'Suite Privée 7 Jours', 2000, 'Votre suite privée personnelle (salon textuel) pendant une semaine.', null);
+        db.prepare('INSERT OR REPLACE INTO shop (guild_id, item_name, price, description, role_id) VALUES (?, ?, ?, ?, ?)')
+          .run(guildId, 'Suite Privée 1 Mois', 7000, 'Votre suite privée personnelle (salon textuel) pendant un mois.', null);
+        
+        items = db.prepare('SELECT * FROM shop WHERE guild_id = ?').all(guildId);
       }
 
       const embed = new EmbedBuilder()

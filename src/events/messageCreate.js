@@ -26,6 +26,12 @@ module.exports = {
     const countingChan = db.prepare('SELECT * FROM counting_channels WHERE guild_id = ? AND channel_id = ?').get(guildId, message.channel.id);
     if (countingChan) {
       const contentStr = message.content.trim();
+      
+      // Ignorer les messages contenant des lettres (A à Z)
+      if (/[a-zA-Z]/.test(contentStr)) {
+        return;
+      }
+      
       let proposedNumber = null;
       
       if (countingChan.mode === 'math') {
