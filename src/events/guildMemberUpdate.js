@@ -81,6 +81,7 @@ module.exports = {
 
           channel.send({ embeds: [embed], files }).catch(console.error);
         }
+      }
     }
 
     // --- SYSTÈME D'AUTO-RÔLE SUR OBTENTION DE RÔLE ---
