@@ -1432,6 +1432,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const mode = document.getElementById('autorole-embed-mode').value;
     const existing_message_id = document.getElementById('autorole-embed-existing-msg').value.trim() || null;
 
+    if (!existing_message_id) {
+      if (!title) {
+        alert("Veuillez saisir un titre pour l'embed.");
+        return;
+      }
+      if (!description) {
+        alert("Veuillez saisir une description / message.");
+        return;
+      }
+    }
+
     if (autoroleButtonsList.length === 0) {
       alert('Veuillez ajouter au moins un rôle/bouton.');
       return;
