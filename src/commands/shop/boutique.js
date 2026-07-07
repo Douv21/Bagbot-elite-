@@ -35,18 +35,40 @@ module.exports = {
         .setTimestamp();
 
       items.forEach(item => {
-        let details = `**Prix :** ${item.price} pièces\n*${item.description || 'Aucune description.'}*`;
+        const economy = getEconomy(guildId, userId);
+        let discount = 0;
+        if (economy.karma >= 100) {
+          discount = 0.20;
+        } else if (economy.karma >= 50) {
+          discount = 0.10;
+        } else if (economy.karma >= 20) {
+          discount = 0.05;
+        }
+        const finalPrice = Math.round(item.price * (1 - discount));
+        let details = `**Prix :** ${finalPrice} pièces${discount > 0 ? ` (~~${item.price}~~ -${Math.round(discount * 100)}%)` : ''}\n*${item.description || 'Aucune description.'}*`;
         if (item.role_id) {
           details += `\n🎁 *Attribue le rôle :* <@&${item.role_id}>`;
         }
         embed.addFields({ name: `🛒 ${item.item_name}`, value: details, inline: false });
       });
 
-      const selectOptions = items.slice(0, 25).map(item => ({
-        label: item.item_name.substring(0, 25),
-        description: `${item.price} pièces`,
-        value: item.item_name
-      }));
+      const selectOptions = items.slice(0, 25).map(item => {
+        const economy = getEconomy(guildId, userId);
+        let discount = 0;
+        if (economy.karma >= 100) {
+          discount = 0.20;
+        } else if (economy.karma >= 50) {
+          discount = 0.10;
+        } else if (economy.karma >= 20) {
+          discount = 0.05;
+        }
+        const finalPrice = Math.round(item.price * (1 - discount));
+        return {
+          label: item.item_name.substring(0, 25),
+          description: `${finalPrice} pièces${discount > 0 ? ` (-${Math.round(discount * 100)}%)` : ''}`,
+          value: item.item_name
+        };
+      });
 
       const selectMenu = new StringSelectMenuBuilder()
         .setCustomId('boutique_acheter')
@@ -68,8 +90,18 @@ module.exports = {
     // Récupérer l'économie de l'utilisateur
     const economy = getEconomy(guildId, userId);
 
-    if (economy.wallet < item.price) {
-      return interaction.reply({ content: `❌ Vous n'avez pas assez d'argent en poche. Cet article coûte **${item.price}** pièces, et vous n'en avez que **${economy.wallet}**.`, ephemeral: true });
+    let discount = 0;
+    if (economy.karma >= 100) {
+      discount = 0.20;
+    } else if (economy.karma >= 50) {
+      discount = 0.10;
+    } else if (economy.karma >= 20) {
+      discount = 0.05;
+    }
+    const finalPrice = Math.round(item.price * (1 - discount));
+
+    if (economy.wallet < finalPrice) {
+      return interaction.reply({ content: `❌ Vous n'avez pas assez d'argent en poche. Cet article coûte **${finalPrice}** pièces${discount > 0 ? ` (avec réduction de ${Math.round(discount * 100)}%)` : ''}, et vous n'en avez que **${economy.wallet}**.`, ephemeral: true });
     }
 
     // Vérifier si l'article est une suite privée
@@ -95,7 +127,7 @@ module.exports = {
 
       // Retirer l'argent
       updateEconomy(guildId, userId, {
-        wallet: economy.wallet - item.price
+        wallet: economy.wallet - finalPrice
       });
 
       const existingSuite = getPrivateSuite(guildId, userId);
@@ -107,7 +139,7 @@ module.exports = {
           updatePrivateSuiteExpiry(guildId, userId, newExpiry);
           await txtChan.send(`🎉 **<@${userId}> a prolongé cette suite de ${durationLabel} !**\nNouvelle date d'expiration : <t:${Math.floor(newExpiry / 1000)}:F> (<t:${Math.floor(newExpiry / 1000)}:R>).`);
 
-          return interaction.editReply({ content: `🎉 Vous avez prolongé votre suite privée existante de **${durationLabel}** pour **${item.price}** pièces !` });
+          return interaction.editReply({ content: `🎉 Vous avez prolongé votre suite privée existante de **${durationLabel}** pour **${finalPrice}** pièces !` });
         }
       }
 
@@ -188,7 +220,7 @@ module.exports = {
 
         await textChannel.send({ embeds: [panelEmbed], components: [panelRow] }).catch(console.error);
 
-        return interaction.editReply({ content: `🎉 Vous avez acheté une **${item.item_name}** pour **${item.price}** pièces ! Votre salon privatif <#${textChannel.id}> a été créé.` });
+        return interaction.editReply({ content: `🎉 Vous avez acheté une **${item.item_name}** pour **${finalPrice}** pièces ! Votre salon privatif <#${textChannel.id}> a été créé.` });
       } catch (err) {
         console.error('Erreur lors de la création de la suite:', err);
         updateEconomy(guildId, userId, {
@@ -200,7 +232,7 @@ module.exports = {
 
     // Pour les articles standards : Retirer l'argent
     updateEconomy(guildId, userId, {
-      wallet: economy.wallet - item.price
+      wallet: economy.wallet - finalPrice
     });
 
     // Ajouter à l'inventaire
@@ -232,6 +264,6 @@ module.exports = {
       }
     }
 
-    return interaction.reply({ content: `🎉 Vous avez acheté **${item.item_name}** pour **${item.price}** pièces${roleGiven} !` });
+    return interaction.reply({ content: `🎉 Vous avez acheté **${item.item_name}** pour **${finalPrice}** pièces${roleGiven} !` });
   }
 };

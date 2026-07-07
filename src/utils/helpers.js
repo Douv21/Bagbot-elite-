@@ -76,7 +76,22 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
   const userId = member.id;
 
   const data = getLeveling(guildId, userId);
-  let newXp = data.xp + xpToAdd;
+
+  // Appliquer le multiplicateur d'XP en fonction du Karma
+  const memberEco = db.prepare('SELECT karma FROM economy WHERE guild_id = ? AND user_id = ?').get(guildId, userId);
+  const karma = memberEco ? memberEco.karma : 0;
+  
+  let xpMultiplier = 1;
+  if (karma >= 100) {
+    xpMultiplier = 2;
+  } else if (karma >= 50) {
+    xpMultiplier = 1.5;
+  } else if (karma >= 20) {
+    xpMultiplier = 1.2;
+  }
+
+  const finalXpToAdd = Math.round(xpToAdd * xpMultiplier);
+  let newXp = data.xp + finalXpToAdd;
   let newLevel = data.level;
 
   // Calcul du seuil d'XP requis pour monter de niveau (formule exponentielle de Bagbot-lite : 100 * 1.2^lvl)

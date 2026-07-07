@@ -193,8 +193,10 @@ if (!fs.existsSync(targetDir)) {
 }
 
 actions.forEach(act => {
-  const content = `const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+  const content = `const { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } = require('discord.js');
 const { getEconomy, updateEconomy, getActionGifs, db } = require('../../database/db');
+const fs = require('fs');
+const path = require('path');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -311,9 +313,6 @@ module.exports = {
     }
   }
 };
-const { AttachmentBuilder } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
 `;
 
   fs.writeFileSync(path.join(targetDir, `${act.name}.js`), content, 'utf8');
