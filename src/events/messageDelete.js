@@ -18,7 +18,7 @@ module.exports = {
         });
         const deleteLog = fetchedLogs.entries.first();
         if (deleteLog) {
-          const targetMatches = deleteLog.target.id === message.author.id;
+          const targetMatches = deleteLog.target && deleteLog.target.id === message.author.id;
           const channelMatches = deleteLog.extra.channel.id === message.channel.id;
           const isRecent = Date.now() - deleteLog.createdTimestamp < 5000;
           if (targetMatches && channelMatches && isRecent) {
