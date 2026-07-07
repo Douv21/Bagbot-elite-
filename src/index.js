@@ -302,6 +302,13 @@ client.once('ready', async () => {
     // Nettoyage automatique des suites privées toutes les 60 secondes
     setInterval(() => checkExpiredSuites(client), 60000);
     checkExpiredSuites(client);
+
+    // Mettre en cache tous les membres de tous les serveurs au démarrage
+    client.guilds.cache.forEach(guild => {
+      guild.members.fetch()
+        .then(() => console.log(`[Cache] Membres de ${guild.name} mis en cache.`))
+        .catch(err => console.error(`[Cache] Impossible de mettre en cache les membres de ${guild.name}:`, err));
+    });
   } catch (error) {
     console.error('Erreur lors de l\'enregistrement des commandes slash :', error);
   }
