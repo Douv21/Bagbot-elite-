@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
+const { PermissionFlagsBits } = require('discord.js');
+const { client } = require('./index');
 const { 
   db, 
   getAllActionGifs, 
@@ -1024,6 +1026,58 @@ app.post('/api/config/counting/delete', (req, res) => {
     if (!channel_id) return res.status(400).json({ error: 'ID requis' });
 
     deleteCountingChannel(guildId, channel_id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- CARTE DES MEMBRES (MAP LOCATIONS) ---
+
+app.get('/api/config/map-locations', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const locations = db.prepare('SELECT * FROM member_locations WHERE guild_id = ?').all(guildId);
+    
+    const guild = client.guilds.cache.get(guildId);
+    const formatted = locations.map(loc => {
+      const member = guild ? guild.members.cache.get(loc.user_id) : null;
+      return {
+        ...loc,
+        username: member ? member.user.username : `Utilisateur (${loc.user_id})`,
+        avatar: member ? member.user.displayAvatarURL({ dynamic: true }) : 'https://cdn.discordapp.com/embed/avatars/0.png'
+      };
+    });
+
+    res.json(formatted);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/map-locations/delete', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
+
+    // Vérifier les permissions d'administration
+    if (!req.session.userId) return res.status(401).json({ error: 'Non autorisé' });
+    const member = guild.members.cache.get(req.session.userId);
+    if (!member || (!member.permissions.has(PermissionFlagsBits.Administrator) && guild.ownerId !== req.session.userId)) {
+      return res.status(403).json({ error: 'Permission refusée (Administrateur requis)' });
+    }
+
+    const { user_id } = req.body;
+    if (!user_id) return res.status(400).json({ error: 'ID requis' });
+
+    db.prepare('DELETE FROM member_locations WHERE guild_id = ? AND user_id = ?').run(guildId, user_id);
     res.json({ success: true });
   } catch (error) {
     console.error(error);

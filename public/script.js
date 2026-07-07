@@ -72,6 +72,9 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (tabId === 'tab-gifs') {
         fetchAndRenderGifs();
+      } else if (tabId === 'tab-map') {
+        const guildId = guildSelect.value;
+        document.getElementById('map-iframe').src = `map.html?guild=${guildId}`;
       }
     });
   });

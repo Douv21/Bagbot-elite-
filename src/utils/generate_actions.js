@@ -278,7 +278,7 @@ module.exports = {
           const filename = path.basename(randomGif);
           files.push(new AttachmentBuilder(absPath, { name: filename }));
           targetFiles.push(new AttachmentBuilder(absPath, { name: filename }));
-          embed.setImage(\`attachment://\\\${filename}\`);
+          embed.setImage(\`attachment://\${filename}\`);
         }
       } else if (randomGif.startsWith('http://') || randomGif.startsWith('https://')) {
         embed.setImage(randomGif);

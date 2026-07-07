@@ -585,3 +585,5 @@ client.login(process.env.DISCORD_TOKEN);
 
 // Lancement du Dashboard Premium
 require('./dashboard');
+
+module.exports = { client };

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte des Membres - B&G Elite</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #2f3136;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            background-color: #202225;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2f3136;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+            color: #5865F2;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-back {
+            background-color: #4f545c;
+            color: #ffffff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+
+        .btn-back:hover {
+            background-color: #686d73;
+        }
+
+        #map {
+            flex-grow: 1;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Custom Leaflet Dark styles */
+        .leaflet-container {
+            background-color: #202225 !important;
+        }
+
+        .leaflet-bar a {
+            background-color: #2f3136 !important;
+            color: #dcddde !important;
+            border-bottom: 1px solid #202225 !important;
+        }
+
+        .leaflet-bar a:hover {
+            background-color: #4f545c !important;
+            color: #ffffff !important;
+        }
+
+        /* Custom marker icon styling */
+        .user-marker {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #5865F2;
+            box-shadow: 0 0 10px rgba(88, 101, 242, 0.6);
+            overflow: hidden;
+            background-color: #36393f;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+
+        .user-marker:hover {
+            transform: scale(1.15);
+            z-index: 1000 !important;
+        }
+
+        .user-marker img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Custom Popup Styling */
+        .leaflet-popup-content-wrapper {
+            background: #2f3136 !important;
+            color: #dcddde !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+            border: 1px solid #5865F2;
+        }
+
+        .leaflet-popup-tip {
+            background: #2f3136 !important;
+            border: 1px solid #5865F2;
+        }
+
+        .popup-content {
+            padding: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .popup-username {
+            font-weight: bold;
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        .popup-address {
+            font-size: 12px;
+            color: #b9bbbe;
+            text-align: center;
+        }
+
+        .btn-delete-loc {
+            background-color: #ed4245;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-top: 5px;
+            transition: background-color 0.2s;
+        }
+
+        .btn-delete-loc:hover {
+            background-color: #c93b3e;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📍 Carte Interactive des Membres</h1>
+        <a href="/" class="btn-back">⬅️ Retour au Dashboard</a>
+    </header>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialiser la carte sur la France par défaut
+        const map = L.map('map').setView([46.2276, 2.2137], 6);
+
+        // Ajouter les tuiles sombres de CartoDB
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            maxZoom: 20
+        }).addTo(map);
+
+        // Récupérer les localisations depuis notre API
+        async function loadLocations() {
+            try {
+                const response = await fetch('/api/config/map-locations');
+                if (!response.ok) throw new Error('Impossible de charger les positions.');
+                const locations = await response.json();
+
+                if (locations.length === 0) {
+                    alert("Aucune position n'est enregistrée pour ce serveur. Utilisez /loc dans Discord pour en ajouter !");
+                    return;
+                }
+
+                const markers = [];
+
+                locations.forEach(loc => {
+                    // Créer un élément HTML personnalisé pour l'icône du marqueur (avatar du membre)
+                    const el = document.createElement('div');
+                    el.className = 'user-marker';
+                    el.innerHTML = `<img src="${loc.avatar}" alt="${loc.username}">`;
+
+                    const customIcon = L.divIcon({
+                        html: el,
+                        className: 'custom-div-icon',
+                        iconSize: [40, 40],
+                        iconAnchor: [20, 20]
+                    });
+
+                    // Créer le marqueur
+                    const marker = L.marker([loc.latitude, loc.longitude], { icon: customIcon }).addTo(map);
+                    
+                    // Contenu du Popup
+                    let popupHTML = `
+                        <div class="popup-content">
+                            <span class="popup-username">${loc.username}</span>
+                            <span class="popup-address">📍 ${loc.city}, ${loc.country}</span>
+                            <button class="btn-delete-loc" onclick="deleteLocation('${loc.user_id}', '${loc.username}')">Supprimer la localisation</button>
+                        </div>
+                    `;
+
+                    marker.bindPopup(popupHTML);
+                    markers.push(marker);
+                });
+
+                // Ajuster le zoom de la carte pour afficher tous les marqueurs
+                if (markers.length > 0) {
+                    const group = new L.featureGroup(markers);
+                    map.fitBounds(group.getBounds().pad(0.1));
+                }
+
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // Supprimer la position d'un membre (Admin requis)
+        async function deleteLocation(userId, username) {
+            if (!confirm(`Voulez-vous vraiment supprimer la localisation de ${username} ?`)) return;
+
+            try {
+                const response = await fetch('/api/config/map-locations/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert(`La localisation de ${username} a été supprimée.`);
+                    window.location.reload();
+                } else {
+                    alert(`Erreur : ${data.error || 'Permission refusée'}`);
+                }
+            } catch (error) {
+                alert('Erreur lors de la suppression de la localisation.');
+            }
+        }
+
+        loadLocations();
+    </script>
+</body>
+</html>

@@ -377,6 +377,20 @@ function initDatabase() {
   try {
     db.prepare("ALTER TABLE game_config ADD COLUMN appearance_chance REAL DEFAULT 15").run();
   } catch (e) {}
+
+  // 19. Localisation des membres
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS member_locations (
+      guild_id TEXT,
+      user_id TEXT,
+      raw_address TEXT,
+      latitude REAL,
+      longitude REAL,
+      city TEXT,
+      country TEXT,
+      PRIMARY KEY (guild_id, user_id)
+    )
+  `).run();
 }
 
 // --- Fonctions utilitaires de base de données ---
