@@ -221,6 +221,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     });
+
+    // Synchroniser tous les sélecteurs de recherche personnalisés
+    document.querySelectorAll('.channel-select, .announce-channel-select, .role-select').forEach(select => {
+      if (select.syncCustomSelect) {
+        select.syncCustomSelect();
+      }
+    });
   }
 
   function loadGuildConfiguration() {
@@ -288,7 +295,8 @@ document.addEventListener('DOMContentLoaded', () => {
               voice: legId,
               moderation: legId,
               structure: legId,
-              bots: legId
+              bots: legId,
+              confessions: legId
             };
           }
         } catch (e) {
@@ -297,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const activeCategories = logs.events ? logs.events.split(',') : [];
         const isLegacyAll = !logs.events || logs.events === 'all';
-        const categories = ['messages', 'members', 'voice', 'moderation', 'structure', 'bots'];
+        const categories = ['messages', 'members', 'voice', 'moderation', 'structure', 'bots', 'confessions'];
         
         categories.forEach(cat => {
           const enableCb = document.getElementById(`log_enable_${cat}`);
@@ -783,7 +791,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 4. Logs
   formLogs.addEventListener('submit', (e) => {
     e.preventDefault();
-    const categories = ['messages', 'members', 'voice', 'moderation', 'structure', 'bots'];
+    const categories = ['messages', 'members', 'voice', 'moderation', 'structure', 'bots', 'confessions'];
     const channelMap = {};
     const checkedEvents = [];
 
@@ -1860,66 +1868,131 @@ document.addEventListener('DOMContentLoaded', () => {
     return chan ? chan.name : channelId;
   }
 
-  function makeSelectSearchable(select, placeholder = '🔍 Rechercher...') {
-    if (!select) return;
-    if (select.parentNode.classList.contains('searchable-select-wrapper')) return;
+  function makeSelectSearchable(selectElement) {
+    if (!selectElement) return;
+    if (selectElement.dataset.searchableTransformed) return;
+    selectElement.dataset.searchableTransformed = 'true';
 
+    // Cacher le sélecteur natif
+    selectElement.style.display = 'none';
+
+    // Créer le wrapper
     const wrapper = document.createElement('div');
-    wrapper.className = 'searchable-select-wrapper';
-    wrapper.style.position = 'relative';
-    wrapper.style.display = 'flex';
-    wrapper.style.flexDirection = 'column';
-    wrapper.style.gap = '5px';
-    wrapper.style.width = '100%';
-    wrapper.style.marginBottom = '10px';
+    wrapper.className = 'custom-select-wrapper';
+    selectElement.parentNode.insertBefore(wrapper, selectElement);
+    wrapper.appendChild(selectElement);
 
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = placeholder;
-    input.className = 'select-search-input';
-    input.style.width = '100%';
-    input.style.padding = '6px 10px';
-    input.style.background = 'rgba(255, 255, 255, 0.05)';
-    input.style.border = '1px solid rgba(255, 255, 255, 0.1)';
-    input.style.borderRadius = '4px';
-    input.style.color = '#fff';
-    input.style.fontSize = '0.8rem';
-    input.style.outline = 'none';
-    input.style.transition = 'border-color 0.2s';
+    // Créer le déclencheur (bouton)
+    const trigger = document.createElement('div');
+    trigger.className = 'custom-select-trigger';
+    
+    const triggerText = document.createElement('span');
+    triggerText.textContent = selectElement.options[selectElement.selectedIndex]?.text || 'Sélectionner...';
+    trigger.appendChild(triggerText);
 
-    input.addEventListener('focus', () => {
-      input.style.borderColor = '#5865F2';
-    });
-    input.addEventListener('blur', () => {
-      input.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-    });
+    const icon = document.createElement('i');
+    icon.className = 'fa-solid fa-chevron-down';
+    trigger.appendChild(icon);
+    wrapper.appendChild(trigger);
 
-    select.parentNode.insertBefore(wrapper, select);
-    wrapper.appendChild(input);
-    wrapper.appendChild(select);
+    // Créer le panneau des options
+    const panel = document.createElement('div');
+    panel.className = 'custom-select-options-panel';
 
-    input.addEventListener('input', () => {
-      const query = input.value.toLowerCase().trim();
-      Array.from(select.options).forEach(opt => {
-        if (opt.value === '') {
-          opt.style.display = '';
-          opt.hidden = false;
-        } else {
-          const match = opt.text.toLowerCase().includes(query);
-          opt.style.display = match ? '' : 'none';
-          opt.hidden = !match;
+    // Créer la barre de recherche
+    const searchWrapper = document.createElement('div');
+    searchWrapper.className = 'custom-select-search-wrapper';
+    
+    const searchIcon = document.createElement('i');
+    searchIcon.className = 'fa-solid fa-magnifying-glass';
+    searchWrapper.appendChild(searchIcon);
+
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Rechercher...';
+    searchInput.className = 'custom-select-search-input';
+    searchWrapper.appendChild(searchInput);
+    panel.appendChild(searchWrapper);
+
+    // Créer la liste des options
+    const optionsList = document.createElement('div');
+    optionsList.className = 'custom-select-options-list';
+    panel.appendChild(optionsList);
+    wrapper.appendChild(panel);
+
+    function renderOptions() {
+      optionsList.innerHTML = '';
+      const query = searchInput.value.toLowerCase().trim();
+      
+      Array.from(selectElement.options).forEach((opt, idx) => {
+        const text = opt.text;
+        if (query && opt.value !== '' && !text.toLowerCase().includes(query)) return;
+
+        const item = document.createElement('div');
+        item.className = 'custom-select-option-item';
+        if (opt.selected) {
+          item.classList.add('selected');
         }
+        item.textContent = text;
+        item.dataset.value = opt.value;
+
+        item.addEventListener('click', () => {
+          selectElement.selectedIndex = idx;
+          triggerText.textContent = text;
+          
+          optionsList.querySelectorAll('.custom-select-option-item').forEach(el => el.classList.remove('selected'));
+          item.classList.add('selected');
+          
+          selectElement.dispatchEvent(new Event('change'));
+          wrapper.classList.remove('open');
+        });
+
+        optionsList.appendChild(item);
       });
+
+      if (optionsList.children.length === 0) {
+        const noResult = document.createElement('div');
+        noResult.className = 'custom-select-option-item';
+        noResult.style.color = '#72767d';
+        noResult.style.cursor = 'default';
+        noResult.textContent = 'Aucun résultat';
+        optionsList.appendChild(noResult);
+      }
+    }
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.custom-select-wrapper').forEach(w => {
+        if (w !== wrapper) w.classList.remove('open');
+      });
+
+      wrapper.classList.toggle('open');
+      if (wrapper.classList.contains('open')) {
+        renderOptions();
+        searchInput.value = '';
+        searchInput.focus();
+      }
     });
 
-    // Reset search query when select value changes
-    select.addEventListener('change', () => {
-      input.value = '';
-      Array.from(select.options).forEach(opt => {
-        opt.style.display = '';
-        opt.hidden = false;
-      });
+    searchInput.addEventListener('input', renderOptions);
+
+    document.addEventListener('click', (e) => {
+      if (!wrapper.contains(e.target)) {
+        wrapper.classList.remove('open');
+      }
     });
+
+    // Synchronisation en cas de changement manuel
+    selectElement.addEventListener('change', () => {
+      triggerText.textContent = selectElement.options[selectElement.selectedIndex]?.text || 'Sélectionner...';
+    });
+
+    selectElement.syncCustomSelect = () => {
+      triggerText.textContent = selectElement.options[selectElement.selectedIndex]?.text || 'Sélectionner...';
+      if (wrapper.classList.contains('open')) {
+        renderOptions();
+      }
+    };
   }
 
   function initializeSearchableSelects() {

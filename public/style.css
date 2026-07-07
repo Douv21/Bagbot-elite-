@@ -1075,3 +1075,119 @@ body {
     padding: 16px;
   }
 }
+
+/* Custom Searchable Select Dropdown */
+.custom-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select-trigger {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  padding: 10px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.custom-select-trigger:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.custom-select-wrapper.open .custom-select-trigger {
+  border-color: #5865F2;
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
+}
+
+.custom-select-options-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  background: #1e1f22;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  overflow: hidden;
+  animation: selectFadeIn 0.15s ease-out;
+}
+
+.custom-select-wrapper.open .custom-select-options-panel {
+  display: block;
+}
+
+.custom-select-search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.custom-select-search-wrapper i {
+  color: #b9bbbe;
+  font-size: 0.85rem;
+}
+
+.custom-select-search-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.custom-select-search-input::placeholder {
+  color: #72767d;
+}
+
+.custom-select-options-list {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.custom-select-options-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-select-options-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.custom-select-option-item {
+  padding: 8px 14px;
+  color: #b9bbbe;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.custom-select-option-item:hover {
+  background: rgba(88, 101, 242, 0.1);
+  color: #ffffff;
+}
+
+.custom-select-option-item.selected {
+  background: #5865F2;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+@keyframes selectFadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}

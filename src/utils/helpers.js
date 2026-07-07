@@ -29,6 +29,8 @@ function sendLog(guild, eventType, embed, options = {}) {
     category = 'moderation';
   } else if (['channelUpdate', 'roleUpdate'].includes(eventType)) {
     category = 'structure';
+  } else if (eventType === 'confession') {
+    category = 'confessions';
   }
 
   // Rediriger vers la catégorie "bots" si c'est un bot

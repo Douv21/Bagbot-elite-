@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { db } = require('../../database/db');
+const { sendLog } = require('../../utils/helpers');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -59,6 +60,15 @@ module.exports = {
           autoArchiveDuration: 1440
         }).catch(console.error);
       }
+
+      // Envoyer le log de la confession (non anonyme pour le staff)
+      const logEmbed = new EmbedBuilder()
+        .setTitle('🤫 Nouvelle Confession Logguée')
+        .setDescription(`**Auteur :** <@${interaction.user.id}> (${interaction.user.tag})\n**ID de l'auteur :** ${interaction.user.id}\n**Salon public :** <#${targetChannelId}>\n\n**Confession :**\n${messageContent}`)
+        .setColor('#9B59B6')
+        .setTimestamp();
+      
+      sendLog(interaction.guild, 'confession', logEmbed);
 
       await interaction.reply({ content: '🤫 Votre confession a été envoyée avec succès et de manière anonyme !', ephemeral: true });
     } catch (error) {

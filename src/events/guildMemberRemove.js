@@ -1,4 +1,4 @@
-const { EmbedBuilder, AttachmentBuilder } = require('discord.js');
+const { EmbedBuilder, AttachmentBuilder, AuditLogEvent } = require('discord.js');
 const { db } = require('../database/db');
 const { formatWelcomeLeaveMessage, sendLog } = require('../utils/helpers');
 const fs = require('fs');
@@ -79,13 +79,42 @@ module.exports = {
       }
     }
 
-    // --- LOG DE DÉPART ---
-    const logEmbed = new EmbedBuilder()
-      .setTitle('📤 Départ de Membre')
-      .setDescription(`**Utilisateur :** ${member.user.tag} (<@${member.id}>)\n**ID :** ${member.id}\n**Rôles possédés :** ${member.roles.cache.map(r => r.name).filter(name => name !== '@everyone').join(', ') || 'Aucun'}`)
-      .setColor('#FF0000')
-      .setTimestamp();
-    
-    sendLog(member.guild, 'memberRemove', logEmbed, { isBot: member.user.bot });
+    // --- LOG DE DÉPART / EXPULSION ---
+    let isKick = false;
+    let kicker = null;
+    let kickReason = null;
+    try {
+      const fetchedLogs = await member.guild.fetchAuditLogs({
+        limit: 1,
+        type: AuditLogEvent.MemberKick,
+      });
+      const kickLog = fetchedLogs.entries.first();
+      if (kickLog && kickLog.target.id === member.id) {
+        const age = Date.now() - kickLog.createdTimestamp;
+        if (age < 5000) {
+          isKick = true;
+          kicker = kickLog.executor;
+          kickReason = kickLog.reason;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    if (isKick) {
+      const logEmbed = new EmbedBuilder()
+        .setTitle('🔨 Membre Expulsé (Kick)')
+        .setDescription(`**Utilisateur :** ${member.user.tag} (<@${member.id}>)\n**ID :** ${member.id}\n**Modérateur :** <@${kicker.id}> (${kicker.tag})\n**Raison :** ${kickReason || 'Aucune raison fournie'}`)
+        .setColor('#D35400')
+        .setTimestamp();
+      sendLog(member.guild, 'moderation', logEmbed, { isBot: member.user.bot });
+    } else {
+      const logEmbed = new EmbedBuilder()
+        .setTitle('📤 Départ de Membre')
+        .setDescription(`**Utilisateur :** ${member.user.tag} (<@${member.id}>)\n**ID :** ${member.id}\n**Rôles possédés :** ${member.roles.cache.map(r => r.name).filter(name => name !== '@everyone').join(', ') || 'Aucun'}`)
+        .setColor('#FF0000')
+        .setTimestamp();
+      sendLog(member.guild, 'memberRemove', logEmbed, { isBot: member.user.bot });
+    }
   }
 };
