@@ -1349,34 +1349,74 @@ document.addEventListener('DOMContentLoaded', () => {
       container.appendChild(wrapper);
     });
 
-    // Mettre à jour l'aperçu en direct des boutons
+    // Mettre à jour l'aperçu en direct des boutons / sélecteur / réactions
     const previewButtonsContainer = document.getElementById('autorole-preview-buttons');
     if (previewButtonsContainer) {
       previewButtonsContainer.innerHTML = '';
-      autoroleButtonsList.forEach(btn => {
-        const pBtn = document.createElement('button');
-        pBtn.type = 'button';
-        pBtn.style.padding = '6px 16px';
-        pBtn.style.fontSize = '0.85rem';
-        pBtn.style.borderRadius = '3px';
-        pBtn.style.border = 'none';
-        pBtn.style.cursor = 'default';
-        pBtn.style.display = 'inline-flex';
-        pBtn.style.alignItems = 'center';
-        pBtn.style.gap = '6px';
-        pBtn.style.fontWeight = '500';
-        
-        let bgColor = '#5865F2';
-        let textColor = '#ffffff';
-        if (btn.style === 'SECONDARY') { bgColor = '#4f545c'; }
-        else if (btn.style === 'SUCCESS') { bgColor = '#43b581'; }
-        else if (btn.style === 'DANGER') { bgColor = '#f04747'; }
-        
-        pBtn.style.background = bgColor;
-        pBtn.style.color = textColor;
-        pBtn.innerHTML = `<span>${btn.emoji || ''}</span> <span>${btn.label}</span>`;
-        previewButtonsContainer.appendChild(pBtn);
-      });
+      const type = document.getElementById('autorole-embed-type').value;
+
+      if (type === 'buttons') {
+        autoroleButtonsList.forEach(btn => {
+          const pBtn = document.createElement('button');
+          pBtn.type = 'button';
+          pBtn.style.padding = '6px 16px';
+          pBtn.style.fontSize = '0.85rem';
+          pBtn.style.borderRadius = '3px';
+          pBtn.style.border = 'none';
+          pBtn.style.cursor = 'default';
+          pBtn.style.display = 'inline-flex';
+          pBtn.style.alignItems = 'center';
+          pBtn.style.gap = '6px';
+          pBtn.style.fontWeight = '500';
+          
+          let bgColor = '#5865F2';
+          let textColor = '#ffffff';
+          if (btn.style === 'SECONDARY') { bgColor = '#4f545c'; }
+          else if (btn.style === 'SUCCESS') { bgColor = '#43b581'; }
+          else if (btn.style === 'DANGER') { bgColor = '#f04747'; }
+          
+          pBtn.style.background = bgColor;
+          pBtn.style.color = textColor;
+          pBtn.innerHTML = `<span>${btn.emoji || ''}</span> <span>${btn.label}</span>`;
+          previewButtonsContainer.appendChild(pBtn);
+        });
+      } else if (type === 'select') {
+        if (autoroleButtonsList.length > 0) {
+          const selectSim = document.createElement('div');
+          selectSim.style.width = '100%';
+          selectSim.style.background = '#2f3136';
+          selectSim.style.border = '1px solid rgba(255,255,255,0.05)';
+          selectSim.style.padding = '8px 12px';
+          selectSim.style.borderRadius = '4px';
+          selectSim.style.color = '#dcddde';
+          selectSim.style.display = 'flex';
+          selectSim.style.justifyContent = 'space-between';
+          selectSim.style.alignItems = 'center';
+          selectSim.style.fontSize = '0.9rem';
+          selectSim.style.cursor = 'default';
+          selectSim.innerHTML = `
+            <span>Sélectionnez un rôle... (${autoroleButtonsList.length} options)</span>
+            <i class="fa-solid fa-chevron-down" style="font-size: 0.8rem; color: #b9bbbe;"></i>
+          `;
+          previewButtonsContainer.appendChild(selectSim);
+        }
+      } else if (type === 'reactions') {
+        autoroleButtonsList.forEach(btn => {
+          const pReact = document.createElement('div');
+          pReact.style.display = 'inline-flex';
+          pReact.style.alignItems = 'center';
+          pReact.style.gap = '6px';
+          pReact.style.background = 'rgba(255,255,255,0.05)';
+          pReact.style.border = '1px solid rgba(255,255,255,0.1)';
+          pReact.style.padding = '4px 8px';
+          pReact.style.borderRadius = '4px';
+          pReact.style.fontSize = '0.85rem';
+          pReact.style.cursor = 'default';
+          pReact.style.marginRight = '6px';
+          pReact.innerHTML = `<span>${btn.emoji || '❓'}</span> <span style="color: #b9bbbe; font-weight:600;">1</span>`;
+          previewButtonsContainer.appendChild(pReact);
+        });
+      }
     }
   }
 
@@ -1388,13 +1428,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const color = document.getElementById('autorole-embed-color').value;
     const thumbnail = parseInt(document.getElementById('autorole-embed-thumbnail').value);
     const image_url = document.getElementById('autorole-embed-image').value.trim();
+    const type = document.getElementById('autorole-embed-type').value;
+    const mode = document.getElementById('autorole-embed-mode').value;
+    const existing_message_id = document.getElementById('autorole-embed-existing-msg').value.trim() || null;
 
     if (autoroleButtonsList.length === 0) {
-      alert('Veuillez ajouter au moins un bouton de rôle.');
+      alert('Veuillez ajouter au moins un rôle/bouton.');
       return;
     }
 
-    showToast('Envoi de l\'embed d\'auto-rôle...');
+    showToast('Envoi de la configuration...');
     fetch('/api/config/autorole-embeds/add', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1405,16 +1448,20 @@ document.addEventListener('DOMContentLoaded', () => {
         color,
         thumbnail,
         image_url,
+        type,
+        mode,
+        existing_message_id,
         options: autoroleButtonsList
       })
     })
     .then(res => res.json())
     .then(data => {
       if (data.success) {
-        showToast('Embed d\'auto-rôle envoyé et enregistré !');
+        showToast(existing_message_id ? 'Configuration ajoutée au message avec succès !' : 'Embed d\'auto-rôle envoyé et enregistré !');
         document.getElementById('autorole-embed-title').value = '';
         document.getElementById('autorole-embed-desc').value = '';
         document.getElementById('autorole-embed-image').value = '';
+        document.getElementById('autorole-embed-existing-msg').value = '';
         autoroleButtonsList = [];
         renderButtonsCreatorPreview();
         loadGuildConfiguration();
@@ -1432,6 +1479,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const color = document.getElementById('autorole-embed-color').value;
     const thumbnailOpt = document.getElementById('autorole-embed-thumbnail').value;
     const imageUrl = document.getElementById('autorole-embed-image').value.trim();
+    const existingMsgId = document.getElementById('autorole-embed-existing-msg').value.trim();
+    const embedCard = document.getElementById('autorole-discord-embed');
+
+    // Gestion du message existant
+    if (existingMsgId) {
+      embedCard.style.display = 'none';
+      let banner = document.getElementById('autorole-preview-existing-banner');
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'autorole-preview-existing-banner';
+        banner.style.background = 'rgba(241, 196, 15, 0.15)';
+        banner.style.border = '1px solid #f1c40f';
+        banner.style.padding = '10px';
+        banner.style.borderRadius = '4px';
+        banner.style.color = '#f1c40f';
+        banner.style.fontSize = '0.85rem';
+        banner.style.marginBottom = '10px';
+        embedCard.parentNode.insertBefore(banner, embedCard);
+      }
+      banner.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Les contrôles seront ajoutés directement sur le message Discord existant <strong>${existingMsgId}</strong>.`;
+      banner.style.display = 'block';
+    } else {
+      embedCard.style.display = 'block';
+      const banner = document.getElementById('autorole-preview-existing-banner');
+      if (banner) banner.style.display = 'none';
+    }
 
     document.getElementById('autorole-preview-title').textContent = title;
     document.getElementById('autorole-preview-desc').textContent = desc;
@@ -1462,6 +1535,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('autorole-embed-color').addEventListener('input', updateAutorolePreview);
   document.getElementById('autorole-embed-thumbnail').addEventListener('change', updateAutorolePreview);
   document.getElementById('autorole-embed-image').addEventListener('input', updateAutorolePreview);
+  document.getElementById('autorole-embed-type').addEventListener('change', () => {
+    renderButtonsCreatorPreview();
+    updateAutorolePreview();
+  });
+  document.getElementById('autorole-embed-existing-msg').addEventListener('input', updateAutorolePreview);
 
   // --- LOGIQUE INTERACTIVE DU COUNTING ---
 

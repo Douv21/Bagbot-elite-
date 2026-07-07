@@ -282,6 +282,33 @@
                         </select>
                       </div>
                       <div class="form-group" style="flex: 1;">
+                        <label for="autorole-embed-existing-msg"><i class="fa-solid fa-key"></i> ID d'un message existant (Optionnel) :</label>
+                        <input type="text" id="autorole-embed-existing-msg" placeholder="Ex: 112233445566778899 (Optionnel)">
+                      </div>
+                    </div>
+
+                    <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 15px;">
+                      <div class="form-group" style="flex: 1;">
+                        <label for="autorole-embed-type"><i class="fa-solid fa-list-check"></i> Type de Rôle Réaction :</label>
+                        <select id="autorole-embed-type">
+                          <option value="buttons">Boutons (Boutons cliquables)</option>
+                          <option value="select">Sélecteur (Menu déroulant)</option>
+                          <option value="reactions">Réactions (Émojis sous le message)</option>
+                        </select>
+                      </div>
+                      <div class="form-group" style="flex: 1;">
+                        <label for="autorole-embed-mode"><i class="fa-solid fa-gears"></i> Mode de fonctionnement :</label>
+                        <select id="autorole-embed-mode">
+                          <option value="normal">Bascule (Normal - Donne/Retire)</option>
+                          <option value="reversed">Inversé (Retire/Donne)</option>
+                          <option value="unique">Unique (Un seul rôle actif)</option>
+                          <option value="verify">Définitif (Donne sans retirer)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="form-row" id="autorole-new-msg-customization-row" style="display: flex; gap: 15px; margin-bottom: 15px;">
+                      <div class="form-group" style="flex: 1;">
                         <label for="autorole-embed-color"><i class="fa-solid fa-palette"></i> Couleur de l'embed :</label>
                         <input type="color" id="autorole-embed-color" value="#5865F2" style="padding: 2px; height: 42px; width: 100%;">
                       </div>

@@ -88,15 +88,32 @@ module.exports = {
     try {
       const addedRoles = newMember.roles.cache.filter(role => !oldMember.roles.cache.has(role.id));
       if (addedRoles.size > 0) {
+        console.log(`[Auto-Rôle] Rôles ajoutés pour ${newMember.user.tag}:`, addedRoles.map(r => r.name).join(', '));
         const triggerRoles = db.prepare('SELECT trigger_role_id, target_role_id FROM autoroles_on_role WHERE guild_id = ?').all(guildId);
+        console.log(`[Auto-Rôle] Règles d'obtention trouvées pour ce serveur :`, triggerRoles.length);
+        
         if (triggerRoles.length > 0) {
           const botMember = newMember.guild.members.me;
           for (const role of addedRoles.values()) {
             const matches = triggerRoles.filter(t => t.trigger_role_id === role.id);
             for (const match of matches) {
+              console.log(`[Auto-Rôle] Match trouvé ! Rôle déclencheur : ${role.name}. Attribution du rôle cible...`);
               const targetRole = newMember.guild.roles.cache.get(match.target_role_id);
-              if (targetRole && !newMember.roles.cache.has(targetRole.id) && targetRole.position < botMember.roles.highest.position) {
-                await newMember.roles.add(targetRole.id).catch(() => {});
+              if (targetRole) {
+                if (newMember.roles.cache.has(targetRole.id)) {
+                  console.log(`[Auto-Rôle] Le membre possède déjà le rôle cible : ${targetRole.name}`);
+                  continue;
+                }
+                if (targetRole.position >= botMember.roles.highest.position) {
+                  console.log(`[Auto-Rôle] Impossible d'attribuer le rôle ${targetRole.name} car il est plus élevé ou égal à mon rôle le plus haut.`);
+                  continue;
+                }
+                
+                await newMember.roles.add(targetRole.id)
+                  .then(() => console.log(`[Auto-Rôle] Rôle ${targetRole.name} attribué avec succès à ${newMember.user.tag}`))
+                  .catch(err => console.error(`[Auto-Rôle] Erreur lors de l'ajout du rôle ${targetRole.name} :`, err));
+              } else {
+                console.log(`[Auto-Rôle] Rôle cible introuvable dans le cache du serveur pour l'ID : ${match.target_role_id}`);
               }
             }
           }

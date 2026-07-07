@@ -843,10 +843,10 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { channel_id, title, description, color, thumbnail, image_url, options } = req.body;
+    const { channel_id, title, description, color, thumbnail, image_url, options, type = 'buttons', mode = 'normal', existing_message_id = null } = req.body;
     if (!channel_id) return res.status(400).json({ error: 'ID du salon requis' });
 
-    // 1. Communiquer avec l'API locale du bot pour envoyer l'embed et les boutons
+    // 1. Communiquer avec l'API locale du bot pour envoyer ou éditer le message
     const botApiPort = process.env.BOT_API_PORT || 49602;
     const botResponse = await fetch(`http://127.0.0.1:${botApiPort}/bot/send-autorole`, {
       method: 'POST',
@@ -854,12 +854,15 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
       body: JSON.stringify({
         guildId,
         channelId: channel_id,
-        title,
-        description,
+        title: existing_message_id ? '(Message Existant)' : title,
+        description: existing_message_id ? '(Pas d\'embed)' : description,
         color,
         thumbnail: thumbnail ? 1 : 0,
         imageUrl: image_url,
-        options: options || []
+        options: options || [],
+        type,
+        mode,
+        existingMessageId: existing_message_id
       })
     }).catch(() => null);
 
@@ -871,7 +874,19 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
     const { messageId } = await botResponse.json();
 
     // 2. Enregistrer dans SQLite
-    addAutoroleEmbed(guildId, messageId, channel_id, title, description, color, thumbnail ? 1 : 0, image_url);
+    addAutoroleEmbed(
+      guildId, 
+      messageId, 
+      channel_id, 
+      existing_message_id ? '(Message Existant)' : title, 
+      existing_message_id ? '(Pas d\'embed)' : description, 
+      color, 
+      thumbnail ? 1 : 0, 
+      image_url,
+      type,
+      mode
+    );
+    
     if (options && options.length > 0) {
       for (const opt of options) {
         addAutoroleOption(messageId, opt.role_id, opt.label, opt.emoji, opt.style || 'PRIMARY');

@@ -59,6 +59,75 @@ for (const file of eventFiles) {
   }
 }
 
+// Helper pour l'attribution des rôles réaction selon le mode
+const handleRoleModeAssignment = async (interaction, roleId, messageId) => {
+  const { db } = require('./database/db');
+  const member = interaction.member;
+  const guild = interaction.guild;
+  const botMember = guild.members.me;
+  const role = guild.roles.cache.get(roleId);
+
+  if (!role) {
+    return interaction.editReply({ content: '❌ Ce rôle n\'existe plus sur ce serveur.' });
+  }
+
+  if (role.position >= botMember.roles.highest.position) {
+    return interaction.editReply({ content: '❌ Je n\'ai pas les permissions suffisantes pour gérer ce rôle (le rôle est au-dessus de mon rôle le plus élevé).' });
+  }
+
+  const embedRule = db.prepare('SELECT mode FROM autorole_embeds WHERE message_id = ?').get(messageId);
+  const mode = embedRule ? embedRule.mode : 'normal';
+
+  try {
+    if (mode === 'unique') {
+      // Retirer tous les autres rôles configurés sur ce message
+      const allOptions = db.prepare('SELECT role_id FROM autorole_options WHERE message_id = ?').all(messageId);
+      const rolesToRemove = allOptions.map(o => o.role_id).filter(r => r !== roleId && member.roles.cache.has(r));
+      
+      if (rolesToRemove.length > 0) {
+        await member.roles.remove(rolesToRemove);
+      }
+      if (!member.roles.cache.has(roleId)) {
+        await member.roles.add(roleId);
+        return interaction.editReply({ content: `✅ Rôle **${role.name}** attribué (les autres rôles associés ont été retirés).` });
+      } else {
+        return interaction.editReply({ content: `Vous possédez déjà le rôle **${role.name}**.` });
+      }
+    }
+
+    if (mode === 'verify') { // définitif
+      if (member.roles.cache.has(roleId)) {
+        return interaction.editReply({ content: `Vous possédez déjà le rôle **${role.name}** (mode définitif).` });
+      } else {
+        await member.roles.add(roleId);
+        return interaction.editReply({ content: `✅ Rôle **${role.name}** vous a été attribué définitivement.` });
+      }
+    }
+
+    if (mode === 'reversed') { // inversé
+      if (member.roles.cache.has(roleId)) {
+        await member.roles.remove(roleId);
+        return interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été retiré (mode inversé).` });
+      } else {
+        await member.roles.add(roleId);
+        return interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été attribué (mode inversé).` });
+      }
+    }
+
+    // mode normal (bascule)
+    if (member.roles.cache.has(roleId)) {
+      await member.roles.remove(roleId);
+      return interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été retiré.` });
+    } else {
+      await member.roles.add(roleId);
+      return interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été attribué.` });
+    }
+  } catch (err) {
+    console.error('Erreur attribution rôle:', err);
+    return interaction.editReply({ content: '❌ Une erreur est survenue lors de la mise à jour de vos rôles.' });
+  }
+};
+
 // Événement d'interaction (Slash Commands)
 client.on('interactionCreate', async interaction => {
   if (interaction.isButton()) {
@@ -69,28 +138,9 @@ client.on('interactionCreate', async interaction => {
 
       try {
         await interaction.deferReply({ ephemeral: true });
-        const member = interaction.member;
-        const role = interaction.guild.roles.cache.get(roleId);
-        
-        if (!role) {
-          return interaction.editReply({ content: '❌ Ce rôle n\'existe plus sur ce serveur.' });
-        }
-
-        const botMember = interaction.guild.members.me;
-        if (role.position >= botMember.roles.highest.position) {
-          return interaction.editReply({ content: '❌ Je n\'ai pas les permissions suffisantes pour vous attribuer ce rôle (le rôle est au-dessus de mon rôle le plus élevé).' });
-        }
-
-        if (member.roles.cache.has(roleId)) {
-          await member.roles.remove(roleId);
-          await interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été retiré.` });
-        } else {
-          await member.roles.add(roleId);
-          await interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été attribué.` });
-        }
+        await handleRoleModeAssignment(interaction, roleId, interaction.message.id);
       } catch (err) {
-        console.error('Erreur attribution rôle bouton:', err);
-        await interaction.editReply({ content: '❌ Une erreur est survenue lors de la mise à jour de vos rôles.' });
+        console.error('Erreur bouton:', err);
       }
     } else if (customId === 'suite_invite_btn' || customId === 'suite_exclude_btn') {
       const { getPrivateSuiteByChannel } = require('./database/db');
@@ -140,6 +190,17 @@ client.on('interactionCreate', async interaction => {
             await interaction.reply({ content: '❌ Une erreur est survenue lors de l\'achat.', ephemeral: true });
           }
         }
+      }
+      return;
+    } else if (interaction.customId === 'autorole_select_menu') {
+      const roleId = interaction.values[0];
+      if (!roleId) return;
+
+      try {
+        await interaction.deferReply({ ephemeral: true });
+        await handleRoleModeAssignment(interaction, roleId, interaction.message.id);
+      } catch (err) {
+        console.error('Erreur select menu autorole:', err);
       }
       return;
     }
@@ -283,59 +344,119 @@ apiApp.post('/bot/avatar', async (req, res) => {
 
 apiApp.post('/bot/send-autorole', async (req, res) => {
   try {
-    const { guildId, channelId, title, description, color, thumbnail, imageUrl, options } = req.body;
+    const { guildId, channelId, title, description, color, thumbnail, imageUrl, options, type = 'buttons', mode = 'normal', existingMessageId } = req.body;
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return res.status(404).json({ error: 'Guild not found' });
     const channel = guild.channels.cache.get(channelId);
     if (!channel) return res.status(404).json({ error: 'Channel not found' });
 
-    const embed = new EmbedBuilder()
-      .setTitle(title || 'Choix des Rôles')
-      .setDescription(description || 'Cliquez sur les boutons ci-dessous pour obtenir ou retirer des rôles.')
-      .setColor(color || '#5865F2')
-      .setTimestamp();
-    
-    if (thumbnail) {
-      embed.setThumbnail(guild.iconURL({ dynamic: true }) || 'https://cdn.discordapp.com/embed/avatars/0.png');
+    let message;
+    if (existingMessageId) {
+      message = await channel.messages.fetch(existingMessageId).catch(() => null);
+      if (!message) return res.status(404).json({ error: 'Message existant introuvable dans ce salon' });
     }
+
+    const { StringSelectMenuBuilder } = require('discord.js');
+    let row;
     
-    const files = [];
-    if (imageUrl) {
-      if (imageUrl.startsWith('/uploads/')) {
-        const absPath = path.join(__dirname, '../public', imageUrl);
-        if (fs.existsSync(absPath)) {
-          const name = path.basename(imageUrl);
-          files.push(new AttachmentBuilder(absPath, { name }));
-          embed.setImage(`attachment://${name}`);
-        }
-      } else if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        embed.setImage(imageUrl);
+    if (type === 'buttons') {
+      if (options.length > 0) {
+        row = new ActionRowBuilder();
+        options.forEach(opt => {
+          let styleCode = ButtonStyle.Primary;
+          if (opt.style === 'SECONDARY') styleCode = ButtonStyle.Secondary;
+          else if (opt.style === 'SUCCESS') styleCode = ButtonStyle.Success;
+          else if (opt.style === 'DANGER') styleCode = ButtonStyle.Danger;
+
+          const btn = new ButtonBuilder()
+            .setCustomId(`autorole_${opt.role_id}`)
+            .setLabel(opt.label || 'Rôle')
+            .setStyle(styleCode);
+          if (opt.emoji) btn.setEmoji(opt.emoji);
+          row.addComponents(btn);
+        });
+      }
+    } else if (type === 'select') {
+      if (options.length > 0) {
+        const selectMenu = new StringSelectMenuBuilder()
+          .setCustomId('autorole_select_menu')
+          .setPlaceholder('Sélectionnez un rôle...');
+
+        const selectOptions = options.map(opt => {
+          const optionObj = {
+            label: opt.label || 'Rôle',
+            value: opt.role_id
+          };
+          if (opt.emoji) optionObj.emoji = opt.emoji;
+          return optionObj;
+        });
+        selectMenu.addOptions(selectOptions);
+        row = new ActionRowBuilder().addComponents(selectMenu);
       }
     }
 
-    const row = new ActionRowBuilder();
-    options.forEach(opt => {
-      let styleCode = ButtonStyle.Primary;
-      if (opt.style === 'SECONDARY') styleCode = ButtonStyle.Secondary;
-      else if (opt.style === 'SUCCESS') styleCode = ButtonStyle.Success;
-      else if (opt.style === 'DANGER') styleCode = ButtonStyle.Danger;
+    if (existingMessageId) {
+      const editPayload = {};
+      if (row) {
+        editPayload.components = [row];
+      } else {
+        editPayload.components = [];
+      }
+      
+      await message.edit(editPayload);
 
-      const btn = new ButtonBuilder()
-        .setCustomId(`autorole_${opt.role_id}`)
-        .setLabel(opt.label || 'Rôle')
-        .setStyle(styleCode);
-      if (opt.emoji) btn.setEmoji(opt.emoji);
-      row.addComponents(btn);
-    });
+      if (type === 'reactions') {
+        for (const opt of options) {
+          if (opt.emoji) {
+            await message.react(opt.emoji).catch(console.error);
+          }
+        }
+      }
 
-    const payload = { embeds: [embed] };
-    if (files.length > 0) payload.files = files;
-    if (options.length > 0) payload.components = [row];
+      return res.json({ success: true, messageId: message.id });
+    } else {
+      const embed = new EmbedBuilder()
+        .setTitle(title || 'Choix des Rôles')
+        .setDescription(description || 'Cliquez sur les options ci-dessous pour obtenir ou retirer des rôles.')
+        .setColor(color || '#5865F2')
+        .setTimestamp();
+      
+      if (thumbnail) {
+        embed.setThumbnail(guild.iconURL({ dynamic: true }) || 'https://cdn.discordapp.com/embed/avatars/0.png');
+      }
+      
+      const files = [];
+      if (imageUrl) {
+        if (imageUrl.startsWith('/uploads/')) {
+          const absPath = path.join(__dirname, '../public', imageUrl);
+          if (fs.existsSync(absPath)) {
+            const name = path.basename(imageUrl);
+            files.push(new AttachmentBuilder(absPath, { name }));
+            embed.setImage(`attachment://${name}`);
+          }
+        } else if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+          embed.setImage(imageUrl);
+        }
+      }
 
-    const message = await channel.send(payload);
-    res.json({ success: true, messageId: message.id });
+      const payload = { embeds: [embed] };
+      if (files.length > 0) payload.files = files;
+      if (row) payload.components = [row];
+
+      const newMessage = await channel.send(payload);
+
+      if (type === 'reactions') {
+        for (const opt of options) {
+          if (opt.emoji) {
+            await newMessage.react(opt.emoji).catch(console.error);
+          }
+        }
+      }
+
+      return res.json({ success: true, messageId: newMessage.id });
+    }
   } catch (error) {
-    console.error('Error sending autorole embed:', error);
+    console.error('Error sending/editing autorole:', error);
     res.status(500).json({ error: error.message });
   }
 });

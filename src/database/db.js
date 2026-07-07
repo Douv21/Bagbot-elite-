@@ -359,6 +359,14 @@ function initDatabase() {
       PRIMARY KEY (guild_id, user_id)
     )
   `).run();
+
+  // Migrations pour les auto-rôles embeds (type et mode)
+  try {
+    db.prepare("ALTER TABLE autorole_embeds ADD COLUMN type TEXT DEFAULT 'buttons'").run();
+  } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE autorole_embeds ADD COLUMN mode TEXT DEFAULT 'normal'").run();
+  } catch (e) {}
 }
 
 // --- Fonctions utilitaires de base de données ---
@@ -479,11 +487,11 @@ const getAutoroleOptions = (messageId) => {
   return db.prepare('SELECT * FROM autorole_options WHERE message_id = ?').all(messageId);
 };
 
-const addAutoroleEmbed = (guildId, messageId, channelId, title, description, color, thumbnail, imageUrl) => {
+const addAutoroleEmbed = (guildId, messageId, channelId, title, description, color, thumbnail, imageUrl, type = 'buttons', mode = 'normal') => {
   return db.prepare(`
-    INSERT INTO autorole_embeds (guild_id, message_id, channel_id, title, description, color, thumbnail, image_url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(guildId, messageId, channelId, title, description, color, thumbnail, imageUrl);
+    INSERT INTO autorole_embeds (guild_id, message_id, channel_id, title, description, color, thumbnail, image_url, type, mode)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(guildId, messageId, channelId, title, description, color, thumbnail, imageUrl, type, mode);
 };
 
 const addAutoroleOption = (messageId, roleId, label, emoji, style) => {
