@@ -70,12 +70,28 @@ module.exports = {
       embed.addFields({ name: '📍 Liste des plus proches', value: list });
     }
 
+    // Construire l'URL de la carte statique Yandex avec les épingles
+    const markers = [];
+    markers.push(`${myLoc.longitude},${myLoc.latitude},pm2rdm`); // Rouge pour vous
+    
+    for (const n of nearby) {
+      const otherLoc = others.find(o => o.user_id === n.userId);
+      if (otherLoc) {
+        markers.push(`${otherLoc.longitude},${otherLoc.latitude},pm2gnm`); // Vert pour les autres
+      }
+    }
+
+    if (markers.length > 0) {
+      const staticMapUrl = `https://static-maps.yandex.ru/1.x/?l=map&size=600,450&pt=${markers.join('~')}`;
+      embed.setImage(staticMapUrl);
+    }
+
     // Ajouter le lien vers la carte du dashboard
     const publicIp = '82.65.75.176';
     const port = '49601';
     embed.addFields({ 
       name: '🗺️ Carte Interactive', 
-      value: `[🔗 Cliquez ici pour voir la carte des membres sur le Dashboard](http://${publicIp}:${port}/map.html?guild=${guildId})` 
+      value: `[🔗 Cliquez ici pour voir la carte complète en temps réel](http://${publicIp}:${port}/map.html?guild=${guildId})` 
     });
 
     await interaction.editReply({ embeds: [embed] });
