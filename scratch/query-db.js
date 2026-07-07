@@ -2,14 +2,18 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const db = new Database(path.join(__dirname, '../database.sqlite'));
 
-console.log('--- Tables in database ---');
-const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
-console.log(tables);
+const getAutoroleEmbeds = (guildId) => {
+  return db.prepare('SELECT * FROM autorole_embeds WHERE guild_id = ?').all(guildId);
+};
 
-console.log('--- Content of autorole_embeds ---');
-const embeds = db.prepare("SELECT * FROM autorole_embeds").all();
-console.log(embeds);
+const getAutoroleOptions = (messageId) => {
+  return db.prepare('SELECT * FROM autorole_options WHERE message_id = ?').all(messageId);
+};
 
-console.log('--- Content of autorole_options ---');
-const options = db.prepare("SELECT * FROM autorole_options").all();
-console.log(options);
+const guildId = '1330994758775996566';
+const embeds = getAutoroleEmbeds(guildId);
+for (const embed of embeds) {
+  embed.options = getAutoroleOptions(embed.message_id);
+}
+console.log('--- API Config mock output ---');
+console.log(JSON.stringify(embeds, null, 2));
