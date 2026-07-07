@@ -58,7 +58,8 @@
       <!-- Sidebar Tabs -->
       <aside class="sidebar glass">
         <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées / Départs</button>
-        <button class="tab-btn" data-tab="tab-autoroles"><i class="fa-solid fa-tags"></i> Auto-Rôles</button>
+        <button class="tab-btn" data-tab="tab-autoroles"><i class="fa-solid fa-user-plus"></i> Auto-Rôles</button>
+        <button class="tab-btn" data-tab="tab-reactionroles"><i class="fa-solid fa-rectangle-list"></i> Rôles Réaction</button>
         <button class="tab-btn" data-tab="tab-confessions"><i class="fa-solid fa-mask"></i> Confessions</button>
         <button class="tab-btn" data-tab="tab-counting"><i class="fa-solid fa-calculator"></i> Counting</button>
         <button class="tab-btn" data-tab="tab-quarantine"><i class="fa-solid fa-shield-halved"></i> Quarantaine</button>
@@ -206,7 +207,7 @@
 
           <!-- Tab: Auto-Rôles -->
           <div id="tab-autoroles" class="tab-content">
-            <h2 class="section-title"><i class="fa-solid fa-tags"></i> Système d'Auto-Rôles</h2>
+            <h2 class="section-title"><i class="fa-solid fa-user-plus"></i> Système d'Auto-Rôles (Attribution automatique)</h2>
             
             <!-- 1. Auto-Rôles à l'arrivée (Join) et sur Obtention (Upgrade) -->
             <div class="row" style="display: flex; gap: 20px; flex-wrap: wrap;">
@@ -259,9 +260,12 @@
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- 2. Création d'un Embed d'Auto-Rôle (Boutons cliquables) -->
-            <!-- 2. Création d'un Embed d'Auto-Rôle (Boutons cliquables) -->
+          <!-- Tab: Rôles Réaction -->
+          <div id="tab-reactionroles" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-rectangle-list"></i> Messages de Rôles Réaction</h2>
+            
             <div class="card glass" style="margin-top: 20px;">
               <h3><i class="fa-solid fa-rectangle-list"></i> Envoyer un embed d'auto-rôle avec boutons</h3>
               <p class="description-text">Créez un message embed interactif et envoyez-le dans un salon. Les membres pourront cliquer sur les boutons pour s'auto-attribuer les rôles configurés (effet bascule).</p>
