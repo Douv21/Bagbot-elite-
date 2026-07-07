@@ -1,6 +1,6 @@
 const { EmbedBuilder, AttachmentBuilder } = require('discord.js');
 const { db } = require('../database/db');
-const { formatWelcomeLeaveMessage } = require('../utils/helpers');
+const { formatWelcomeLeaveMessage, sendLog } = require('../utils/helpers');
 const fs = require('fs');
 const path = require('path');
 
@@ -121,6 +121,49 @@ module.exports = {
       }
     } catch (err) {
       console.error('Erreur attribution auto-rôle sur obtention:', err);
+    }
+
+    // --- LOGS COMPLETS DE MEMBRE (ROLES & PSEUDOS) ---
+    // Log changement de pseudo / nickname
+    if (oldMember.nickname !== newMember.nickname) {
+      const oldNick = oldMember.nickname || 'Aucun';
+      const newNick = newMember.nickname || 'Aucun';
+      const embed = new EmbedBuilder()
+        .setTitle('✍️ Modification de Pseudo')
+        .setDescription(`**Membre :** ${newMember.user.tag} (<@${newMember.id}>)\n**Ancien pseudo :** \`${oldNick}\`\n**Nouveau pseudo :** \`${newNick}\``)
+        .setColor('#3498DB')
+        .setThumbnail(newMember.user.displayAvatarURL({ dynamic: true }))
+        .setTimestamp();
+      sendLog(newMember.guild, 'memberUpdate', embed);
+    }
+
+    // Log attribution / retrait de rôles
+    const oldRoles = oldMember.roles.cache;
+    const newRoles = newMember.roles.cache;
+
+    if (oldRoles.size !== newRoles.size) {
+      const added = newRoles.filter(role => !oldRoles.has(role.id));
+      const removed = oldRoles.filter(role => !newRoles.has(role.id));
+
+      if (added.size > 0) {
+        const embed = new EmbedBuilder()
+          .setTitle('🛡️ Rôle Attribué')
+          .setDescription(`**Membre :** ${newMember.user.tag} (<@${newMember.id}>)\n**Rôle(s) ajouté(s) :** ${added.map(r => `<@&${r.id}>`).join(', ')}`)
+          .setColor('#2ECC71')
+          .setThumbnail(newMember.user.displayAvatarURL({ dynamic: true }))
+          .setTimestamp();
+        sendLog(newMember.guild, 'memberUpdate', embed);
+      }
+
+      if (removed.size > 0) {
+        const embed = new EmbedBuilder()
+          .setTitle('🛡️ Rôle Retiré')
+          .setDescription(`**Membre :** ${newMember.user.tag} (<@${newMember.id}>)\n**Rôle(s) retiré(s) :** ${removed.map(r => `<@&${r.id}>`).join(', ')}`)
+          .setColor('#E74C3C')
+          .setThumbnail(newMember.user.displayAvatarURL({ dynamic: true }))
+          .setTimestamp();
+        sendLog(newMember.guild, 'memberUpdate', embed);
+      }
     }
   }
 };

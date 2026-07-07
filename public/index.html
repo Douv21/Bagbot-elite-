@@ -567,11 +567,55 @@
                   </select>
                   <small class="form-help">Tous les logs du bot seront envoyés dans ce salon.</small>
                 </div>
-                <div class="form-group">
-                  <label for="logs_events">Événements enregistrés :</label>
-                  <select id="logs_events">
-                    <option value="all">Tous les événements</option>
-                  </select>
+                <div class="form-group" style="margin-top: 15px;">
+                  <label><i class="fa-solid fa-gears"></i> Événements à enregistrer :</label>
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 10px;">
+                    <label class="switch-label">
+                      <input type="checkbox" id="log_event_messageDelete" class="log-event-checkbox" value="messageDelete">
+                      <span class="slider"></span>
+                      <span>Messages supprimés</span>
+                    </label>
+                    <label class="switch-label">
+                      <input type="checkbox" id="log_event_messageUpdate" class="log-event-checkbox" value="messageUpdate">
+                      <span class="slider"></span>
+                      <span>Messages modifiés</span>
+                    </label>
+                    <label class="switch-label">
+                      <input type="checkbox" id="log_event_memberAdd" class="log-event-checkbox" value="memberAdd">
+                      <span class="slider"></span>
+                      <span>Arrivées de membres</span>
+                    </label>
+                    <label class="switch-label">
+                      <input type="checkbox" id="log_event_memberRemove" class="log-event-checkbox" value="memberRemove">
+                      <span class="slider"></span>
+                      <span>Départs de membres</span>
+                    </label>
+                    <label class="switch-label">
+                      <input type="checkbox" id="log_event_memberUpdate" class="log-event-checkbox" value="memberUpdate">
+                      <span class="slider"></span>
+                      <span>Modifs profils & rôles</span>
+                    </label>
+                    <label class="switch-label">
+                      <input type="checkbox" id="log_event_voiceState" class="log-event-checkbox" value="voiceState">
+                      <span class="slider"></span>
+                      <span>Salons vocaux</span>
+                    </label>
+                    <label class="switch-label">
+                      <input type="checkbox" id="log_event_moderation" class="log-event-checkbox" value="moderation">
+                      <span class="slider"></span>
+                      <span>Bans, kicks & warns</span>
+                    </label>
+                    <label class="switch-label">
+                      <input type="checkbox" id="log_event_channelUpdate" class="log-event-checkbox" value="channelUpdate">
+                      <span class="slider"></span>
+                      <span>Modifs de salons</span>
+                    </label>
+                    <label class="switch-label">
+                      <input type="checkbox" id="log_event_roleUpdate" class="log-event-checkbox" value="roleUpdate">
+                      <span class="slider"></span>
+                      <span>Modifs de rôles</span>
+                    </label>
+                  </div>
                 </div>
               </div>
               <div class="actions-bar">

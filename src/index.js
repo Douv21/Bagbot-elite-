@@ -16,7 +16,8 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildMessageReactions,
-    GatewayIntentBits.DirectMessages
+    GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.GuildModeration
   ],
   partials: [Partials.Channel, Partials.Message, Partials.Reaction]
 });
@@ -502,7 +503,9 @@ apiApp.get('/guilds/:guildId/channels', async (req, res) => {
       return res.status(404).json({ error: 'Guild not found' });
     }
     await guild.channels.fetch();
-    const channels = guild.channels.cache.map(channel => ({
+    const sortedChannels = [...guild.channels.cache.values()]
+      .sort((a, b) => (a.rawPosition || 0) - (b.rawPosition || 0));
+    const channels = sortedChannels.map(channel => ({
       id: channel.id,
       name: channel.name || 'Unknown',
       type: channel.type
@@ -521,7 +524,9 @@ apiApp.get('/guilds/:guildId/roles', async (req, res) => {
       return res.status(404).json({ error: 'Guild not found' });
     }
     await guild.roles.fetch();
-    const roles = guild.roles.cache.map(role => ({
+    const sortedRoles = [...guild.roles.cache.values()]
+      .sort((a, b) => b.position - a.position);
+    const roles = sortedRoles.map(role => ({
       id: role.id,
       name: role.name,
       color: role.color,

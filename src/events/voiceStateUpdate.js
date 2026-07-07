@@ -1,5 +1,6 @@
 const { db } = require('../database/db');
-const { addXP } = require('../utils/helpers');
+const { addXP, sendLog } = require('../utils/helpers');
+const { EmbedBuilder } = require('discord.js');
 
 module.exports = {
   name: 'voiceStateUpdate',
@@ -18,6 +19,13 @@ module.exports = {
 
     // Cas 1 : Connexion à un salon vocal (ancien = null, nouveau != null)
     if (!oldChannel && newChannel) {
+      const logEmbed = new EmbedBuilder()
+        .setTitle('🔊 Connexion Vocale')
+        .setDescription(`**Membre :** ${member.user.tag} (<@${member.id}>)\n**Salon :** \`${newChannel.name}\``)
+        .setColor('#2ECC71')
+        .setTimestamp();
+      sendLog(newState.guild, 'voiceState', logEmbed);
+
       // Pour éviter les abus, on commence le suivi seulement si l'utilisateur n'est pas seul (hors bots)
       const humanCount = newChannel.members.filter(m => !m.user.bot).size;
       if (humanCount >= 2) {
@@ -37,11 +45,25 @@ module.exports = {
 
     // Cas 2 : Déconnexion d'un salon vocal (ancien != null, nouveau = null)
     else if (oldChannel && !newChannel) {
+      const logEmbed = new EmbedBuilder()
+        .setTitle('🔇 Déconnexion Vocale')
+        .setDescription(`**Membre :** ${member.user.tag} (<@${member.id}>)\n**Salon quitté :** \`${oldChannel.name}\``)
+        .setColor('#E74C3C')
+        .setTimestamp();
+      sendLog(newState.guild, 'voiceState', logEmbed);
+
       await handleVoiceLeave(guildId, member, oldChannel);
     }
 
     // Cas 3 : Changement de salon vocal (ancien != null, nouveau != null)
     else if (oldChannel && newChannel && oldChannel.id !== newChannel.id) {
+      const logEmbed = new EmbedBuilder()
+        .setTitle('🔄 Changement de Salon Vocal')
+        .setDescription(`**Membre :** ${member.user.tag} (<@${member.id}>)\n**Ancien salon :** \`${oldChannel.name}\`\n**Nouveau salon :** \`${newChannel.name}\``)
+        .setColor('#3498DB')
+        .setTimestamp();
+      sendLog(newState.guild, 'voiceState', logEmbed);
+
       // 1. Quitter l'ancien salon (générer l'XP accumulé)
       await handleVoiceLeave(guildId, member, oldChannel);
 

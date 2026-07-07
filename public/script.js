@@ -169,6 +169,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function populateDropdowns() {
+    // Réinitialiser les champs de recherche
+    document.querySelectorAll('.select-search-input').forEach(input => {
+      input.value = '';
+    });
+
     // Populate Channels
     const channelSelects = document.querySelectorAll('.channel-select');
     channelSelects.forEach(select => {
@@ -272,7 +277,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Logs
         const logs = config.logs || {};
         document.getElementById('logs_channel').value = logs.channel_id || '';
-        document.getElementById('logs_events').value = logs.events || 'all';
+        const activeEvents = logs.events ? logs.events.split(',') : [];
+        const isAll = !logs.events || logs.events === 'all';
+        document.querySelectorAll('.log-event-checkbox').forEach(cb => {
+          cb.checked = isAll ? true : activeEvents.includes(cb.value);
+        });
 
         // Shop Items
         renderShopItems(config.shop || []);
@@ -748,7 +757,13 @@ document.addEventListener('DOMContentLoaded', () => {
   formLogs.addEventListener('submit', (e) => {
     e.preventDefault();
     const channel_id = document.getElementById('logs_channel').value;
-    const events = document.getElementById('logs_events').value;
+    const checkedEvents = [];
+    document.querySelectorAll('.log-event-checkbox').forEach(cb => {
+      if (cb.checked) {
+        checkedEvents.push(cb.value);
+      }
+    });
+    const events = checkedEvents.length === 0 ? 'none' : checkedEvents.join(',');
     saveConfig('/api/config/logs', { channel_id, events });
   });
 
@@ -1808,4 +1823,77 @@ document.addEventListener('DOMContentLoaded', () => {
     const chan = channelsList.find(c => c.id === channelId);
     return chan ? chan.name : channelId;
   }
+
+  function makeSelectSearchable(select, placeholder = '🔍 Rechercher...') {
+    if (!select) return;
+    if (select.parentNode.classList.contains('searchable-select-wrapper')) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'searchable-select-wrapper';
+    wrapper.style.position = 'relative';
+    wrapper.style.display = 'flex';
+    wrapper.style.flexDirection = 'column';
+    wrapper.style.gap = '5px';
+    wrapper.style.width = '100%';
+    wrapper.style.marginBottom = '10px';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = placeholder;
+    input.className = 'select-search-input';
+    input.style.width = '100%';
+    input.style.padding = '6px 10px';
+    input.style.background = 'rgba(255, 255, 255, 0.05)';
+    input.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+    input.style.borderRadius = '4px';
+    input.style.color = '#fff';
+    input.style.fontSize = '0.8rem';
+    input.style.outline = 'none';
+    input.style.transition = 'border-color 0.2s';
+
+    input.addEventListener('focus', () => {
+      input.style.borderColor = '#5865F2';
+    });
+    input.addEventListener('blur', () => {
+      input.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+    });
+
+    select.parentNode.insertBefore(wrapper, select);
+    wrapper.appendChild(input);
+    wrapper.appendChild(select);
+
+    input.addEventListener('input', () => {
+      const query = input.value.toLowerCase().trim();
+      Array.from(select.options).forEach(opt => {
+        if (opt.value === '') {
+          opt.style.display = '';
+          opt.hidden = false;
+        } else {
+          const match = opt.text.toLowerCase().includes(query);
+          opt.style.display = match ? '' : 'none';
+          opt.hidden = !match;
+        }
+      });
+    });
+
+    // Reset search query when select value changes
+    select.addEventListener('change', () => {
+      input.value = '';
+      Array.from(select.options).forEach(opt => {
+        opt.style.display = '';
+        opt.hidden = false;
+      });
+    });
+  }
+
+  function initializeSearchableSelects() {
+    const selectors = ['.role-select', '.channel-select', '.announce-channel-select'];
+    selectors.forEach(selector => {
+      document.querySelectorAll(selector).forEach(select => {
+        makeSelectSearchable(select);
+      });
+    });
+  }
+
+  initializeSearchableSelects();
 });
