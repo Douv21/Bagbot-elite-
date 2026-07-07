@@ -13,19 +13,58 @@ function formatWelcomeLeaveMessage(text, member) {
 }
 
 // Envoyer un log dans le salon de logs configuré
-function sendLog(guild, eventType, embed) {
+function sendLog(guild, eventType, embed, options = {}) {
   const config = db.prepare('SELECT * FROM logs_config WHERE guild_id = ?').get(guild.id);
   if (!config || !config.channel_id) return;
 
-  // Vérifier si l'événement est activé
-  if (config.events !== 'all') {
-    const activeEvents = config.events.split(',');
-    if (!activeEvents.includes(eventType)) return;
+  // Déterminer la catégorie
+  let category = 'messages';
+  if (['messageDelete', 'messageUpdate', 'messageDeleteBulk'].includes(eventType)) {
+    category = 'messages';
+  } else if (['memberAdd', 'memberRemove', 'memberUpdate'].includes(eventType)) {
+    category = 'members';
+  } else if (eventType === 'voiceState') {
+    category = 'voice';
+  } else if (eventType === 'moderation') {
+    category = 'moderation';
+  } else if (['channelUpdate', 'roleUpdate'].includes(eventType)) {
+    category = 'structure';
   }
 
-  const channel = guild.channels.cache.get(config.channel_id);
+  // Rediriger vers la catégorie "bots" si c'est un bot
+  if (options.isBot) {
+    category = 'bots';
+  }
+
+  let channelId = null;
+  if (config.channel_id.startsWith('{')) {
+    try {
+      const channelMap = JSON.parse(config.channel_id);
+      channelId = channelMap[category];
+      
+      const activeCategories = config.events ? config.events.split(',') : [];
+      if (!activeCategories.includes(category)) return;
+    } catch (e) {
+      console.error('Error parsing JSON channel_id:', e);
+    }
+  } else {
+    // Mode d'ancien salon unique
+    channelId = config.channel_id;
+    if (config.events !== 'all') {
+      const activeEvents = config.events.split(',');
+      if (!activeEvents.includes(eventType)) return;
+    }
+  }
+
+  if (!channelId) return;
+
+  const channel = guild.channels.cache.get(channelId);
   if (channel) {
-    channel.send({ embeds: [embed] }).catch(console.error);
+    const payload = { embeds: [embed] };
+    if (options.files) {
+      payload.files = options.files;
+    }
+    channel.send(payload).catch(console.error);
   }
 }
 

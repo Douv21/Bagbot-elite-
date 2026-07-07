@@ -276,11 +276,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Logs
         const logs = config.logs || {};
-        document.getElementById('logs_channel').value = logs.channel_id || '';
-        const activeEvents = logs.events ? logs.events.split(',') : [];
-        const isAll = !logs.events || logs.events === 'all';
-        document.querySelectorAll('.log-event-checkbox').forEach(cb => {
-          cb.checked = isAll ? true : activeEvents.includes(cb.value);
+        let channelMap = {};
+        try {
+          if (logs.channel_id && logs.channel_id.startsWith('{')) {
+            channelMap = JSON.parse(logs.channel_id);
+          } else if (logs.channel_id) {
+            const legId = logs.channel_id;
+            channelMap = {
+              messages: legId,
+              members: legId,
+              voice: legId,
+              moderation: legId,
+              structure: legId,
+              bots: legId
+            };
+          }
+        } catch (e) {
+          console.error(e);
+        }
+
+        const activeCategories = logs.events ? logs.events.split(',') : [];
+        const isLegacyAll = !logs.events || logs.events === 'all';
+        const categories = ['messages', 'members', 'voice', 'moderation', 'structure', 'bots'];
+        
+        categories.forEach(cat => {
+          const enableCb = document.getElementById(`log_enable_${cat}`);
+          const channelSel = document.getElementById(`log_channel_${cat}`);
+          if (enableCb) {
+            enableCb.checked = isLegacyAll ? true : activeCategories.includes(cat);
+          }
+          if (channelSel) {
+            channelSel.value = channelMap[cat] || '';
+          }
         });
 
         // Shop Items
@@ -756,13 +783,22 @@ document.addEventListener('DOMContentLoaded', () => {
   // 4. Logs
   formLogs.addEventListener('submit', (e) => {
     e.preventDefault();
-    const channel_id = document.getElementById('logs_channel').value;
+    const categories = ['messages', 'members', 'voice', 'moderation', 'structure', 'bots'];
+    const channelMap = {};
     const checkedEvents = [];
-    document.querySelectorAll('.log-event-checkbox').forEach(cb => {
-      if (cb.checked) {
-        checkedEvents.push(cb.value);
+
+    categories.forEach(cat => {
+      const enableCb = document.getElementById(`log_enable_${cat}`);
+      const channelSel = document.getElementById(`log_channel_${cat}`);
+      if (enableCb && enableCb.checked) {
+        checkedEvents.push(cat);
+      }
+      if (channelSel) {
+        channelMap[cat] = channelSel.value || '';
       }
     });
+
+    const channel_id = JSON.stringify(channelMap);
     const events = checkedEvents.length === 0 ? 'none' : checkedEvents.join(',');
     saveConfig('/api/config/logs', { channel_id, events });
   });

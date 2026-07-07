@@ -136,6 +136,6 @@ module.exports = {
       .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
       .setTimestamp();
     
-    sendLog(member.guild, 'memberAdd', logEmbed);
+    sendLog(member.guild, 'memberAdd', logEmbed, { isBot: member.user.bot });
   }
 };

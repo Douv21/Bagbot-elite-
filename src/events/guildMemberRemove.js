@@ -86,6 +86,6 @@ module.exports = {
       .setColor('#FF0000')
       .setTimestamp();
     
-    sendLog(member.guild, 'memberRemove', logEmbed);
+    sendLog(member.guild, 'memberRemove', logEmbed, { isBot: member.user.bot });
   }
 };

@@ -134,7 +134,7 @@ module.exports = {
         .setColor('#3498DB')
         .setThumbnail(newMember.user.displayAvatarURL({ dynamic: true }))
         .setTimestamp();
-      sendLog(newMember.guild, 'memberUpdate', embed);
+      sendLog(newMember.guild, 'memberUpdate', embed, { isBot: newMember.user.bot });
     }
 
     // Log attribution / retrait de rôles
@@ -152,7 +152,7 @@ module.exports = {
           .setColor('#2ECC71')
           .setThumbnail(newMember.user.displayAvatarURL({ dynamic: true }))
           .setTimestamp();
-        sendLog(newMember.guild, 'memberUpdate', embed);
+        sendLog(newMember.guild, 'memberUpdate', embed, { isBot: newMember.user.bot });
       }
 
       if (removed.size > 0) {
@@ -162,7 +162,7 @@ module.exports = {
           .setColor('#E74C3C')
           .setThumbnail(newMember.user.displayAvatarURL({ dynamic: true }))
           .setTimestamp();
-        sendLog(newMember.guild, 'memberUpdate', embed);
+        sendLog(newMember.guild, 'memberUpdate', embed, { isBot: newMember.user.bot });
       }
     }
   }

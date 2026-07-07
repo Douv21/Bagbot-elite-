@@ -559,62 +559,109 @@
             <h2 class="section-title"><i class="fa-solid fa-list-check"></i> Logs d'Activité</h2>
             <form id="form-logs" class="glass-form">
               <div class="card glass">
-                <p>Suivez les modifications/suppressions de messages et les allées et venues des membres de votre serveur.</p>
-                <div class="form-group">
-                  <label for="logs_channel">Salon des Logs :</label>
-                  <select id="logs_channel" class="channel-select">
-                    <option value="">Désactivé</option>
-                  </select>
-                  <small class="form-help">Tous les logs du bot seront envoyés dans ce salon.</small>
-                </div>
-                <div class="form-group" style="margin-top: 15px;">
-                  <label><i class="fa-solid fa-gears"></i> Événements à enregistrer :</label>
-                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 10px;">
-                    <label class="switch-label">
-                      <input type="checkbox" id="log_event_messageDelete" class="log-event-checkbox" value="messageDelete">
-                      <span class="slider"></span>
-                      <span>Messages supprimés</span>
-                    </label>
-                    <label class="switch-label">
-                      <input type="checkbox" id="log_event_messageUpdate" class="log-event-checkbox" value="messageUpdate">
-                      <span class="slider"></span>
-                      <span>Messages modifiés</span>
-                    </label>
-                    <label class="switch-label">
-                      <input type="checkbox" id="log_event_memberAdd" class="log-event-checkbox" value="memberAdd">
-                      <span class="slider"></span>
-                      <span>Arrivées de membres</span>
-                    </label>
-                    <label class="switch-label">
-                      <input type="checkbox" id="log_event_memberRemove" class="log-event-checkbox" value="memberRemove">
-                      <span class="slider"></span>
-                      <span>Départs de membres</span>
-                    </label>
-                    <label class="switch-label">
-                      <input type="checkbox" id="log_event_memberUpdate" class="log-event-checkbox" value="memberUpdate">
-                      <span class="slider"></span>
-                      <span>Modifs profils & rôles</span>
-                    </label>
-                    <label class="switch-label">
-                      <input type="checkbox" id="log_event_voiceState" class="log-event-checkbox" value="voiceState">
-                      <span class="slider"></span>
-                      <span>Salons vocaux</span>
-                    </label>
-                    <label class="switch-label">
-                      <input type="checkbox" id="log_event_moderation" class="log-event-checkbox" value="moderation">
-                      <span class="slider"></span>
-                      <span>Bans, kicks & warns</span>
-                    </label>
-                    <label class="switch-label">
-                      <input type="checkbox" id="log_event_channelUpdate" class="log-event-checkbox" value="channelUpdate">
-                      <span class="slider"></span>
-                      <span>Modifs de salons</span>
-                    </label>
-                    <label class="switch-label">
-                      <input type="checkbox" id="log_event_roleUpdate" class="log-event-checkbox" value="roleUpdate">
-                      <span class="slider"></span>
-                      <span>Modifs de rôles</span>
-                    </label>
+                <p>Configurez les salons de logs pour chaque type d'événement. Activez un interrupteur et sélectionnez un salon pour enregistrer les événements correspondants.</p>
+                
+                <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+                  <!-- Logs Messages -->
+                  <div class="log-category-row" style="display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px;">
+                      <h4 style="margin: 0; color: #fff;"><i class="fa-solid fa-message" style="color: #7289da;"></i> Logs des Messages</h4>
+                      <p style="margin: 3px 0 0; font-size: 0.8rem; color: #8e9297;">Messages supprimés, modifiés et suppressions groupées (bulk).</p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; min-width: 250px;">
+                      <label class="switch-label" style="margin: 0;">
+                        <input type="checkbox" id="log_enable_messages" class="log-enable-checkbox" data-category="messages">
+                        <span class="slider"></span>
+                      </label>
+                      <select id="log_channel_messages" class="channel-select" style="min-width: 180px;">
+                        <option value="">Sélectionner un salon</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Logs Membres -->
+                  <div class="log-category-row" style="display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px;">
+                      <h4 style="margin: 0; color: #fff;"><i class="fa-solid fa-users" style="color: #3498db;"></i> Logs des Membres</h4>
+                      <p style="margin: 3px 0 0; font-size: 0.8rem; color: #8e9297;">Arrivées, départs, changements de pseudos, rôles obtenus/perdus.</p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; min-width: 250px;">
+                      <label class="switch-label" style="margin: 0;">
+                        <input type="checkbox" id="log_enable_members" class="log-enable-checkbox" data-category="members">
+                        <span class="slider"></span>
+                      </label>
+                      <select id="log_channel_members" class="channel-select" style="min-width: 180px;">
+                        <option value="">Sélectionner un salon</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Logs Vocaux -->
+                  <div class="log-category-row" style="display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px;">
+                      <h4 style="margin: 0; color: #fff;"><i class="fa-solid fa-volume-high" style="color: #2ecc71;"></i> Logs des Salons Vocaux</h4>
+                      <p style="margin: 3px 0 0; font-size: 0.8rem; color: #8e9297;">Connexions, déconnexions et changements de salons vocaux.</p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; min-width: 250px;">
+                      <label class="switch-label" style="margin: 0;">
+                        <input type="checkbox" id="log_enable_voice" class="log-enable-checkbox" data-category="voice">
+                        <span class="slider"></span>
+                      </label>
+                      <select id="log_channel_voice" class="channel-select" style="min-width: 180px;">
+                        <option value="">Sélectionner un salon</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Logs Modération -->
+                  <div class="log-category-row" style="display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px;">
+                      <h4 style="margin: 0; color: #fff;"><i class="fa-solid fa-gavel" style="color: #e74c3c;"></i> Logs de Modération</h4>
+                      <p style="margin: 3px 0 0; font-size: 0.8rem; color: #8e9297;">Bannissements, débannissements, kicks, mutes et avertissements automod.</p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; min-width: 250px;">
+                      <label class="switch-label" style="margin: 0;">
+                        <input type="checkbox" id="log_enable_moderation" class="log-enable-checkbox" data-category="moderation">
+                        <span class="slider"></span>
+                      </label>
+                      <select id="log_channel_moderation" class="channel-select" style="min-width: 180px;">
+                        <option value="">Sélectionner un salon</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Logs Structure -->
+                  <div class="log-category-row" style="display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px;">
+                      <h4 style="margin: 0; color: #fff;"><i class="fa-solid fa-sitemap" style="color: #e67e22;"></i> Structure du Serveur</h4>
+                      <p style="margin: 3px 0 0; font-size: 0.8rem; color: #8e9297;">Créations, modifications et suppressions de salons ou rôles.</p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; min-width: 250px;">
+                      <label class="switch-label" style="margin: 0;">
+                        <input type="checkbox" id="log_enable_structure" class="log-enable-checkbox" data-category="structure">
+                        <span class="slider"></span>
+                      </label>
+                      <select id="log_channel_structure" class="channel-select" style="min-width: 180px;">
+                        <option value="">Sélectionner un salon</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Logs Bots -->
+                  <div class="log-category-row" style="display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-bottom: 5px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px;">
+                      <h4 style="margin: 0; color: #fff;"><i class="fa-solid fa-robot" style="color: #9b59b6;"></i> Activité des Bots</h4>
+                      <p style="margin: 3px 0 0; font-size: 0.8rem; color: #8e9297;">Ajouts de bots, modifications de profils ou de rôles de bots, messages de bots.</p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; min-width: 250px;">
+                      <label class="switch-label" style="margin: 0;">
+                        <input type="checkbox" id="log_enable_bots" class="log-enable-checkbox" data-category="bots">
+                        <span class="slider"></span>
+                      </label>
+                      <select id="log_channel_bots" class="channel-select" style="min-width: 180px;">
+                        <option value="">Sélectionner un salon</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
