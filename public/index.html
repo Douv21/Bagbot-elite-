@@ -407,14 +407,14 @@
                         <div class="discord-embed" id="autorole-discord-embed" style="border-left: 4px solid #5865F2; background: #2f3136; padding: 12px; border-radius: 4px;">
                           <div id="autorole-preview-title" style="color: #ffffff; font-weight: 700; font-size: 1rem; margin-bottom: 6px;">Aperçu du titre</div>
                           
-                          <div style="display: flex; gap: 10px; justify-content: space-between;">
-                            <div style="flex-grow: 1;">
-                              <div id="autorole-preview-desc" style="color: #dcddde; font-size: 0.875rem; white-space: pre-wrap;">Aperçu de la description...</div>
-                            </div>
-                            <img id="autorole-preview-thumbnail" src="" alt="" style="width: 60px; height: 60px; border-radius: 4px; display: none; object-fit: cover;">
-                          </div>
-                          
-                          <img id="autorole-preview-image" src="" alt="" style="max-width: 100%; border-radius: 4px; margin-top: 8px; display: none;">
+                          <div style="display: flex; gap: 10px; justify-content: space-between; align-items: flex-start;">
+                             <div style="flex-grow: 1; min-width: 0;">
+                               <div id="autorole-preview-desc" style="color: #dcddde; font-size: 0.875rem; white-space: pre-wrap; word-break: break-word;">Aperçu de la description...</div>
+                             </div>
+                             <img id="autorole-preview-thumbnail" src="" alt="" style="width: 60px; height: 60px; border-radius: 4px; display: none; object-fit: cover; flex-shrink: 0;">
+                           </div>
+                           
+                           <img id="autorole-preview-image" src="" alt="" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 4px; margin-top: 8px; display: none;">
                         </div>
                         
                         <div id="autorole-preview-buttons" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
@@ -429,10 +429,10 @@
 
             <!-- Liste des embeds actifs -->
             <div class="card glass" style="margin-top: 20px;">
-              <h3><i class="fa-solid fa-list-check"></i> Embeds d'auto-rôles actifs</h3>
-              <p class="description-text">Voici les embeds d'auto-rôles actuellement envoyés sur votre serveur Discord.</p>
+              <h3><i class="fa-solid fa-list-check"></i> Rôles Réaction Actifs</h3>
+              <p class="description-text">Voici les messages de rôles réaction actuellement actifs sur votre serveur Discord.</p>
               <div id="active-autoroles-container" style="margin-top: 15px; display: flex; flex-direction: column; gap: 15px;">
-                <!-- Liste d'embeds actifs -->
+                <!-- Liste de rôles réaction actifs -->
               </div>
             </div>
           </div>

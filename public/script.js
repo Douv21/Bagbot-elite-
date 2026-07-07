@@ -1678,64 +1678,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderActiveAutoroles(list) {
     const container = document.getElementById('active-autoroles-container');
+    if (!container) return;
     container.innerHTML = '';
     if (list.length === 0) {
-      container.innerHTML = '<p style="color: #8e9297; text-align: center; font-style: italic;">Aucun embed d\'auto-rôle actif.</p>';
+      container.innerHTML = '<p style="color: #8e9297; text-align: center; font-style: italic;">Aucun rôle réaction actif.</p>';
       return;
     }
     list.forEach(item => {
-      const channelName = getChannelName(item.channel_id);
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.style.background = 'rgba(255,255,255,0.03)';
-      card.style.border = '1px solid rgba(255,255,255,0.05)';
-      card.style.padding = '12px 15px';
-      card.style.borderRadius = '6px';
-      card.style.display = 'flex';
-      card.style.flexDirection = 'column';
-      card.style.gap = '8px';
+      try {
+        const channelName = getChannelName(item.channel_id);
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.background = 'rgba(255,255,255,0.03)';
+        card.style.border = '1px solid rgba(255,255,255,0.05)';
+        card.style.padding = '12px 15px';
+        card.style.borderRadius = '6px';
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+        card.style.gap = '8px';
 
-      const buttonsHtml = (item.options || []).map(opt => {
-        const styleClass = opt.style === 'SUCCESS' ? 'btn-save' : (opt.style === 'DANGER' ? 'btn-delete' : 'btn-add');
-        return `<span class="badge ${styleClass}" style="margin-right: 5px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
-          ${opt.emoji || ''} ${opt.label} (${getRoleName(opt.role_id)})
-        </span>`;
-      }).join(' ');
+        const buttonsHtml = (item.options || []).map(opt => {
+          const styleClass = opt.style === 'SUCCESS' ? 'btn-save' : (opt.style === 'DANGER' ? 'btn-delete' : 'btn-add');
+          return `<span class="badge ${styleClass}" style="margin-right: 5px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+            ${opt.emoji || ''} ${opt.label} (${getRoleName(opt.role_id)})
+          </span>`;
+        }).join(' ');
 
-      card.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h4 style="margin: 0; color: #fff;">${item.title}</h4>
-          <button class="btn btn-delete btn-sm" style="padding: 4px 8px; font-size: 0.8rem;"><i class="fa-solid fa-trash"></i> Supprimer de Discord</button>
-        </div>
-        <p style="margin: 2px 0; font-size: 0.85rem; color: #b9bbbe;">
-          <i class="fa-solid fa-hashtag"></i> Salon: <strong>${channelName}</strong> · ID Message: <code>${item.message_id}</code>
-        </p>
-        <p style="margin: 2px 0; font-size: 0.85rem; color: #8e9297; font-style: italic;">"${item.description}"</p>
-        <div style="margin-top: 5px; display: flex; flex-wrap: wrap; gap: 5px;">
-          ${buttonsHtml}
-        </div>
-      `;
+        card.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="margin: 0; color: #fff;">${item.title || '(Message Existant)'}</h4>
+            <button class="btn btn-delete btn-sm" style="padding: 4px 8px; font-size: 0.8rem;"><i class="fa-solid fa-trash"></i> Supprimer</button>
+          </div>
+          <p style="margin: 2px 0; font-size: 0.85rem; color: #b9bbbe;">
+            <i class="fa-solid fa-hashtag"></i> Salon: <strong>${channelName}</strong> · ID Message: <code>${item.message_id}</code>
+          </p>
+          <p style="margin: 2px 0; font-size: 0.85rem; color: #8e9297; font-style: italic;">"${item.description || ''}"</p>
+          <div style="margin-top: 5px; display: flex; flex-wrap: wrap; gap: 5px;">
+            ${buttonsHtml}
+          </div>
+        `;
 
-      card.querySelector('.btn-delete').addEventListener('click', () => {
-        if (!confirm('Voulez-vous vraiment supprimer cet embed d\'auto-rôle ? Le message sera supprimé de Discord et de la base de données.')) return;
-        fetch('/api/config/autorole-embeds/delete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message_id: item.message_id, channel_id: item.channel_id })
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            showToast('Embed d\'auto-rôle supprimé !');
-            loadGuildConfiguration();
-          } else {
-            showToast('Erreur: ' + data.error, true);
-          }
-        })
-        .catch(err => showToast(err.message, true));
-      });
+        card.querySelector('.btn-delete').addEventListener('click', () => {
+          if (!confirm('Voulez-vous vraiment supprimer ce rôle réaction ? Le message sera supprimé de Discord et de la base de données.')) return;
+          fetch('/api/config/autorole-embeds/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message_id: item.message_id, channel_id: item.channel_id })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              showToast('Rôle réaction supprimé !');
+              loadGuildConfiguration();
+            } else {
+              showToast('Erreur: ' + data.error, true);
+            }
+          })
+          .catch(err => showToast(err.message, true));
+        });
 
-      container.appendChild(card);
+        container.appendChild(card);
+      } catch (err) {
+        console.error('Error rendering active autorole item:', err, item);
+      }
     });
   }
 
