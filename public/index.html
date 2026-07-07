@@ -955,13 +955,17 @@
               <div class="card glass">
                 <p>Configurez le jeu du mot ou phrase cachée. Les membres débloquent des lettres au hasard en parlant et essaient de deviner le mot pour remporter des récompenses.</p>
                 
-                <div class="form-row" style="margin-bottom: 15px;">
-                  <div class="form-group checkbox-group">
+                <div class="form-row" style="margin-bottom: 15px; display: flex; gap: 15px; flex-wrap: wrap;">
+                  <div class="form-group checkbox-group" style="flex: 1; min-width: 200px;">
                     <label class="switch-label">
                       <input type="checkbox" id="game_is_active">
                       <span class="slider"></span>
                       Activer le jeu du mot caché
                     </label>
+                  </div>
+                  <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="game_appearance_chance">Taux d'apparition des lettres (%) :</label>
+                    <input type="number" id="game_appearance_chance" min="0" max="100" step="0.5" value="15">
                   </div>
                 </div>
 

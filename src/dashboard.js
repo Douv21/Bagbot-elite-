@@ -92,10 +92,17 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
+// Fonction pour générer le redirect_uri de manière dynamique
+const getRedirectUri = (req) => {
+  const protocol = req.protocol;
+  const host = req.get('host');
+  return `${protocol}://${host}/callback`;
+};
+
 // Route de connexion Discord OAuth2
 app.get('/login', (req, res) => {
   const clientId = process.env.DISCORD_CLIENT_ID;
-  const redirectUri = encodeURIComponent(process.env.DISCORD_CALLBACK_URL || `http://192.168.1.133:49601/callback`);
+  const redirectUri = encodeURIComponent(getRedirectUri(req));
   const scope = encodeURIComponent('identify guilds guilds.members.read');
   res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`);
 });
@@ -106,6 +113,8 @@ app.get('/callback', async (req, res) => {
   if (!code) {
     return res.redirect('/?error=no_code');
   }
+
+  const redirectUri = getRedirectUri(req);
 
   try {
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
@@ -118,7 +127,7 @@ app.get('/callback', async (req, res) => {
         client_secret: process.env.DISCORD_CLIENT_SECRET,
         grant_type: 'authorization_code',
         code: code,
-        redirect_uri: process.env.DISCORD_CALLBACK_URL || `http://192.168.1.133:49601/callback`,
+        redirect_uri: redirectUri,
       }),
     });
 
@@ -309,21 +318,21 @@ app.get('/api/bot/info', async (req, res) => {
 // Changer l'avatar du bot globalement
 app.post('/api/bot/avatar', async (req, res) => {
   try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
     const { avatar_url } = req.body;
-    const botApiPort = process.env.BOT_API_PORT || 49602;
-    const response = await fetch(`http://127.0.0.1:${botApiPort}/bot/avatar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ avatar_url })
-    }).catch(() => null);
 
-    if (response && response.ok) {
-      const data = await response.json();
-      res.json(data);
+    // Enregistrer l'avatar personnalisé dans welcome_leave pour cette guilde
+    let wl = db.prepare('SELECT * FROM welcome_leave WHERE guild_id = ?').get(guildId);
+    if (!wl) {
+      db.prepare('INSERT INTO welcome_leave (guild_id, custom_bot_avatar) VALUES (?, ?)').run(guildId, avatar_url);
     } else {
-      res.status(500).json({ error: 'Erreur lors du changement d\'avatar' });
+      db.prepare('UPDATE welcome_leave SET custom_bot_avatar = ? WHERE guild_id = ?').run(avatar_url, guildId);
     }
+
+    res.json({ success: true, avatarURL: avatar_url });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -727,20 +736,21 @@ app.post('/api/config/game', (req, res) => {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { secret_phrase, reward_money, reward_xp, reward_role_id, is_active, reset_progress } = req.body;
+    const { secret_phrase, reward_money, reward_xp, reward_role_id, is_active, reset_progress, appearance_chance } = req.body;
 
     const phraseUpper = (secret_phrase || '').toUpperCase();
 
     db.prepare(`
-      INSERT OR REPLACE INTO game_config (guild_id, secret_phrase, reward_money, reward_xp, reward_role_id, is_active)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO game_config (guild_id, secret_phrase, reward_money, reward_xp, reward_role_id, is_active, appearance_chance)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(
       guildId,
       phraseUpper,
       reward_money !== undefined ? parseInt(reward_money) : 0,
       reward_xp !== undefined ? parseInt(reward_xp) : 0,
       reward_role_id || null,
-      is_active ? 1 : 0
+      is_active ? 1 : 0,
+      appearance_chance !== undefined ? parseFloat(appearance_chance) : 15
     );
 
     // Réinitialiser les lettres trouvées par les utilisateurs si demandé

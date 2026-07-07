@@ -219,12 +219,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function loadGuildConfiguration() {
-    fetchBotInfo();
     fetch('/api/config')
       .then(res => res.json())
       .then(config => {
         // Welcome / Leave
         const wl = config.welcome_leave || {};
+        fetchBotInfo(wl.custom_bot_avatar || null);
         welcomeData = {
           channel_id: wl.welcome_channel || '',
           title: wl.welcome_title || '👋 Bienvenue',
@@ -261,6 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('game_reward_money').value = game.reward_money ?? 0;
         document.getElementById('game_reward_xp').value = game.reward_xp ?? 0;
         document.getElementById('game_reward_role_id').value = game.reward_role_id || '';
+        document.getElementById('game_appearance_chance').value = game.appearance_chance ?? 15;
         document.getElementById('game_reset_progress').checked = false;
 
         // Quarantaine
@@ -375,12 +376,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function fetchBotInfo() {
+  function fetchBotInfo(customAvatar = null) {
     fetch('/api/bot/info')
       .then(res => res.json())
       .then(info => {
-        const avatarUrl = info.avatarURL || 'https://cdn.discordapp.com/embed/avatars/0.png';
-        document.getElementById('bot-avatar-preview').src = avatarUrl;
+        const avatarUrl = customAvatar || info.avatarURL || 'https://cdn.discordapp.com/embed/avatars/0.png';
+        const botAvatars = document.querySelectorAll('#bot-avatar-preview, #autorole-bot-avatar-preview');
+        botAvatars.forEach(img => {
+          img.src = avatarUrl;
+        });
         document.querySelectorAll('.discord-bot-name').forEach(el => {
           el.textContent = info.username || 'Bagbot Elite';
         });
@@ -560,7 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
           showToast('Avatar du bot mis à jour avec succès !');
           e.target.value = '';
           document.getElementById('bot-avatar-wrapper').style.display = 'none';
-          fetchBotInfo();
+          fetchBotInfo(resData.avatarURL);
         } else {
           showToast('Erreur: ' + (resData.error || 'inconnue'), true);
         }
@@ -710,6 +714,7 @@ document.addEventListener('DOMContentLoaded', () => {
       reward_money: parseInt(document.getElementById('game_reward_money').value) || 0,
       reward_xp: parseInt(document.getElementById('game_reward_xp').value) || 0,
       reward_role_id: document.getElementById('game_reward_role_id').value || null,
+      appearance_chance: parseFloat(document.getElementById('game_appearance_chance').value) ?? 15,
       reset_progress: document.getElementById('game_reset_progress').checked
     };
 
@@ -1194,7 +1199,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Avatar du bot mis à jour avec succès !');
             document.getElementById('bot-avatar-url-input').value = '';
             document.getElementById('bot-avatar-wrapper').style.display = 'none';
-            fetchBotInfo();
+            fetchBotInfo(avatarData.avatarURL);
           } else {
             showToast('Erreur avatar: ' + avatarData.error, true);
           }

@@ -234,12 +234,8 @@ module.exports = {
     }
 
     // --- GAIN D'XP, KARMA ET ARGENT (LEVELING TEXTE) ---
-    const now = Date.now();
-    const cooldownKey = `${guildId}-${userId}`;
-    const userCooldown = xpCooldowns.get(cooldownKey);
-
-    if (!userCooldown || (now - userCooldown) > 60000) {
-      xpCooldowns.set(cooldownKey, now);
+    // Note : Cooldown supprimé pour que chaque message compte
+    if (true) {
       const lvlConfig = getLevelingConfig(guildId);
 
       // Gain d'XP standard
@@ -280,8 +276,8 @@ module.exports = {
       // --- JEU DE DEVINETTE (RECHERCHE DE LETTRE) ---
       const game = db.prepare('SELECT * FROM game_config WHERE guild_id = ? AND is_active = 1').get(guildId);
       if (game) {
-        // 15% de chance de trouver une lettre
-        if (Math.random() < 0.15) {
+        const chance = (game.appearance_chance !== undefined && game.appearance_chance !== null) ? game.appearance_chance : 15;
+        if (Math.random() * 100 < chance) {
           const phrase = game.secret_phrase.toUpperCase();
           // Trouver toutes les lettres uniques de A à Z
           const allLetters = [...new Set(phrase.replace(/[^A-Z]/g, ''))];

@@ -44,6 +44,9 @@ module.exports = {
         }
 
         let authorIcon = config.welcome_author_icon;
+        if (!authorIcon && config.custom_bot_avatar) {
+          authorIcon = config.custom_bot_avatar;
+        }
         if (authorIcon) {
           if (authorIcon.startsWith('/uploads/')) {
             const absPath = path.join(__dirname, '../../public', authorIcon);

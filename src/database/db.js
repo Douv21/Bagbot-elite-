@@ -367,6 +367,16 @@ function initDatabase() {
   try {
     db.prepare("ALTER TABLE autorole_embeds ADD COLUMN mode TEXT DEFAULT 'normal'").run();
   } catch (e) {}
+  
+  // Migration pour l'avatar personnalisé du bot par guilde
+  try {
+    db.prepare("ALTER TABLE welcome_leave ADD COLUMN custom_bot_avatar TEXT").run();
+  } catch (e) {}
+
+  // Migration pour la chance d'apparition des lettres du mot caché
+  try {
+    db.prepare("ALTER TABLE game_config ADD COLUMN appearance_chance REAL DEFAULT 15").run();
+  } catch (e) {}
 }
 
 // --- Fonctions utilitaires de base de données ---
