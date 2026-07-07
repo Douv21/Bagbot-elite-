@@ -245,28 +245,22 @@ module.exports = {
       const randomXp = Math.floor(Math.random() * range) + minXp;
       await addXP(message.guild, message.member, randomXp, message.channel);
 
-      // Gain de Karma
-      const minKarma = lvlConfig.karma_min ?? 1;
-      const maxKarma = lvlConfig.karma_max ?? 3;
-      const karmaRange = Math.max(1, maxKarma - minKarma + 1);
-      const randomKarma = Math.floor(Math.random() * karmaRange) + minKarma;
-
       // Gain d'Argent (Solde)
       const minMoney = lvlConfig.money_min ?? 2;
       const maxMoney = lvlConfig.money_max ?? 5;
       const moneyRange = Math.max(1, maxMoney - minMoney + 1);
       const randomMoney = Math.floor(Math.random() * moneyRange) + minMoney;
 
-      // Ajouter le Karma et l'Argent (avec bonus NSFW inclus)
+      // Ajouter l'Argent (avec bonus NSFW inclus)
       const totalMoney = randomMoney + nsfwRewardMoney;
       
       // Assurer l'existence de la table economy pour l'utilisateur
       db.prepare('INSERT OR IGNORE INTO economy (guild_id, user_id) VALUES (?, ?)').run(guildId, userId);
       db.prepare(`
         UPDATE economy 
-        SET karma = karma + ?, wallet = wallet + ? 
+        SET wallet = wallet + ? 
         WHERE guild_id = ? AND user_id = ?
-      `).run(randomKarma, totalMoney, guildId, userId);
+      `).run(totalMoney, guildId, userId);
 
       // Appliquer le bonus d'XP NSFW éventuel
       if (nsfwRewardXp > 0) {

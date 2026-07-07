@@ -204,6 +204,7 @@ module.exports = {
     .setDMPermission(true),
 
   async execute(interaction) {
+    await interaction.deferReply();
     const guildId = interaction.guild ? interaction.guild.id : null;
     const userId = interaction.user.id;
     let target = interaction.options.getUser('cible');
@@ -290,7 +291,7 @@ module.exports = {
     }
 
     const mention = target && target.id !== userId ? \`<@\${target.id}>\` : null;
-    await interaction.reply({
+    await interaction.editReply({
       content: mention,
       embeds: [embed],
       files: files,

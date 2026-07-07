@@ -1,4 +1,4 @@
-const { EmbedBuilder, AttachmentBuilder } = require('discord.js');
+const { EmbedBuilder, AttachmentBuilder, AuditLogEvent } = require('discord.js');
 const { db } = require('../database/db');
 const { formatWelcomeLeaveMessage, sendLog } = require('../utils/helpers');
 const fs = require('fs');
@@ -163,6 +163,51 @@ module.exports = {
           .setThumbnail(newMember.user.displayAvatarURL({ dynamic: true }))
           .setTimestamp();
         sendLog(newMember.guild, 'memberUpdate', embed, { isBot: newMember.user.bot });
+      }
+    }
+
+    // Log timeout (exclusion temporaire)
+    const oldTimeout = oldMember.communicationDisabledUntilTimestamp;
+    const newTimeout = newMember.communicationDisabledUntilTimestamp;
+
+    if (oldTimeout !== newTimeout) {
+      const isMuted = newTimeout && newTimeout > Date.now();
+      
+      let moderator = 'Inconnu';
+      let reason = 'Aucune raison fournie';
+      try {
+        const fetchedLogs = await newMember.guild.fetchAuditLogs({
+          limit: 1,
+          type: AuditLogEvent.MemberUpdate,
+        });
+        const updateLog = fetchedLogs.entries.first();
+        if (updateLog && updateLog.target.id === newMember.id) {
+          const disabledChange = updateLog.changes.find(c => c.key === 'communication_disabled_until');
+          if (disabledChange) {
+            moderator = `<@${updateLog.executor.id}> (${updateLog.executor.tag})`;
+            reason = updateLog.reason || 'Aucune raison fournie';
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+
+      if (isMuted) {
+        const embed = new EmbedBuilder()
+          .setTitle('🔇 Membre Exclu Temporairement (Timeout)')
+          .setDescription(`**Membre :** ${newMember.user.tag} (<@${newMember.id}>)\n**Modérateur :** ${moderator}\n**Exclu jusqu'à :** <t:${Math.floor(newTimeout / 1000)}:F> (<t:${Math.floor(newTimeout / 1000)}:R>)\n**Raison :** ${reason}`)
+          .setColor('#E67E22')
+          .setThumbnail(newMember.user.displayAvatarURL({ dynamic: true }))
+          .setTimestamp();
+        sendLog(newMember.guild, 'moderation', embed, { isBot: newMember.user.bot });
+      } else {
+        const embed = new EmbedBuilder()
+          .setTitle('🔊 Exclusion Temporaire Retirée')
+          .setDescription(`**Membre :** ${newMember.user.tag} (<@${newMember.id}>)\n**Modérateur :** ${moderator}\n**Raison :** Timeout expiré ou retiré manuellement.`)
+          .setColor('#2ECC71')
+          .setThumbnail(newMember.user.displayAvatarURL({ dynamic: true }))
+          .setTimestamp();
+        sendLog(newMember.guild, 'moderation', embed, { isBot: newMember.user.bot });
       }
     }
   }
