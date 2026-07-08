@@ -1072,15 +1072,19 @@ app.post('/api/config/map-locations/delete', async (req, res) => {
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
 
-    // Vérifier les permissions d'administration
     if (!req.session.user) return res.status(401).json({ error: 'Non autorisé' });
-    const member = await guild.members.fetch(req.session.user.id).catch(() => null);
-    if (!member || (!member.permissions.has(PermissionFlagsBits.Administrator) && guild.ownerId !== req.session.user.id)) {
-      return res.status(403).json({ error: 'Permission refusée (Administrateur requis)' });
-    }
 
     const { user_id } = req.body;
     if (!user_id) return res.status(400).json({ error: 'ID requis' });
+
+    // Si l'utilisateur supprime sa propre localisation, on autorise directement.
+    // Sinon, on vérifie qu'il dispose des droits d'administrateur.
+    if (req.session.user.id !== user_id) {
+      const member = await guild.members.fetch(req.session.user.id).catch(() => null);
+      if (!member || (!member.permissions.has(PermissionFlagsBits.Administrator) && guild.ownerId !== req.session.user.id)) {
+        return res.status(403).json({ error: 'Permission refusée (Administrateur requis pour supprimer la position des autres)' });
+      }
+    }
 
     db.prepare('DELETE FROM member_locations WHERE guild_id = ? AND user_id = ?').run(guildId, user_id);
     res.json({ success: true });

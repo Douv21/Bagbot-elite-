@@ -167,10 +167,10 @@
         // Initialiser la carte sur la France par défaut
         const map = L.map('map').setView([46.2276, 2.2137], 6);
 
-        // Ajouter les tuiles claires et visibles de CartoDB (Voyager)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            maxZoom: 20
+        // Ajouter les tuiles standard de OpenStreetMap (très claires et lisibles)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 19
         }).addTo(map);
 
         let activeGuildId = null;
