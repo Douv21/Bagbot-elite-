@@ -85,7 +85,11 @@ module.exports = {
     if (markers.length > 0) {
       try {
         const yandexUrl = `https://static-maps.yandex.ru/1.x/?l=map&size=600,450&pt=${encodeURIComponent(markers.join('~'))}`;
-        const response = await fetch(yandexUrl);
+        const response = await fetch(yandexUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          }
+        });
         if (response.ok) {
           const buffer = await response.arrayBuffer();
           const attachment = new AttachmentBuilder(Buffer.from(buffer), { name: 'map.png' });
