@@ -70,29 +70,21 @@ module.exports = {
       embed.addFields({ name: '📍 Liste des plus proches', value: list });
     }
 
-    // Construire l'URL de la carte statique Yandex avec les épingles
+    // Construire l'URL de la carte statique OpenStreetMap Germany (sans clé requise)
     const markers = [];
-    markers.push(`${myLoc.longitude},${myLoc.latitude},pm2rdm`); // Rouge pour vous
+    markers.push(`${myLoc.latitude},${myLoc.longitude},ol-marker`); // Vous
     
     for (const n of nearby) {
       const otherLoc = others.find(o => o.user_id === n.userId);
       if (otherLoc) {
-        markers.push(`${otherLoc.longitude},${otherLoc.latitude},pm2gnm`); // Vert pour les autres
+        markers.push(`${otherLoc.latitude},${otherLoc.longitude},ol-marker`); // Les autres
       }
     }
 
     if (markers.length > 0) {
-      const staticMapUrl = `https://static-maps.yandex.ru/1.x/?l=map&size=600,450&pt=${markers.join('~')}`;
+      const staticMapUrl = `https://staticmap.openstreetmap.de/staticmap.php?size=600x450&maptype=mapnik&markers=${markers.join('|')}`;
       embed.setImage(staticMapUrl);
     }
-
-    // Ajouter le lien vers la carte du dashboard
-    const publicIp = '82.65.75.176';
-    const port = '49601';
-    embed.addFields({ 
-      name: '🗺️ Carte Interactive', 
-      value: `[🔗 Cliquez ici pour voir la carte complète en temps réel](http://${publicIp}:${port}/map.html?guild=${guildId})` 
-    });
 
     await interaction.editReply({ embeds: [embed] });
   }

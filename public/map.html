@@ -173,10 +173,15 @@
             maxZoom: 20
         }).addTo(map);
 
+        let activeGuildId = null;
+
         // Récupérer les localisations depuis notre API
         async function loadLocations() {
             try {
-                const response = await fetch('/api/config/map-locations');
+                const urlParams = new URLSearchParams(window.location.search);
+                activeGuildId = urlParams.get('guild');
+
+                const response = await fetch(`/api/config/map-locations?guild=${activeGuildId || ''}`);
                 if (!response.ok) throw new Error('Impossible de charger les positions.');
                 const locations = await response.json();
 
@@ -235,7 +240,7 @@
                 const response = await fetch('/api/config/map-locations/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId })
+                    body: JSON.stringify({ user_id: userId, guild: activeGuildId })
                 });
 
                 const data = await response.json();
