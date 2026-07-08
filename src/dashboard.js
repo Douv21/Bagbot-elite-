@@ -1085,6 +1085,27 @@ app.post('/api/config/map-locations/delete', (req, res) => {
   }
 });
 
+app.get('/api/map-image', async (req, res) => {
+  try {
+    const { pt } = req.query;
+    if (!pt) return res.status(400).send('Missing pt parameter');
+
+    const yandexUrl = `https://static-maps.yandex.ru/1.x/?l=map&size=600,450&pt=${pt}`;
+    
+    const response = await fetch(yandexUrl);
+    if (!response.ok) {
+      return res.status(response.status).send('Error fetching map from provider');
+    }
+
+    res.setHeader('Content-Type', 'image/png');
+    const buffer = await response.arrayBuffer();
+    res.send(Buffer.from(buffer));
+  } catch (error) {
+    console.error('Error in /api/map-image:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ Dashboard premium running on port ${PORT}`);
   

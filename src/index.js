@@ -583,7 +583,7 @@ async function checkExpiredSuites(client) {
 // Connexion du bot
 client.login(process.env.DISCORD_TOKEN);
 
+module.exports = { client };
+
 // Lancement du Dashboard Premium
 require('./dashboard');
-
-module.exports = { client };

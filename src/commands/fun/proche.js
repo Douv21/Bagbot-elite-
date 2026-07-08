@@ -70,19 +70,21 @@ module.exports = {
       embed.addFields({ name: '📍 Liste des plus proches', value: list });
     }
 
-    // Construire l'URL de la carte statique OpenStreetMap Germany (sans clé requise)
+    // Construire l'URL de la carte statique via notre proxy (pour contourner le blocage Discord)
     const markers = [];
-    markers.push(`${myLoc.latitude},${myLoc.longitude},ol-marker`); // Vous
+    markers.push(`${myLoc.longitude},${myLoc.latitude},pm2rdm`); // Rouge pour vous
     
     for (const n of nearby) {
       const otherLoc = others.find(o => o.user_id === n.userId);
       if (otherLoc) {
-        markers.push(`${otherLoc.latitude},${otherLoc.longitude},ol-marker`); // Les autres
+        markers.push(`${otherLoc.longitude},${otherLoc.latitude},pm2gnm`); // Vert pour les autres
       }
     }
 
     if (markers.length > 0) {
-      const staticMapUrl = `https://staticmap.openstreetmap.de/staticmap.php?size=600x450&maptype=mapnik&markers=${markers.join('|')}`;
+      const publicIp = '82.65.75.176';
+      const port = '49601';
+      const staticMapUrl = `http://${publicIp}:${port}/api/map-image?pt=${encodeURIComponent(markers.join('~'))}`;
       embed.setImage(staticMapUrl);
     }
 
