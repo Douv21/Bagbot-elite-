@@ -91,13 +91,23 @@ module.exports = {
 
     // Fallback embed si la génération de la carte échoue
     const remaining = rank.next === Infinity ? 0 : rank.next - karma;
+    let benefits = '🎁 Multiplicateur XP : **Aucun**\n🛒 Réduction Boutique : **Aucune** *(débloquez à 20 points)*';
+    if (karma >= 100) {
+      benefits = '🎁 Multiplicateur XP : **x2.0** 🔥\n🛒 Réduction Boutique : **-20%** 🛍️';
+    } else if (karma >= 50) {
+      benefits = '🎁 Multiplicateur XP : **x1.5** ⭐\n🛒 Réduction Boutique : **-10%** 🛍️';
+    } else if (karma >= 20) {
+      benefits = '🎁 Multiplicateur XP : **x1.2**\n🛒 Réduction Boutique : **-5%** 🛍️';
+    }
+
     const embed = new EmbedBuilder()
       .setColor('#9B59B6')
       .setTitle(`⭐ Karma de ${targetUser.username}`)
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
       .addFields(
         { name: '✨ Karma', value: `${karma.toLocaleString('fr-FR')} points`, inline: true },
-        { name: '🎖️ Rang de Karma', value: `**${rank.name}**`, inline: true }
+        { name: '🎖️ Rang de Karma', value: `**${rank.name}**`, inline: true },
+        { name: '🎁 Avantages de Karma', value: benefits, inline: false }
       )
       .setTimestamp();
 
