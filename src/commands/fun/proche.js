@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } = require('discord.js');
 const { db } = require('../../database/db');
 
 function getDistance(lat1, lon1, lat2, lon2) {
@@ -70,7 +70,7 @@ module.exports = {
       embed.addFields({ name: '📍 Liste des plus proches', value: list });
     }
 
-    // Construire l'URL de la carte statique via notre proxy (pour contourner le blocage Discord)
+    // Construire l'URL de la carte statique Yandex avec les épingles
     const markers = [];
     markers.push(`${myLoc.longitude},${myLoc.latitude},pm2rdm`); // Rouge pour vous
     
@@ -81,13 +81,24 @@ module.exports = {
       }
     }
 
+    const files = [];
     if (markers.length > 0) {
-      const publicIp = '82.65.75.176';
-      const port = '49601';
-      const staticMapUrl = `http://${publicIp}:${port}/api/map-image?pt=${encodeURIComponent(markers.join('~'))}`;
-      embed.setImage(staticMapUrl);
+      try {
+        const yandexUrl = `https://static-maps.yandex.ru/1.x/?l=map&size=600,450&pt=${encodeURIComponent(markers.join('~'))}`;
+        const response = await fetch(yandexUrl);
+        if (response.ok) {
+          const buffer = await response.arrayBuffer();
+          const attachment = new AttachmentBuilder(Buffer.from(buffer), { name: 'map.png' });
+          embed.setImage('attachment://map.png');
+          files.push(attachment);
+        } else {
+          console.error('Yandex maps error:', response.statusText);
+        }
+      } catch (err) {
+        console.error('Error fetching static map image:', err);
+      }
     }
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed], files });
   }
 };
