@@ -30,7 +30,10 @@ const {
   getKarmaConfig,
   updateKarmaConfig,
   getUnlimitedForums,
-  updateUnlimitedForums
+  updateUnlimitedForums,
+  getActionVeriteItems,
+  addActionVeriteItem,
+  deleteActionVeriteItem
 } = require('./database/db');
 
 const app = express();
@@ -1198,6 +1201,53 @@ app.post('/api/config/unlimited-forums', (req, res) => {
     if (!Array.isArray(channels)) return res.status(400).json({ error: 'Channels must be an array' });
 
     updateUnlimitedForums(guildId, channels);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- CONFIGURATION D'ACTION OU VÉRITÉ ---
+
+app.get('/api/config/action-verite', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const items = getActionVeriteItems(guildId);
+    res.json(items);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/action-verite/add', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { type, category, content } = req.body;
+    if (!type || !category || !content) return res.status(400).json({ error: 'Missing fields' });
+
+    addActionVeriteItem(guildId, type, category, content.trim());
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/action-verite/delete', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: 'ID requis' });
+
+    deleteActionVeriteItem(guildId, id);
     res.json({ success: true });
   } catch (error) {
     console.error(error);

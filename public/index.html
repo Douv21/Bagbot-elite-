@@ -71,6 +71,7 @@
         <button class="tab-btn" data-tab="tab-game"><i class="fa-solid fa-gamepad"></i> Jeu Mot Caché</button>
         <button class="tab-btn" data-tab="tab-karma"><i class="fa-solid fa-star"></i> Configuration Karma</button>
         <button class="tab-btn" data-tab="tab-forums"><i class="fa-solid fa-comments"></i> Forums Illimités</button>
+        <button class="tab-btn" data-tab="tab-action-verite"><i class="fa-solid fa-dice"></i> Action / Vérité</button>
         <button class="tab-btn" data-tab="tab-map"><i class="fa-solid fa-map-location-dot"></i> Carte des Membres</button>
       </aside>
 
@@ -1225,6 +1226,65 @@
                 <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les Forums</button>
               </div>
             </form>
+          </div>
+
+          <!-- Tab: Action ou Vérité -->
+          <div id="tab-action-verite" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-dice"></i> Configuration d'Action ou Vérité</h2>
+            
+            <div class="card glass mb-4">
+              <h3>➕ Ajouter une Action ou une Vérité personnalisée</h3>
+              <form id="form-add-action-verite" class="inner-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="av_type">Type :</label>
+                    <select id="av_type" required class="custom-select">
+                      <option value="action">Action 🎬</option>
+                      <option value="verite">Vérité 💬</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="av_category">Catégorie :</label>
+                    <select id="av_category" required class="custom-select">
+                      <option value="sfw">SFW (Standard) 🟢</option>
+                      <option value="nsfw">NSFW (Adulte) 🔞</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="av_content">Contenu du défi / de la question :</label>
+                    <textarea id="av_content" required placeholder="Ex: Raconte ton plus grand secret..." rows="3" style="width:100%; border-radius:8px; padding:10px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); color:#fff; font-family:inherit; resize:vertical;"></textarea>
+                  </div>
+                </div>
+
+                <div class="actions-bar" style="margin-top: 10px;">
+                  <button type="submit" class="btn btn-save" style="background: #2ecc71;"><i class="fa-solid fa-plus"></i> Ajouter à la Liste</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card glass">
+              <h3>📋 Liste de vos Questions & Défis Personnalisés</h3>
+              <p style="color: #b9bbbe; font-size: 0.9rem; margin-bottom: 15px;">Les questions ajoutées ci-dessous remplaceront ou s'ajouteront aux questions par défaut sur votre serveur.</p>
+              
+              <div style="overflow-x: auto;">
+                <table class="premium-table">
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Catégorie</th>
+                      <th>Contenu</th>
+                      <th style="width: 100px; text-align: center;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="action-verite-list">
+                    <!-- Rempli en JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <!-- Tab: Carte des Membres -->

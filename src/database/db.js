@@ -385,6 +385,16 @@ function initDatabase() {
     )
   `).run();
 
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS action_verite (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT,
+      type TEXT,
+      category TEXT,
+      content TEXT
+    )
+  `).run();
+
   // Migrations pour les auto-rôles embeds (type et mode)
   try {
     db.prepare("ALTER TABLE autorole_embeds ADD COLUMN type TEXT DEFAULT 'buttons'").run();
@@ -663,6 +673,53 @@ const updateUnlimitedForums = (guildId, channelIds) => {
   }
 };
 
+const DEFAULT_AV = [
+  { type: 'verite', category: 'sfw', content: "Quel est ton plus grand rêve dans la vie ?" },
+  { type: 'verite', category: 'sfw', content: "Quelle est la chose la plus ridicule que tu aies faite par amour ?" },
+  { type: 'verite', category: 'sfw', content: "Si tu pouvais changer une chose chez toi, ce serait quoi ?" },
+  { type: 'verite', category: 'sfw', content: "Quel est ton pire souvenir d'école ?" },
+  { type: 'verite', category: 'sfw', content: "Quelle est ta plus grande phobie ?" },
+  
+  { type: 'action', category: 'sfw', content: "Fais 10 pompes d'affilée !" },
+  { type: 'action', category: 'sfw', content: "Chante le refrain de ta chanson préférée à haute voix !" },
+  { type: 'action', category: 'sfw', content: "Envoie un emoji rigolo au dernier ami avec qui tu as discuté !" },
+  { type: 'action', category: 'sfw', content: "Raconte ta blague la plus nulle en faisant rire tout le monde." },
+  { type: 'action', category: 'sfw', content: "Fais une imitation d'un animal pendant 30 secondes." },
+
+  { type: 'verite', category: 'nsfw', content: "Quel est ton fantasme le plus inavouable ?" },
+  { type: 'verite', category: 'nsfw', content: "Quel est l'endroit le plus insolite où tu aies fait l'amour ?" },
+  { type: 'verite', category: 'nsfw', content: "Quelle est ta position préférée ?" },
+  { type: 'verite', category: 'nsfw', content: "As-tu déjà eu un coup d'un soir ? Si oui, raconte." },
+  { type: 'verite', category: 'nsfw', content: "Quelle est la chose la plus cochonne que tu aies faite ?" },
+
+  { type: 'action', category: 'nsfw', content: "Décris de manière très sensuelle ton partenaire idéal." },
+  { type: 'action', category: 'nsfw', content: "Envoie un message coquin à la personne de ton choix sur le serveur." },
+  { type: 'action', category: 'nsfw', content: "Décris ta lingerie/sous-vêtement actuel avec des mots très évocateurs." },
+  { type: 'action', category: 'nsfw', content: "Mime une scène coquine uniquement en utilisant des emojis." },
+  { type: 'action', category: 'nsfw', content: "Fais une confession intime en direct dans ce salon." }
+];
+
+const getActionVeriteItems = (guildId) => {
+  return db.prepare('SELECT * FROM action_verite WHERE guild_id = ?').all(guildId);
+};
+
+const addActionVeriteItem = (guildId, type, category, content) => {
+  return db.prepare('INSERT INTO action_verite (guild_id, type, category, content) VALUES (?, ?, ?, ?)').run(guildId, type, category, content);
+};
+
+const deleteActionVeriteItem = (guildId, id) => {
+  return db.prepare('DELETE FROM action_verite WHERE guild_id = ? AND id = ?').run(guildId, id);
+};
+
+const getRandomActionVeriteItem = (guildId, type, category) => {
+  const items = db.prepare('SELECT * FROM action_verite WHERE guild_id = ? AND type = ? AND category = ?').all(guildId, type, category);
+  if (items.length > 0) {
+    return items[Math.floor(Math.random() * items.length)].content;
+  }
+  const filtered = DEFAULT_AV.filter(i => i.type === type && i.category === category);
+  return filtered[Math.floor(Math.random() * filtered.length)].content;
+};
+
 module.exports = {
   db,
   initDatabase,
@@ -706,5 +763,9 @@ module.exports = {
   getKarmaConfig,
   updateKarmaConfig,
   getUnlimitedForums,
-  updateUnlimitedForums
+  updateUnlimitedForums,
+  getActionVeriteItems,
+  addActionVeriteItem,
+  deleteActionVeriteItem,
+  getRandomActionVeriteItem
 };

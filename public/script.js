@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const formAutomod = document.getElementById('form-automod');
   const formKarma = document.getElementById('form-karma');
   const formForums = document.getElementById('form-forums');
+  const formAddActionVerite = document.getElementById('form-add-action-verite');
+  const actionVeriteList = document.getElementById('action-verite-list');
 
   // Lists
   const shopItemsList = document.getElementById('shop-items-list');
@@ -403,6 +405,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 opt.selected = data.channels.includes(opt.value);
               });
             }
+          })
+          .catch(console.error);
+
+        // Charger la liste Action ou Vérité
+        fetch('/api/config/action-verite')
+          .then(res => res.json())
+          .then(items => {
+            renderActionVerite(items);
           })
           .catch(console.error);
       })
@@ -800,6 +810,64 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function renderActionVerite(items) {
+    actionVeriteList.innerHTML = '';
+    if (items.length === 0) {
+      actionVeriteList.innerHTML = `
+        <tr>
+          <td colspan="4" class="text-center" style="color: #8e9297;">Aucune question ou défi personnalisé. Le bot utilisera la liste par défaut.</td>
+        </tr>
+      `;
+      return;
+    }
+
+    items.forEach(item => {
+      const row = document.createElement('tr');
+
+      const tdType = document.createElement('td');
+      tdType.innerHTML = item.type === 'action' ? '🎬 <span style="color:#e74c3c;font-weight:bold;">Action</span>' : '💬 <span style="color:#3498db;font-weight:bold;">Vérité</span>';
+
+      const tdCat = document.createElement('td');
+      tdCat.innerHTML = item.category === 'sfw' ? '🟢 <span style="color:#2ecc71;">SFW (Standard)</span>' : '🔞 <span style="color:#e74c3c;">NSFW (Adulte)</span>';
+
+      const tdContent = document.createElement('td');
+      tdContent.textContent = item.content;
+
+      const tdActions = document.createElement('td');
+      tdActions.style.textAlign = 'center';
+      const btnDel = document.createElement('button');
+      btnDel.type = 'button';
+      btnDel.className = 'btn-delete-gif';
+      btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
+      btnDel.addEventListener('click', () => {
+        if (!confirm(`Supprimer cet élément ?\n"${item.content.substring(0, 30)}..."`)) return;
+        fetch('/api/config/action-verite/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: item.id })
+        })
+        .then(res => res.json())
+        .then(resData => {
+          if (resData.success) {
+            showToast('Élément supprimé !');
+            loadGuildConfiguration();
+          } else {
+            showToast('Erreur: ' + resData.error, true);
+          }
+        })
+        .catch(err => showToast('Erreur: ' + err.message, true));
+      });
+      tdActions.appendChild(btnDel);
+
+      row.appendChild(tdType);
+      row.appendChild(tdCat);
+      row.appendChild(tdContent);
+      row.appendChild(tdActions);
+
+      actionVeriteList.appendChild(row);
+    });
+  }
+
   // 7. Jeu du Mot Caché
   formGame.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -880,6 +948,31 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(resData => {
       if (resData.success) {
         showToast('Configuration des Forums enregistrée !');
+        loadGuildConfiguration();
+      } else {
+        showToast('Erreur: ' + resData.error, true);
+      }
+    })
+    .catch(err => showToast('Erreur: ' + err.message, true));
+  });
+
+  // Action ou Vérité
+  formAddActionVerite.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const type = document.getElementById('av_type').value;
+    const category = document.getElementById('av_category').value;
+    const content = document.getElementById('av_content').value;
+
+    fetch('/api/config/action-verite/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, category, content })
+    })
+    .then(res => res.json())
+    .then(resData => {
+      if (resData.success) {
+        showToast('Ajouté avec succès !');
+        document.getElementById('av_content').value = '';
         loadGuildConfiguration();
       } else {
         showToast('Erreur: ' + resData.error, true);
