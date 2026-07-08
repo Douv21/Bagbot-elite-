@@ -1035,7 +1035,7 @@ app.post('/api/config/counting/delete', (req, res) => {
 
 // --- CARTE DES MEMBRES (MAP LOCATIONS) ---
 
-app.get('/api/config/map-locations', (req, res) => {
+app.get('/api/config/map-locations', async (req, res) => {
   try {
     const guildId = req.query.guild || req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
@@ -1043,6 +1043,11 @@ app.get('/api/config/map-locations', (req, res) => {
     const locations = db.prepare('SELECT * FROM member_locations WHERE guild_id = ?').all(guildId);
     
     const guild = client.guilds.cache.get(guildId);
+    if (guild && locations.length > 0) {
+      const userIds = locations.map(loc => loc.user_id);
+      await guild.members.fetch({ user: userIds }).catch(() => null);
+    }
+
     const formatted = locations.map(loc => {
       const member = guild ? guild.members.cache.get(loc.user_id) : null;
       return {
@@ -1059,7 +1064,7 @@ app.get('/api/config/map-locations', (req, res) => {
   }
 });
 
-app.post('/api/config/map-locations/delete', (req, res) => {
+app.post('/api/config/map-locations/delete', async (req, res) => {
   try {
     const guildId = req.body.guild || req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
@@ -1069,7 +1074,7 @@ app.post('/api/config/map-locations/delete', (req, res) => {
 
     // Vérifier les permissions d'administration
     if (!req.session.user) return res.status(401).json({ error: 'Non autorisé' });
-    const member = guild.members.cache.get(req.session.user.id);
+    const member = await guild.members.fetch(req.session.user.id).catch(() => null);
     if (!member || (!member.permissions.has(PermissionFlagsBits.Administrator) && guild.ownerId !== req.session.user.id)) {
       return res.status(403).json({ error: 'Permission refusée (Administrateur requis)' });
     }
