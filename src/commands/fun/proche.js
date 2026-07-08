@@ -70,36 +70,36 @@ module.exports = {
       embed.addFields({ name: '📍 Liste des plus proches', value: list });
     }
 
-    // Construire l'URL de la carte statique Yandex avec les épingles
-    const markers = [];
-    markers.push(`${myLoc.longitude},${myLoc.latitude},pm2rdm`); // Rouge pour vous
+    // Construire l'URL de la carte statique LocationIQ avec les épingles
+    const token = 'pk.23c2374f145e8e071c64df133ea00cd4';
+    const markerList = [];
+    markerList.push(`icon:large-red-cutout|${myLoc.latitude},${myLoc.longitude}`); // Vous (Rouge)
     
     for (const n of nearby) {
       const otherLoc = others.find(o => o.user_id === n.userId);
       if (otherLoc) {
-        markers.push(`${otherLoc.longitude},${otherLoc.latitude},pm2gnm`); // Vert pour les autres
+        markerList.push(`icon:large-green-cutout|${otherLoc.latitude},${otherLoc.longitude}`); // Les autres (Vert)
       }
     }
 
     const files = [];
-    if (markers.length > 0) {
+    if (markerList.length > 0) {
       try {
-        const yandexUrl = `https://static-maps.yandex.ru/1.x/?l=map&size=600,450&pt=${encodeURIComponent(markers.join('~'))}`;
-        const response = await fetch(yandexUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-          }
-        });
+        const markerParams = markerList.map(m => `markers=${encodeURIComponent(m)}`).join('&');
+        const centerParams = markerList.length === 1 ? `center=${myLoc.latitude},${myLoc.longitude}&zoom=12` : '';
+        const locationIqUrl = `https://maps.locationiq.com/v3/staticmap?key=${token}&size=600x450&format=png&${centerParams}&${markerParams}`;
+
+        const response = await fetch(locationIqUrl);
         if (response.ok) {
           const buffer = await response.arrayBuffer();
           const attachment = new AttachmentBuilder(Buffer.from(buffer), { name: 'map.png' });
           embed.setImage('attachment://map.png');
           files.push(attachment);
         } else {
-          console.error('Yandex maps error:', response.statusText);
+          console.error('LocationIQ maps error:', response.statusText);
         }
       } catch (err) {
-        console.error('Error fetching static map image:', err);
+        console.error('Error fetching LocationIQ static map image:', err);
       }
     }
 
