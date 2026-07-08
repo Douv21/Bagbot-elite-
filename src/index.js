@@ -272,8 +272,20 @@ client.on('interactionCreate', async interaction => {
     return;
   }
 
+  const guildId = interaction.guild ? interaction.guild.id : null;
+  const userId = interaction.user.id;
+  const oldKarma = guildId ? (require('./database/db').getEconomy(guildId, userId)?.karma || 0) : 0;
+
   try {
     await command.execute(interaction);
+
+    if (guildId) {
+      const newEco = require('./database/db').getEconomy(guildId, userId);
+      const newKarma = newEco ? newEco.karma : 0;
+      if (newKarma !== oldKarma) {
+        await checkAndAnnounceKarmaReward(interaction, oldKarma, newKarma);
+      }
+    }
   } catch (error) {
     console.error(error);
     if (interaction.replied || interaction.deferred) {
@@ -283,6 +295,37 @@ client.on('interactionCreate', async interaction => {
     }
   }
 });
+
+async function checkAndAnnounceKarmaReward(interaction, oldKarma, newKarma) {
+  const guildId = interaction.guild ? interaction.guild.id : null;
+  if (!guildId) return;
+
+  const { getKarmaConfig } = require('./database/db');
+  const config = getKarmaConfig(guildId);
+
+  // Si le système de karma ou les annonces sont désactivés
+  if (!config.is_active || !config.announce_rewards) return;
+
+  const userId = interaction.user.id;
+  const channel = interaction.channel;
+  if (!channel) return;
+
+  // Seuil 1
+  if (oldKarma < config.threshold_1 && newKarma >= config.threshold_1) {
+    const text = `🎉 **Félicitations <@${userId}> !** Tu as atteint le rang de Karma **${config.threshold_1}** et débloqué les avantages :\n⚡ Multiplicateur d'XP : **x${config.xp_mult_1}**\n🛒 Réduction boutique : **-${config.discount_1}%** !`;
+    await channel.send({ content: text }).catch(() => null);
+  }
+  // Seuil 2
+  else if (oldKarma < config.threshold_2 && newKarma >= config.threshold_2) {
+    const text = `🎉 **Félicitations <@${userId}> !** Tu as atteint le rang de Karma **${config.threshold_2}** et débloqué les avantages :\n⚡ Multiplicateur d'XP : **x${config.xp_mult_2}**\n🛒 Réduction boutique : **-${config.discount_2}%** !`;
+    await channel.send({ content: text }).catch(() => null);
+  }
+  // Seuil 3
+  else if (oldKarma < config.threshold_3 && newKarma >= config.threshold_3) {
+    const text = `🎉 **Félicitations <@${userId}> !** Tu as atteint le rang de Karma **${config.threshold_3}** et débloqué les avantages :\n⚡ Multiplicateur d'XP : **x${config.xp_mult_3}**\n🛒 Réduction boutique : **-${config.discount_3}%** !`;
+    await channel.send({ content: text }).catch(() => null);
+  }
+}
 
 // Enregistrer les commandes slash auprès de Discord lors de la connexion
 client.once('ready', async () => {

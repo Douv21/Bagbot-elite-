@@ -78,16 +78,21 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
   const data = getLeveling(guildId, userId);
 
   // Appliquer le multiplicateur d'XP en fonction du Karma
+  const { getKarmaConfig } = require('../database/db');
+  const karmaConfig = getKarmaConfig(guildId);
+
   const memberEco = db.prepare('SELECT karma FROM economy WHERE guild_id = ? AND user_id = ?').get(guildId, userId);
   const karma = memberEco ? memberEco.karma : 0;
   
   let xpMultiplier = 1;
-  if (karma >= 100) {
-    xpMultiplier = 2;
-  } else if (karma >= 50) {
-    xpMultiplier = 1.5;
-  } else if (karma >= 20) {
-    xpMultiplier = 1.2;
+  if (karmaConfig.is_active) {
+    if (karma >= karmaConfig.threshold_3) {
+      xpMultiplier = karmaConfig.xp_mult_3;
+    } else if (karma >= karmaConfig.threshold_2) {
+      xpMultiplier = karmaConfig.xp_mult_2;
+    } else if (karma >= karmaConfig.threshold_1) {
+      xpMultiplier = karmaConfig.xp_mult_1;
+    }
   }
 
   const finalXpToAdd = Math.round(xpToAdd * xpMultiplier);

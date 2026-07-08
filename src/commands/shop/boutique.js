@@ -1,5 +1,20 @@
 const { SlashCommandBuilder, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { db, getEconomy, updateEconomy, getPrivateSuite, updatePrivateSuiteExpiry, addPrivateSuite } = require('../../database/db');
+const { db, getEconomy, updateEconomy, getPrivateSuite, updatePrivateSuiteExpiry, addPrivateSuite, getKarmaConfig } = require('../../database/db');
+
+function getKarmaDiscount(guildId, userId) {
+  const economy = getEconomy(guildId, userId);
+  const config = getKarmaConfig(guildId);
+  if (!config.is_active) return 0;
+  
+  if (economy.karma >= config.threshold_3) {
+    return config.discount_3 / 100;
+  } else if (economy.karma >= config.threshold_2) {
+    return config.discount_2 / 100;
+  } else if (economy.karma >= config.threshold_1) {
+    return config.discount_1 / 100;
+  }
+  return 0;
+}
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -35,15 +50,7 @@ module.exports = {
         .setTimestamp();
 
       items.forEach(item => {
-        const economy = getEconomy(guildId, userId);
-        let discount = 0;
-        if (economy.karma >= 100) {
-          discount = 0.20;
-        } else if (economy.karma >= 50) {
-          discount = 0.10;
-        } else if (economy.karma >= 20) {
-          discount = 0.05;
-        }
+        const discount = getKarmaDiscount(guildId, userId);
         const finalPrice = Math.round(item.price * (1 - discount));
         let details = `**Prix :** ${finalPrice} pièces${discount > 0 ? ` (~~${item.price}~~ -${Math.round(discount * 100)}%)` : ''}\n*${item.description || 'Aucune description.'}*`;
         if (item.role_id) {
@@ -53,15 +60,7 @@ module.exports = {
       });
 
       const selectOptions = items.slice(0, 25).map(item => {
-        const economy = getEconomy(guildId, userId);
-        let discount = 0;
-        if (economy.karma >= 100) {
-          discount = 0.20;
-        } else if (economy.karma >= 50) {
-          discount = 0.10;
-        } else if (economy.karma >= 20) {
-          discount = 0.05;
-        }
+        const discount = getKarmaDiscount(guildId, userId);
         const finalPrice = Math.round(item.price * (1 - discount));
         return {
           label: item.item_name.substring(0, 25),
@@ -90,14 +89,7 @@ module.exports = {
     // Récupérer l'économie de l'utilisateur
     const economy = getEconomy(guildId, userId);
 
-    let discount = 0;
-    if (economy.karma >= 100) {
-      discount = 0.20;
-    } else if (economy.karma >= 50) {
-      discount = 0.10;
-    } else if (economy.karma >= 20) {
-      discount = 0.05;
-    }
+    const discount = getKarmaDiscount(guildId, userId);
     const finalPrice = Math.round(item.price * (1 - discount));
 
     if (economy.wallet < finalPrice) {

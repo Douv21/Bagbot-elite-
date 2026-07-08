@@ -23,6 +23,23 @@ function initDatabase() {
     )
   `).run();
 
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS karma_config (
+      guild_id TEXT PRIMARY KEY,
+      is_active INTEGER DEFAULT 1,
+      announce_rewards INTEGER DEFAULT 1,
+      threshold_1 INTEGER DEFAULT 20,
+      xp_mult_1 REAL DEFAULT 1.2,
+      discount_1 REAL DEFAULT 5,
+      threshold_2 INTEGER DEFAULT 50,
+      xp_mult_2 REAL DEFAULT 1.5,
+      discount_2 REAL DEFAULT 10,
+      threshold_3 INTEGER DEFAULT 100,
+      xp_mult_3 REAL DEFAULT 2.0,
+      discount_3 REAL DEFAULT 20
+    )
+  `).run();
+
   // 2. Système de Niveaux (Leveling)
   db.prepare(`
     CREATE TABLE IF NOT EXISTS leveling (
@@ -611,6 +628,21 @@ const updatePrivateSuiteExpiry = (guildId, userId, expiresAt) => {
   return db.prepare('UPDATE private_suites SET expires_at = ? WHERE guild_id = ? AND user_id = ?').run(expiresAt, guildId, userId);
 };
 
+const getKarmaConfig = (guildId) => {
+  let config = db.prepare('SELECT * FROM karma_config WHERE guild_id = ?').get(guildId);
+  if (!config) {
+    db.prepare('INSERT OR IGNORE INTO karma_config (guild_id) VALUES (?)').run(guildId);
+    config = db.prepare('SELECT * FROM karma_config WHERE guild_id = ?').get(guildId);
+  }
+  return config;
+};
+
+const updateKarmaConfig = (guildId, updates) => {
+  const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
+  const values = Object.values(updates);
+  return db.prepare(`UPDATE karma_config SET ${fields} WHERE guild_id = ?`).run(...values, guildId);
+};
+
 module.exports = {
   db,
   initDatabase,
@@ -650,5 +682,7 @@ module.exports = {
   getAllPrivateSuites,
   addPrivateSuite,
   deletePrivateSuite,
-  updatePrivateSuiteExpiry
+  updatePrivateSuiteExpiry,
+  getKarmaConfig,
+  updateKarmaConfig
 };

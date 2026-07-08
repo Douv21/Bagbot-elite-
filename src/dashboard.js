@@ -26,7 +26,9 @@ const {
   getCountingChannel,
   addCountingChannel,
   updateCountingChannel,
-  deleteCountingChannel
+  deleteCountingChannel,
+  getKarmaConfig,
+  updateKarmaConfig
 } = require('./database/db');
 
 const app = express();
@@ -1112,6 +1114,61 @@ app.get('/api/map-image', async (req, res) => {
   } catch (error) {
     console.error('Error in /api/map-image:', error);
     res.status(500).send('Internal Server Error');
+  }
+});
+
+// --- CONFIGURATION DU KARMA & RÉCOMPENSES ---
+
+app.get('/api/config/karma', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const config = getKarmaConfig(guildId);
+    res.json(config);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/karma', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { 
+      is_active, 
+      announce_rewards, 
+      threshold_1, 
+      xp_mult_1, 
+      discount_1, 
+      threshold_2, 
+      xp_mult_2, 
+      discount_2, 
+      threshold_3, 
+      xp_mult_3, 
+      discount_3 
+    } = req.body;
+
+    updateKarmaConfig(guildId, {
+      is_active: is_active ? 1 : 0,
+      announce_rewards: announce_rewards ? 1 : 0,
+      threshold_1: parseInt(threshold_1) || 20,
+      xp_mult_1: parseFloat(xp_mult_1) || 1.2,
+      discount_1: parseFloat(discount_1) || 5,
+      threshold_2: parseInt(threshold_2) || 50,
+      xp_mult_2: parseFloat(xp_mult_2) || 1.5,
+      discount_2: parseFloat(discount_2) || 10,
+      threshold_3: parseInt(threshold_3) || 100,
+      xp_mult_3: parseFloat(xp_mult_3) || 2.0,
+      discount_3: parseFloat(discount_3) || 20
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 

@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const formLevelingSettings = document.getElementById('form-leveling-settings');
   const formGame = document.getElementById('form-game');
   const formAutomod = document.getElementById('form-automod');
+  const formKarma = document.getElementById('form-karma');
 
   // Lists
   const shopItemsList = document.getElementById('shop-items-list');
@@ -357,6 +358,24 @@ document.addEventListener('DOMContentLoaded', () => {
         renderActiveAutoroles(config.autorole_embeds || []);
         renderCountingChannels(config.counting_channels || []);
         if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
+
+        // Charger la configuration Karma
+        fetch('/api/config/karma')
+          .then(res => res.json())
+          .then(karma => {
+            document.getElementById('karma_is_active').checked = !!karma.is_active;
+            document.getElementById('karma_announce_rewards').checked = !!karma.announce_rewards;
+            document.getElementById('karma_threshold_1').value = karma.threshold_1 ?? 20;
+            document.getElementById('karma_xp_mult_1').value = karma.xp_mult_1 ?? 1.2;
+            document.getElementById('karma_discount_1').value = karma.discount_1 ?? 5;
+            document.getElementById('karma_threshold_2').value = karma.threshold_2 ?? 50;
+            document.getElementById('karma_xp_mult_2').value = karma.xp_mult_2 ?? 1.5;
+            document.getElementById('karma_discount_2').value = karma.discount_2 ?? 10;
+            document.getElementById('karma_threshold_3').value = karma.threshold_3 ?? 100;
+            document.getElementById('karma_xp_mult_3').value = karma.xp_mult_3 ?? 2.0;
+            document.getElementById('karma_discount_3').value = karma.discount_3 ?? 20;
+          })
+          .catch(console.error);
       })
       .catch(console.error);
   }
@@ -775,6 +794,40 @@ document.addEventListener('DOMContentLoaded', () => {
       if (resData.success) {
         showToast('Configuration du jeu enregistrée !');
         document.getElementById('game_reset_progress').checked = false;
+        loadGuildConfiguration();
+      } else {
+        showToast('Erreur: ' + resData.error, true);
+      }
+    })
+    .catch(err => showToast('Erreur: ' + err.message, true));
+  });
+
+  // Karma & Récompenses
+  formKarma.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = {
+      is_active: document.getElementById('karma_is_active').checked,
+      announce_rewards: document.getElementById('karma_announce_rewards').checked,
+      threshold_1: parseInt(document.getElementById('karma_threshold_1').value) || 20,
+      xp_mult_1: parseFloat(document.getElementById('karma_xp_mult_1').value) || 1.2,
+      discount_1: parseFloat(document.getElementById('karma_discount_1').value) || 5,
+      threshold_2: parseInt(document.getElementById('karma_threshold_2').value) || 50,
+      xp_mult_2: parseFloat(document.getElementById('karma_xp_mult_2').value) || 1.5,
+      discount_2: parseFloat(document.getElementById('karma_discount_2').value) || 10,
+      threshold_3: parseInt(document.getElementById('karma_threshold_3').value) || 100,
+      xp_mult_3: parseFloat(document.getElementById('karma_xp_mult_3').value) || 2.0,
+      discount_3: parseFloat(document.getElementById('karma_discount_3').value) || 20
+    };
+
+    fetch('/api/config/karma', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(resData => {
+      if (resData.success) {
+        showToast('Configuration du Karma enregistrée !');
         loadGuildConfiguration();
       } else {
         showToast('Erreur: ' + resData.error, true);
