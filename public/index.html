@@ -70,6 +70,7 @@
         <button class="tab-btn" data-tab="tab-gifs"><i class="fa-solid fa-file-video"></i> GIFs d'action</button>
         <button class="tab-btn" data-tab="tab-game"><i class="fa-solid fa-gamepad"></i> Jeu Mot Caché</button>
         <button class="tab-btn" data-tab="tab-karma"><i class="fa-solid fa-star"></i> Configuration Karma</button>
+        <button class="tab-btn" data-tab="tab-forums"><i class="fa-solid fa-comments"></i> Forums Illimités</button>
         <button class="tab-btn" data-tab="tab-map"><i class="fa-solid fa-map-location-dot"></i> Carte des Membres</button>
       </aside>
 
@@ -862,7 +863,7 @@
                   </div>
                 </div>
 
-                <div class="form-row">
+                <div class="form-row" style="display: none;">
                   <div class="form-group">
                     <label for="karma_min">Gain Karma minimum (par message) :</label>
                     <input type="number" id="karma_min" required min="0" placeholder="Ex: 1">
@@ -1198,6 +1199,30 @@
 
               <div class="actions-bar">
                 <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les Paliers</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Tab: Forums Illimités -->
+          <div id="tab-forums" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-comments"></i> Forums Illimités</h2>
+            <form id="form-forums" class="glass-form">
+              <div class="card glass">
+                <p>Sélectionnez les salons de type Forum qui doivent rester ouverts en illimité (les fils de discussion archivés seront automatiquement réouverts).</p>
+                
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="unlimited_forum_channels">Salons Forums (Sélection multiple - Maintenir Ctrl pour en choisir plusieurs) :</label>
+                    <select id="unlimited_forum_channels" multiple class="custom-select" style="height: 200px; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-family: inherit;">
+                      <!-- Rempli en JS avec uniquement les salons Forum (Type 15) -->
+                    </select>
+                    <small style="color: #b9bbbe; display: block; margin-top: 5px;">Seuls les salons de type Forum (Forum Channels) s'affichent ici.</small>
+                  </div>
+                </div>
+              </div>
+
+              <div class="actions-bar">
+                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les Forums</button>
               </div>
             </form>
           </div>

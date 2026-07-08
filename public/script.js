@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const formGame = document.getElementById('form-game');
   const formAutomod = document.getElementById('form-automod');
   const formKarma = document.getElementById('form-karma');
+  const formForums = document.getElementById('form-forums');
 
   // Lists
   const shopItemsList = document.getElementById('shop-items-list');
@@ -226,6 +227,21 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
+    // Populate Forums
+    const forumSelect = document.getElementById('unlimited_forum_channels');
+    if (forumSelect) {
+      forumSelect.innerHTML = '';
+      channelsList.forEach(ch => {
+        // En Discord, le type 15 est GuildForum
+        if (ch.type === 15) {
+          const option = document.createElement('option');
+          option.value = ch.id;
+          option.textContent = `📢 ${ch.name}`;
+          forumSelect.appendChild(option);
+        }
+      });
+    }
+
     // Synchroniser tous les sélecteurs de recherche personnalisés
     document.querySelectorAll('.channel-select, .announce-channel-select, .role-select').forEach(select => {
       if (select.syncCustomSelect) {
@@ -374,6 +390,19 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('karma_threshold_3').value = karma.threshold_3 ?? 100;
             document.getElementById('karma_xp_mult_3').value = karma.xp_mult_3 ?? 2.0;
             document.getElementById('karma_discount_3').value = karma.discount_3 ?? 20;
+          })
+          .catch(console.error);
+
+        // Charger la configuration des Forums Illimités
+        fetch('/api/config/unlimited-forums')
+          .then(res => res.json())
+          .then(data => {
+            const forumSelect = document.getElementById('unlimited_forum_channels');
+            if (forumSelect && data.channels) {
+              Array.from(forumSelect.options).forEach(opt => {
+                opt.selected = data.channels.includes(opt.value);
+              });
+            }
           })
           .catch(console.error);
       })
@@ -828,6 +857,29 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(resData => {
       if (resData.success) {
         showToast('Configuration du Karma enregistrée !');
+        loadGuildConfiguration();
+      } else {
+        showToast('Erreur: ' + resData.error, true);
+      }
+    })
+    .catch(err => showToast('Erreur: ' + err.message, true));
+  });
+
+  // Forums Illimités
+  formForums.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const forumSelect = document.getElementById('unlimited_forum_channels');
+    const selectedOptions = Array.from(forumSelect.selectedOptions).map(opt => opt.value);
+
+    fetch('/api/config/unlimited-forums', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channels: selectedOptions })
+    })
+    .then(res => res.json())
+    .then(resData => {
+      if (resData.success) {
+        showToast('Configuration des Forums enregistrée !');
         loadGuildConfiguration();
       } else {
         showToast('Erreur: ' + resData.error, true);

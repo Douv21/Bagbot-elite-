@@ -377,6 +377,14 @@ function initDatabase() {
     )
   `).run();
 
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS unlimited_forums (
+      guild_id TEXT,
+      channel_id TEXT,
+      PRIMARY KEY (guild_id, channel_id)
+    )
+  `).run();
+
   // Migrations pour les auto-rôles embeds (type et mode)
   try {
     db.prepare("ALTER TABLE autorole_embeds ADD COLUMN type TEXT DEFAULT 'buttons'").run();
@@ -643,6 +651,18 @@ const updateKarmaConfig = (guildId, updates) => {
   return db.prepare(`UPDATE karma_config SET ${fields} WHERE guild_id = ?`).run(...values, guildId);
 };
 
+const getUnlimitedForums = (guildId) => {
+  return db.prepare('SELECT channel_id FROM unlimited_forums WHERE guild_id = ?').all(guildId).map(r => r.channel_id);
+};
+
+const updateUnlimitedForums = (guildId, channelIds) => {
+  db.prepare('DELETE FROM unlimited_forums WHERE guild_id = ?').run(guildId);
+  const insert = db.prepare('INSERT INTO unlimited_forums (guild_id, channel_id) VALUES (?, ?)');
+  for (const chId of channelIds) {
+    insert.run(guildId, chId);
+  }
+};
+
 module.exports = {
   db,
   initDatabase,
@@ -684,5 +704,7 @@ module.exports = {
   deletePrivateSuite,
   updatePrivateSuiteExpiry,
   getKarmaConfig,
-  updateKarmaConfig
+  updateKarmaConfig,
+  getUnlimitedForums,
+  updateUnlimitedForums
 };
