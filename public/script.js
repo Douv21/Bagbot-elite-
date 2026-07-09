@@ -267,6 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
           itemDiv.appendChild(label);
           forumContainer.appendChild(itemDiv);
         });
+      }
     }
 
     // Populate Ticket Category Select (type 4 is GuildCategory)
