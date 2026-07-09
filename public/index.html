@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=1.0.3">
   <script>
     window.onerror = function(message, source, lineno, colno, error) {
       fetch('/api/log-error', {
@@ -61,12 +61,19 @@
         </div>
       </div>
       
-      <div class="guild-selector">
-        <label for="guild-select"><i class="fa-solid fa-server"></i> Serveur :</label>
-        <select id="guild-select">
-          <option value="">-- Choisir un serveur --</option>
-        </select>
+      <!-- Bouton d'icône de serveur cliquable -->
+      <div id="active-guild-trigger" class="active-guild-trigger" style="display: none;">
+        <div class="active-guild-icon-wrapper">
+          <img id="active-guild-icon" src="" alt="Serveur" class="active-guild-icon-img">
+          <div id="active-guild-initials" class="active-guild-initials-placeholder" style="display: none;"></div>
+        </div>
+        <div class="active-guild-tooltip">Changer de serveur</div>
       </div>
+
+      <!-- Select conservé masqué pour la compatibilité JS -->
+      <select id="guild-select" style="display: none;">
+        <option value="">-- Choisir un serveur --</option>
+      </select>
 
       <div class="user-profile">
         <img id="user-avatar" src="" alt="Avatar">

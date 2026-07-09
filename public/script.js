@@ -239,6 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!guildId) {
       noGuildSelected.style.display = 'block';
       configForms.style.display = 'none';
+      updateActiveGuildIcon('');
       return;
     }
 
@@ -253,9 +254,59 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(console.error);
   });
 
+  const activeGuildTrigger = document.getElementById('active-guild-trigger');
+  if (activeGuildTrigger) {
+    activeGuildTrigger.addEventListener('click', () => {
+      guildSelect.value = '';
+      fetch('/api/select-guild', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guildId: '' })
+      })
+      .then(res => res.json())
+      .then(() => {
+        guildSelect.dispatchEvent(new Event('change'));
+      })
+      .catch(console.error);
+    });
+  }
+
+  function updateActiveGuildIcon(guildId) {
+    const activeTrigger = document.getElementById('active-guild-trigger');
+    const activeIcon = document.getElementById('active-guild-icon');
+    const activeInitials = document.getElementById('active-guild-initials');
+    if (!activeTrigger) return;
+
+    if (!guildId) {
+      activeTrigger.style.display = 'none';
+      return;
+    }
+
+    const guild = guildsList.find(g => g.id === guildId);
+    if (!guild) {
+      activeTrigger.style.display = 'none';
+      return;
+    }
+
+    if (guild.icon) {
+      activeIcon.src = `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`;
+      activeIcon.style.display = 'block';
+      activeInitials.style.display = 'none';
+    } else {
+      const initials = guild.name.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase();
+      activeInitials.textContent = initials;
+      activeInitials.style.display = 'flex';
+      activeIcon.style.display = 'none';
+    }
+
+    activeTrigger.style.display = 'flex';
+  }
+
   async function handleGuildSelection(guildId) {
     noGuildSelected.style.display = 'none';
     configForms.style.display = 'block';
+    
+    updateActiveGuildIcon(guildId);
 
     // 1. Fetch channels, roles & members
     await Promise.all([
