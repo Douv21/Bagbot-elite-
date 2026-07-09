@@ -1,15 +1,15 @@
 /* style.css */
 :root {
   --primary-color: #5865F2;
-  --primary-glow: rgba(88, 101, 242, 0.35);
-  --bg-dark: #07080d;
-  --bg-card: rgba(15, 17, 28, 0.45);
-  --text-color: #f3f4f6;
-  --text-muted: #8a8f9d;
-  --border-color: rgba(255, 255, 255, 0.06);
-  --success-color: #00E676;
-  --danger-color: #ff3366;
-  --warning-color: #ffaa00;
+  --primary-glow: rgba(88, 101, 242, 0.4);
+  --bg-dark: #08090c;
+  --bg-card: rgba(24, 28, 43, 0.85);
+  --text-color: #ffffff;
+  --text-muted: #b9bbbe;
+  --border-color: rgba(255, 255, 255, 0.14);
+  --success-color: #00FF87;
+  --danger-color: #ff477e;
+  --warning-color: #ffb300;
 }
 
 * {
@@ -226,7 +226,7 @@ body::after {
   width: calc(100% - 64px);
   max-width: 1540px;
   border: 1px solid var(--border-color);
-  background: rgba(15, 17, 28, 0.45);
+  background: rgba(24, 28, 43, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: 16px;
@@ -333,7 +333,7 @@ body::after {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: rgba(11, 12, 19, 0.45);
+  background: rgba(24, 28, 43, 0.95);
   border: 1px solid var(--border-color);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -1419,4 +1419,42 @@ body::after {
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
+}
+
+/* --- ACCESSIBILITY & CONTRAST BOOST --- */
+.form-help, .form-group label, .config-help, .section-subtitle, p, span {
+  color: #d1d5db !important;
+}
+
+h1, h2, h3, h4, h5, h6, th {
+  color: #ffffff !important;
+}
+
+input[type="text"], input[type="number"], textarea, select {
+  background: rgba(0, 0, 0, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+}
+
+input[type="text"]:focus, input[type="number"]:focus, textarea:focus, select:focus {
+  border-color: #5865F2 !important;
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.3) !important;
+}
+
+.custom-select-trigger {
+  background: rgba(0, 0, 0, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+}
+
+.custom-select-wrapper.open .custom-select-trigger {
+  border-color: #5865F2 !important;
+}
+
+.premium-table th, .premium-table td, .config-table th, .config-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+td.text-center, td[colspan] {
+  color: #b9bbbe !important;
 }
