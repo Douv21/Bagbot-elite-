@@ -59,11 +59,16 @@ body {
 }
 
 .card {
+  position: relative;
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 24px;
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:has(.custom-select-wrapper.open) {
+  z-index: 100;
 }
 
 .card:hover {
@@ -1105,6 +1110,10 @@ body {
 .custom-select-wrapper.open .custom-select-trigger {
   border-color: #5865F2;
   box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
+}
+
+.custom-select-wrapper.open {
+  z-index: 1010;
 }
 
 .custom-select-options-panel {

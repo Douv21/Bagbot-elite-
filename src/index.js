@@ -173,10 +173,11 @@ client.on('interactionCreate', async interaction => {
 
       return interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
     } else if (customId.startsWith('av_')) {
-      const [_, mode, choix] = customId.split('_');
+      const choix = customId.split('_')[1]; // 'action' ou 'verite'
       const guildId = interaction.guild ? interaction.guild.id : 'DM';
+      let mode = 'sfw'; // Par défaut SFW
 
-      // Vérifications des salons configurés
+      // Détermination automatique du mode et restrictions
       if (interaction.guild) {
         const { getActionVeriteConfig, getRandomActionVeriteItem } = require('./database/db');
         const config = getActionVeriteConfig(guildId);
@@ -192,19 +193,18 @@ client.on('interactionCreate', async interaction => {
             return interaction.reply({ content: msg, ephemeral: true });
           }
 
-          if (isSfwAllowed && mode === 'nsfw') {
-            return interaction.reply({
-              content: '🔞 Le mode **NSFW** ne peut pas être joué dans le salon SFW ! Allez dans le salon NSFW si configuré.',
-              ephemeral: true
-            });
+          if (isNsfwAllowed) {
+            mode = 'nsfw';
+          } else {
+            mode = 'sfw';
           }
-        }
-
-        if (mode === 'nsfw' && !interaction.channel.nsfw) {
-          return interaction.reply({ 
-            content: '🔞 Le mode **NSFW** ne peut être joué que dans un salon configuré comme NSFW !', 
-            ephemeral: true 
-          });
+        } else {
+          // Si aucun salon configuré, on se base sur la nature NSFW ou SFW du salon courant
+          if (interaction.channel.nsfw) {
+            mode = 'nsfw';
+          } else {
+            mode = 'sfw';
+          }
         }
       }
 
@@ -221,11 +221,11 @@ client.on('interactionCreate', async interaction => {
       const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-          .setCustomId(`av_${mode}_action`)
+          .setCustomId('av_action')
           .setLabel('Action 🎬')
           .setStyle(ButtonStyle.Danger),
         new ButtonBuilder()
-          .setCustomId(`av_${mode}_verite`)
+          .setCustomId('av_verite')
           .setLabel('Vérité 💬')
           .setStyle(ButtonStyle.Primary)
       );
