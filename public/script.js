@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const formAddActionVerite = document.getElementById('form-add-action-verite');
   const actionVeriteList = document.getElementById('action-verite-list');
   const formActionVeriteChannels = document.getElementById('form-action-verite-channels');
+  const formTicketPanel = document.getElementById('form-ticket-panel');
+  const formTicketOption = document.getElementById('form-ticket-option');
+  const ticketOptionsList = document.getElementById('ticket-options-list');
 
   // Lists
   const shopItemsList = document.getElementById('shop-items-list');
@@ -37,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentUser = null;
   let channelsList = [];
   let rolesList = [];
+  let membersList = [];
 
   // Interactive Welcome / Leave State
   let welcomeData = {
@@ -163,10 +167,11 @@ document.addEventListener('DOMContentLoaded', () => {
     noGuildSelected.style.display = 'none';
     configForms.style.display = 'block';
 
-    // 1. Fetch channels & roles
+    // 1. Fetch channels, roles & members
     await Promise.all([
       fetch('/api/channels').then(res => res.json()).then(data => { channelsList = data; }),
-      fetch('/api/roles').then(res => res.json()).then(data => { rolesList = data; })
+      fetch('/api/roles').then(res => res.json()).then(data => { rolesList = data; }),
+      fetch('/api/members').then(res => res.json()).then(data => { membersList = data; })
     ]).catch(console.error);
 
     // 2. Populate selects
@@ -262,11 +267,36 @@ document.addEventListener('DOMContentLoaded', () => {
           itemDiv.appendChild(label);
           forumContainer.appendChild(itemDiv);
         });
-      }
+    }
+
+    // Populate Ticket Category Select (type 4 is GuildCategory)
+    const ticketCatSelect = document.getElementById('ticket_opt_category');
+    if (ticketCatSelect) {
+      ticketCatSelect.innerHTML = '<option value="">-- Aucune catégorie (Racine) --</option>';
+      channelsList.forEach(ch => {
+        if (ch.type === 4) {
+          const option = document.createElement('option');
+          option.value = ch.id;
+          option.textContent = `📁 ${ch.name}`;
+          ticketCatSelect.appendChild(option);
+        }
+      });
+    }
+
+    // Populate Ticket Members Ping Select
+    const ticketPingSelect = document.getElementById('ticket_opt_ping_users');
+    if (ticketPingSelect) {
+      ticketPingSelect.innerHTML = '';
+      membersList.forEach(m => {
+        const option = document.createElement('option');
+        option.value = m.id;
+        option.textContent = `${m.displayName} (${m.name})`;
+        ticketPingSelect.appendChild(option);
+      });
     }
 
     // Synchroniser tous les sélecteurs de recherche personnalisés
-    document.querySelectorAll('.channel-select, .announce-channel-select, .role-select').forEach(select => {
+    document.querySelectorAll('.channel-select, .announce-channel-select, .role-select, .custom-select').forEach(select => {
       if (select.syncCustomSelect) {
         select.syncCustomSelect();
       }
@@ -446,6 +476,35 @@ document.addEventListener('DOMContentLoaded', () => {
           .then(res => res.json())
           .then(items => {
             renderActionVerite(items);
+          })
+          .catch(console.error);
+
+        // Charger la configuration des Tickets (Panel et Options)
+        fetch('/api/config/tickets')
+          .then(res => res.json())
+          .then(data => {
+            const panel = data.panel;
+            const options = data.options;
+
+            // Remplir le formulaire du Panel
+            document.getElementById('ticket_panel_title').value = panel.title || '';
+            document.getElementById('ticket_panel_desc').value = panel.description || '';
+            document.getElementById('ticket_panel_color').value = panel.color || '#5865f2';
+            document.getElementById('ticket_panel_selector').value = panel.selector_type || 'select';
+            document.getElementById('ticket_panel_channel').value = panel.channel_id || '';
+            document.getElementById('ticket_panel_thumbnail').checked = !!panel.thumbnail;
+
+            // Synchroniser les custom selects du panel
+            const channelSel = document.getElementById('ticket_panel_channel');
+            const selectorSel = document.getElementById('ticket_panel_selector');
+            if (channelSel.syncCustomSelect) channelSel.syncCustomSelect();
+            if (selectorSel.syncCustomSelect) selectorSel.syncCustomSelect();
+
+            // Mettre à jour l'aperçu en direct
+            updateTicketPreview(panel, options);
+
+            // Rendre la liste des options de ticket
+            renderTicketOptions(options);
           })
           .catch(console.error);
       })
@@ -901,6 +960,190 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function renderTicketOptions(options) {
+    ticketOptionsList.innerHTML = '';
+    if (options.length === 0) {
+      ticketOptionsList.innerHTML = `
+        <tr>
+          <td colspan="6" class="text-center" style="color: #8e9297;">Aucune catégorie de ticket configurée. Créez-en une ci-dessus.</td>
+        </tr>
+      `;
+      return;
+    }
+
+    options.forEach(opt => {
+      const row = document.createElement('tr');
+
+      // Option label + value
+      const tdLabel = document.createElement('td');
+      tdLabel.innerHTML = `<strong>${opt.label}</strong><br><small style="color: #b9bbbe;">value: ${opt.value}</small>`;
+
+      // Emoji / Button color
+      const tdStyle = document.createElement('td');
+      let styleText = 'N/A (Select menu)';
+      const btnStyle = opt.button_style || 'Primary';
+      let colorDot = '#5865F2';
+      if (btnStyle === 'Secondary') colorDot = '#4f545c';
+      if (btnStyle === 'Success') colorDot = '#43b581';
+      if (btnStyle === 'Danger') colorDot = '#f04747';
+
+      const emojiText = opt.emoji ? `${opt.emoji} ` : '';
+      tdStyle.innerHTML = `${emojiText}<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${colorDot};margin-right:5px;"></span>${btnStyle}`;
+
+      // Parent category
+      const tdCategory = document.createElement('td');
+      tdCategory.textContent = opt.category_id ? (getChannelName(opt.category_id) || opt.category_id) : 'Racine';
+
+      // Required role
+      const tdReqRole = document.createElement('td');
+      tdReqRole.innerHTML = opt.required_role_id ? `<span style="background: rgba(88,101,242,0.2); padding: 2px 6px; border-radius: 4px; color: #7289da;">@${getRoleName(opt.required_role_id)}</span>` : '<span style="color:#8e9297;">Tout le monde</span>';
+
+      // Support roles & pings
+      const tdSupport = document.createElement('td');
+      let rolesArr = [];
+      try { rolesArr = JSON.parse(opt.support_roles || '[]'); } catch (e) {}
+      let pingsArr = [];
+      try { pingsArr = JSON.parse(opt.ping_users || '[]'); } catch (e) {}
+
+      let rolesText = rolesArr.map(rid => `@${getRoleName(rid)}`).join(', ') || 'Aucun rôle';
+      let pingsText = pingsArr.map(uid => {
+        const u = membersList.find(m => m.id === uid);
+        return u ? u.displayName : uid;
+      }).join(', ') || 'Aucun membre';
+
+      tdSupport.innerHTML = `<strong>Staff:</strong> ${rolesText}<br><small style="color: #b9bbbe;"><strong>Pings:</strong> ${pingsText}</small>`;
+
+      // Actions
+      const tdActions = document.createElement('td');
+      tdActions.style.textAlign = 'center';
+      const btnDel = document.createElement('button');
+      btnDel.type = 'button';
+      btnDel.className = 'btn-delete-gif';
+      btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
+      btnDel.addEventListener('click', () => {
+        if (!confirm(`Supprimer cette catégorie de ticket "${opt.label}" ?`)) return;
+        fetch('/api/config/tickets/options/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: opt.id })
+        })
+        .then(res => res.json())
+        .then(resData => {
+          if (resData.success) {
+            showToast('Catégorie de ticket supprimée !');
+            loadGuildConfiguration();
+          } else {
+            showToast('Erreur: ' + resData.error, true);
+          }
+        })
+        .catch(err => showToast('Erreur: ' + err.message, true));
+      });
+      tdActions.appendChild(btnDel);
+
+      row.appendChild(tdLabel);
+      row.appendChild(tdStyle);
+      row.appendChild(tdCategory);
+      row.appendChild(tdReqRole);
+      row.appendChild(tdSupport);
+      row.appendChild(tdActions);
+
+      ticketOptionsList.appendChild(row);
+    });
+  }
+
+  function updateTicketPreview(panel, options) {
+    const titleEl = document.getElementById('ticket-preview-title');
+    const descEl = document.getElementById('ticket-preview-desc');
+    const embedEl = document.getElementById('ticket-preview-embed');
+    const thumbImgEl = document.getElementById('ticket-preview-thumb-img');
+    const compsEl = document.getElementById('ticket-preview-components');
+
+    titleEl.textContent = panel.title || '🎫 Support / Tickets';
+    descEl.textContent = panel.description || 'Sélectionnez ou cliquez sur le bouton correspondant pour ouvrir un ticket d\'assistance.';
+    embedEl.style.borderLeftColor = panel.color || '#5865F2';
+
+    // Thumbnail
+    if (panel.thumbnail && guildSelect.value) {
+      const selectedOpt = guildSelect.options[guildSelect.selectedIndex];
+      const iconHash = selectedOpt?.dataset?.icon;
+      const guildId = guildSelect.value;
+      if (iconHash && iconHash !== 'null') {
+        thumbImgEl.src = `https://cdn.discordapp.com/icons/${guildId}/${iconHash}.png`;
+        thumbImgEl.style.display = 'block';
+      } else {
+        thumbImgEl.src = 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png';
+        thumbImgEl.style.display = 'block';
+      }
+    } else {
+      thumbImgEl.style.display = 'none';
+    }
+
+    // Components Preview
+    compsEl.innerHTML = '';
+    if (options.length === 0) {
+      compsEl.innerHTML = '<div style="color:#72767d;font-style:italic;font-size:0.9rem;">Aucun bouton ou sélecteur (créez d\'abord des options)</div>';
+      return;
+    }
+
+    if (panel.selector_type === 'buttons') {
+      const flexContainer = document.createElement('div');
+      flexContainer.style.display = 'flex';
+      flexContainer.style.flexWrap = 'wrap';
+      flexContainer.style.gap = '8px';
+
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.style.padding = '6px 16px';
+        btn.style.borderRadius = '4px';
+        btn.style.border = 'none';
+        btn.style.color = '#fff';
+        btn.style.fontWeight = '500';
+        btn.style.fontSize = '0.9rem';
+        btn.style.cursor = 'default';
+        btn.style.display = 'flex';
+        btn.style.alignItems = 'center';
+        btn.style.gap = '6px';
+
+        let bg = '#5865F2';
+        if (opt.button_style === 'Secondary') bg = '#4f545c';
+        if (opt.button_style === 'Success') bg = '#43b581';
+        if (opt.button_style === 'Danger') bg = '#f04747';
+
+        btn.style.backgroundColor = bg;
+        
+        const emojiSpan = document.createElement('span');
+        emojiSpan.textContent = opt.emoji || '';
+        const labelSpan = document.createElement('span');
+        labelSpan.textContent = opt.label;
+
+        if (opt.emoji) btn.appendChild(emojiSpan);
+        btn.appendChild(labelSpan);
+
+        flexContainer.appendChild(btn);
+      });
+      compsEl.appendChild(flexContainer);
+    } else {
+      const selectMenu = document.createElement('div');
+      selectMenu.style.width = '100%';
+      selectMenu.style.padding = '10px 12px';
+      selectMenu.style.borderRadius = '4px';
+      selectMenu.style.background = '#2f3136';
+      selectMenu.style.border = '1px solid rgba(255,255,255,0.08)';
+      selectMenu.style.color = '#dcddde';
+      selectMenu.style.fontSize = '0.9rem';
+      selectMenu.style.display = 'flex';
+      selectMenu.style.justifyContent = 'space-between';
+      selectMenu.style.alignItems = 'center';
+      
+      selectMenu.innerHTML = `
+        <span>Sélectionnez une catégorie pour ouvrir un ticket...</span>
+        <i class="fa-solid fa-chevron-down" style="font-size:0.8rem;color:#72767d;"></i>
+      `;
+      compsEl.appendChild(selectMenu);
+    }
+  }
+
   // 7. Jeu du Mot Caché
   formGame.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -1029,6 +1272,119 @@ document.addEventListener('DOMContentLoaded', () => {
       if (resData.success) {
         showToast('Ajouté avec succès !');
         document.getElementById('av_content').value = '';
+        loadGuildConfiguration();
+      } else {
+        showToast('Erreur: ' + resData.error, true);
+      }
+    })
+    .catch(err => showToast('Erreur: ' + err.message, true));
+  });
+
+  // --- SYSTÈME DE TICKETS ---
+
+  // Live Preview Bindings for Ticket Panel
+  ['ticket_panel_title', 'ticket_panel_desc', 'ticket_panel_color', 'ticket_panel_selector', 'ticket_panel_thumbnail'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      const eventName = el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(eventName, () => {
+        const panel = {
+          title: document.getElementById('ticket_panel_title').value,
+          description: document.getElementById('ticket_panel_desc').value,
+          color: document.getElementById('ticket_panel_color').value,
+          selector_type: document.getElementById('ticket_panel_selector').value,
+          thumbnail: document.getElementById('ticket_panel_thumbnail').checked
+        };
+        fetch('/api/config/tickets')
+          .then(res => res.json())
+          .then(data => {
+            updateTicketPreview(panel, data.options);
+          }).catch(() => {
+            updateTicketPreview(panel, []);
+          });
+      });
+    }
+  });
+
+  // Ticket Panel Submit
+  formTicketPanel.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = {
+      title: document.getElementById('ticket_panel_title').value,
+      description: document.getElementById('ticket_panel_desc').value,
+      color: document.getElementById('ticket_panel_color').value,
+      selector_type: document.getElementById('ticket_panel_selector').value,
+      channel_id: document.getElementById('ticket_panel_channel').value,
+      thumbnail: document.getElementById('ticket_panel_thumbnail').checked
+    };
+
+    fetch('/api/config/tickets/panel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(resData => {
+      if (resData.success) {
+        if (resData.warning) {
+          showToast('Panel enregistré, mais attention : ' + resData.warning, true);
+        } else {
+          showToast('Panel de tickets enregistré et déployé !');
+        }
+        loadGuildConfiguration();
+      } else {
+        showToast('Erreur: ' + resData.error, true);
+      }
+    })
+    .catch(err => showToast('Erreur: ' + err.message, true));
+  });
+
+  // Ticket Option Add Submit
+  formTicketOption.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    const rolesSelect = document.getElementById('ticket_opt_support_roles');
+    const support_roles = Array.from(rolesSelect.selectedOptions).map(opt => opt.value);
+
+    const pingSelect = document.getElementById('ticket_opt_ping_users');
+    const ping_users = Array.from(pingSelect.selectedOptions).map(opt => opt.value);
+
+    const data = {
+      label: document.getElementById('ticket_opt_label').value,
+      value: document.getElementById('ticket_opt_value').value,
+      emoji: document.getElementById('ticket_opt_emoji').value,
+      button_style: document.getElementById('ticket_opt_style').value,
+      category_id: document.getElementById('ticket_opt_category').value,
+      required_role_id: document.getElementById('ticket_opt_view_role').value,
+      support_roles,
+      ping_users
+    };
+
+    fetch('/api/config/tickets/options/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(resData => {
+      if (resData.success) {
+        showToast('Catégorie de ticket ajoutée !');
+        
+        document.getElementById('ticket_opt_label').value = '';
+        document.getElementById('ticket_opt_value').value = '';
+        document.getElementById('ticket_opt_emoji').value = '';
+        document.getElementById('ticket_opt_category').value = '';
+        document.getElementById('ticket_opt_view_role').value = '';
+        rolesSelect.selectedIndex = -1;
+        pingSelect.selectedIndex = -1;
+
+        if (document.getElementById('ticket_opt_category').syncCustomSelect) {
+          document.getElementById('ticket_opt_category').syncCustomSelect();
+        }
+        if (document.getElementById('ticket_opt_view_role').syncCustomSelect) {
+          document.getElementById('ticket_opt_view_role').syncCustomSelect();
+        }
+
         loadGuildConfiguration();
       } else {
         showToast('Erreur: ' + resData.error, true);
@@ -2127,6 +2483,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function makeSelectSearchable(selectElement) {
     if (!selectElement) return;
+    if (selectElement.multiple) return;
     if (selectElement.dataset.searchableTransformed) return;
     selectElement.dataset.searchableTransformed = 'true';
 
@@ -2253,7 +2610,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function initializeSearchableSelects() {
-    const selectors = ['.role-select', '.channel-select', '.announce-channel-select'];
+    const selectors = ['.role-select', '.channel-select', '.announce-channel-select', '.custom-select'];
     selectors.forEach(selector => {
       document.querySelectorAll(selector).forEach(select => {
         makeSelectSearchable(select);

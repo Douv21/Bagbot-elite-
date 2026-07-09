@@ -236,6 +236,9 @@ client.on('interactionCreate', async interaction => {
         console.error(err);
       }
       return;
+    } else if (customId.startsWith('ticket_')) {
+      const { handleTicketInteraction } = require('./utils/ticketHandler');
+      return handleTicketInteraction(interaction, client);
     }
     return;
   }
@@ -257,6 +260,9 @@ client.on('interactionCreate', async interaction => {
         }
       }
       return;
+    } else if (interaction.customId === 'ticket_select') {
+      const { handleTicketInteraction } = require('./utils/ticketHandler');
+      return handleTicketInteraction(interaction, client);
     } else if (interaction.customId === 'autorole_select_menu') {
       const roleId = interaction.values[0];
       if (!roleId) return;
@@ -649,7 +655,26 @@ apiApp.get('/guilds/:guildId/roles', async (req, res) => {
     res.status(500).json({ error: 'Error fetching roles' });
   }
 });
-
+apiApp.get('/guilds/:guildId/members', async (req, res) => {
+  try {
+    const guild = client.guilds.cache.get(req.params.guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    const members = await guild.members.fetch().catch(() => guild.members.cache);
+    const sortedMembers = [...members.values()]
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+    const result = sortedMembers.map(m => ({
+      id: m.id,
+      name: m.user.tag,
+      displayName: m.displayName
+    }));
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching members:', error);
+    res.status(500).json({ error: 'Error fetching members' });
+  }
+});
 apiApp.listen(API_PORT, '127.0.0.1', () => {
   console.log(`✓ Bot Local API running on port ${API_PORT}`);
 });

@@ -72,6 +72,7 @@
         <button class="tab-btn" data-tab="tab-karma"><i class="fa-solid fa-star"></i> Configuration Karma</button>
         <button class="tab-btn" data-tab="tab-forums"><i class="fa-solid fa-comments"></i> Forums Illimités</button>
         <button class="tab-btn" data-tab="tab-action-verite"><i class="fa-solid fa-dice"></i> Action / Vérité</button>
+        <button class="tab-btn" data-tab="tab-tickets"><i class="fa-solid fa-ticket"></i> Support & Tickets</button>
         <button class="tab-btn" data-tab="tab-map"><i class="fa-solid fa-map-location-dot"></i> Carte des Membres</button>
       </aside>
 
@@ -1303,6 +1304,185 @@
                     </tr>
                   </thead>
                   <tbody id="action-verite-list">
+                    <!-- Rempli en JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          </div>
+
+          <!-- Tab: Support & Tickets -->
+          <div id="tab-tickets" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-ticket"></i> Système de Tickets d'Assistance</h2>
+
+            <div class="row">
+              <!-- Left: Panel Config -->
+              <div class="col-md-7">
+                <div class="card glass mb-4">
+                  <h3>🎨 Configurer l'Embed du Panel</h3>
+                  <form id="form-ticket-panel" class="inner-form">
+                    <div class="form-row">
+                      <div class="form-group">
+                        <label for="ticket_panel_title">Titre de l'embed :</label>
+                        <input type="text" id="ticket_panel_title" required class="inner-input" placeholder="ex: 🎫 Support / Tickets">
+                      </div>
+                      <div class="form-group">
+                        <label for="ticket_panel_color">Couleur :</label>
+                        <input type="color" id="ticket_panel_color" value="#5865f2" class="color-picker-input">
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label for="ticket_panel_desc">Description / Instructions :</label>
+                      <textarea id="ticket_panel_desc" rows="3" class="inner-input" placeholder="Décrivez comment ouvrir un ticket..." style="resize: vertical;"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                      <div class="form-group">
+                        <label for="ticket_panel_selector">Type de sélecteur :</label>
+                        <select id="ticket_panel_selector" class="custom-select">
+                          <option value="select">Menu déroulant (Select menu) 💬</option>
+                          <option value="buttons">Boutons individuels (5 max) 🔘</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label for="ticket_panel_channel">Salon d'envoi du panel :</label>
+                        <select id="ticket_panel_channel" class="channel-select custom-select">
+                          <option value="">Sélectionner un salon...</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                      <label class="switch-label">
+                        <input type="checkbox" id="ticket_panel_thumbnail">
+                        <span class="slider"></span>
+                      </label>
+                      <span>Afficher l'avatar du serveur en miniature</span>
+                    </div>
+
+                    <div class="actions-bar" style="margin-top: 15px;">
+                      <button type="submit" class="btn btn-save" style="width: 100%;"><i class="fa-solid fa-paper-plane"></i> Enregistrer et Déployer le Panel</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <!-- Right: Live Preview -->
+              <div class="col-md-5">
+                <div class="card glass mb-4" style="position: sticky; top: 20px;">
+                  <h3>✨ Aperçu de l'Embed</h3>
+                  <div class="discord-preview-wrapper" style="margin-top: 15px;">
+                    <div class="discord-message">
+                      <img src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" class="discord-avatar" alt="Bot Avatar" id="ticket-preview-bot-avatar">
+                      <div class="discord-message-content">
+                        <div class="discord-author"><span id="ticket-preview-bot-name">Bagbot Elite</span> <span class="discord-bot-tag">BOT</span></div>
+                        
+                        <div class="discord-embed" id="ticket-preview-embed" style="border-left-color: #5865f2;">
+                          <div class="discord-embed-body">
+                            <div class="discord-embed-content">
+                              <div class="discord-embed-title" id="ticket-preview-title">🎫 Support / Tickets</div>
+                              <div class="discord-embed-description" id="ticket-preview-desc">Sélectionnez ou cliquez sur le bouton correspondant pour ouvrir un ticket d'assistance.</div>
+                            </div>
+                            <img src="" class="discord-embed-thumbnail" id="ticket-preview-thumb-img" style="display: none; border-radius: 50%; width: 60px; height: 60px; margin-left: 15px;">
+                          </div>
+                        </div>
+
+                        <!-- Components Area Preview -->
+                        <div class="discord-preview-components" id="ticket-preview-components" style="margin-top: 8px;">
+                          <!-- Rendered in JS -->
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Option Management -->
+            <div class="card glass mb-4">
+              <h3>➕ Ajouter une option de ticket</h3>
+              <form id="form-ticket-option" class="inner-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="ticket_opt_label">Libellé (ex: Support Technique) :</label>
+                    <input type="text" id="ticket_opt_label" required class="inner-input" placeholder="ex: Support Technique">
+                  </div>
+                  <div class="form-group">
+                    <label for="ticket_opt_value">Identifiant unique (sans espace, ex: support) :</label>
+                    <input type="text" id="ticket_opt_value" required class="inner-input" placeholder="ex: support">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="ticket_opt_emoji">Émoji (facultatif) :</label>
+                    <input type="text" id="ticket_opt_emoji" class="inner-input" placeholder="ex: 🛠️">
+                  </div>
+                  <div class="form-group">
+                    <label for="ticket_opt_style">Couleur du bouton (si boutons sélectionnés) :</label>
+                    <select id="ticket_opt_style" class="custom-select">
+                      <option value="Primary">Bleu (Primary)</option>
+                      <option value="Secondary">Gris (Secondary)</option>
+                      <option value="Success">Vert (Success)</option>
+                      <option value="Danger">Rouge (Danger)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="ticket_opt_category">Catégorie de création des salons :</label>
+                    <select id="ticket_opt_category" class="custom-select">
+                      <option value="">-- Aucune catégorie (Racine) --</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="ticket_opt_view_role">Rôle requis pour voir cette option (facultatif) :</label>
+                    <select id="ticket_opt_view_role" class="role-select custom-select">
+                      <option value="">Tout le monde peut voir</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="ticket_opt_support_roles">Rôles ayant accès au ticket créé (sélection multiple) :</label>
+                    <select id="ticket_opt_support_roles" multiple class="role-select custom-select" style="height: 120px;">
+                      <!-- Rempli en JS -->
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="ticket_opt_ping_users">Membres à ping à l'ouverture (sélection multiple) :</label>
+                    <select id="ticket_opt_ping_users" multiple class="custom-select" style="height: 120px;">
+                      <option value="">Sélectionner les membres...</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="actions-bar" style="margin-top: 15px;">
+                  <button type="submit" class="btn btn-save" style="background: #2ecc71;"><i class="fa-solid fa-plus"></i> Ajouter cette Catégorie</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card glass">
+              <h3>📋 Catégories de Tickets Existantes</h3>
+              <div style="overflow-x: auto;">
+                <table class="premium-table">
+                  <thead>
+                    <tr>
+                      <th>Option</th>
+                      <th>Emoji/Bouton</th>
+                      <th>Salon Parent (Catégorie)</th>
+                      <th>Rôle Requis</th>
+                      <th>Rôles Support / Ping</th>
+                      <th style="width: 100px; text-align: center;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ticket-options-list">
                     <!-- Rempli en JS -->
                   </tbody>
                 </table>

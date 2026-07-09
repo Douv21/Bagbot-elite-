@@ -401,6 +401,45 @@ function initDatabase() {
       nsfw_channel_id TEXT
     )
   `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS ticket_panels (
+      guild_id TEXT PRIMARY KEY,
+      channel_id TEXT,
+      message_id TEXT,
+      title TEXT,
+      description TEXT,
+      color TEXT,
+      thumbnail INTEGER DEFAULT 0,
+      selector_type TEXT DEFAULT 'select'
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS ticket_options (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT,
+      label TEXT,
+      value TEXT,
+      emoji TEXT,
+      button_style TEXT DEFAULT 'Primary',
+      category_id TEXT,
+      required_role_id TEXT,
+      support_roles TEXT,
+      ping_users TEXT
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS active_tickets (
+      channel_id TEXT PRIMARY KEY,
+      guild_id TEXT,
+      user_id TEXT,
+      option_id INTEGER,
+      status TEXT DEFAULT 'open',
+      created_at INTEGER
+    )
+  `).run();
   // Migrations pour les auto-rôles embeds (type et mode)
   try {
     db.prepare("ALTER TABLE autorole_embeds ADD COLUMN type TEXT DEFAULT 'buttons'").run();
@@ -741,6 +780,51 @@ const updateActionVeriteConfig = (guildId, updates) => {
   return db.prepare(`UPDATE action_verite_config SET ${fields} WHERE guild_id = ?`).run(...values, guildId);
 };
 
+const getTicketPanel = (guildId) => {
+  let panel = db.prepare('SELECT * FROM ticket_panels WHERE guild_id = ?').get(guildId);
+  if (!panel) {
+    db.prepare('INSERT OR IGNORE INTO ticket_panels (guild_id, title, description, color, selector_type) VALUES (?, ?, ?, ?, ?)')
+      .run(guildId, '🎫 Support / Tickets', 'Sélectionnez ou cliquez sur le bouton correspondant pour ouvrir un ticket d\'assistance.', '#5865F2', 'select');
+    panel = db.prepare('SELECT * FROM ticket_panels WHERE guild_id = ?').get(guildId);
+  }
+  return panel;
+};
+
+const updateTicketPanel = (guildId, updates) => {
+  const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
+  const values = Object.values(updates);
+  return db.prepare(`UPDATE ticket_panels SET ${fields} WHERE guild_id = ?`).run(...values, guildId);
+};
+
+const getTicketOptions = (guildId) => {
+  return db.prepare('SELECT * FROM ticket_options WHERE guild_id = ?').all(guildId);
+};
+
+const addTicketOption = (guildId, option) => {
+  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users } = option;
+  return db.prepare(`
+    INSERT INTO ticket_options (guild_id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(guildId, label, value, emoji, button_style || 'Primary', category_id || null, required_role_id || null, JSON.stringify(support_roles || []), JSON.stringify(ping_users || []));
+};
+
+const deleteTicketOption = (guildId, id) => {
+  return db.prepare('DELETE FROM ticket_options WHERE guild_id = ? AND id = ?').run(guildId, id);
+};
+
+const getActiveTicket = (channelId) => {
+  return db.prepare('SELECT * FROM active_tickets WHERE channel_id = ?').get(channelId);
+};
+
+const addActiveTicket = (channelId, guildId, userId, optionId) => {
+  return db.prepare('INSERT OR REPLACE INTO active_tickets (channel_id, guild_id, user_id, option_id, created_at) VALUES (?, ?, ?, ?, ?)')
+    .run(channelId, guildId, userId, optionId, Date.now());
+};
+
+const deleteActiveTicket = (channelId) => {
+  return db.prepare('DELETE FROM active_tickets WHERE channel_id = ?').run(channelId);
+};
+
 module.exports = {
   db,
   initDatabase,
@@ -790,5 +874,13 @@ module.exports = {
   deleteActionVeriteItem,
   getRandomActionVeriteItem,
   getActionVeriteConfig,
-  updateActionVeriteConfig
+  updateActionVeriteConfig,
+  getTicketPanel,
+  updateTicketPanel,
+  getTicketOptions,
+  addTicketOption,
+  deleteTicketOption,
+  getActiveTicket,
+  addActiveTicket,
+  deleteActiveTicket
 };
