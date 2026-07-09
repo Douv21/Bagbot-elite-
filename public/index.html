@@ -48,11 +48,17 @@
 
   <!-- Dashboard Container (Authenticated) -->
   <div id="dashboard-container" style="display: none;">
+    <!-- Mobile Sidebar Overlay Backdrop -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
     <!-- Navigation Bar -->
     <header class="navbar glass">
-      <div class="nav-brand">
-        <i class="fa-solid fa-crown"></i>
-        <span>Bagbot Elite</span>
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <button id="mobile-hamburger" class="mobile-toggle-btn"><i class="fa-solid fa-bars"></i></button>
+        <div class="nav-brand">
+          <i class="fa-solid fa-crown"></i>
+          <span>Bagbot Elite</span>
+        </div>
       </div>
       
       <div class="guild-selector">
@@ -73,23 +79,45 @@
     <main class="dashboard-main">
       <!-- Sidebar Tabs -->
       <aside class="sidebar glass">
-        <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées / Départs</button>
-        <button class="tab-btn" data-tab="tab-autoroles"><i class="fa-solid fa-user-plus"></i> Auto-Rôles</button>
-        <button class="tab-btn" data-tab="tab-reactionroles"><i class="fa-solid fa-rectangle-list"></i> Rôles Réaction</button>
-        <button class="tab-btn" data-tab="tab-confessions"><i class="fa-solid fa-mask"></i> Confessions</button>
-        <button class="tab-btn" data-tab="tab-counting"><i class="fa-solid fa-calculator"></i> Counting</button>
-        <button class="tab-btn" data-tab="tab-quarantine"><i class="fa-solid fa-shield-halved"></i> Quarantaine</button>
-        <button class="tab-btn" data-tab="tab-logs"><i class="fa-solid fa-list-check"></i> Logs d'activité</button>
-        <button class="tab-btn" data-tab="tab-automod"><i class="fa-solid fa-user-shield"></i> Auto-Modération</button>
-        <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique</button>
-        <button class="tab-btn" data-tab="tab-leveling"><i class="fa-solid fa-arrow-trend-up"></i> Niveaux & Rôles</button>
-        <button class="tab-btn" data-tab="tab-gifs"><i class="fa-solid fa-file-video"></i> GIFs d'action</button>
-        <button class="tab-btn" data-tab="tab-game"><i class="fa-solid fa-gamepad"></i> Jeu Mot Caché</button>
-        <button class="tab-btn" data-tab="tab-karma"><i class="fa-solid fa-star"></i> Configuration Karma</button>
-        <button class="tab-btn" data-tab="tab-forums"><i class="fa-solid fa-comments"></i> Forums Illimités</button>
-        <button class="tab-btn" data-tab="tab-action-verite"><i class="fa-solid fa-dice"></i> Action / Vérité</button>
-        <button class="tab-btn" data-tab="tab-tickets"><i class="fa-solid fa-ticket"></i> Support & Tickets</button>
-        <button class="tab-btn" data-tab="tab-map"><i class="fa-solid fa-map-location-dot"></i> Carte des Membres</button>
+        <!-- Close button for mobile sidebar -->
+        <button id="mobile-sidebar-close" class="mobile-sidebar-close-btn"><i class="fa-solid fa-xmark"></i></button>
+
+        <div class="sidebar-category">
+          <div class="category-title">⚙️ CONFIGURATION</div>
+          <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées / Départs</button>
+          <button class="tab-btn" data-tab="tab-autoroles"><i class="fa-solid fa-user-plus"></i> Auto-Rôles</button>
+          <button class="tab-btn" data-tab="tab-reactionroles"><i class="fa-solid fa-rectangle-list"></i> Rôles Réaction</button>
+          <button class="tab-btn" data-tab="tab-logs"><i class="fa-solid fa-list-check"></i> Logs d'activité</button>
+        </div>
+
+        <div class="sidebar-category">
+          <div class="category-title">🛡️ SÉCURITÉ & MODÉRATION</div>
+          <button class="tab-btn" data-tab="tab-quarantine"><i class="fa-solid fa-shield-halved"></i> Quarantaine</button>
+          <button class="tab-btn" data-tab="tab-automod"><i class="fa-solid fa-user-shield"></i> Auto-Modération</button>
+          <button class="tab-btn" data-tab="tab-forums"><i class="fa-solid fa-comments"></i> Forums Illimités</button>
+        </div>
+
+        <div class="sidebar-category">
+          <div class="category-title">🎮 DIVERTISSEMENT</div>
+          <button class="tab-btn" data-tab="tab-confessions"><i class="fa-solid fa-mask"></i> Confessions</button>
+          <button class="tab-btn" data-tab="tab-counting"><i class="fa-solid fa-calculator"></i> Counting</button>
+          <button class="tab-btn" data-tab="tab-game"><i class="fa-solid fa-gamepad"></i> Jeu Mot Caché</button>
+          <button class="tab-btn" data-tab="tab-action-verite"><i class="fa-solid fa-dice"></i> Action / Vérité</button>
+        </div>
+
+        <div class="sidebar-category">
+          <div class="category-title">📈 NIVEAUX & ÉCONOMIE</div>
+          <button class="tab-btn" data-tab="tab-leveling"><i class="fa-solid fa-arrow-trend-up"></i> Niveaux & Rôles</button>
+          <button class="tab-btn" data-tab="tab-karma"><i class="fa-solid fa-star"></i> Configuration Karma</button>
+          <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique</button>
+          <button class="tab-btn" data-tab="tab-gifs"><i class="fa-solid fa-file-video"></i> GIFs d'action</button>
+        </div>
+
+        <div class="sidebar-category">
+          <div class="category-title">🎫 ASSISTANCE & MAPPING</div>
+          <button class="tab-btn" data-tab="tab-tickets"><i class="fa-solid fa-ticket"></i> Support & Tickets</button>
+          <button class="tab-btn" data-tab="tab-map"><i class="fa-solid fa-map-location-dot"></i> Carte des Membres</button>
+        </div>
       </aside>
 
       <!-- Form Content -->

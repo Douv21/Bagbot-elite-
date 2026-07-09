@@ -67,6 +67,33 @@ document.addEventListener('DOMContentLoaded', () => {
     footer: ''
   };
 
+  // Mobile Sidebar Toggle elements
+  const mobileHamburger = document.getElementById('mobile-hamburger');
+  const mobileSidebarClose = document.getElementById('mobile-sidebar-close');
+  const sidebar = document.querySelector('.sidebar');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+  if (mobileHamburger && sidebar && sidebarOverlay) {
+    mobileHamburger.addEventListener('click', () => {
+      sidebar.classList.add('open');
+      sidebarOverlay.classList.add('open');
+    });
+  }
+
+  if (mobileSidebarClose && sidebar && sidebarOverlay) {
+    mobileSidebarClose.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      sidebarOverlay.classList.remove('open');
+    });
+  }
+
+  if (sidebarOverlay && sidebar) {
+    sidebarOverlay.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      sidebarOverlay.classList.remove('open');
+    });
+  }
+
   // Tab switching logic
   const tabBtns = document.querySelectorAll('.tab-btn');
   const tabContents = document.querySelectorAll('.tab-content');
@@ -79,6 +106,12 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.classList.add('active');
       document.getElementById(tabId).classList.add('active');
       
+      // Fermer le menu mobile lors du clic sur un onglet
+      if (sidebar && sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        sidebarOverlay.classList.remove('open');
+      }
+
       if (tabId === 'tab-gifs') {
         fetchAndRenderGifs();
       } else if (tabId === 'tab-map') {
