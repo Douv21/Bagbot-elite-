@@ -94,10 +94,13 @@
 
       <!-- Form Content -->
       <section class="content-area">
-        <div id="no-guild-selected" class="card glass text-center">
-          <i class="fa-solid fa-arrow-pointer select-arrow-icon"></i>
-          <h2>Aucun serveur sélectionné</h2>
-          <p>Veuillez sélectionner un serveur Discord dans le menu déroulant en haut pour commencer la configuration.</p>
+        <div id="no-guild-selected" class="card glass text-center" style="padding: 40px 30px;">
+          <i class="fa-solid fa-server select-arrow-icon" style="margin-bottom: 20px; font-size: 3rem; color: #5865F2;"></i>
+          <h2>Sélectionnez un serveur à configurer</h2>
+          <p style="color: #8e9297; margin-bottom: 30px; font-size: 0.95rem;">Choisissez un serveur Discord ci-dessous pour gérer et configurer votre bot B&G Elite.</p>
+          <div id="servers-grid" class="servers-grid">
+            <!-- Rempli dynamiquement en JS -->
+          </div>
         </div>
 
         <div id="config-forms" style="display: none;">
@@ -1361,6 +1364,7 @@
                         <select id="ticket_panel_selector" class="custom-select">
                           <option value="select">Menu déroulant (Select menu) 💬</option>
                           <option value="buttons">Boutons individuels (5 max) 🔘</option>
+                          <option value="single_button">Bouton Unique (Filtré par rôles) 🎫</option>
                         </select>
                       </div>
                       <div class="form-group">

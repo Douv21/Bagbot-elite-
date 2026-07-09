@@ -1,4 +1,4 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder } = require('discord.js');
 const { db, getActiveTicket, addActiveTicket, deleteActiveTicket } = require('../database/db');
 
 async function handleTicketInteraction(interaction, client) {
@@ -7,8 +7,67 @@ async function handleTicketInteraction(interaction, client) {
 
   const customId = interaction.customId;
 
+  // Handler du Bouton Unique "Ouvrir ticket" (filtrage dynamique)
+  if (customId === 'ticket_open_button') {
+    const options = db.prepare('SELECT * FROM ticket_options WHERE guild_id = ?').all(guildId);
+    if (options.length === 0) {
+      return interaction.reply({ content: '❌ Aucune catégorie de ticket n\'est configurée pour ce serveur.', ephemeral: true });
+    }
+
+    const member = interaction.member;
+    const memberRoles = member.roles.cache.map(r => r.id);
+
+    // Collecter tous les rôles support
+    const allSupportRoles = new Set();
+    options.forEach(opt => {
+      try {
+        const roles = JSON.parse(opt.support_roles || '[]');
+        roles.forEach(r => allSupportRoles.add(r));
+      } catch (e) {}
+    });
+
+    const isStaff = memberRoles.some(roleId => allSupportRoles.has(roleId)) || member.permissions.has(PermissionFlagsBits.Administrator);
+
+    // Filtrer les catégories
+    const availableOptions = options.filter(opt => {
+      if (isStaff) return true;
+      if (!opt.required_role_id) return true;
+      return memberRoles.includes(opt.required_role_id);
+    });
+
+    if (availableOptions.length === 0) {
+      return interaction.reply({ content: '❌ Aucune catégorie de ticket n\'est accessible avec vos rôles actuels.', ephemeral: true });
+    }
+
+    const select = new StringSelectMenuBuilder()
+      .setCustomId('ticket_open_filtered')
+      .setPlaceholder('Sélectionnez une catégorie...')
+      .setMinValues(1)
+      .setMaxValues(1);
+
+    const opts = availableOptions.slice(0, 25).map(opt => {
+      const item = {
+        label: opt.label,
+        value: opt.value
+      };
+      if (opt.emoji) {
+        item.emoji = opt.emoji;
+      }
+      return item;
+    });
+
+    select.addOptions(opts);
+    const row = new ActionRowBuilder().addComponents(select);
+
+    return interaction.reply({
+      content: '🎫 **Choisissez une catégorie pour ouvrir un ticket :**',
+      components: [row],
+      ephemeral: true
+    });
+  }
+
   // 1. OUVERTURE DE TICKET
-  if (customId.startsWith('ticket_open_') || (customId === 'ticket_select' && interaction.isStringSelectMenu())) {
+  if (customId.startsWith('ticket_open_') || (customId === 'ticket_select' && interaction.isStringSelectMenu()) || (customId === 'ticket_open_filtered' && interaction.isStringSelectMenu())) {
     let value = '';
     if (customId.startsWith('ticket_open_')) {
       value = customId.substring('ticket_open_'.length);

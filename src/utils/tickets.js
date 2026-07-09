@@ -59,6 +59,13 @@ async function sendOrUpdateTicketPanel(guildId, client) {
         rows.push(currentRow);
       }
       components = rows;
+    } else if (panelConfig.selector_type === 'single_button') {
+      // Bouton unique
+      const button = new ButtonBuilder()
+        .setCustomId('ticket_open_button')
+        .setLabel('🎫 Ouvrir un ticket')
+        .setStyle(ButtonStyle.Primary);
+      components = [new ActionRowBuilder().addComponents(button)];
     } else {
       // Menu déroulant
       const selectMenu = new StringSelectMenuBuilder()

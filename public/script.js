@@ -129,8 +129,12 @@ document.addEventListener('DOMContentLoaded', () => {
           const option = document.createElement('option');
           option.value = guild.id;
           option.textContent = guild.name;
+          option.dataset.icon = guild.icon || '';
           guildSelect.appendChild(option);
         });
+
+        renderServersGrid(guilds);
+
         return fetch('/api/selected-guild', { cache: 'no-store' });
       })
       .then(res => res.json())
@@ -141,6 +145,59 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })
       .catch(console.error);
+  }
+
+  function renderServersGrid(guilds) {
+    const grid = document.getElementById('servers-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    if (guilds.length === 0) {
+      grid.innerHTML = '<p style="color: #8e9297; grid-column: 1/-1;">Aucun serveur trouvé où le bot est installé avec vos permissions.</p>';
+      return;
+    }
+
+    guilds.forEach(guild => {
+      const card = document.createElement('div');
+      card.className = 'server-card';
+
+      const iconContainer = document.createElement('div');
+      iconContainer.className = 'server-icon-container';
+
+      if (guild.icon) {
+        const iconImg = document.createElement('img');
+        iconImg.className = 'server-icon-img';
+        iconImg.src = `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`;
+        iconImg.alt = guild.name;
+        iconContainer.appendChild(iconImg);
+      } else {
+        // Initials if no icon
+        const initials = guild.name.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase();
+        iconContainer.textContent = initials;
+      }
+
+      const name = document.createElement('div');
+      name.className = 'server-card-name';
+      name.textContent = guild.name;
+
+      card.appendChild(iconContainer);
+      card.appendChild(name);
+
+      card.addEventListener('click', () => {
+        guildSelect.value = guild.id;
+        // Trigger select-guild API
+        fetch('/api/select-guild', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ guildId: guild.id })
+        })
+        .then(res => res.json())
+        .then(() => handleGuildSelection(guild.id))
+        .catch(console.error);
+      });
+
+      grid.appendChild(card);
+    });
   }
 
   // Guild selection
@@ -1124,6 +1181,25 @@ document.addEventListener('DOMContentLoaded', () => {
         flexContainer.appendChild(btn);
       });
       compsEl.appendChild(flexContainer);
+    } else if (panel.selector_type === 'single_button') {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.style.padding = '8px 20px';
+      btn.style.borderRadius = '4px';
+      btn.style.border = 'none';
+      btn.style.color = '#fff';
+      btn.style.fontWeight = '500';
+      btn.style.fontSize = '0.95rem';
+      btn.style.cursor = 'default';
+      btn.style.display = 'flex';
+      btn.style.alignItems = 'center';
+      btn.style.gap = '6px';
+      btn.style.backgroundColor = '#5865F2';
+      
+      const labelSpan = document.createElement('span');
+      labelSpan.textContent = '🎫 Ouvrir un ticket';
+      btn.appendChild(labelSpan);
+      compsEl.appendChild(btn);
     } else {
       const selectMenu = document.createElement('div');
       selectMenu.style.width = '100%';
