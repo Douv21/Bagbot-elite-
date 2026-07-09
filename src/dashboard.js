@@ -1203,6 +1203,11 @@ app.post('/api/config/unlimited-forums', (req, res) => {
     if (!Array.isArray(channels)) return res.status(400).json({ error: 'Channels must be an array' });
 
     updateUnlimitedForums(guildId, channels);
+    
+    // Déclencher le scan pour réouvrir sur-le-champ les fils archivés
+    const { scanAndReopenAllUnlimitedForums } = require('./utils/forums');
+    scanAndReopenAllUnlimitedForums(client).catch(console.error);
+
     res.json({ success: true });
   } catch (error) {
     console.error(error);

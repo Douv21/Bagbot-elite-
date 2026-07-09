@@ -417,6 +417,10 @@ client.once('ready', async () => {
         .then(() => console.log(`[Cache] Membres de ${guild.name} mis en cache.`))
         .catch(err => console.error(`[Cache] Impossible de mettre en cache les membres de ${guild.name}:`, err));
     });
+
+    // Scan et réouverture des forums illimités au démarrage
+    const { scanAndReopenAllUnlimitedForums } = require('./utils/forums');
+    scanAndReopenAllUnlimitedForums(client).catch(console.error);
   } catch (error) {
     console.error('Erreur lors de l\'enregistrement des commandes slash :', error);
   }
