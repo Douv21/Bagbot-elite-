@@ -207,6 +207,11 @@ app.get('/logout', (req, res) => {
   res.redirect('/');
 });
 
+app.post('/api/log-error', (req, res) => {
+  console.error('❌ [CLIENT-SIDE ERROR]', req.body);
+  res.sendStatus(200);
+});
+
 // API pour obtenir l'utilisateur connecté
 app.get('/api/user', (req, res) => {
   console.log(`[/api/user] Vérification auth. Session user existante: ${req.session.user ? req.session.user.username : 'non'}`);
