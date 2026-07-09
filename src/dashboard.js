@@ -100,6 +100,10 @@ app.use(session({
 }));
 
 // Middlewares
+app.use((req, res, next) => {
+  console.log(`[HTTP] ${req.method} ${req.url}`);
+  next();
+});
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 // Désactiver la mise en cache globale (HTML, JS, CSS, APIs)
