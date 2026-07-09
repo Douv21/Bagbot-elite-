@@ -126,11 +126,13 @@ app.get('/login', (req, res) => {
 // Callback Discord OAuth2
 app.get('/callback', async (req, res) => {
   const code = req.query.code;
+  console.log(`[/callback] Code reçu de Discord: ${code ? 'oui' : 'non'}`);
   if (!code) {
     return res.redirect('/?error=no_code');
   }
 
   const redirectUri = getRedirectUri(req);
+  console.log(`[/callback] Redirect URI calculée: ${redirectUri}`);
 
   try {
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
@@ -149,6 +151,7 @@ app.get('/callback', async (req, res) => {
 
     const tokenData = await tokenResponse.json();
     if (tokenData.error) {
+      console.error('[/callback] Erreur récupération token Discord:', tokenData);
       throw new Error(tokenData.error);
     }
 
@@ -159,6 +162,7 @@ app.get('/callback', async (req, res) => {
       },
     });
     const userData = await userResponse.json();
+    console.log(`[/callback] Utilisateur Discord identifié: ${userData.username} (${userData.id})`);
 
     // Récupérer les serveurs de l'utilisateur
     const guildsResponse = await fetch('https://discord.com/api/users/@me/guilds', {
@@ -167,6 +171,7 @@ app.get('/callback', async (req, res) => {
       },
     });
     const guildsData = await guildsResponse.json();
+    console.log(`[/callback] Récupéré ${guildsData.length} serveurs pour l'utilisateur.`);
 
     // Sauvegarder en session
     req.session.user = {
@@ -180,13 +185,14 @@ app.get('/callback', async (req, res) => {
 
     req.session.save((err) => {
       if (err) {
-        console.error('Erreur sauvegarde session:', err);
+        console.error('[/callback] Erreur sauvegarde session:', err);
         return res.redirect('/?error=session_error');
       }
+      console.log(`[/callback] Session enregistrée pour ${userData.username}, redirection vers /`);
       res.redirect('/');
     });
   } catch (error) {
-    console.error('Erreur OAuth2:', error);
+    console.error('[/callback] Erreur OAuth2 globale:', error);
     res.redirect('/?error=oauth_failed');
   }
 });
@@ -199,6 +205,7 @@ app.get('/logout', (req, res) => {
 
 // API pour obtenir l'utilisateur connecté
 app.get('/api/user', (req, res) => {
+  console.log(`[/api/user] Vérification auth. Session user existante: ${req.session.user ? req.session.user.username : 'non'}`);
   if (req.session.user) {
     res.json({ 
       authenticated: true, 
