@@ -92,6 +92,9 @@ for (let i = 0; i < content.length; i++) {
     curlyStack.push({ line, col });
   } else if (char === '}') {
     curlyCount--;
+    if (curlyCount === 0) {
+      console.log(`[NESTING] curlyCount hit 0 at line ${line}, col ${col}`);
+    }
     if (curlyStack.length === 0) {
       console.log(`Extra } at line ${line}, col ${col}`);
     } else {
@@ -112,9 +115,3 @@ for (let i = 0; i < content.length; i++) {
 
 console.log(`Final curlyCount: ${curlyCount}`);
 console.log(`Final parenCount: ${parenCount}`);
-if (curlyStack.length > 0) {
-  console.log(`Unclosed { count: ${curlyStack.length}, showing first 5:`, curlyStack.slice(0, 5));
-}
-if (parenStack.length > 0) {
-  console.log(`Unclosed ( count: ${parenStack.length}, showing first 5:`, parenStack.slice(0, 5));
-}
