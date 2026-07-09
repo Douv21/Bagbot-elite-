@@ -3,25 +3,17 @@ const fs = require('fs');
 try {
   const content = fs.readFileSync('/var/data/config.json', 'utf8');
   const data = JSON.parse(content);
-  
-  if (data.guilds) {
-    const guildIds = Object.keys(data.guilds);
-    if (guildIds.length > 0) {
-      const g = data.guilds[guildIds[0]];
-      
-      console.log("=== ECONOMY SHOP ===");
-      console.log(g.economy?.shop);
-      
-      console.log("=== FORUM ===");
-      console.log(g.forum);
-      
-      console.log("=== ONE BALANCE EXAMPLE ===");
-      const userIds = Object.keys(g.economy?.balances || {});
-      if (userIds.length > 0) {
-        console.log(userIds[0], g.economy.balances[userIds[0]]);
-      }
+  console.log("Guilds count:", Object.keys(data.guilds).length);
+  for (const gid of Object.keys(data.guilds)) {
+    const g = data.guilds[gid];
+    console.log(`Guild ${gid}:`);
+    if (g.economy && g.economy.balances) {
+      console.log(` - Balances count: ${Object.keys(g.economy.balances).length}`);
+      console.log(" - Balance keys:", Object.keys(g.economy.balances));
+    } else {
+      console.log(` - No balances found`);
     }
   }
-} catch (err) {
-  console.error(err);
+} catch (e) {
+  console.error(e);
 }
