@@ -24,7 +24,7 @@ module.exports = {
       .setDescription('Cliquez sur le bouton ci-dessous pour accéder au panel de configuration premium de votre bot.')
       .setColor('#5865F2')
       .addFields(
-        { name: '🌐 Lien d\'accès direct', value: `[${dashboardUrl}](${dashboardUrl})` },
+        { name: '🌐 Lien d\'accès', value: `[Ouvrir le Dashboard](${dashboardUrl})` },
         { name: '💡 Note', value: 'Ce lien est accessible depuis n\'importe où grâce à votre redirection de port.' }
       )
       .setThumbnail(interaction.guild.iconURL({ dynamic: true }) || 'https://cdn.discordapp.com/embed/avatars/0.png')

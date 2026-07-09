@@ -241,8 +241,8 @@ app.get('/api/guilds', async (req, res) => {
 
       const permissions = parseInt(guild.permissions, 16);
       
-      // Administrateur (0x8) ou Gérer le serveur (0x20) ou Propriétaire
-      const hasPermissions = guild.owner || (permissions & 0x8) || (permissions & 0x20);
+      // Propriétaire ou Administrateur (0x8) uniquement
+      const hasPermissions = guild.owner || (permissions & 0x8);
 
       if (hasPermissions) {
         filteredGuilds.push(guild);
@@ -259,6 +259,16 @@ app.get('/api/guilds', async (req, res) => {
 app.post('/api/select-guild', (req, res) => {
   const { guildId } = req.body;
   if (req.session.user) {
+    const userGuild = req.session.user.guilds.find(g => g.id === guildId);
+    if (!userGuild) {
+      return res.status(403).json({ error: 'Vous ne faites pas partie de ce serveur' });
+    }
+    const permissions = parseInt(userGuild.permissions, 16);
+    const isOwnerOrAdmin = userGuild.owner || (permissions & 0x8);
+    if (!isOwnerOrAdmin) {
+      return res.status(403).json({ error: 'Accès restreint aux Propriétaires et Administrateurs' });
+    }
+
     req.session.selectedGuild = guildId;
     res.json({ success: true });
   } else {
