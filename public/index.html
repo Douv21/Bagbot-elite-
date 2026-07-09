@@ -1213,10 +1213,10 @@
                 
                 <div class="form-row">
                   <div class="form-group">
-                    <label for="unlimited_forum_channels">Salons Forums (Sélection multiple - Maintenir Ctrl pour en choisir plusieurs) :</label>
-                    <select id="unlimited_forum_channels" multiple class="custom-select" style="height: 200px; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-family: inherit;">
-                      <!-- Rempli en JS avec uniquement les salons Forum (Type 15) -->
-                    </select>
+                    <label>Salons Forums à garder ouverts en illimité :</label>
+                    <div id="unlimited_forum_checkboxes_container" style="max-height: 250px; overflow-y: auto; padding: 12px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); margin-top: 5px; display: flex; flex-direction: column; gap: 8px;">
+                      <!-- Rempli en JS avec des cases à cocher pour chaque forum -->
+                    </div>
                     <small style="color: #b9bbbe; display: block; margin-top: 5px;">Seuls les salons de type Forum (Forum Channels) s'affichent ici.</small>
                   </div>
                 </div>
@@ -1232,6 +1232,29 @@
           <div id="tab-action-verite" class="tab-content">
             <h2 class="section-title"><i class="fa-solid fa-dice"></i> Configuration d'Action ou Vérité</h2>
             
+            <div class="card glass mb-4">
+              <h3>📌 Salons de jeu autorisés</h3>
+              <form id="form-action-verite-channels" class="inner-form">
+                <p style="color: #b9bbbe; font-size: 0.9rem; margin-bottom: 15px;">Configurez les salons spécifiques sur lesquels la commande /action-verite et les boutons peuvent être utilisés. Laissez vide pour autoriser le jeu sur tout le serveur.</p>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="av_sfw_channel">Salon SFW unique :</label>
+                    <select id="av_sfw_channel" class="channel-select custom-select">
+                      <option value="">Tous les salons (SFW)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="av_nsfw_channel">Salon NSFW unique :</label>
+                    <select id="av_nsfw_channel" class="channel-select custom-select">
+                      <option value="">Tous les salons (NSFW)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="actions-bar" style="margin-top: 10px;">
+                  <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les Salons</button>
+                </div>
+              </form>
+            </div>
             <div class="card glass mb-4">
               <h3>➕ Ajouter une Action ou une Vérité personnalisée</h3>
               <form id="form-add-action-verite" class="inner-form">

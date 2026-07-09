@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const formForums = document.getElementById('form-forums');
   const formAddActionVerite = document.getElementById('form-add-action-verite');
   const actionVeriteList = document.getElementById('action-verite-list');
+  const formActionVeriteChannels = document.getElementById('form-action-verite-channels');
 
   // Lists
   const shopItemsList = document.getElementById('shop-items-list');
@@ -229,19 +230,39 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // Populate Forums
-    const forumSelect = document.getElementById('unlimited_forum_channels');
-    if (forumSelect) {
-      forumSelect.innerHTML = '';
-      channelsList.forEach(ch => {
-        // En Discord, le type 15 est GuildForum
-        if (ch.type === 15) {
-          const option = document.createElement('option');
-          option.value = ch.id;
-          option.textContent = `📢 ${ch.name}`;
-          forumSelect.appendChild(option);
-        }
-      });
+    // Populate Forums Checkboxes
+    const forumContainer = document.getElementById('unlimited_forum_checkboxes_container');
+    if (forumContainer) {
+      forumContainer.innerHTML = '';
+      const forums = channelsList.filter(ch => ch.type === 15);
+      if (forums.length === 0) {
+        forumContainer.innerHTML = '<p style="color: #8e9297; margin: 0; font-size: 0.9rem;">Aucun salon Forum trouvé sur ce serveur.</p>';
+      } else {
+        forums.forEach(ch => {
+          const itemDiv = document.createElement('div');
+          itemDiv.style.display = 'flex';
+          itemDiv.style.alignItems = 'center';
+          itemDiv.style.gap = '10px';
+          
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.value = ch.id;
+          checkbox.className = 'forum-checkbox';
+          checkbox.id = `forum_cb_${ch.id}`;
+          checkbox.style.cursor = 'pointer';
+          
+          const label = document.createElement('label');
+          label.htmlFor = `forum_cb_${ch.id}`;
+          label.textContent = `📢 ${ch.name}`;
+          label.style.margin = '0';
+          label.style.cursor = 'pointer';
+          label.style.color = '#fff';
+          
+          itemDiv.appendChild(checkbox);
+          itemDiv.appendChild(label);
+          forumContainer.appendChild(itemDiv);
+        });
+      }
     }
 
     // Synchroniser tous les sélecteurs de recherche personnalisés
@@ -395,16 +416,28 @@ document.addEventListener('DOMContentLoaded', () => {
           })
           .catch(console.error);
 
-        // Charger la configuration des Forums Illimités
+        // Charger la configuration des Forums Illimités (Cases à cocher)
         fetch('/api/config/unlimited-forums')
           .then(res => res.json())
           .then(data => {
-            const forumSelect = document.getElementById('unlimited_forum_channels');
-            if (forumSelect && data.channels) {
-              Array.from(forumSelect.options).forEach(opt => {
-                opt.selected = data.channels.includes(opt.value);
-              });
-            }
+            const checkboxes = document.querySelectorAll('.forum-checkbox');
+            checkboxes.forEach(cb => {
+              cb.checked = data.channels && data.channels.includes(cb.value);
+            });
+          })
+          .catch(console.error);
+
+        // Charger la configuration des Salons Action ou Vérité
+        fetch('/api/config/action-verite/channels')
+          .then(res => res.json())
+          .then(config => {
+            document.getElementById('av_sfw_channel').value = config.sfw_channel_id || '';
+            document.getElementById('av_nsfw_channel').value = config.nsfw_channel_id || '';
+            
+            const sfwSelect = document.getElementById('av_sfw_channel');
+            const nsfwSelect = document.getElementById('av_nsfw_channel');
+            if (sfwSelect.syncCustomSelect) sfwSelect.syncCustomSelect();
+            if (nsfwSelect.syncCustomSelect) nsfwSelect.syncCustomSelect();
           })
           .catch(console.error);
 
@@ -936,8 +969,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Forums Illimités
   formForums.addEventListener('submit', (e) => {
     e.preventDefault();
-    const forumSelect = document.getElementById('unlimited_forum_channels');
-    const selectedOptions = Array.from(forumSelect.selectedOptions).map(opt => opt.value);
+    const checkedCheckboxes = document.querySelectorAll('.forum-checkbox:checked');
+    const selectedOptions = Array.from(checkedCheckboxes).map(cb => cb.value);
 
     fetch('/api/config/unlimited-forums', {
       method: 'POST',
@@ -948,6 +981,29 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(resData => {
       if (resData.success) {
         showToast('Configuration des Forums enregistrée !');
+        loadGuildConfiguration();
+      } else {
+        showToast('Erreur: ' + resData.error, true);
+      }
+    })
+    .catch(err => showToast('Erreur: ' + err.message, true));
+  });
+
+  // Salons Action ou Vérité
+  formActionVeriteChannels.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const sfw_channel_id = document.getElementById('av_sfw_channel').value;
+    const nsfw_channel_id = document.getElementById('av_nsfw_channel').value;
+
+    fetch('/api/config/action-verite/channels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sfw_channel_id, nsfw_channel_id })
+    })
+    .then(res => res.json())
+    .then(resData => {
+      if (resData.success) {
+        showToast('Configuration des salons enregistrée !');
         loadGuildConfiguration();
       } else {
         showToast('Erreur: ' + resData.error, true);

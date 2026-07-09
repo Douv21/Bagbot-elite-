@@ -33,7 +33,9 @@ const {
   updateUnlimitedForums,
   getActionVeriteItems,
   addActionVeriteItem,
-  deleteActionVeriteItem
+  deleteActionVeriteItem,
+  getActionVeriteConfig,
+  updateActionVeriteConfig
 } = require('./database/db');
 
 const app = express();
@@ -1248,6 +1250,38 @@ app.post('/api/config/action-verite/delete', (req, res) => {
     if (!id) return res.status(400).json({ error: 'ID requis' });
 
     deleteActionVeriteItem(guildId, id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/config/action-verite/channels', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const config = getActionVeriteConfig(guildId);
+    res.json(config);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/action-verite/channels', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { sfw_channel_id, nsfw_channel_id } = req.body;
+
+    updateActionVeriteConfig(guildId, {
+      sfw_channel_id: sfw_channel_id || null,
+      nsfw_channel_id: nsfw_channel_id || null
+    });
+
     res.json({ success: true });
   } catch (error) {
     console.error(error);

@@ -172,6 +172,70 @@ client.on('interactionCreate', async interaction => {
         .setColor(isInvite ? '#43B581' : '#F04747');
 
       return interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+    } else if (customId.startsWith('av_')) {
+      const [_, mode, choix] = customId.split('_');
+      const guildId = interaction.guild ? interaction.guild.id : 'DM';
+
+      // Vérifications des salons configurés
+      if (interaction.guild) {
+        const { getActionVeriteConfig, getRandomActionVeriteItem } = require('./database/db');
+        const config = getActionVeriteConfig(guildId);
+        
+        if (config.sfw_channel_id || config.nsfw_channel_id) {
+          const isSfwAllowed = config.sfw_channel_id && interaction.channel.id === config.sfw_channel_id;
+          const isNsfwAllowed = config.nsfw_channel_id && interaction.channel.id === config.nsfw_channel_id;
+
+          if (!isSfwAllowed && !isNsfwAllowed) {
+            let msg = '❌ Ce jeu ne peut être joué que dans les salons configurés :';
+            if (config.sfw_channel_id) msg += `\n- SFW : <#${config.sfw_channel_id}>`;
+            if (config.nsfw_channel_id) msg += `\n- NSFW : <#${config.nsfw_channel_id}>`;
+            return interaction.reply({ content: msg, ephemeral: true });
+          }
+
+          if (isSfwAllowed && mode === 'nsfw') {
+            return interaction.reply({
+              content: '🔞 Le mode **NSFW** ne peut pas être joué dans le salon SFW ! Allez dans le salon NSFW si configuré.',
+              ephemeral: true
+            });
+          }
+        }
+
+        if (mode === 'nsfw' && !interaction.channel.nsfw) {
+          return interaction.reply({ 
+            content: '🔞 Le mode **NSFW** ne peut être joué que dans un salon configuré comme NSFW !', 
+            ephemeral: true 
+          });
+        }
+      }
+
+      const { getRandomActionVeriteItem } = require('./database/db');
+      const question = getRandomActionVeriteItem(guildId, choix, mode);
+
+      const embed = new EmbedBuilder()
+        .setTitle(`🎲 Action ou Vérité — ${choix === 'action' ? 'Action 🎬' : 'Vérité 💬'}`)
+        .setDescription(`<@${interaction.user.id}>, voici ton défi :\n\n>>> **${question}**`)
+        .setColor(choix === 'action' ? '#E74C3C' : '#3498DB')
+        .setFooter({ text: `Mode : ${mode === 'sfw' ? 'SFW 🟢' : 'NSFW 🔞'}` })
+        .setTimestamp();
+
+      const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`av_${mode}_action`)
+          .setLabel('Action 🎬')
+          .setStyle(ButtonStyle.Danger),
+        new ButtonBuilder()
+          .setCustomId(`av_${mode}_verite`)
+          .setLabel('Vérité 💬')
+          .setStyle(ButtonStyle.Primary)
+      );
+
+      try {
+        await interaction.update({ embeds: [embed], components: [row] });
+      } catch (err) {
+        console.error(err);
+      }
+      return;
     }
     return;
   }

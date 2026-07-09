@@ -394,7 +394,13 @@ function initDatabase() {
       content TEXT
     )
   `).run();
-
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS action_verite_config (
+      guild_id TEXT PRIMARY KEY,
+      sfw_channel_id TEXT,
+      nsfw_channel_id TEXT
+    )
+  `).run();
   // Migrations pour les auto-rôles embeds (type et mode)
   try {
     db.prepare("ALTER TABLE autorole_embeds ADD COLUMN type TEXT DEFAULT 'buttons'").run();
@@ -720,6 +726,21 @@ const getRandomActionVeriteItem = (guildId, type, category) => {
   return filtered[Math.floor(Math.random() * filtered.length)].content;
 };
 
+const getActionVeriteConfig = (guildId) => {
+  let config = db.prepare('SELECT * FROM action_verite_config WHERE guild_id = ?').get(guildId);
+  if (!config) {
+    db.prepare('INSERT OR IGNORE INTO action_verite_config (guild_id) VALUES (?)').run(guildId);
+    config = db.prepare('SELECT * FROM action_verite_config WHERE guild_id = ?').get(guildId);
+  }
+  return config;
+};
+
+const updateActionVeriteConfig = (guildId, updates) => {
+  const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
+  const values = Object.values(updates);
+  return db.prepare(`UPDATE action_verite_config SET ${fields} WHERE guild_id = ?`).run(...values, guildId);
+};
+
 module.exports = {
   db,
   initDatabase,
@@ -767,5 +788,7 @@ module.exports = {
   getActionVeriteItems,
   addActionVeriteItem,
   deleteActionVeriteItem,
-  getRandomActionVeriteItem
+  getRandomActionVeriteItem,
+  getActionVeriteConfig,
+  updateActionVeriteConfig
 };
