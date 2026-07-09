@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Verify auth state
-  fetch('/api/user')
+  fetch('/api/user', { cache: 'no-store' })
     .then(res => res.json())
     .then(data => {
       if (data.authenticated) {
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
       userAvatar.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; // default avatar
     }
 
-    fetch('/api/guilds')
+    fetch('/api/guilds', { cache: 'no-store' })
       .then(res => res.json())
       .then(guilds => {
         guildsList = guilds;
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
           option.textContent = guild.name;
           guildSelect.appendChild(option);
         });
-        return fetch('/api/selected-guild');
+        return fetch('/api/selected-guild', { cache: 'no-store' });
       })
       .then(res => res.json())
       .then(data => {

@@ -102,7 +102,11 @@ app.use(session({
 // Middlewares
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
-
+// Désactiver la mise en cache pour toutes les routes API
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  next();
+});
 // Route principale
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
