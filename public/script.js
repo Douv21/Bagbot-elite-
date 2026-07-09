@@ -2686,11 +2686,176 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  function makeSelectMultiple(selectElement) {
+    if (!selectElement) return;
+    if (!selectElement.multiple) return;
+    if (selectElement.dataset.searchableTransformed) return;
+    selectElement.dataset.searchableTransformed = 'true';
+
+    // Cacher le sélecteur natif
+    selectElement.style.display = 'none';
+
+    // Créer le wrapper
+    const wrapper = document.createElement('div');
+    wrapper.className = 'custom-select-wrapper multiple';
+    selectElement.parentNode.insertBefore(wrapper, selectElement);
+    wrapper.appendChild(selectElement);
+
+    // Créer le déclencheur (bouton)
+    const trigger = document.createElement('div');
+    trigger.className = 'custom-select-trigger';
+    
+    const triggerText = document.createElement('span');
+    trigger.appendChild(triggerText);
+
+    const icon = document.createElement('i');
+    icon.className = 'fa-solid fa-chevron-down';
+    trigger.appendChild(icon);
+    wrapper.appendChild(trigger);
+
+    // Créer le panneau des options
+    const panel = document.createElement('div');
+    panel.className = 'custom-select-options-panel';
+
+    // Créer la barre de recherche
+    const searchWrapper = document.createElement('div');
+    searchWrapper.className = 'custom-select-search-wrapper';
+    
+    const searchIcon = document.createElement('i');
+    searchIcon.className = 'fa-solid fa-magnifying-glass';
+    searchWrapper.appendChild(searchIcon);
+
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Rechercher...';
+    searchInput.className = 'custom-select-search-input';
+    searchWrapper.appendChild(searchInput);
+    panel.appendChild(searchWrapper);
+
+    // Créer la liste des options
+    const optionsList = document.createElement('div');
+    optionsList.className = 'custom-select-options-list';
+    panel.appendChild(optionsList);
+    wrapper.appendChild(panel);
+
+    function updateTriggerText() {
+      const selectedOptions = Array.from(selectElement.selectedOptions);
+      if (selectedOptions.length === 0) {
+        triggerText.textContent = 'Aucun sélectionné...';
+        triggerText.style.color = '#72767d';
+      } else {
+        triggerText.textContent = selectedOptions.map(opt => opt.text).join(', ');
+        triggerText.style.color = '#fff';
+      }
+    }
+
+    function renderOptions() {
+      optionsList.innerHTML = '';
+      const filter = searchInput.value.toLowerCase().trim();
+      let count = 0;
+
+      Array.from(selectElement.options).forEach((option, idx) => {
+        if (!option.value) return; // ignorer les placeholders vides
+
+        if (!filter || option.text.toLowerCase().includes(filter)) {
+          count++;
+          const item = document.createElement('div');
+          item.className = 'custom-select-option-item';
+          item.style.display = 'flex';
+          item.style.alignItems = 'center';
+          item.style.gap = '10px';
+          
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = option.selected;
+          checkbox.style.cursor = 'pointer';
+          
+          const labelSpan = document.createElement('span');
+          labelSpan.textContent = option.text;
+          
+          item.appendChild(checkbox);
+          item.appendChild(labelSpan);
+
+          if (option.selected) {
+            item.classList.add('selected');
+          }
+
+          item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            option.selected = !option.selected;
+            checkbox.checked = option.selected;
+            item.classList.toggle('selected', option.selected);
+            updateTriggerText();
+            selectElement.dispatchEvent(new Event('change'));
+          });
+
+          checkbox.addEventListener('click', (e) => {
+            e.stopPropagation();
+            option.selected = checkbox.checked;
+            item.classList.toggle('selected', checkbox.checked);
+            updateTriggerText();
+            selectElement.dispatchEvent(new Event('change'));
+          });
+
+          optionsList.appendChild(item);
+        }
+      });
+
+      if (count === 0) {
+        const noResult = document.createElement('div');
+        noResult.className = 'custom-select-option-item';
+        noResult.style.color = '#72767d';
+        noResult.style.cursor = 'default';
+        noResult.textContent = 'Aucun résultat';
+        optionsList.appendChild(noResult);
+      }
+    }
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.custom-select-wrapper').forEach(w => {
+        if (w !== wrapper) w.classList.remove('open');
+      });
+
+      wrapper.classList.toggle('open');
+      if (wrapper.classList.contains('open')) {
+        renderOptions();
+        searchInput.value = '';
+        searchInput.focus();
+      }
+    });
+
+    searchInput.addEventListener('input', renderOptions);
+
+    document.addEventListener('click', (e) => {
+      if (!wrapper.contains(e.target)) {
+        wrapper.classList.remove('open');
+      }
+    });
+
+    selectElement.addEventListener('change', () => {
+      updateTriggerText();
+    });
+
+    selectElement.syncCustomSelect = () => {
+      updateTriggerText();
+      if (wrapper.classList.contains('open')) {
+        renderOptions();
+      }
+    };
+
+    updateTriggerText();
+  }
+
   function initializeSearchableSelects() {
     const selectors = ['.role-select', '.channel-select', '.announce-channel-select', '.custom-select'];
     selectors.forEach(selector => {
       document.querySelectorAll(selector).forEach(select => {
-        makeSelectSearchable(select);
+        if (select.multiple) {
+          makeSelectMultiple(select);
+        } else {
+          makeSelectSearchable(select);
+        }
       });
     });
   }

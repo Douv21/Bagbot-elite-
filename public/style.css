@@ -1196,6 +1196,18 @@ body {
   font-weight: 500;
 }
 
+.custom-select-wrapper.multiple .custom-select-option-item.selected {
+  background: rgba(88, 101, 242, 0.15);
+  color: #ffffff;
+}
+
+.custom-select-option-item input[type="checkbox"] {
+  accent-color: #5865F2;
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+}
+
 @keyframes selectFadeIn {
   from { opacity: 0; transform: translateY(-5px); }
   to { opacity: 1; transform: translateY(0); }
