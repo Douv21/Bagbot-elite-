@@ -239,7 +239,7 @@ app.get('/api/guilds', async (req, res) => {
     for (const guild of userGuilds) {
       if (!botGuildIds.has(guild.id)) continue;
 
-      const permissions = parseInt(guild.permissions, 16);
+      const permissions = parseInt(guild.permissions, 10);
       
       // Propriétaire ou Administrateur (0x8) uniquement
       const hasPermissions = guild.owner || (permissions & 0x8);
@@ -263,7 +263,7 @@ app.post('/api/select-guild', (req, res) => {
     if (!userGuild) {
       return res.status(403).json({ error: 'Vous ne faites pas partie de ce serveur' });
     }
-    const permissions = parseInt(userGuild.permissions, 16);
+    const permissions = parseInt(userGuild.permissions, 10);
     const isOwnerOrAdmin = userGuild.owner || (permissions & 0x8);
     if (!isOwnerOrAdmin) {
       return res.status(403).json({ error: 'Accès restreint aux Propriétaires et Administrateurs' });
