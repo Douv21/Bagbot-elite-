@@ -14,9 +14,6 @@ try {
 
   console.log("=== TICKETS ===");
   console.log(g.tickets);
-
-  console.log("=== MOT CACHE ===");
-  console.log(g.motCache);
 } catch (e) {
   console.error(e);
 }
