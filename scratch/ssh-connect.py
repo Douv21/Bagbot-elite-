@@ -43,7 +43,7 @@ def run_ssh():
         sys.stdout.write(chunk)
         sys.stdout.flush()
         
-        if 'password:' in chunk.lower() and not password_sent:
+        if ('password' in chunk.lower() or 'passe' in chunk.lower()) and not password_sent:
             os.write(master, b'bagbot\n')
             password_sent = True
 
