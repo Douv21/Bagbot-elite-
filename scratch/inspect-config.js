@@ -7,7 +7,9 @@ try {
   const g = data.guilds[gid];
   
   if (g.tickets && g.tickets.categories) {
-    console.log("Category Example Details:", g.tickets.categories[0]);
+    g.tickets.categories.forEach(c => {
+      console.log(`Category "${c.key}":`, Object.keys(c));
+    });
   }
 } catch (e) {
   console.error(e);
