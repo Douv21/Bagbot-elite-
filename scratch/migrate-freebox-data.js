@@ -10,6 +10,11 @@ db.pragma('journal_mode = WAL');
 console.log("Connected to SQLite DB at:", dbPath);
 
 try {
+  db.prepare("ALTER TABLE ticket_options ADD COLUMN description TEXT").run();
+  console.log("Added description column to ticket_options.");
+} catch (e) {}
+
+try {
   // 2. Read the Freebox config file
   const configPath = path.join(__dirname, 'freebox-config.json');
   const content = fs.readFileSync(configPath, 'utf8');
