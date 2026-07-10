@@ -6,16 +6,8 @@ try {
   const gid = Object.keys(data.guilds)[0];
   const g = data.guilds[gid];
   
-  console.log("=== WELCOME ===");
-  console.log(g.welcome);
-
-  console.log("=== GOODBYE ===");
-  console.log(g.goodbye);
-
-  console.log("=== TICKETS KEYS ===");
-  if (g.tickets) {
-    console.log("Tickets top-level keys:", Object.keys(g.tickets));
-    console.log("Tickets categories:", g.tickets.categories);
+  if (g.tickets && g.tickets.categories) {
+    console.log("Category Example Details:", g.tickets.categories[0]);
   }
 } catch (e) {
   console.error(e);
