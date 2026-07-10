@@ -6,16 +6,17 @@ try {
   const gid = Object.keys(data.guilds)[0];
   const g = data.guilds[gid];
   
-  if (g.levels) {
-    console.log("Levels Rewards:", g.levels.rewards);
-    console.log("Levels Curve Settings:", {
-      xpMessageMin: g.levels.xpMessageMin,
-      xpMessageMax: g.levels.xpMessageMax,
-      xpVoiceMin: g.levels.xpVoiceMin,
-      xpVoiceMax: g.levels.xpVoiceMax,
-      announce: g.levels.announce
-    });
-  }
+  console.log("=== WELCOME ===");
+  console.log(g.welcome);
+
+  console.log("=== GOODBYE ===");
+  console.log(g.goodbye);
+
+  console.log("=== TICKETS ===");
+  console.log(g.tickets);
+
+  console.log("=== MOT CACHE ===");
+  console.log(g.motCache);
 } catch (e) {
   console.error(e);
 }
