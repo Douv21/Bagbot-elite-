@@ -12,8 +12,11 @@ try {
   console.log("=== GOODBYE ===");
   console.log(g.goodbye);
 
-  console.log("=== TICKETS ===");
-  console.log(g.tickets);
+  console.log("=== TICKETS KEYS ===");
+  if (g.tickets) {
+    console.log("Tickets top-level keys:", Object.keys(g.tickets));
+    console.log("Tickets categories:", g.tickets.categories);
+  }
 } catch (e) {
   console.error(e);
 }
