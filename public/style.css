@@ -631,7 +631,7 @@ body::after {
   to { opacity: 1; transform: translateY(0); }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .dashboard-main {
     grid-template-columns: 1fr;
     gap: 20px;
@@ -1182,28 +1182,27 @@ body::after {
 /* Presentation Smartphone/PC en automatique (Responsive Design) */
 @media (max-width: 768px) {
   .navbar {
-    flex-direction: column;
-    gap: 16px;
-    padding: 16px;
-    align-items: center;
-    text-align: center;
-    border-radius: 0 0 12px 12px;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 12px 16px !important;
+    margin: 10px auto 20px !important;
+    width: calc(100% - 32px) !important;
+    gap: 8px !important;
   }
   .nav-brand {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
   }
-  .guild-selector {
-    flex-direction: column;
-    gap: 6px;
-    width: 100%;
-  }
-  .guild-selector select {
-    width: 100%;
-    text-align: center;
+  .nav-brand span {
+    display: none !important;
   }
   .user-profile {
-    width: 100%;
-    justify-content: center;
+    width: auto !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+  }
+  .user-profile span {
+    display: none !important;
   }
   .dashboard-main {
     padding: 0 16px 16px;
@@ -1531,22 +1530,24 @@ td.text-center, td[colspan] {
 
 .mobile-toggle-btn {
   display: none;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  font-size: 1.2rem;
+  background: var(--primary-color) !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 1.3rem !important;
   cursor: pointer;
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(88, 101, 242, 0.4);
+  transition: all 0.25s ease;
 }
 
 .mobile-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: #4752c4 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(88, 101, 242, 0.5);
 }
 
 .mobile-sidebar-close-btn {
