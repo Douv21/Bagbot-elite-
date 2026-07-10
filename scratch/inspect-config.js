@@ -7,12 +7,14 @@ try {
   const g = data.guilds[gid];
   
   if (g.levels) {
-    console.log("Levels Keys:", Object.keys(g.levels));
-    const userIds = Object.keys(g.levels.users || {});
-    console.log("Levels Users Count:", userIds.length);
-    if (userIds.length > 0) {
-      console.log("Example User Level Record:", userIds[0], g.levels.users[userIds[0]]);
-    }
+    console.log("Levels Rewards:", g.levels.rewards);
+    console.log("Levels Curve Settings:", {
+      xpMessageMin: g.levels.xpMessageMin,
+      xpMessageMax: g.levels.xpMessageMax,
+      xpVoiceMin: g.levels.xpVoiceMin,
+      xpVoiceMax: g.levels.xpVoiceMax,
+      announce: g.levels.announce
+    });
   }
 } catch (e) {
   console.error(e);
