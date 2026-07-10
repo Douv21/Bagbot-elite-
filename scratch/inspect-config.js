@@ -3,16 +3,11 @@ const fs = require('fs');
 try {
   const content = fs.readFileSync('/home/maison/bagbot-elite/scratch/freebox-config.json', 'utf8');
   const data = JSON.parse(content);
-  console.log("Guilds count:", Object.keys(data.guilds).length);
-  for (const gid of Object.keys(data.guilds)) {
-    const g = data.guilds[gid];
-    console.log(`Guild ${gid}:`);
-    if (g.economy && g.economy.balances) {
-      console.log(` - Balances count: ${Object.keys(g.economy.balances).length}`);
-      console.log(" - Balance keys:", Object.keys(g.economy.balances));
-    } else {
-      console.log(` - No balances found`);
-    }
+  const gid = Object.keys(data.guilds)[0];
+  const g = data.guilds[gid];
+  console.log("Guild keys:", Object.keys(g));
+  if (g.economy) {
+    console.log("Economy keys:", Object.keys(g.economy));
   }
 } catch (e) {
   console.error(e);
