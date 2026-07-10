@@ -1,7 +1,7 @@
 const fs = require('fs');
 
 try {
-  const content = fs.readFileSync('/var/data/config.json', 'utf8');
+  const content = fs.readFileSync('/home/maison/bagbot-elite/scratch/freebox-config.json', 'utf8');
   const data = JSON.parse(content);
   console.log("Guilds count:", Object.keys(data.guilds).length);
   for (const gid of Object.keys(data.guilds)) {
