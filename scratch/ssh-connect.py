@@ -9,7 +9,7 @@ def run_ssh():
     master, slave = pty.openpty()
     
     # Run the SSH command
-    cmd = ['ssh', '-o', 'StrictHostKeyChecking=no', '-p', '33000', 'bagbot@88.174.155.230', 'ls -la /home/bagbot/Bag-bot']
+    cmd = ['ssh', '-o', 'StrictHostKeyChecking=no', '-p', '33000', 'bagbot@82.65.75.176', 'ls -la /home/bagbot/Bag-bot']
     
     proc = subprocess.Popen(
         cmd,
