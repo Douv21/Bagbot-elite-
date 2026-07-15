@@ -7,7 +7,7 @@ def run_ssh():
     pid, fd = pty.fork()
     if pid == 0:
         # Processus enfant
-        os.execvp('ssh', ['ssh', '-o', 'StrictHostKeyChecking=no', 'bagbot@192.168.1.37', "sed -n '13340,13580p' /home/bagbot/Bag-bot/src/bot.js"])
+        os.execvp('ssh', ['ssh', '-o', 'StrictHostKeyChecking=no', 'bagbot@192.168.1.37', "cat /home/bagbot/Bag-bot/src/commands/couleur.js"])
     else:
         # Processus parent
         password_sent = False
