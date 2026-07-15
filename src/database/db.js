@@ -23,6 +23,10 @@ function initDatabase() {
     )
   `).run();
 
+  try {
+    db.prepare('ALTER TABLE economy ADD COLUMN last_daily INTEGER DEFAULT 0').run();
+  } catch (e) {}
+
   db.prepare(`
     CREATE TABLE IF NOT EXISTS karma_config (
       guild_id TEXT PRIMARY KEY,
@@ -493,7 +497,7 @@ const getEconomy = (guildId, userId) => {
   const row = db.prepare('SELECT * FROM economy WHERE guild_id = ? AND user_id = ?').get(guildId, userId);
   if (!row) {
     db.prepare('INSERT OR IGNORE INTO economy (guild_id, user_id) VALUES (?, ?)').run(guildId, userId);
-    return { guild_id: guildId, user_id: userId, wallet: 0, bank: 0, karma: 0, last_work: 0, last_crime: 0, last_rob: 0, last_fish: 0 };
+    return { guild_id: guildId, user_id: userId, wallet: 0, bank: 0, karma: 0, last_work: 0, last_crime: 0, last_rob: 0, last_fish: 0, last_daily: 0 };
   }
   return row;
 };

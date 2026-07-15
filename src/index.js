@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Partials, Collection, REST, Routes, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, Collection, REST, Routes, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const { initDatabase } = require('./database/db');
@@ -239,6 +239,25 @@ client.on('interactionCreate', async interaction => {
     } else if (customId.startsWith('ticket_')) {
       const { handleTicketInteraction } = require('./utils/ticketHandler');
       return handleTicketInteraction(interaction, client);
+    } else if (customId === 'couleur_custom_btn') {
+      const modal = new ModalBuilder()
+        .setCustomId('couleur_custom_modal')
+        .setTitle('Couleur Personnalisée');
+
+      const hexInput = new TextInputBuilder()
+        .setCustomId('hex_code')
+        .setLabel('Code couleur HEX (ex: FF5733)')
+        .setStyle(TextInputStyle.Short)
+        .setMinLength(6)
+        .setMaxLength(7)
+        .setRequired(true)
+        .setPlaceholder('#FF5733');
+
+      const actionRow = new ActionRowBuilder().addComponents(hexInput);
+      modal.addComponents(actionRow);
+
+      await interaction.showModal(modal);
+      return;
     }
     return;
   }
@@ -273,6 +292,10 @@ client.on('interactionCreate', async interaction => {
       } catch (err) {
         console.error('Erreur select menu autorole:', err);
       }
+      return;
+    } else if (interaction.customId === 'couleur_preset_select') {
+      const hex = interaction.values[0];
+      await applyColorRole(interaction, hex);
       return;
     }
   }
@@ -331,6 +354,14 @@ client.on('interactionCreate', async interaction => {
         console.error('Erreur gestion permissions suite:', err);
         return interaction.reply({ content: '❌ Impossible de modifier les permissions pour cet utilisateur. Vérifiez mes permissions.', ephemeral: true });
       }
+    }
+  }
+
+  if (interaction.isModalSubmit()) {
+    if (interaction.customId === 'couleur_custom_modal') {
+      const hex = interaction.fields.getTextInputValue('hex_code');
+      await applyColorRole(interaction, hex);
+      return;
     }
   }
 
@@ -714,6 +745,98 @@ async function checkExpiredSuites(client) {
   } catch (err) {
     console.error('Erreur nettoyage suites privées:', err);
   }
+}
+
+async function applyColorRole(interaction, hexColor) {
+  const guildId = interaction.guild.id;
+  const userId = interaction.user.id;
+  const { db } = require('./database/db');
+
+  let hex = hexColor.trim().replace('#', '').toUpperCase();
+  if (!/^[0-9A-F]{6}$/i.test(hex)) {
+    try {
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp({ content: '❌ Code couleur HEX invalide. Format attendu : `#FF5733` ou `FF5733`.', ephemeral: true });
+      } else {
+        await interaction.reply({ content: '❌ Code couleur HEX invalide. Format attendu : `#FF5733` ou `FF5733`.', ephemeral: true });
+      }
+    } catch (_) {}
+    return;
+  }
+
+  if (hex === '000000') hex = '000001';
+
+  const invItem = db.prepare("SELECT * FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name LIKE '%rôle couleur%'").get(guildId, userId);
+  if (!invItem || invItem.quantity <= 0) {
+    try {
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp({ content: '❌ Vous ne possédez plus l\'article **🌈 Rôle couleur** dans votre inventaire.', ephemeral: true });
+      } else {
+        await interaction.reply({ content: '❌ Vous ne possédez plus l\'article **🌈 Rôle couleur** dans votre inventaire.', ephemeral: true });
+      }
+    } catch (_) {}
+    return;
+  }
+
+  if (!interaction.deferred && !interaction.replied) {
+    await interaction.deferReply({ ephemeral: true }).catch(() => null);
+  }
+
+  const member = interaction.member;
+  const guild = interaction.guild;
+  const botMember = guild.members.me;
+
+  const roleName = `Couleur #${hex}`;
+  let role = guild.roles.cache.find(r => r.name === roleName);
+  
+  if (!role) {
+    try {
+      role = await guild.roles.create({
+        name: roleName,
+        color: `#${hex}`,
+        reason: `Couleur de pseudo pour ${member.user.username}`
+      });
+      
+      if (botMember.roles.highest.position > 1) {
+        await role.setPosition(botMember.roles.highest.position - 1).catch(() => null);
+      }
+    } catch (err) {
+      console.error('Failed to create role:', err);
+      return interaction.editReply({ content: '❌ Impossible de créer le rôle de couleur. Vérifiez les permissions de mon rôle le plus élevé.' }).catch(() => null);
+    }
+  }
+
+  const colorRoles = member.roles.cache.filter(r => r.name.startsWith('Couleur #'));
+  for (const [rId, r] of colorRoles) {
+    if (rId !== role.id) {
+      await member.roles.remove(r).catch(console.error);
+    }
+  }
+
+  try {
+    await member.roles.add(role);
+  } catch (err) {
+    console.error('Failed to assign role:', err);
+    return interaction.editReply({ content: '❌ Je n\'ai pas pu vous attribuer le rôle. Assurez-vous que le rôle créé n\'est pas au-dessus de mon rôle le plus élevé.' }).catch(() => null);
+  }
+
+  if (invItem.quantity > 1) {
+    db.prepare("UPDATE inventory SET quantity = quantity - 1 WHERE guild_id = ? AND user_id = ? AND item_name = ?")
+      .run(guildId, userId, invItem.item_name);
+  } else {
+    db.prepare("DELETE FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?")
+      .run(guildId, userId, invItem.item_name);
+  }
+
+  setTimeout(async () => {
+    try {
+      guild.roles.cache.filter(r => r.name.startsWith('Couleur #') && r.members.size === 0).forEach(async r => {
+        await r.delete().catch(() => null);
+      });
+    } catch (_) {}
+  }, 10000);
+
+  return interaction.editReply({ content: `🎨 **Couleur appliquée avec succès !** Votre pseudo s'affiche désormais en **#${hex}**.` }).catch(() => null);
 }
 
 // Connexion du bot
