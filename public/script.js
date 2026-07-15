@@ -553,6 +553,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('nsfw_money_reward').value = lvl.nsfw_money_reward ?? 0;
         document.getElementById('announce_channel').value = lvl.announce_channel || 'current';
         document.getElementById('announce_msg').value = lvl.announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !';
+        
+        if (typeof updateXpCurvePreview === 'function') {
+          updateXpCurvePreview();
+        }
 
         // Automod Config
         const am = config.automod_config || {};
@@ -2947,6 +2951,36 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  function updateXpCurvePreview() {
+    const base = parseInt(document.getElementById('xp_base').value) || 120;
+    const factor = parseFloat(document.getElementById('xp_factor').value) || 1.35;
+    const previewDiv = document.getElementById('xp-curve-preview');
+    if (!previewDiv) return;
+
+    previewDiv.innerHTML = '';
+    const levelsToShow = [1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 40, 50];
+    levelsToShow.forEach(lvl => {
+      const xpRequired = Math.max(1, Math.round(base * Math.pow(factor, Math.max(0, lvl))));
+      const card = document.createElement('div');
+      card.style.background = 'rgba(255, 255, 255, 0.03)';
+      card.style.border = '1px solid rgba(255, 255, 255, 0.04)';
+      card.style.borderRadius = '6px';
+      card.style.padding = '6px 8px';
+      card.style.textAlign = 'center';
+      card.innerHTML = `
+        <div style="font-size: 0.72rem; opacity: 0.6; margin-bottom: 2px;">Niveau ${lvl}</div>
+        <div style="font-size: 0.8rem; font-weight: 600; color: #00d2d3;">${xpRequired.toLocaleString('fr-FR')} XP</div>
+      `;
+      previewDiv.appendChild(card);
+    });
+  }
+
+  // Attach input event listeners for real-time recalculation
+  const xpBaseInput = document.getElementById('xp_base');
+  const xpFactorInput = document.getElementById('xp_factor');
+  if (xpBaseInput) xpBaseInput.addEventListener('input', updateXpCurvePreview);
+  if (xpFactorInput) xpFactorInput.addEventListener('input', updateXpCurvePreview);
 
   initializeSearchableSelects();
 });

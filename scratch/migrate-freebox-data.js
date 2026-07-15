@@ -34,8 +34,9 @@ try {
       console.log(`\n--- Migrating Guild: ${guildId} ---`);
       const g = data.guilds[guildId];
 
-      // A. ECONOMY BALANCES
+      // A. ECONOMY BALANCES & USER INVENTORY
       if (g.economy && g.economy.balances) {
+        db.prepare('DELETE FROM inventory WHERE guild_id = ?').run(guildId);
         const insertEconomy = db.prepare(`
           INSERT INTO economy (guild_id, user_id, wallet, bank, karma)
           VALUES (?, ?, ?, ?, ?)
@@ -44,18 +45,31 @@ try {
             bank = excluded.bank,
             karma = excluded.karma
         `);
+        const insertInventory = db.prepare(`
+          INSERT INTO inventory (guild_id, user_id, item_name, quantity)
+          VALUES (?, ?, ?, ?)
+        `);
 
         let ecoCount = 0;
+        let invCount = 0;
         const userIds = Object.keys(g.economy.balances);
         for (const userId of userIds) {
           const bal = g.economy.balances[userId];
           const wallet = bal.money || bal.amount || 0;
           const bank = bal.bank || 0;
-          const karma = bal.karma || 0;
+          const karma = (bal.charm || 0) + (bal.perversion || 0) + (bal.karma || 0);
           insertEconomy.run(guildId, userId, wallet, bank, karma);
           ecoCount++;
+
+          if (bal.inventory && Array.isArray(bal.inventory)) {
+            for (const item of bal.inventory) {
+              const name = item.emoji ? `${item.emoji} ${item.name}` : item.name;
+              insertInventory.run(guildId, userId, name, item.quantity || 1);
+              invCount++;
+            }
+          }
         }
-        console.log(`✅ Migrated ${ecoCount} economy balances.`);
+        console.log(`✅ Migrated ${ecoCount} economy balances & ${invCount} inventory items.`);
       }
 
       // B. LEVELING CONFIG
@@ -215,6 +229,88 @@ try {
           }
           console.log(`✅ Migrated ${optionCount} Ticket Options categories.`);
         }
+      }
+
+      // I. ACTION GIFS
+      db.prepare('DELETE FROM action_gifs WHERE guild_id = ?').run(guildId);
+      if (g.economy && g.economy.actions && g.economy.actions.gifs) {
+        const insertActionGif = db.prepare(`
+          INSERT INTO action_gifs (guild_id, action_name, gif_url)
+          VALUES (?, ?, ?)
+        `);
+        let gifCount = 0;
+        for (const actionName of Object.keys(g.economy.actions.gifs)) {
+          const entry = g.economy.actions.gifs[actionName];
+          const urls = Array.from(new Set([
+            ...(Array.isArray(entry.success) ? entry.success : []),
+            ...(Array.isArray(entry.fail) ? entry.fail : [])
+          ]));
+          for (const url of urls) {
+            insertActionGif.run(guildId, actionName, url);
+            gifCount++;
+          }
+        }
+        console.log(`✅ Migrated ${gifCount} action GIFs.`);
+      }
+
+      // J. CONFESSIONS
+      if (g.confess && g.confess.channelId) {
+        db.prepare(`
+          INSERT OR REPLACE INTO confessions (guild_id, channel_id, confession_name, use_thread)
+          VALUES (?, ?, ?, ?)
+        `).run(guildId, g.confess.channelId, 'Confession', g.confess.useThread ? 1 : 0);
+        console.log(`✅ Migrated Confession channel configuration.`);
+      }
+
+      // K. ACTION / VERITE (TRUTH OR DARE)
+      if (g.truthdare) {
+        db.prepare('DELETE FROM action_verite WHERE guild_id = ?').run(guildId);
+        const insertPrompt = db.prepare(`
+          INSERT INTO action_verite (guild_id, type, category, content)
+          VALUES (?, ?, ?, ?)
+        `);
+        let promptCount = 0;
+        if (g.truthdare.sfw && g.truthdare.sfw.prompts) {
+          for (const id of Object.keys(g.truthdare.sfw.prompts)) {
+            const item = g.truthdare.sfw.prompts[id];
+            const type = item.type === 'verite' ? 'verite' : 'action';
+            insertPrompt.run(guildId, type, 'sfw', item.text);
+            promptCount++;
+          }
+        }
+        if (g.truthdare.nsfw && g.truthdare.nsfw.prompts) {
+          for (const id of Object.keys(g.truthdare.nsfw.prompts)) {
+            const item = g.truthdare.nsfw.prompts[id];
+            const type = item.type === 'verite' ? 'verite' : 'action';
+            insertPrompt.run(guildId, type, 'nsfw', item.text);
+            promptCount++;
+          }
+        }
+        console.log(`✅ Migrated ${promptCount} Action/Vérité prompts.`);
+
+        const sfwChan = g.truthdare.sfw?.channels?.[0] || null;
+        const nsfwChan = g.truthdare.nsfw?.channels?.[0] || null;
+        db.prepare(`
+          INSERT OR REPLACE INTO action_verite_config (guild_id, sfw_channel_id, nsfw_channel_id)
+          VALUES (?, ?, ?)
+        `).run(guildId, sfwChan, nsfwChan);
+        console.log(`✅ Migrated Action/Vérité SFW/NSFW channels config.`);
+      }
+
+      // L. SHOP ITEMS
+      if (g.economy && g.economy.shop && g.economy.shop.items) {
+        db.prepare('DELETE FROM shop WHERE guild_id = ?').run(guildId);
+        const insertShopItem = db.prepare(`
+          INSERT INTO shop (guild_id, item_name, price, description, role_id)
+          VALUES (?, ?, ?, ?, null)
+        `);
+        let shopCount = 0;
+        for (const item of g.economy.shop.items) {
+          const name = item.emoji ? `${item.emoji} ${item.name}` : item.name;
+          insertShopItem.run(guildId, name, item.price, `Item importé de l'ancien bot (ID: ${item.id})`);
+          shopCount++;
+        }
+        console.log(`✅ Migrated ${shopCount} shop items.`);
       }
     }
   });
