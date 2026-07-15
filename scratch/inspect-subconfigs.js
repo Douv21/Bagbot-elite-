@@ -6,11 +6,20 @@ try {
   const gid = Object.keys(data.guilds)[0];
   const g = data.guilds[gid];
   
-  console.log("Confess configuration:", g.confess);
-  console.log("TruthDare configuration:", g.truthdare);
-  console.log("Category Banners:", g.categoryBanners);
-  console.log("Drops:", g.drops);
-  console.log("Geo:", g.geo);
+  function findGifKeys(obj, path = '') {
+    if (!obj || typeof obj !== 'object') return;
+    Object.keys(obj).forEach(k => {
+      const currentPath = path ? `${path}.${k}` : k;
+      if (k.toLowerCase().includes('gif')) {
+        console.log(`Found GIF key: ${currentPath} ->`, typeof obj[k] === 'object' ? Object.keys(obj[k]).slice(0, 10) : obj[k]);
+      }
+      if (k !== 'users' && k !== 'balances' && k !== 'prompts' && k !== 'economy') {
+        findGifKeys(obj[k], currentPath);
+      }
+    });
+  }
+  
+  findGifKeys(g);
 } catch (e) {
   console.error(e);
 }
