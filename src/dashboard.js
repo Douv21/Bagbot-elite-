@@ -391,12 +391,29 @@ app.post('/api/bot/avatar', async (req, res) => {
     // Enregistrer l'avatar personnalisé dans welcome_leave pour cette guilde
     let wl = db.prepare('SELECT * FROM welcome_leave WHERE guild_id = ?').get(guildId);
     if (!wl) {
-      db.prepare('INSERT INTO welcome_leave (guild_id, custom_bot_avatar) VALUES (?, ?)').run(guildId, avatar_url);
+      db.prepare('INSERT INTO welcome_leave (guild_id, custom_bot_avatar) VALUES (?, ?)').run(guildId, avatar_url || null);
     } else {
-      db.prepare('UPDATE welcome_leave SET custom_bot_avatar = ? WHERE guild_id = ?').run(avatar_url, guildId);
+      db.prepare('UPDATE welcome_leave SET custom_bot_avatar = ? WHERE guild_id = ?').run(avatar_url || null, guildId);
     }
 
-    res.json({ success: true, avatarURL: avatar_url });
+    let botAvatarError = null;
+    if (avatar_url) {
+      try {
+        if (avatar_url.startsWith('http://') || avatar_url.startsWith('https://')) {
+          await client.user.setAvatar(avatar_url);
+        } else if (avatar_url.startsWith('/uploads/')) {
+          const absPath = path.join(__dirname, '../public', avatar_url);
+          if (fs.existsSync(absPath)) {
+            await client.user.setAvatar(absPath);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to change bot avatar on Discord:', err.message);
+        botAvatarError = "Image de l'embed enregistrée, mais Discord a refusé le changement d'avatar réel (limite de 2 changements par heure ou format invalide).";
+      }
+    }
+
+    res.json({ success: true, avatarURL: avatar_url, warning: botAvatarError });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });
@@ -549,11 +566,31 @@ app.post('/api/config/welcome-leave', (req, res) => {
     } = req.body;
 
     db.prepare(`
-      INSERT OR REPLACE INTO welcome_leave (
+      INSERT INTO welcome_leave (
         guild_id, welcome_channel, leave_channel, welcome_title, welcome_desc,
         welcome_color, welcome_thumbnail, welcome_image, welcome_author_name, welcome_author_icon, welcome_footer, welcome_role_filter,
         leave_title, leave_desc, leave_color, leave_thumbnail, leave_image, leave_author_name, leave_author_icon, leave_footer
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(guild_id) DO UPDATE SET
+        welcome_channel = excluded.welcome_channel,
+        leave_channel = excluded.leave_channel,
+        welcome_title = excluded.welcome_title,
+        welcome_desc = excluded.welcome_desc,
+        welcome_color = excluded.welcome_color,
+        welcome_thumbnail = excluded.welcome_thumbnail,
+        welcome_image = excluded.welcome_image,
+        welcome_author_name = excluded.welcome_author_name,
+        welcome_author_icon = excluded.welcome_author_icon,
+        welcome_footer = excluded.welcome_footer,
+        welcome_role_filter = excluded.welcome_role_filter,
+        leave_title = excluded.leave_title,
+        leave_desc = excluded.leave_desc,
+        leave_color = excluded.leave_color,
+        leave_thumbnail = excluded.leave_thumbnail,
+        leave_image = excluded.leave_image,
+        leave_author_name = excluded.leave_author_name,
+        leave_author_icon = excluded.leave_author_icon,
+        leave_footer = excluded.leave_footer
     `).run(
       guildId, welcome_channel || null, leave_channel || null, welcome_title || '', welcome_desc || '',
       welcome_color || '#00FF00', welcome_thumbnail ? 1 : 0, welcome_image || null, welcome_author_name || null, welcome_author_icon || null, welcome_footer || null, welcome_role_filter || null,
