@@ -157,6 +157,45 @@ body::after {
   text-decoration: none;
 }
 
+/* Mobile toggle and close buttons */
+.mobile-toggle-btn {
+  display: none;
+  background: var(--primary-color) !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 1.3rem !important;
+  cursor: pointer;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(88, 101, 242, 0.4);
+  transition: all 0.25s ease;
+}
+
+.mobile-toggle-btn:hover {
+  background: #4752c4 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(88, 101, 242, 0.5);
+}
+
+.mobile-sidebar-close-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.4rem;
+  cursor: pointer;
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+}
+
 .btn-discord {
   background-color: #5865F2;
   color: #fff;
@@ -1526,44 +1565,6 @@ td.text-center, td[colspan] {
   margin-bottom: 6px;
   opacity: 0.5;
   text-transform: uppercase;
-}
-
-.mobile-toggle-btn {
-  display: none;
-  background: var(--primary-color) !important;
-  border: none !important;
-  color: #ffffff !important;
-  font-size: 1.3rem !important;
-  cursor: pointer;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 14px rgba(88, 101, 242, 0.4);
-  transition: all 0.25s ease;
-}
-
-.mobile-toggle-btn:hover {
-  background: #4752c4 !important;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(88, 101, 242, 0.5);
-}
-
-.mobile-sidebar-close-btn {
-  display: none;
-  background: transparent;
-  border: none;
-  color: #fff;
-  font-size: 1.4rem;
-  cursor: pointer;
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  width: 32px;
-  height: 32px;
-  align-items: center;
-  justify-content: center;
 }
 
 .sidebar-overlay {
