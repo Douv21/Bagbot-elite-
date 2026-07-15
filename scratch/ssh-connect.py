@@ -7,7 +7,7 @@ def run_ssh():
     pid, fd = pty.fork()
     if pid == 0:
         # Processus enfant
-        os.execvp('ssh', ['ssh', '-o', 'StrictHostKeyChecking=no', 'bagbot@192.168.1.37', 'find /home/bagbot/Bag-bot/ -maxdepth 3 -name "*.json" -o -name "*.sqlite" -o -name "*.db" | head -n 40'])
+        os.execvp('ssh', ['ssh', '-o', 'StrictHostKeyChecking=no', 'bagbot@192.168.1.37', 'cat /home/bagbot/Bag-bot/dashboard-v2/gif-cache/mapping.json'])
     else:
         # Processus parent
         password_sent = False
