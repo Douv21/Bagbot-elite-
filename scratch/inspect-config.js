@@ -6,10 +6,19 @@ try {
   const gid = Object.keys(data.guilds)[0];
   const g = data.guilds[gid];
   
-  if (g.levels) {
-    const levelsCopy = { ...g.levels };
-    delete levelsCopy.users;
-    console.log("Levels configuration in Freebox JSON:", levelsCopy);
+  console.log("Guild config top-level keys:", Object.keys(g));
+  
+  if (g.confessions) {
+    console.log("Confessions configuration:", g.confessions);
+  }
+  if (g.actionVerite) {
+    console.log("Action/Verite configuration:", g.actionVerite);
+  }
+  if (g.karma) {
+    console.log("Karma configuration:", g.karma);
+  }
+  if (g.gifs) {
+    console.log("Gifs configuration:", g.gifs);
   }
 } catch (e) {
   console.error(e);
