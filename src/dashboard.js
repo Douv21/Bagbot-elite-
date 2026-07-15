@@ -396,24 +396,7 @@ app.post('/api/bot/avatar', async (req, res) => {
       db.prepare('UPDATE welcome_leave SET custom_bot_avatar = ? WHERE guild_id = ?').run(avatar_url || null, guildId);
     }
 
-    let botAvatarError = null;
-    if (avatar_url) {
-      try {
-        if (avatar_url.startsWith('http://') || avatar_url.startsWith('https://')) {
-          await client.user.setAvatar(avatar_url);
-        } else if (avatar_url.startsWith('/uploads/')) {
-          const absPath = path.join(__dirname, '../public', avatar_url);
-          if (fs.existsSync(absPath)) {
-            await client.user.setAvatar(absPath);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to change bot avatar on Discord:', err.message);
-        botAvatarError = "Image de l'embed enregistrée, mais Discord a refusé le changement d'avatar réel (limite de 2 changements par heure ou format invalide).";
-      }
-    }
-
-    res.json({ success: true, avatarURL: avatar_url, warning: botAvatarError });
+    res.json({ success: true, avatarURL: avatar_url });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });

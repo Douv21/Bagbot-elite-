@@ -44,8 +44,8 @@ module.exports = {
         }
 
         let authorIcon = config.leave_author_icon;
-        if (!authorIcon && config.custom_bot_avatar) {
-          authorIcon = config.custom_bot_avatar;
+        if (!authorIcon) {
+          authorIcon = config.custom_bot_avatar || member.client.user.displayAvatarURL({ extension: 'png', size: 256 });
         }
         if (authorIcon) {
           if (authorIcon.startsWith('/uploads/')) {

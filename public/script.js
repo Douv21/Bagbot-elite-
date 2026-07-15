@@ -906,11 +906,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(res => res.json())
       .then(resData => {
         if (resData.success) {
-          if (resData.warning) {
-            showToast(resData.warning, true);
-          } else {
-            showToast('Avatar du bot mis à jour avec succès !');
-          }
+          showToast('Image d\'avatar de l\'embed mise à jour avec succès !');
           e.target.value = '';
           document.getElementById('bot-avatar-wrapper').style.display = 'none';
           fetchBotInfo(resData.avatarURL);
@@ -2041,11 +2037,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => res.json())
         .then(avatarData => {
           if (avatarData.success) {
-            if (avatarData.warning) {
-              showToast(avatarData.warning, true);
-            } else {
-              showToast('Avatar du bot mis à jour avec succès !');
-            }
+            showToast('Image d\'avatar de l\'embed mise à jour avec succès !');
             document.getElementById('bot-avatar-url-input').value = '';
             document.getElementById('bot-avatar-wrapper').style.display = 'none';
             fetchBotInfo(avatarData.avatarURL);
