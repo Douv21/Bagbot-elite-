@@ -543,6 +543,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const lvl = config.leveling_config || {};
         document.getElementById('xp_min').value = lvl.xp_min ?? 15;
         document.getElementById('xp_max').value = lvl.xp_max ?? 25;
+        document.getElementById('xp_base').value = lvl.xp_base ?? 120;
+        document.getElementById('xp_factor').value = lvl.xp_factor ?? 1.35;
         document.getElementById('karma_min').value = lvl.karma_min ?? 1;
         document.getElementById('karma_max').value = lvl.karma_max ?? 3;
         document.getElementById('money_min').value = lvl.money_min ?? 2;
@@ -1591,6 +1593,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const data = {
       xp_min: parseInt(document.getElementById('xp_min').value),
       xp_max: parseInt(document.getElementById('xp_max').value),
+      xp_base: parseInt(document.getElementById('xp_base').value) || 120,
+      xp_factor: parseFloat(document.getElementById('xp_factor').value) || 1.35,
       karma_min: parseInt(document.getElementById('karma_min').value),
       karma_max: parseInt(document.getElementById('karma_max').value),
       money_min: parseInt(document.getElementById('money_min').value),

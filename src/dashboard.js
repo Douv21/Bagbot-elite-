@@ -749,7 +749,8 @@ app.post('/api/config/leveling', (req, res) => {
       karma_min, karma_max, 
       money_min, money_max, 
       nsfw_xp_reward, nsfw_money_reward, 
-      announce_channel, announce_msg 
+      announce_channel, announce_msg,
+      xp_base, xp_factor
     } = req.body;
 
     db.prepare(`
@@ -758,9 +759,10 @@ app.post('/api/config/leveling', (req, res) => {
         karma_min, karma_max, 
         money_min, money_max, 
         nsfw_xp_reward, nsfw_money_reward, 
-        announce_channel, announce_msg
+        announce_channel, announce_msg,
+        xp_base, xp_factor
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       guildId,
       xp_min !== undefined ? parseInt(xp_min) : 15,
@@ -772,7 +774,9 @@ app.post('/api/config/leveling', (req, res) => {
       nsfw_xp_reward !== undefined ? parseInt(nsfw_xp_reward) : 0,
       nsfw_money_reward !== undefined ? parseInt(nsfw_money_reward) : 0,
       announce_channel || 'current',
-      announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !'
+      announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !',
+      xp_base !== undefined ? parseInt(xp_base) : 120,
+      xp_factor !== undefined ? parseFloat(xp_factor) : 1.35
     );
 
     res.json({ success: true });

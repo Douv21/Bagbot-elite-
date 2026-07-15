@@ -247,7 +247,9 @@ function initDatabase() {
       nsfw_xp_reward INTEGER DEFAULT 0,
       nsfw_money_reward INTEGER DEFAULT 0,
       announce_channel TEXT DEFAULT 'current',
-      announce_msg TEXT DEFAULT 'Bravo {user} ! Tu passes au niveau {level} !'
+      announce_msg TEXT DEFAULT 'Bravo {user} ! Tu passes au niveau {level} !',
+      xp_base INTEGER DEFAULT 120,
+      xp_factor REAL DEFAULT 1.35
     )
   `).run();
 
@@ -269,6 +271,12 @@ function initDatabase() {
   } catch (e) {}
   try {
     db.prepare('ALTER TABLE leveling_config ADD COLUMN nsfw_money_reward INTEGER DEFAULT 0').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE leveling_config ADD COLUMN xp_base INTEGER DEFAULT 120').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE leveling_config ADD COLUMN xp_factor REAL DEFAULT 1.35').run();
   } catch (e) {}
 
   // Ajouter les colonnes de statistiques utilisateurs dans leveling si elles n'existent pas
@@ -426,9 +434,14 @@ function initDatabase() {
       category_id TEXT,
       required_role_id TEXT,
       support_roles TEXT,
-      ping_users TEXT
+      ping_users TEXT,
+      description TEXT
     )
   `).run();
+
+  try {
+    db.prepare("ALTER TABLE ticket_options ADD COLUMN description TEXT").run();
+  } catch (e) {}
 
   db.prepare(`
     CREATE TABLE IF NOT EXISTS active_tickets (
@@ -516,7 +529,7 @@ const getLevelingConfig = (guildId) => {
   const row = db.prepare('SELECT * FROM leveling_config WHERE guild_id = ?').get(guildId);
   if (!row) {
     db.prepare('INSERT OR IGNORE INTO leveling_config (guild_id) VALUES (?)').run(guildId);
-    return { guild_id: guildId, xp_min: 15, xp_max: 25, karma_min: 1, karma_max: 3, money_min: 2, money_max: 5, nsfw_xp_reward: 0, nsfw_money_reward: 0, announce_channel: 'current', announce_msg: 'Bravo {user} ! Tu passes au niveau {level} !' };
+    return { guild_id: guildId, xp_min: 15, xp_max: 25, karma_min: 1, karma_max: 3, money_min: 2, money_max: 5, nsfw_xp_reward: 0, nsfw_money_reward: 0, announce_channel: 'current', announce_msg: 'Bravo {user} ! Tu passes au niveau {level} !', xp_base: 120, xp_factor: 1.35 };
   }
   return row;
 };
@@ -801,11 +814,11 @@ const getTicketOptions = (guildId) => {
 };
 
 const addTicketOption = (guildId, option) => {
-  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users } = option;
+  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description } = option;
   return db.prepare(`
-    INSERT INTO ticket_options (guild_id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(guildId, label, value, emoji, button_style || 'Primary', category_id || null, required_role_id || null, JSON.stringify(support_roles || []), JSON.stringify(ping_users || []));
+    INSERT INTO ticket_options (guild_id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(guildId, label, value, emoji, button_style || 'Primary', category_id || null, required_role_id || null, JSON.stringify(support_roles || []), JSON.stringify(ping_users || []), description || null);
 };
 
 const deleteTicketOption = (guildId, id) => {

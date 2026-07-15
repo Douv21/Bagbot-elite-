@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getLeveling, getEconomy, db } = require('../../database/db');
+const { getLeveling, getEconomy, getLevelingConfig, db } = require('../../database/db');
 const genCard = require('../../carte/holographique');
 
 module.exports = {
@@ -16,8 +16,12 @@ module.exports = {
     const leveling = getLeveling(guildId, targetUser.id);
     const economy = getEconomy(guildId, targetUser.id);
     
-    // Formule exponentielle de Bagbot-lite : 100 * 1.2^lvl
-    const xpRequired = Math.max(1, Math.round(100 * Math.pow(1.2, Math.max(0, leveling.level))));
+    const lvlConfig = getLevelingConfig(guildId);
+    const xpBase = lvlConfig.xp_base ?? 120;
+    const xpFactor = lvlConfig.xp_factor ?? 1.35;
+
+    // Formule exponentielle de Bagbot-lite configurable
+    const xpRequired = Math.max(1, Math.round(xpBase * Math.pow(xpFactor, Math.max(0, leveling.level))));
     const xpLeft = Math.max(0, xpRequired - leveling.xp);
     const pct = Math.min(100, Math.round((leveling.xp / xpRequired) * 100));
 

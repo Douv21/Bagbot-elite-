@@ -60,22 +60,33 @@ try {
 
       // B. LEVELING CONFIG
       if (g.levels) {
+        try {
+          db.prepare("ALTER TABLE leveling_config ADD COLUMN xp_base INTEGER DEFAULT 120").run();
+        } catch (e) {}
+        try {
+          db.prepare("ALTER TABLE leveling_config ADD COLUMN xp_factor REAL DEFAULT 1.35").run();
+        } catch (e) {}
+
         const insertLevelConfig = db.prepare(`
-          INSERT INTO leveling_config (guild_id, xp_min, xp_max, announce_channel, announce_msg)
-          VALUES (?, ?, ?, ?, ?)
+          INSERT INTO leveling_config (guild_id, xp_min, xp_max, announce_channel, announce_msg, xp_base, xp_factor)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(guild_id) DO UPDATE SET
             xp_min = excluded.xp_min,
             xp_max = excluded.xp_max,
             announce_channel = excluded.announce_channel,
-            announce_msg = excluded.announce_msg
+            announce_msg = excluded.announce_msg,
+            xp_base = excluded.xp_base,
+            xp_factor = excluded.xp_factor
         `);
 
         const xpMin = g.levels.xpMessageMin ?? 15;
-        const xpMax = g.levels.xpMessageMax ?? 25;
+        const xpMax = g.levels.xpMessageMax ?? 35;
         const announceChannel = g.levels.announce?.levelUp?.channelId ?? 'current';
         const announceMsg = g.levels.announce?.levelUp?.template || 'Bravo {user} ! Tu passes au niveau {level} !';
+        const xpBase = g.levels.levelCurve?.base ?? 120;
+        const xpFactor = g.levels.levelCurve?.factor ?? 1.35;
 
-        insertLevelConfig.run(guildId, xpMin, xpMax, announceChannel, announceMsg);
+        insertLevelConfig.run(guildId, xpMin, xpMax, announceChannel, announceMsg, xpBase, xpFactor);
         console.log(`✅ Migrated leveling curve & announce config.`);
 
         // C. LEVEL REWARDS

@@ -99,8 +99,12 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
   let newXp = data.xp + finalXpToAdd;
   let newLevel = data.level;
 
-  // Calcul du seuil d'XP requis pour monter de niveau (formule exponentielle de Bagbot-lite : 100 * 1.2^lvl)
-  const xpNeededForNextLevel = (lvl) => Math.max(1, Math.round(100 * Math.pow(1.2, Math.max(0, lvl))));
+  const lvlConfig = getLevelingConfig(guildId);
+  const xpBase = lvlConfig.xp_base ?? 120;
+  const xpFactor = lvlConfig.xp_factor ?? 1.35;
+
+  // Calcul du seuil d'XP requis pour monter de niveau (formule exponentielle configurable)
+  const xpNeededForNextLevel = (lvl) => Math.max(1, Math.round(xpBase * Math.pow(xpFactor, Math.max(0, lvl))));
 
   let levelUp = false;
   while (newXp >= xpNeededForNextLevel(newLevel)) {
