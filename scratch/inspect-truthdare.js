@@ -7,18 +7,18 @@ try {
   const g = data.guilds[gid];
   
   if (g.truthdare) {
-    console.log("TruthDare SFW keys:", Object.keys(g.truthdare.sfw || {}));
-    console.log("TruthDare SFW channelId:", g.truthdare.sfw?.channelId);
-    console.log("TruthDare SFW actions count:", g.truthdare.sfw?.actions?.length);
-    console.log("TruthDare SFW truths count:", g.truthdare.sfw?.truths?.length);
-    
-    console.log("TruthDare NSFW keys:", Object.keys(g.truthdare.nsfw || {}));
-    console.log("TruthDare NSFW channelId:", g.truthdare.nsfw?.channelId);
-    console.log("TruthDare NSFW actions count:", g.truthdare.nsfw?.actions?.length);
-    console.log("TruthDare NSFW truths count:", g.truthdare.nsfw?.truths?.length);
-    
-    if (g.truthdare.sfw?.truths && g.truthdare.sfw.truths.length > 0) {
-      console.log("Example SFW truth:", g.truthdare.sfw.truths[0]);
+    if (g.truthdare.sfw && g.truthdare.sfw.prompts) {
+      const keys = Object.keys(g.truthdare.sfw.prompts);
+      console.log("SFW prompts length/keys:", keys.length);
+      if (keys.length > 0) {
+        console.log("Example SFW prompt item:", g.truthdare.sfw.prompts[keys[0]]);
+      }
+    }
+    if (g.truthdare.sfw && g.truthdare.sfw.channels) {
+      console.log("SFW channels:", g.truthdare.sfw.channels);
+    }
+    if (g.truthdare.nsfw && g.truthdare.nsfw.channels) {
+      console.log("NSFW channels:", g.truthdare.nsfw.channels);
     }
   }
 } catch (e) {
