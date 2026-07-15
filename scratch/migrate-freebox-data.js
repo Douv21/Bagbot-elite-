@@ -254,12 +254,26 @@ try {
       }
 
       // J. CONFESSIONS
-      if (g.confess && g.confess.channelId) {
-        db.prepare(`
+      if (g.confess) {
+        db.prepare('DELETE FROM confessions WHERE guild_id = ?').run(guildId);
+        const insertConfession = db.prepare(`
           INSERT OR REPLACE INTO confessions (guild_id, channel_id, confession_name, use_thread)
           VALUES (?, ?, ?, ?)
-        `).run(guildId, g.confess.channelId, 'Confession', g.confess.useThread ? 1 : 0);
-        console.log(`✅ Migrated Confession channel configuration.`);
+        `);
+        let confessCount = 0;
+        if (g.confess.sfw && Array.isArray(g.confess.sfw.channels)) {
+          for (const channelId of g.confess.sfw.channels) {
+            insertConfession.run(guildId, channelId, 'SFW', g.confess.allowReplies ? 1 : 0);
+            confessCount++;
+          }
+        }
+        if (g.confess.nsfw && Array.isArray(g.confess.nsfw.channels)) {
+          for (const channelId of g.confess.nsfw.channels) {
+            insertConfession.run(guildId, channelId, 'NSFW', g.confess.allowReplies ? 1 : 0);
+            confessCount++;
+          }
+        }
+        console.log(`✅ Migrated ${confessCount} Confession channels.`);
       }
 
       // K. ACTION / VERITE (TRUTH OR DARE)
