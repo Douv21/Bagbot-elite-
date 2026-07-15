@@ -6,10 +6,10 @@ try {
   const gid = Object.keys(data.guilds)[0];
   const g = data.guilds[gid];
   
-  if (g.tickets && g.tickets.categories) {
-    g.tickets.categories.forEach(c => {
-      console.log(`Category "${c.key}":`, Object.keys(c));
-    });
+  if (g.levels) {
+    const levelsCopy = { ...g.levels };
+    delete levelsCopy.users;
+    console.log("Levels configuration in Freebox JSON:", levelsCopy);
   }
 } catch (e) {
   console.error(e);
