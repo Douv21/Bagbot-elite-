@@ -1456,10 +1456,10 @@ app.post('/api/config/tickets/options/add', async (req, res) => {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users } = req.body;
+    const { id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description } = req.body;
     if (!label || !value) return res.status(400).json({ error: 'Libellé et valeur requis' });
 
-    addTicketOption(guildId, {
+    const optionData = {
       label,
       value: value.toLowerCase().replace(/[^a-z0-9_]/g, ''),
       emoji: emoji || null,
@@ -1467,8 +1467,16 @@ app.post('/api/config/tickets/options/add', async (req, res) => {
       category_id: category_id || null,
       required_role_id: required_role_id || null,
       support_roles: Array.isArray(support_roles) ? support_roles : [],
-      ping_users: Array.isArray(ping_users) ? ping_users : []
-    });
+      ping_users: Array.isArray(ping_users) ? ping_users : [],
+      description: description || null
+    };
+
+    if (id) {
+      const { updateTicketOption } = require('./database/db');
+      updateTicketOption(guildId, id, optionData);
+    } else {
+      addTicketOption(guildId, optionData);
+    }
 
     // Mettre à jour le panel existant s'il est déjà envoyé
     const panelConfig = getTicketPanel(guildId);

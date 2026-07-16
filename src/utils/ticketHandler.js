@@ -68,12 +68,16 @@ async function handleTicketInteraction(interaction, client) {
   }
 
   // 1. OUVERTURE DE TICKET
-  if (customId.startsWith('ticket_open_') || (customId === 'ticket_select' && interaction.isStringSelectMenu()) || (customId === 'ticket_open_filtered' && interaction.isStringSelectMenu())) {
+  if (
+    (customId.startsWith('ticket_open_') && customId !== 'ticket_open_filtered') ||
+    (customId === 'ticket_select' && interaction.isStringSelectMenu()) ||
+    (customId === 'ticket_open_filtered' && interaction.isStringSelectMenu())
+  ) {
     let value = '';
-    if (customId.startsWith('ticket_open_')) {
-      value = customId.substring('ticket_open_'.length);
-    } else {
+    if (interaction.isStringSelectMenu()) {
       value = interaction.values[0];
+    } else {
+      value = customId.substring('ticket_open_'.length);
     }
 
     // Récupérer l'option depuis la base de données

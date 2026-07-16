@@ -1195,6 +1195,62 @@ document.addEventListener('DOMContentLoaded', () => {
       // Actions
       const tdActions = document.createElement('td');
       tdActions.style.textAlign = 'center';
+      tdActions.style.display = 'flex';
+      tdActions.style.gap = '5px';
+      tdActions.style.justifyContent = 'center';
+
+      // Edit Button
+      const btnEdit = document.createElement('button');
+      btnEdit.type = 'button';
+      btnEdit.className = 'btn-delete-gif';
+      btnEdit.style.background = '#3498db';
+      btnEdit.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>';
+      btnEdit.title = 'Modifier cette catégorie';
+      btnEdit.addEventListener('click', () => {
+        // Remplir le formulaire avec les valeurs existantes
+        document.getElementById('ticket_opt_id').value = opt.id || '';
+        document.getElementById('ticket_opt_label').value = opt.label || '';
+        document.getElementById('ticket_opt_value').value = opt.value || '';
+        document.getElementById('ticket_opt_emoji').value = opt.emoji || '';
+        document.getElementById('ticket_opt_style').value = opt.button_style || 'Primary';
+        document.getElementById('ticket_opt_category').value = opt.category_id || '';
+        document.getElementById('ticket_opt_view_role').value = opt.required_role_id || '';
+        document.getElementById('ticket_opt_description').value = opt.description || '';
+
+        // Rôles support
+        let sRoles = [];
+        try { sRoles = JSON.parse(opt.support_roles || '[]'); } catch (e) {}
+        const supportSelect = document.getElementById('ticket_opt_support_roles');
+        Array.from(supportSelect.options).forEach(option => {
+          option.selected = sRoles.includes(option.value);
+        });
+
+        // Membres à ping
+        let pUsers = [];
+        try { pUsers = JSON.parse(opt.ping_users || '[]'); } catch (e) {}
+        const pingSelect = document.getElementById('ticket_opt_ping_users');
+        Array.from(pingSelect.options).forEach(option => {
+          option.selected = pUsers.includes(option.value);
+        });
+
+        // Synchroniser les custom selects du formulaire
+        ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users'].forEach(id => {
+          const selectEl = document.getElementById(id);
+          if (selectEl && selectEl.syncCustomSelect) {
+            selectEl.syncCustomSelect();
+          }
+        });
+
+        // Changer le titre et le bouton pour indiquer la modification
+        document.getElementById('ticket-opt-form-title').textContent = '📝 Modifier la catégorie de ticket';
+        document.getElementById('btn-ticket-submit').innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Enregistrer les modifications';
+        document.getElementById('btn-ticket-cancel-edit').style.display = 'block';
+
+        // Scroll vers le formulaire
+        document.getElementById('ticket-opt-form-title').scrollIntoView({ behavior: 'smooth' });
+      });
+      tdActions.appendChild(btnEdit);
+
       const btnDel = document.createElement('button');
       btnDel.type = 'button';
       btnDel.className = 'btn-delete-gif';
@@ -1556,7 +1612,6 @@ document.addEventListener('DOMContentLoaded', () => {
     .catch(err => showToast('Erreur: ' + err.message, true));
   });
 
-  // Ticket Option Add Submit
   formTicketOption.addEventListener('submit', (e) => {
     e.preventDefault();
     
@@ -1566,7 +1621,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const pingSelect = document.getElementById('ticket_opt_ping_users');
     const ping_users = Array.from(pingSelect.selectedOptions).map(opt => opt.value);
 
+    const id = document.getElementById('ticket_opt_id').value;
+
     const data = {
+      id: id || null,
       label: document.getElementById('ticket_opt_label').value,
       value: document.getElementById('ticket_opt_value').value,
       emoji: document.getElementById('ticket_opt_emoji').value,
@@ -1574,7 +1632,8 @@ document.addEventListener('DOMContentLoaded', () => {
       category_id: document.getElementById('ticket_opt_category').value,
       required_role_id: document.getElementById('ticket_opt_view_role').value,
       support_roles,
-      ping_users
+      ping_users,
+      description: document.getElementById('ticket_opt_description').value || null
     };
 
     fetch('/api/config/tickets/options/add', {
@@ -1585,22 +1644,22 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(res => res.json())
     .then(resData => {
       if (resData.success) {
-        showToast('Catégorie de ticket ajoutée !');
+        showToast(id ? 'Catégorie de ticket modifiée !' : 'Catégorie de ticket ajoutée !');
         
-        document.getElementById('ticket_opt_label').value = '';
-        document.getElementById('ticket_opt_value').value = '';
-        document.getElementById('ticket_opt_emoji').value = '';
-        document.getElementById('ticket_opt_category').value = '';
-        document.getElementById('ticket_opt_view_role').value = '';
-        rolesSelect.selectedIndex = -1;
-        pingSelect.selectedIndex = -1;
+        // Réinitialiser le formulaire
+        formTicketOption.reset();
+        document.getElementById('ticket_opt_id').value = '';
+        document.getElementById('ticket-opt-form-title').textContent = '➕ Ajouter une option de ticket';
+        document.getElementById('btn-ticket-submit').innerHTML = '<i class="fa-solid fa-plus"></i> Ajouter cette Catégorie';
+        document.getElementById('btn-ticket-cancel-edit').style.display = 'none';
 
-        if (document.getElementById('ticket_opt_category').syncCustomSelect) {
-          document.getElementById('ticket_opt_category').syncCustomSelect();
-        }
-        if (document.getElementById('ticket_opt_view_role').syncCustomSelect) {
-          document.getElementById('ticket_opt_view_role').syncCustomSelect();
-        }
+        // Synchroniser tous les custom selects pour réinitialisation
+        ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users'].forEach(selId => {
+          const selectEl = document.getElementById(selId);
+          if (selectEl && selectEl.syncCustomSelect) {
+            selectEl.syncCustomSelect();
+          }
+        });
 
         loadGuildConfiguration();
       } else {
@@ -1608,6 +1667,26 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     })
     .catch(err => showToast('Erreur: ' + err.message, true));
+  });
+
+  // Gérer le bouton Annuler la modification
+  const btnTicketCancelEdit = document.getElementById('btn-ticket-cancel-edit');
+  if (btnTicketCancelEdit) {
+    btnTicketCancelEdit.addEventListener('click', () => {
+      formTicketOption.reset();
+      document.getElementById('ticket_opt_id').value = '';
+      document.getElementById('ticket-opt-form-title').textContent = '➕ Ajouter une option de ticket';
+      document.getElementById('btn-ticket-submit').innerHTML = '<i class="fa-solid fa-plus"></i> Ajouter cette Catégorie';
+      btnTicketCancelEdit.style.display = 'none';
+
+      // Synchroniser tous les custom selects pour réinitialisation
+      ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users'].forEach(selId => {
+        const selectEl = document.getElementById(selId);
+        if (selectEl && selectEl.syncCustomSelect) {
+          selectEl.syncCustomSelect();
+        }
+      });
+    });
   });
 
   // Permissions Form Submit

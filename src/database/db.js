@@ -838,6 +838,35 @@ const deleteTicketOption = (guildId, id) => {
   return db.prepare('DELETE FROM ticket_options WHERE guild_id = ? AND id = ?').run(guildId, id);
 };
 
+const updateTicketOption = (guildId, id, option) => {
+  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description } = option;
+  return db.prepare(`
+    UPDATE ticket_options SET
+      label = ?,
+      value = ?,
+      emoji = ?,
+      button_style = ?,
+      category_id = ?,
+      required_role_id = ?,
+      support_roles = ?,
+      ping_users = ?,
+      description = ?
+    WHERE guild_id = ? AND id = ?
+  `).run(
+    label,
+    value,
+    emoji || null,
+    button_style || 'Primary',
+    category_id || null,
+    required_role_id || null,
+    JSON.stringify(support_roles || []),
+    JSON.stringify(ping_users || []),
+    description || null,
+    guildId,
+    id
+  );
+};
+
 const getActiveTicket = (channelId) => {
   return db.prepare('SELECT * FROM active_tickets WHERE channel_id = ?').get(channelId);
 };
@@ -920,6 +949,7 @@ module.exports = {
   updateTicketPanel,
   getTicketOptions,
   addTicketOption,
+  updateTicketOption,
   deleteTicketOption,
   getActiveTicket,
   addActiveTicket,
