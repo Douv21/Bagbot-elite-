@@ -19,6 +19,66 @@ module.exports = {
     const guildId = reaction.message.guildId;
     if (!guildId) return;
 
+    // --- Système de copie automatique d'émoji par réaction (Admin unique) ---
+    try {
+      const guild = reaction.message.guild;
+      const member = await guild.members.fetch(user.id).catch(() => null);
+      
+      if (member && (member.permissions.has('ManageGuildExpressions') || member.permissions.has('Administrator'))) {
+        // Cas A : L'Admin réagit avec un émoji personnalisé externe (qui n'est pas déjà sur le serveur)
+        if (reaction.emoji.id && !guild.emojis.cache.has(reaction.emoji.id)) {
+          const isAnimated = reaction.emoji.animated;
+          const emojiUrl = `https://cdn.discordapp.com/emojis/${reaction.emoji.id}.${isAnimated ? 'gif' : 'png'}`;
+          const cleanName = reaction.emoji.name.replace(/[^a-zA-Z0-9_]/g, '');
+
+          // Télécharger et créer
+          const res = await fetch(emojiUrl);
+          if (res.ok) {
+            const buffer = Buffer.from(await res.arrayBuffer());
+            await guild.emojis.create({ attachment: buffer, name: cleanName });
+            
+            const channel = reaction.message.channel;
+            await channel.send({ content: `✅ Émoji externe **:${cleanName}:** cloné avec succès par <@${user.id}> !` }).then(msg => {
+              setTimeout(() => msg.delete().catch(() => {}), 5000);
+            }).catch(() => {});
+          }
+        }
+        
+        // Cas B : L'Admin réagit avec ➕ ou 📥 sur un message pour en copier les émojis
+        if (reaction.emoji.name === '➕' || reaction.emoji.name === '📥') {
+          const emojiRegex = /<?(a)?:[a-zA-Z0-9_]+:([0-9]+)>/g;
+          const matches = [...reaction.message.content.matchAll(emojiRegex)];
+          
+          if (matches.length > 0) {
+            let copiedCount = 0;
+            for (const match of matches) {
+              const isAnimated = !!match[1];
+              const emojiId = match[2];
+              const emojiUrl = `https://cdn.discordapp.com/emojis/${emojiId}.${isAnimated ? 'gif' : 'png'}`;
+              
+              const nameMatch = match[0].match(/:([a-zA-Z0-9_]+):/);
+              const cleanName = nameMatch ? nameMatch[1] : `emoji_${emojiId}`;
+
+              const res = await fetch(emojiUrl);
+              if (res.ok) {
+                const buffer = Buffer.from(await res.arrayBuffer());
+                await guild.emojis.create({ attachment: buffer, name: cleanName });
+                copiedCount++;
+              }
+            }
+            if (copiedCount > 0) {
+              const channel = reaction.message.channel;
+              await channel.send({ content: `✅ **${copiedCount}** émoji(s) cloné(s) avec succès par <@${user.id}> !` }).then(msg => {
+                setTimeout(() => msg.delete().catch(() => {}), 5000);
+              }).catch(() => {});
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Erreur clonage émoji par réaction:', e);
+    }
+
     // Vérifier si ce message est enregistré comme un rôle réaction
     const embedRule = db.prepare('SELECT type, mode FROM autorole_embeds WHERE message_id = ?').get(messageId);
     if (!embedRule || embedRule.type !== 'reactions') return;
