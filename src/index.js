@@ -279,7 +279,7 @@ client.on('interactionCreate', async interaction => {
         }
       }
       return;
-    } else if (interaction.customId === 'ticket_select') {
+    } else if (interaction.customId === 'ticket_select' || interaction.customId === 'ticket_open_filtered') {
       const { handleTicketInteraction } = require('./utils/ticketHandler');
       return handleTicketInteraction(interaction, client);
     } else if (interaction.customId === 'autorole_select_menu') {
