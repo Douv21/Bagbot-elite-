@@ -39,8 +39,14 @@ module.exports = {
     }
 
     try {
+      // Télécharger l'image de l'émoji dans un Buffer
+      const response = await fetch(emojiUrl);
+      if (!response.ok) throw new Error(`Impossible de télécharger l'image (Status: ${response.status})`);
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
       const createdEmoji = await interaction.guild.emojis.create({
-        attachment: emojiUrl,
+        attachment: buffer,
         name: name
       });
 
