@@ -7,36 +7,46 @@ async function processAiCommand(guildId, userId, message, client) {
     return { reply: "❌ Erreur : Serveur introuvable." };
   }
 
-  // Obtenir la liste des membres, rôles et salons pour le contexte de l'IA
-  const membersContext = guild.members.cache.map(m => `- ${m.displayName} (ID: ${m.id}, Username: ${m.user.username})`).join('\n').slice(0, 1500);
-  const rolesContext = guild.roles.cache.map(r => `- ${r.name} (ID: ${r.id})`).join('\n').slice(0, 1000);
-  const channelsContext = guild.channels.cache.filter(c => c.isTextBased()).map(c => `- #${c.name} (ID: ${c.id})`).join('\n').slice(0, 1000);
+  // Helpers de recherche d'entités par nom
+  const findRole = (name) => {
+    if (!name) return null;
+    const clean = name.trim().toLowerCase().replace(/^["']|["']$/g, '').replace(/^@/, '');
+    return guild.roles.cache.find(r => r.name.toLowerCase() === clean || r.id === clean);
+  };
+
+  const findChannel = (name) => {
+    if (!name) return null;
+    const clean = name.trim().toLowerCase().replace(/^["']|["']$/g, '').replace(/^#/, '');
+    return guild.channels.cache.find(c => c.name.toLowerCase() === clean || c.id === clean);
+  };
+
+  const findMember = (name) => {
+    if (!name) return null;
+    const clean = name.trim().toLowerCase().replace(/^["']|["']$/g, '').replace(/^@/, '');
+    return guild.members.cache.find(m => 
+      m.user.username.toLowerCase() === clean || 
+      m.user.tag.toLowerCase() === clean || 
+      (m.nickname && m.nickname.toLowerCase() === clean) || 
+      m.id === clean
+    );
+  };
 
   const systemPrompt = `Tu es l'assistant d'administration intelligent du bot Discord B&G Elite.
 Tu peux exécuter des actions d'administration sur le serveur Discord "${guild.name}" en renvoyant des instructions structurées en JSON à la fin de ta réponse.
 
-Voici la liste des membres actuels du serveur (associe le nom saisi par l'utilisateur à l'ID correct) :
-${membersContext}
-
-Voici la liste des rôles actuels :
-${rolesContext}
-
-Voici la liste des salons textuels :
-${channelsContext}
-
-Voici les actions d'administration possibles (tu dois les formuler sous forme d'un tableau JSON d'objets, exemple: [{"type": "create_role", "name": "VIP"}]):
+Actions d'administration possibles (tu dois les formuler sous forme d'un tableau JSON d'objets, exemple: [{"type": "create_role", "name": "VIP"}]):
 1. {"type": "update_automod", "anti_link": 0/1, "anti_spam": 0/1, "anti_massmention": 0/1, "anti_badwords": 0/1, "spam_max_msgs": nombre, "massmention_limit": nombre, "badwords_list": "mot1,mot2"}
 2. {"type": "create_role", "name": "Nom du rôle", "color": "code hex ou rouge/bleu/vert...", "permissions": ["BanMembers", "KickMembers", "Administrator", "ManageRoles", "ManageChannels", "ManageMessages"]}
-3. {"type": "delete_role", "role_id": "ID du rôle"}
-4. {"type": "add_member_role", "member_id": "ID du membre", "role_id": "ID du rôle"}
-5. {"type": "remove_member_role", "member_id": "ID du membre", "role_id": "ID du rôle"}
-6. {"type": "timeout_member", "member_id": "ID du membre", "duration": minutes}
-7. {"type": "kick_member", "member_id": "ID du membre"}
-8. {"type": "ban_member", "member_id": "ID du membre"}
-9. {"type": "send_embed", "channel_id": "ID du salon", "title": "Titre", "description": "Texte"}
+3. {"type": "delete_role", "role_name": "Nom ou ID du rôle"}
+4. {"type": "add_member_role", "member_name": "Nom/pseudo/tag du membre", "role_name": "Nom ou ID du rôle"}
+5. {"type": "remove_member_role", "member_name": "Nom/pseudo/tag du membre", "role_name": "Nom ou ID du rôle"}
+6. {"type": "timeout_member", "member_name": "Nom/pseudo/tag du membre", "duration": minutes}
+7. {"type": "kick_member", "member_name": "Nom/pseudo/tag du membre"}
+8. {"type": "ban_member", "member_name": "Nom/pseudo/tag du membre"}
+9. {"type": "send_embed", "channel_name": "Nom ou ID du salon (ex: general ou #general)", "title": "Titre", "description": "Texte"}
 10. {"type": "update_action_message", "action_name": "calin/caresser/sodo...", "self": true/false, "text": "Le message avec balises de genre {A}, {T}, {A:e}, {T:e}, {A:pronom}, {T:pronom} etc."}
 
-Analyse la demande de l'utilisateur. Réponds-lui de manière courtoise, chaleureuse, sensuelle (si approprié) et naturelle en français.
+Analyse la demande de l'utilisateur. Réponds-lui de manière courtoise, chaleureuse et naturelle en français.
 Si la demande nécessite une ou plusieurs actions d'administration ci-dessus, inclus à la fin de ta réponse le tableau d'actions au format JSON.
 Important : Si tu décides de générer des actions JSON, écris-les sous la forme exacte suivante :
 [ACTIONS_START]
@@ -49,7 +59,7 @@ Pour que le script puisse les parser automatiquement.`;
   try {
     const apiPrompt = `${systemPrompt}\n\nUtilisateur: ${message}\nAssistant:`;
     const response = await fetch('https://text.pollinations.ai/' + encodeURIComponent(apiPrompt) + '?model=openai', {
-      signal: AbortSignal.timeout(9000) // 9 secondes max
+      signal: AbortSignal.timeout(6000) // 6 secondes max
     });
 
     if (!response.ok) {
@@ -117,57 +127,71 @@ Pour que le script puisse les parser automatiquement.`;
         }
 
         else if (action.type === 'delete_role') {
-          const role = guild.roles.cache.get(action.role_id);
+          const role = findRole(action.role_name);
           if (role) {
             await role.delete('Supprimé via l\'Assistant IA Dashboard');
-            executedActions.push({ type: 'delete_role' });
+            executedActions.push({ type: 'delete_role', name: role.name });
+          } else {
+            reply += `\n❓ Rôle "${action.role_name}" introuvable.`;
           }
         }
 
         else if (action.type === 'add_member_role') {
-          const member = await guild.members.fetch(action.member_id).catch(() => null);
-          const role = guild.roles.cache.get(action.role_id);
+          const member = findMember(action.member_name);
+          const role = findRole(action.role_name);
           if (member && role) {
             await member.roles.add(role);
-            executedActions.push({ type: 'add_member_role' });
+            executedActions.push({ type: 'add_member_role', member: member.displayName, role: role.name });
+          } else {
+            if (!member) reply += `\n❓ Membre "${action.member_name}" introuvable.`;
+            if (!role) reply += `\n❓ Rôle "${action.role_name}" introuvable.`;
           }
         }
 
         else if (action.type === 'remove_member_role') {
-          const member = await guild.members.fetch(action.member_id).catch(() => null);
-          const role = guild.roles.cache.get(action.role_id);
+          const member = findMember(action.member_name);
+          const role = findRole(action.role_name);
           if (member && role) {
             await member.roles.remove(role);
-            executedActions.push({ type: 'remove_member_role' });
+            executedActions.push({ type: 'remove_member_role', member: member.displayName, role: role.name });
+          } else {
+            if (!member) reply += `\n❓ Membre "${action.member_name}" introuvable.`;
+            if (!role) reply += `\n❓ Rôle "${action.role_name}" introuvable.`;
           }
         }
 
         else if (action.type === 'timeout_member') {
-          const member = await guild.members.fetch(action.member_id).catch(() => null);
+          const member = findMember(action.member_name);
           if (member) {
             await member.timeout(action.duration * 60 * 1000, 'Exclu temporairement via l\'Assistant IA');
-            executedActions.push({ type: 'timeout_member' });
+            executedActions.push({ type: 'timeout_member', member: member.displayName });
+          } else {
+            reply += `\n❓ Membre "${action.member_name}" introuvable.`;
           }
         }
 
         else if (action.type === 'kick_member') {
-          const member = await guild.members.fetch(action.member_id).catch(() => null);
+          const member = findMember(action.member_name);
           if (member) {
             await member.kick('Expulsé via l\'Assistant IA');
-            executedActions.push({ type: 'kick_member' });
+            executedActions.push({ type: 'kick_member', member: member.displayName });
+          } else {
+            reply += `\n❓ Membre "${action.member_name}" introuvable.`;
           }
         }
 
         else if (action.type === 'ban_member') {
-          const member = await guild.members.fetch(action.member_id).catch(() => null);
+          const member = findMember(action.member_name);
           if (member) {
             await member.ban({ reason: 'Banni via l\'Assistant IA' });
-            executedActions.push({ type: 'ban_member' });
+            executedActions.push({ type: 'ban_member', member: member.displayName });
+          } else {
+            reply += `\n❓ Membre "${action.member_name}" introuvable.`;
           }
         }
 
         else if (action.type === 'send_embed') {
-          const channel = guild.channels.cache.get(action.channel_id);
+          const channel = findChannel(action.channel_name);
           if (channel) {
             const embed = new EmbedBuilder()
               .setTitle(action.title || 'Message')
@@ -175,7 +199,9 @@ Pour que le script puisse les parser automatiquement.`;
               .setColor('#9b59b6')
               .setTimestamp();
             await channel.send({ embeds: [embed] });
-            executedActions.push({ type: 'send_embed' });
+            executedActions.push({ type: 'send_embed', channel: channel.name });
+          } else {
+            reply += `\n❓ Salon "${action.channel_name}" introuvable.`;
           }
         }
 
@@ -187,7 +213,7 @@ Pour que le script puisse les parser automatiquement.`;
             customMsg.target_message = action.text;
           }
           updateCustomActionMessage(guildId, action.action_name, customMsg.self_message, customMsg.target_message);
-          executedActions.push({ type: 'update_action_message' });
+          executedActions.push({ type: 'update_action_message', action: action.action_name });
         }
       } catch (err) {
         console.error('Erreur execution action IA:', action, err);
