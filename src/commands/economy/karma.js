@@ -74,8 +74,8 @@ module.exports = {
       ? (interaction.guild.members.cache.get(targetUser.id) || await interaction.guild.members.fetch(targetUser.id).catch(() => null))
       : { user: targetUser };
 
-    const ALL_THEMES = ['holographique','gaming','love','sensuel','cosmos','nature','dark','gold','argent','bleu','rose'];
-    const theme = ALL_THEMES[Math.floor(Math.random() * ALL_THEMES.length)];
+    const { getMemberCardTheme } = require('../../utils/themeHelper');
+    const theme = getMemberCardTheme(interaction.guild, member);
 
     if (member) {
       const card = await genCard(member, cardData, theme);

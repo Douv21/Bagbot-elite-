@@ -1078,6 +1078,58 @@
                 <button type="submit" class="btn btn-add"><i class="fa-solid fa-plus"></i> Ajouter la récompense</button>
               </form>
             </div>
+
+            <!-- Role Card Themes Section -->
+            <div class="card glass mt-4">
+              <h3>🎨 Thèmes de Cartes par Rôle</h3>
+              <p class="form-help mb-3">Associez des thèmes visuels spécifiques à vos rôles. Le thème de la carte d'un membre s'adaptera automatiquement à son rôle le plus élevé.</p>
+              
+              <div class="table-responsive mb-4">
+                <table class="config-table">
+                  <thead>
+                    <tr>
+                      <th>Rôle</th>
+                      <th>Thème Associé</th>
+                      <th style="width: 100px;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="role-themes-list">
+                    <tr>
+                      <td colspan="3" class="text-center">Aucun thème par rôle configuré.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Add Role Theme Form -->
+              <h4 class="mb-2">Ajouter une association Thème / Rôle</h4>
+              <form id="form-add-role-theme" class="inner-form">
+                <div class="form-group">
+                  <label for="theme_role">Rôle :</label>
+                  <select id="theme_role" class="role-select" required>
+                    <option value="">Sélectionner un rôle</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="theme_name_select">Thème de carte :</label>
+                  <select id="theme_name_select" required>
+                    <option value="">Sélectionner un thème</option>
+                    <option value="holographique">Holographique (Par défaut)</option>
+                    <option value="gaming">Gaming</option>
+                    <option value="love">Love</option>
+                    <option value="sensuel">Sensuel</option>
+                    <option value="cosmos">Cosmos</option>
+                    <option value="nature">Nature</option>
+                    <option value="dark">Dark</option>
+                    <option value="gold">Gold</option>
+                    <option value="argent">Argent</option>
+                    <option value="bleu">Bleu</option>
+                    <option value="rose">Rose</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn btn-add"><i class="fa-solid fa-plus"></i> Associer le thème</button>
+              </form>
+            </div>
           </div>
 
           <!-- Tab: Action GIFs -->

@@ -682,6 +682,9 @@ document.addEventListener('DOMContentLoaded', () => {
             updateActionRewardsForm();
           })
           .catch(console.error);
+
+        // Charger les thèmes de cartes par rôle
+        loadRoleThemes();
       })
       .catch(console.error);
   }
@@ -3337,6 +3340,97 @@ document.addEventListener('DOMContentLoaded', () => {
         aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
       });
     });
+  }
+
+  // --- Role Themes Configuration ---
+  function loadRoleThemes() {
+    fetch('/api/config/role-themes')
+      .then(res => res.json())
+      .then(themes => {
+        renderRoleThemes(themes);
+      })
+      .catch(console.error);
+  }
+
+  function renderRoleThemes(themes) {
+    const roleThemesList = document.getElementById('role-themes-list');
+    if (!roleThemesList) return;
+
+    if (themes.length === 0) {
+      roleThemesList.innerHTML = '<tr><td colspan="3" class="text-center">Aucun thème par rôle configuré.</td></tr>';
+      return;
+    }
+
+    roleThemesList.innerHTML = '';
+    themes.forEach(item => {
+      const tr = document.createElement('tr');
+      const roleName = rolesList.find(r => r.id === item.role_id)?.name || `<@&${item.role_id}>`;
+
+      tr.innerHTML = `
+        <td><span class="role-badge">${roleName}</span></td>
+        <td><span class="badge badge-info" style="background: rgba(0, 210, 227, 0.15); color: #00d2d3; padding: 4px 10px; border-radius: 4px; font-weight: 500; font-size: 0.8rem;">${item.theme_name.toUpperCase()}</span></td>
+        <td><button class="btn btn-danger btn-delete-theme" data-role-id="${item.role_id}"><i class="fa-solid fa-trash-can"></i> Supprimer</button></td>
+      `;
+
+      tr.querySelector('.btn-delete-theme').addEventListener('click', () => {
+        deleteRoleTheme(item.role_id);
+      });
+
+      roleThemesList.appendChild(tr);
+    });
+  }
+
+  const formAddRoleTheme = document.getElementById('form-add-role-theme');
+  if (formAddRoleTheme) {
+    formAddRoleTheme.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const role_id = document.getElementById('theme_role').value;
+      const theme_name = document.getElementById('theme_name_select').value;
+
+      if (!role_id || !theme_name) return;
+
+      fetch('/api/config/role-themes/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role_id, theme_name })
+      })
+        .then(res => res.json())
+        .then(resData => {
+          if (resData.success) {
+            formAddRoleTheme.reset();
+            const themeRoleSel = document.getElementById('theme_role');
+            if (themeRoleSel && themeRoleSel.syncCustomSelect) themeRoleSel.syncCustomSelect();
+            const themeNameSel = document.getElementById('theme_name_select');
+            if (themeNameSel && themeNameSel.syncCustomSelect) themeNameSel.syncCustomSelect();
+            
+            loadRoleThemes();
+            showToast('Thème associé au rôle avec succès !');
+          } else {
+            showToast('Erreur: ' + resData.error, true);
+          }
+        })
+        .catch(err => showToast(err.message, true));
+    });
+  }
+
+  function deleteRoleTheme(roleId) {
+    if (!confirm('Voulez-vous vraiment supprimer cette association de thème ?')) return;
+
+    fetch('/api/config/role-themes/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role_id: roleId })
+    })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          loadRoleThemes();
+          showToast('Association de thème supprimée !');
+        } else {
+          showToast('Erreur: ' + resData.error, true);
+        }
+      })
+      .catch(err => showToast(err.message, true));
   }
 
   initializeSearchableSelects();

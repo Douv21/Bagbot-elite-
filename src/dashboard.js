@@ -1563,6 +1563,55 @@ app.post('/api/config/tickets/options/delete', async (req, res) => {
   }
 });
 
+// Thèmes par rôle
+app.get('/api/config/role-themes', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { getRoleThemes } = require('./database/db');
+    const themes = getRoleThemes(guildId);
+    res.json(themes);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/role-themes/add', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { role_id, theme_name } = req.body;
+    if (!role_id || !theme_name) return res.status(400).json({ error: 'Rôle et Thème requis' });
+
+    const { addRoleTheme } = require('./database/db');
+    addRoleTheme(guildId, role_id, theme_name);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/role-themes/delete', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { role_id } = req.body;
+    if (!role_id) return res.status(400).json({ error: 'Rôle requis' });
+
+    const { deleteRoleTheme } = require('./database/db');
+    deleteRoleTheme(guildId, role_id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Assistant IA d'Administration (Owner unique)
 app.post('/api/ai/chat', async (req, res) => {
   try {

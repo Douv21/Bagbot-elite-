@@ -548,6 +548,16 @@ function initDatabase() {
       pronoun TEXT
     )
   `).run();
+
+  // 24. Thèmes de cartes personnalisés par rôle
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS role_themes (
+      guild_id TEXT,
+      role_id TEXT,
+      theme_name TEXT,
+      PRIMARY KEY (guild_id, role_id)
+    )
+  `).run();
 }
 
 // --- Fonctions utilitaires de base de données ---
@@ -1025,6 +1035,23 @@ const setUserGender = (userId, gender, pronoun) => {
   `).run(userId, gender, pronoun);
 };
 
+const getRoleThemes = (guildId) => {
+  return db.prepare('SELECT * FROM role_themes WHERE guild_id = ?').all(guildId);
+};
+
+const addRoleTheme = (guildId, roleId, themeName) => {
+  db.prepare(`
+    INSERT INTO role_themes (guild_id, role_id, theme_name)
+    VALUES (?, ?, ?)
+    ON CONFLICT (guild_id, role_id)
+    DO UPDATE SET theme_name = EXCLUDED.theme_name
+  `).run(guildId, roleId, themeName);
+};
+
+const deleteRoleTheme = (guildId, roleId) => {
+  db.prepare('DELETE FROM role_themes WHERE guild_id = ? AND role_id = ?').run(guildId, roleId);
+};
+
 module.exports = {
   db,
   initDatabase,
@@ -1093,5 +1120,8 @@ module.exports = {
   getCustomActionMessage,
   updateCustomActionMessage,
   getUserGender,
-  setUserGender
+  setUserGender,
+  getRoleThemes,
+  addRoleTheme,
+  deleteRoleTheme
 };

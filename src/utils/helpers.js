@@ -177,8 +177,9 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
             barLabel: `Félicitations pour le niveau ${newLevel} !`,
             karma: currentKarma
           };
-          
-          cardAttachment = await generateCard(member, cardPayload, 'holographique');
+          const { getMemberCardTheme } = require('./themeHelper');
+          const theme = getMemberCardTheme(guild, member);
+          cardAttachment = await generateCard(member, cardPayload, theme);
         } catch (error) {
           console.error("Erreur génération de carte de level up:", error);
         }
