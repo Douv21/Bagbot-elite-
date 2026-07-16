@@ -1134,6 +1134,73 @@
                 <button type="submit" class="btn btn-add"><i class="fa-solid fa-plus"></i> Ajouter le GIF</button>
               </form>
             </div>
+
+            <!-- Action Rewards Config Form -->
+            <div class="card glass mb-4" style="margin-top: 20px;">
+              <h3>💰 Gains d'Argent & de Karma par Action</h3>
+              <form id="form-action-rewards" class="inner-form">
+                <p style="color: #b9bbbe; font-size: 0.9rem; margin-bottom: 15px;">Personnalisez la plage de gains aléatoires en pièces et en Karma attribués à l'auteur lors de l'exécution de chaque commande d'action.</p>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="reward_action_name">Action à configurer :</label>
+                    <select id="reward_action_name" class="custom-select">
+                      <option value="69">69</option>
+                      <option value="agenouiller">Agenouiller</option>
+                      <option value="attrape">Attrape</option>
+                      <option value="batailleoreiller">Bataille d'oreillers</option>
+                      <option value="branler">Branler</option>
+                      <option value="calin" selected>Câlin</option>
+                      <option value="caresser">Caresser</option>
+                      <option value="chatouiller">Chatouiller</option>
+                      <option value="collier">Collier</option>
+                      <option value="danser">Danser</option>
+                      <option value="embrasser">Embrasser</option>
+                      <option value="lecher">Lécher</option>
+                      <option value="mordre">Mordre</option>
+                      <option value="mouiller">Mouiller</option>
+                      <option value="orgasme">Orgasme</option>
+                      <option value="punir">Punir</option>
+                      <option value="reanimer">Réanimer</option>
+                      <option value="reconforter">Réconforter</option>
+                      <option value="reveiller">Réveiller</option>
+                      <option value="rose">Rose</option>
+                      <option value="seduire">Séduire</option>
+                      <option value="sodo">Sodo</option>
+                      <option value="sucer">Sucer</option>
+                      <option value="tirercheveux">Tirer les cheveux</option>
+                      <option value="touche">Touche</option>
+                      <option value="vin">Vin</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="reward_min_money">Pièces Minimum :</label>
+                    <input type="number" id="reward_min_money" required min="0" value="5" class="inner-input">
+                  </div>
+                  <div class="form-group">
+                    <label for="reward_max_money">Pièces Maximum :</label>
+                    <input type="number" id="reward_max_money" required min="0" value="15" class="inner-input">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="reward_min_karma">Karma Minimum :</label>
+                    <input type="number" id="reward_min_karma" required min="0" value="1" class="inner-input">
+                  </div>
+                  <div class="form-group">
+                    <label for="reward_max_karma">Karma Maximum :</label>
+                    <input type="number" id="reward_max_karma" required min="0" value="3" class="inner-input">
+                  </div>
+                </div>
+
+                <div class="actions-bar" style="margin-top: 15px;">
+                  <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les Gains de l'Action</button>
+                </div>
+              </form>
+            </div>
           </div>
 
           <!-- Tab: Jeu Mot Caché -->
@@ -1444,6 +1511,11 @@
                       </div>
                     </div>
 
+                    <div class="form-group">
+                      <label for="ticket_panel_image_url">URL de l'image / du GIF de l'embed (facultatif) :</label>
+                      <input type="text" id="ticket_panel_image_url" class="inner-input" placeholder="ex: https://site.com/image.gif">
+                    </div>
+
                     <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
                       <label class="switch-label">
                         <input type="checkbox" id="ticket_panel_thumbnail">
@@ -1477,6 +1549,7 @@
                             </div>
                             <img src="" class="discord-embed-thumbnail" id="ticket-preview-thumb-img" style="display: none; border-radius: 50%; width: 60px; height: 60px; margin-left: 15px;">
                           </div>
+                          <img src="" class="discord-embed-image" id="ticket-preview-image" style="display: none; max-width: 100%; margin-top: 8px; border-radius: 4px;">
                         </div>
 
                         <!-- Components Area Preview -->
@@ -1556,6 +1629,12 @@
                   <label for="ticket_opt_description">Description de bienvenue dans le ticket (facultatif) :</label>
                   <textarea id="ticket_opt_description" class="inner-input" style="height: 100px; resize: vertical;" placeholder="Bonjour {user} !\nLe staff a été notifié de votre demande..."></textarea>
                   <p class="help-text">Le texte affiché dans l'embed lorsque le ticket est ouvert. Utilisez {user} pour mentionner l'utilisateur.</p>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                  <label for="ticket_opt_image_url">URL de l'image / du GIF de bienvenue (facultatif) :</label>
+                  <input type="text" id="ticket_opt_image_url" class="inner-input" placeholder="ex: https://site.com/welcome.gif">
+                  <p class="help-text">L'image ou le GIF affiché en grand en bas de l'embed de bienvenue de ce type de ticket.</p>
                 </div>
 
                 <div class="actions-bar" style="margin-top: 15px; display: flex; gap: 10px;">

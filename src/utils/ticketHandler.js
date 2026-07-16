@@ -186,6 +186,10 @@ async function handleTicketInteraction(interaction, client) {
       .setColor('#5865F2')
       .setTimestamp();
 
+    if (option.image_url) {
+      welcomeEmbed.setImage(option.image_url);
+    }
+
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId('ticket_close')

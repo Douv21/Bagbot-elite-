@@ -423,7 +423,8 @@ function initDatabase() {
       description TEXT,
       color TEXT,
       thumbnail INTEGER DEFAULT 0,
-      selector_type TEXT DEFAULT 'select'
+      selector_type TEXT DEFAULT 'select',
+      image_url TEXT
     )
   `).run();
 
@@ -439,12 +440,19 @@ function initDatabase() {
       required_role_id TEXT,
       support_roles TEXT,
       ping_users TEXT,
-      description TEXT
+      description TEXT,
+      image_url TEXT
     )
   `).run();
 
   try {
     db.prepare("ALTER TABLE ticket_options ADD COLUMN description TEXT").run();
+  } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE ticket_panels ADD COLUMN image_url TEXT").run();
+  } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE ticket_options ADD COLUMN image_url TEXT").run();
   } catch (e) {}
 
   db.prepare(`
@@ -455,6 +463,18 @@ function initDatabase() {
       option_id INTEGER,
       status TEXT DEFAULT 'open',
       created_at INTEGER
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS action_rewards (
+      guild_id TEXT,
+      action_name TEXT,
+      min_money INTEGER DEFAULT 5,
+      max_money INTEGER DEFAULT 15,
+      min_karma INTEGER DEFAULT 1,
+      max_karma INTEGER DEFAULT 3,
+      PRIMARY KEY (guild_id, action_name)
     )
   `).run();
   // Migrations pour les auto-rôles embeds (type et mode)
@@ -827,11 +847,11 @@ const getTicketOptions = (guildId) => {
 };
 
 const addTicketOption = (guildId, option) => {
-  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description } = option;
+  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url } = option;
   return db.prepare(`
-    INSERT INTO ticket_options (guild_id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(guildId, label, value, emoji, button_style || 'Primary', category_id || null, required_role_id || null, JSON.stringify(support_roles || []), JSON.stringify(ping_users || []), description || null);
+    INSERT INTO ticket_options (guild_id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(guildId, label, value, emoji, button_style || 'Primary', category_id || null, required_role_id || null, JSON.stringify(support_roles || []), JSON.stringify(ping_users || []), description || null, image_url || null);
 };
 
 const deleteTicketOption = (guildId, id) => {
@@ -839,7 +859,7 @@ const deleteTicketOption = (guildId, id) => {
 };
 
 const updateTicketOption = (guildId, id, option) => {
-  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description } = option;
+  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url } = option;
   return db.prepare(`
     UPDATE ticket_options SET
       label = ?,
@@ -850,7 +870,8 @@ const updateTicketOption = (guildId, id, option) => {
       required_role_id = ?,
       support_roles = ?,
       ping_users = ?,
-      description = ?
+      description = ?,
+      image_url = ?
     WHERE guild_id = ? AND id = ?
   `).run(
     label,
@@ -862,9 +883,33 @@ const updateTicketOption = (guildId, id, option) => {
     JSON.stringify(support_roles || []),
     JSON.stringify(ping_users || []),
     description || null,
+    image_url || null,
     guildId,
     id
   );
+};
+
+const getActionReward = (guildId, actionName) => {
+  let reward = db.prepare('SELECT * FROM action_rewards WHERE guild_id = ? AND action_name = ?').get(guildId, actionName);
+  if (!reward) {
+    reward = {
+      guild_id: guildId,
+      action_name: actionName,
+      min_money: 5,
+      max_money: 15,
+      min_karma: 1,
+      max_karma: 3
+    };
+  }
+  return reward;
+};
+
+const updateActionReward = (guildId, actionName, rewards) => {
+  const { min_money, max_money, min_karma, max_karma } = rewards;
+  return db.prepare(`
+    INSERT OR REPLACE INTO action_rewards (guild_id, action_name, min_money, max_money, min_karma, max_karma)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(guildId, actionName, min_money, max_money, min_karma, max_karma);
 };
 
 const getActiveTicket = (channelId) => {
@@ -951,6 +996,8 @@ module.exports = {
   addTicketOption,
   updateTicketOption,
   deleteTicketOption,
+  getActionReward,
+  updateActionReward,
   getActiveTicket,
   addActiveTicket,
   deleteActiveTicket

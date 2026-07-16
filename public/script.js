@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const formTicketOption = document.getElementById('form-ticket-option');
   const ticketOptionsList = document.getElementById('ticket-options-list');
   const formPermissions = document.getElementById('form-permissions');
+  const formActionRewards = document.getElementById('form-action-rewards');
 
   // Lists
   const shopItemsList = document.getElementById('shop-items-list');
@@ -38,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // State
   let confessionsListState = [];
   let guildsList = [];
+  let actionRewardsState = [];
   let currentUser = null;
   let currentActionVeriteItems = [];
   let channelsList = [];
@@ -656,6 +658,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('ticket_panel_selector').value = panel.selector_type || 'select';
             document.getElementById('ticket_panel_channel').value = panel.channel_id || '';
             document.getElementById('ticket_panel_thumbnail').checked = !!panel.thumbnail;
+            document.getElementById('ticket_panel_image_url').value = panel.image_url || '';
 
             // Synchroniser les custom selects du panel
             const channelSel = document.getElementById('ticket_panel_channel');
@@ -668,6 +671,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Rendre la liste des options de ticket
             renderTicketOptions(options);
+          })
+          .catch(console.error);
+
+        // Charger la configuration des Gains des Actions
+        fetch('/api/config/action-rewards')
+          .then(res => res.json())
+          .then(rewards => {
+            actionRewardsState = rewards;
+            updateActionRewardsForm();
           })
           .catch(console.error);
       })
@@ -1216,6 +1228,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('ticket_opt_category').value = opt.category_id || '';
         document.getElementById('ticket_opt_view_role').value = opt.required_role_id || '';
         document.getElementById('ticket_opt_description').value = opt.description || '';
+        document.getElementById('ticket_opt_image_url').value = opt.image_url || '';
 
         // Rôles support
         let sRoles = [];
@@ -1311,6 +1324,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } else {
       thumbImgEl.style.display = 'none';
+    }
+
+    // Image / GIF Preview
+    const previewImageEl = document.getElementById('ticket-preview-image');
+    if (panel.image_url) {
+      previewImageEl.src = panel.image_url;
+      previewImageEl.style.display = 'block';
+    } else {
+      previewImageEl.style.display = 'none';
     }
 
     // Components Preview
@@ -1556,7 +1578,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- SYSTÈME DE TICKETS ---
 
   // Live Preview Bindings for Ticket Panel
-  ['ticket_panel_title', 'ticket_panel_desc', 'ticket_panel_color', 'ticket_panel_selector', 'ticket_panel_thumbnail'].forEach(id => {
+  ['ticket_panel_title', 'ticket_panel_desc', 'ticket_panel_color', 'ticket_panel_selector', 'ticket_panel_thumbnail', 'ticket_panel_image_url'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       const eventName = el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input';
@@ -1566,7 +1588,8 @@ document.addEventListener('DOMContentLoaded', () => {
           description: document.getElementById('ticket_panel_desc').value,
           color: document.getElementById('ticket_panel_color').value,
           selector_type: document.getElementById('ticket_panel_selector').value,
-          thumbnail: document.getElementById('ticket_panel_thumbnail').checked
+          thumbnail: document.getElementById('ticket_panel_thumbnail').checked,
+          image_url: document.getElementById('ticket_panel_image_url').value
         };
         fetch('/api/config/tickets')
           .then(res => res.json())
@@ -1588,7 +1611,8 @@ document.addEventListener('DOMContentLoaded', () => {
       color: document.getElementById('ticket_panel_color').value,
       selector_type: document.getElementById('ticket_panel_selector').value,
       channel_id: document.getElementById('ticket_panel_channel').value,
-      thumbnail: document.getElementById('ticket_panel_thumbnail').checked
+      thumbnail: document.getElementById('ticket_panel_thumbnail').checked,
+      image_url: document.getElementById('ticket_panel_image_url').value
     };
 
     fetch('/api/config/tickets/panel', {
@@ -1633,7 +1657,8 @@ document.addEventListener('DOMContentLoaded', () => {
       required_role_id: document.getElementById('ticket_opt_view_role').value,
       support_roles,
       ping_users,
-      description: document.getElementById('ticket_opt_description').value || null
+      description: document.getElementById('ticket_opt_description').value || null,
+      image_url: document.getElementById('ticket_opt_image_url').value || null
     };
 
     fetch('/api/config/tickets/options/add', {
@@ -3120,6 +3145,74 @@ document.addEventListener('DOMContentLoaded', () => {
   const xpFactorInput = document.getElementById('xp_factor');
   if (xpBaseInput) xpBaseInput.addEventListener('input', updateXpCurvePreview);
   if (xpFactorInput) xpFactorInput.addEventListener('input', updateXpCurvePreview);
+
+  // --- CONFIGURATION DES RECOMPENSES D'ACTIONS ---
+
+  function updateActionRewardsForm() {
+    const actionName = document.getElementById('reward_action_name').value;
+    const reward = actionRewardsState.find(r => r.action_name === actionName);
+
+    if (reward) {
+      document.getElementById('reward_min_money').value = reward.min_money ?? 5;
+      document.getElementById('reward_max_money').value = reward.max_money ?? 15;
+      document.getElementById('reward_min_karma').value = reward.min_karma ?? 1;
+      document.getElementById('reward_max_karma').value = reward.max_karma ?? 3;
+    } else {
+      document.getElementById('reward_min_money').value = 5;
+      document.getElementById('reward_max_money').value = 15;
+      document.getElementById('reward_min_karma').value = 1;
+      document.getElementById('reward_max_karma').value = 3;
+    }
+  }
+
+  const rewardActionSelect = document.getElementById('reward_action_name');
+  if (rewardActionSelect) {
+    rewardActionSelect.addEventListener('change', updateActionRewardsForm);
+  }
+
+  if (formActionRewards) {
+    formActionRewards.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const action_name = document.getElementById('reward_action_name').value;
+      const data = {
+        action_name,
+        min_money: document.getElementById('reward_min_money').value,
+        max_money: document.getElementById('reward_max_money').value,
+        min_karma: document.getElementById('reward_min_karma').value,
+        max_karma: document.getElementById('reward_max_karma').value
+      };
+
+      fetch('/api/config/action-rewards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          showToast('Gains de l\'action mis à jour !');
+          // Mettre à jour l'état local
+          const index = actionRewardsState.findIndex(r => r.action_name === action_name);
+          const updatedReward = {
+            guild_id: guildSelect.value,
+            action_name,
+            min_money: parseInt(data.min_money),
+            max_money: parseInt(data.max_money),
+            min_karma: parseInt(data.min_karma),
+            max_karma: parseInt(data.max_karma)
+          };
+          if (index !== -1) {
+            actionRewardsState[index] = updatedReward;
+          } else {
+            actionRewardsState.push(updatedReward);
+          }
+        } else {
+          showToast('Erreur: ' + resData.error, true);
+        }
+      })
+      .catch(err => showToast('Erreur: ' + err.message, true));
+    });
+  }
 
   initializeSearchableSelects();
 });

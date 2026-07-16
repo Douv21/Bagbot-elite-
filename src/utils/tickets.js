@@ -24,6 +24,10 @@ async function sendOrUpdateTicketPanel(guildId, client) {
     embed.setThumbnail(guild.iconURL() || null);
   }
 
+  if (panelConfig.image_url) {
+    embed.setImage(panelConfig.image_url);
+  }
+
   // Créer les composants
   let components = [];
   

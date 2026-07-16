@@ -787,29 +787,30 @@ function hexToRgb(hex) {
 // ─── Rank helpers ─────────────────────────────────────────────────────────────
 
 function getRankName(level) {
-  if (level < 5)  return 'NOVICE';
-  if (level < 10) return 'BRONZE '  + romanTier(level - 5,  5,  3);
-  if (level < 20) return 'ARGENT '  + romanTier(level - 10, 10, 3);
-  if (level < 30) return 'OR '      + romanTier(level - 20, 10, 3);
-  if (level < 40) return 'PLATINE ' + romanTier(level - 30, 10, 3);
-  if (level < 50) return 'DIAMANT ' + romanTier(level - 40, 10, 3);
-  if (level < 60) return 'MAITRE';
-  if (level < 75) return 'GRAND MAITRE';
-  return 'CHALLENGER';
+  if (level < 5)  return 'TIMIDE';
+  if (level < 10) return 'COQUIN '  + romanTier(level - 5,  5,  3);
+  if (level < 20) return 'EXHIBITIONNISTE '  + romanTier(level - 10, 10, 3);
+  if (level < 30) return 'LIBERTIN '      + romanTier(level - 20, 10, 3);
+  if (level < 40) return 'DÉPRAVÉ ' + romanTier(level - 30, 10, 3);
+  if (level < 50) return 'KINKY ' + romanTier(level - 40, 10, 3);
+  if (level < 60) return 'MAÎTRE DU PLAISIR';
+  if (level < 75) return 'DIEU / DÉESSE DU SEXE';
+  return 'DIVINITÉ DU PLAISIR';
 }
 function romanTier(d, r, s) {
   return ['III','II','I'][Math.min(s - 1, Math.floor(d / (r / s)))];
 }
 function gemPalette(name, themeOverride) {
   if (themeOverride) return themeOverride;
-  if (name.includes('BRONZE'))     return ['#ffd090','#c07820','#804010','#ffb050'];
-  if (name.includes('ARGENT'))     return ['#ffffff','#c0c8d8','#8090a8','#e0e8f8'];
-  if (name.includes('OR'))         return ['#fff0a0','#ffd700','#a07800','#ffe860'];
-  if (name.includes('PLATINE'))    return ['#e0f4ff','#a0d0f0','#4090c0','#c0e8ff'];
-  if (name.includes('DIAMANT'))    return ['#c0f8ff','#60c8ff','#1060c8','#80e8ff'];
-  if (name.includes('MAITRE'))     return ['#e8c0ff','#a040e0','#600090','#d080ff'];
-  if (name.includes('GRAND'))      return ['#ffc080','#ff4010','#a00000','#ff8040'];
-  if (name.includes('CHALLENGER')) return ['#fff080','#ff8020','#cc0000','#ffcc40'];
+  if (name.includes('TIMIDE'))           return ['#ffd090','#c07820','#804010','#ffb050'];
+  if (name.includes('COQUIN'))           return ['#ffffff','#c0c8d8','#8090a8','#e0e8f8'];
+  if (name.includes('EXHIBITIONNISTE'))  return ['#fff0a0','#ffd700','#a07800','#ffe860'];
+  if (name.includes('LIBERTIN'))         return ['#e0f4ff','#a0d0f0','#4090c0','#c0e8ff'];
+  if (name.includes('DÉPRAVÉ'))          return ['#c0f8ff','#60c8ff','#1060c8','#80e8ff'];
+  if (name.includes('KINKY'))            return ['#e8c0ff','#a040e0','#600090','#d080ff'];
+  if (name.includes('MAÎTRE'))           return ['#ffc080','#ff4010','#a00000','#ff8040'];
+  if (name.includes('DIEU'))             return ['#fff080','#ff8020','#cc0000','#ffcc40'];
+  if (name.includes('DIVINITÉ'))         return ['#fff080','#ff8020','#cc0000','#ffcc40'];
   return ['#c0e8ff','#6090d0','#304880','#90c0f0'];
 }
 

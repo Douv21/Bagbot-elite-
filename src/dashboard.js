@@ -1424,7 +1424,7 @@ app.post('/api/config/tickets/panel', async (req, res) => {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { title, description, color, thumbnail, selector_type, channel_id } = req.body;
+    const { title, description, color, thumbnail, selector_type, channel_id, image_url } = req.body;
 
     updateTicketPanel(guildId, {
       title: title || '🎫 Support / Tickets',
@@ -1432,7 +1432,8 @@ app.post('/api/config/tickets/panel', async (req, res) => {
       color: color || '#5865F2',
       thumbnail: thumbnail ? 1 : 0,
       selector_type: selector_type || 'select',
-      channel_id: channel_id || null
+      channel_id: channel_id || null,
+      image_url: image_url || null
     });
 
     // Envoyer ou mettre à jour le panel dans le salon
@@ -1443,6 +1444,52 @@ app.post('/api/config/tickets/panel', async (req, res) => {
         return res.json({ success: true, warning: sendRes.error });
       }
     }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Obtenir les configurations de gains pour toutes les actions
+app.get('/api/config/action-rewards', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const fs = require('fs');
+    const path = require('path');
+    const actionsDir = path.join(__dirname, 'commands/actions');
+    const actionFiles = fs.existsSync(actionsDir) ? fs.readdirSync(actionsDir).filter(f => f.endsWith('.js')) : [];
+    const actionNames = actionFiles.map(f => f.replace('.js', ''));
+
+    const { getActionReward } = require('./database/db');
+    const rewards = actionNames.map(name => getActionReward(guildId, name));
+
+    res.json(rewards);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Mettre à jour les gains d'une action
+app.post('/api/config/action-rewards', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { action_name, min_money, max_money, min_karma, max_karma } = req.body;
+    if (!action_name) return res.status(400).json({ error: 'Nom de l\'action requis' });
+
+    const { updateActionReward } = require('./database/db');
+    updateActionReward(guildId, action_name, {
+      min_money: parseInt(min_money) || 0,
+      max_money: parseInt(max_money) || 0,
+      min_karma: parseInt(min_karma) || 0,
+      max_karma: parseInt(max_karma) || 0
+    });
 
     res.json({ success: true });
   } catch (error) {
