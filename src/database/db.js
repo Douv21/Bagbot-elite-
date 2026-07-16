@@ -963,6 +963,22 @@ const updatePermissionsConfig = (guildId, adminRoleId, modoRoleId) => {
   return db.prepare('UPDATE permissions_config SET admin_role_id = ?, modo_role_id = ? WHERE guild_id = ?').run(adminRoleId, modoRoleId, guildId);
 };
 
+const incrementMemberChat = (guildId, user1Id, user2Id) => {
+  const [u1, u2] = [user1Id, user2Id].sort();
+  db.prepare(`
+    INSERT INTO member_chats (guild_id, user1_id, user2_id, message_count)
+    VALUES (?, ?, ?, 1)
+    ON CONFLICT (guild_id, user1_id, user2_id)
+    DO UPDATE SET message_count = message_count + 1
+  `).run(guildId, u1, u2);
+};
+
+const getMemberChatCount = (guildId, user1Id, user2Id) => {
+  const [u1, u2] = [user1Id, user2Id].sort();
+  const row = db.prepare('SELECT message_count FROM member_chats WHERE guild_id = ? AND user1_id = ? AND user2_id = ?').get(guildId, u1, u2);
+  return row ? row.message_count : 0;
+};
+
 module.exports = {
   db,
   initDatabase,
@@ -1028,20 +1044,4 @@ module.exports = {
   deleteActiveTicket,
   incrementMemberChat,
   getMemberChatCount
-};
-
-const incrementMemberChat = (guildId, user1Id, user2Id) => {
-  const [u1, u2] = [user1Id, user2Id].sort();
-  db.prepare(`
-    INSERT INTO member_chats (guild_id, user1_id, user2_id, message_count)
-    VALUES (?, ?, ?, 1)
-    ON CONFLICT (guild_id, user1_id, user2_id)
-    DO UPDATE SET message_count = message_count + 1
-  `).run(guildId, u1, u2);
-};
-
-const getMemberChatCount = (guildId, user1Id, user2Id) => {
-  const [u1, u2] = [user1Id, user2Id].sort();
-  const row = db.prepare('SELECT message_count FROM member_chats WHERE guild_id = ? AND user1_id = ? AND user2_id = ?').get(guildId, u1, u2);
-  return row ? row.message_count : 0;
 };
