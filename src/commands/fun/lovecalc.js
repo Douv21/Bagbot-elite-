@@ -16,6 +16,11 @@ module.exports = {
       return interaction.reply({ content: '❌ C\'est très beau de s\'aimer soi-même, mais essayez avec un autre membre ! 😉', ephemeral: true });
     }
 
+    // Récupérer le nombre de messages échangés sur ce serveur
+    const { getMemberChatCount } = require('../../database/db');
+    const msgCount = interaction.guild ? getMemberChatCount(guildId, user1.id, user2.id) : 0;
+    const bonus = Math.min(30, Math.floor(msgCount / 5)); // +1% tous les 5 messages, max +30%
+
     // Générer un score déterministe pour le couple
     const sortedIds = [user1.id, user2.id].sort().join('');
     let hash = 0;
@@ -23,10 +28,11 @@ module.exports = {
       hash = sortedIds.charCodeAt(i) + ((hash << 5) - hash);
     }
     
-    const lovePercent = Math.abs(hash % 101);
-    const passionPercent = Math.abs((hash * 3) % 101);
-    const mentalPercent = Math.abs((hash * 7) % 101);
-    const physicalPercent = Math.abs((hash * 13) % 101);
+    const baseLove = Math.abs(hash % 101);
+    const lovePercent = Math.min(100, baseLove + bonus);
+    const passionPercent = Math.min(100, Math.abs((hash * 3) % 101) + Math.floor(bonus * 0.8));
+    const mentalPercent = Math.min(100, Math.abs((hash * 7) % 101) + Math.floor(bonus * 0.5));
+    const physicalPercent = Math.min(100, Math.abs((hash * 13) % 101) + Math.floor(bonus * 0.7));
 
     // Barre de progression ❤️ / 🖤
     const barSize = 10;
@@ -60,13 +66,22 @@ module.exports = {
       .setDescription(`Découvrez l'alchimie mystique entre **${user1.username}** et **${user2.username}**...\n\n${description}`)
       .setColor(color)
       .addFields(
-        { name: '📊 Score de Compatibilité Globale', value: `**${lovePercent}%**\n${progressText}`, inline: false },
-        { name: '🔥 Désir & Passion', value: `\`${passionPercent}%\``, inline: true },
-        { name: '🧠 Affinité Mentale', value: `\`${mentalPercent}%\``, inline: true },
-        { name: '💦 Chimie Physique', value: `\`${physicalPercent}%\``, inline: true }
-      )
-      .setThumbnail('https://cdn.pixabay.com/photo/2016/02/07/14/45/heart-1184883_1280.png')
-      .setTimestamp();
+        { name: '📊 Score de Compatibilité Globale', value: `**${lovePercent}%**\n${progressText}`, inline: false }
+      );
+
+    if (bonus > 0) {
+      embed.addFields({ name: '💬 Bonus de Discussion Évolutif', value: `**+${bonus}%** (basé sur **${msgCount}** messages échangés)`, inline: false });
+    } else if (interaction.guild) {
+      embed.addFields({ name: '💬 Bonus de Discussion Évolutif', value: `*Aucun bonus actuellement. Discutez ensemble dans les salons textuels pour augmenter votre compatibilité amoureuse !*`, inline: false });
+    }
+
+    embed.addFields(
+      { name: '🔥 Désir & Passion', value: `\`${passionPercent}%\``, inline: true },
+      { name: '🧠 Affinité Mentale', value: `\`${mentalPercent}%\``, inline: true },
+      { name: '💦 Chimie Physique', value: `\`${physicalPercent}%\``, inline: true }
+    )
+    .setThumbnail('https://cdn.pixabay.com/photo/2016/02/07/14/45/heart-1184883_1280.png')
+    .setTimestamp();
 
     await interaction.reply({ content: `<@${user1.id}> ❤️ <@${user2.id}>`, embeds: [embed] });
   }

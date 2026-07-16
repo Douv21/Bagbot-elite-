@@ -55,9 +55,23 @@ module.exports = {
 
       // Si l'ouverture de thread est activée
       if (configRow.use_thread === 1) {
-        await confessionMessage.startThread({
+        const thread = await confessionMessage.startThread({
           name: `Commentaires - ${embedTitle.replace(/[^\w\s-]/g, '').trim().slice(0, 15)} #${confessionMessage.id.slice(-4)}`,
           autoArchiveDuration: 1440
+        });
+
+        const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('reply_confession_anon')
+            .setLabel('Répondre anonymement')
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji('🤫')
+        );
+
+        await thread.send({
+          content: '💡 Vous pouvez réagir à cette confession publiquement en écrivant un message, ou de manière anonyme en utilisant le bouton ci-dessous :',
+          components: [row]
         }).catch(console.error);
       }
 

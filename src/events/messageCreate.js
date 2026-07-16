@@ -22,6 +22,21 @@ module.exports = {
     const guildId = message.guild.id;
     const userId = message.author.id;
 
+    // --- SUIVI DES CONVERSATIONS (LOVE-CALC ÉVOLUTIF) ---
+    try {
+      const messages = await message.channel.messages.fetch({ limit: 2 }).catch(() => null);
+      if (messages && messages.size >= 2) {
+        const lastMessages = Array.from(messages.values());
+        const previousMsg = lastMessages[1];
+        if (previousMsg && !previousMsg.author.bot && previousMsg.author.id !== userId) {
+          const { incrementMemberChat } = require('../database/db');
+          incrementMemberChat(guildId, userId, previousMsg.author.id);
+        }
+      }
+    } catch (e) {
+      console.error('Erreur suivi conversation:', e);
+    }
+
     // --- SYSTÈME DE COMPTAGE (COUNTING) ---
     const countingChan = db.prepare('SELECT * FROM counting_channels WHERE guild_id = ? AND channel_id = ?').get(guildId, message.channel.id);
     if (countingChan) {

@@ -144,6 +144,29 @@ client.on('interactionCreate', async interaction => {
       } catch (err) {
         console.error('Erreur bouton:', err);
       }
+    } else if (customId === 'reply_confession_anon') {
+      try {
+        const modal = new ModalBuilder()
+          .setCustomId('reply_confession_modal')
+          .setTitle('Répondre anonymement');
+
+        const textInput = new TextInputBuilder()
+          .setCustomId('reply_content')
+          .setLabel('Votre réponse anonyme')
+          .setStyle(TextInputStyle.Paragraph)
+          .setMinLength(1)
+          .setMaxLength(1000)
+          .setPlaceholder('Écrivez votre message ici...')
+          .setRequired(true);
+
+        const firstActionRow = new ActionRowBuilder().addComponents(textInput);
+        modal.addComponents(firstActionRow);
+
+        await interaction.showModal(modal);
+      } catch (err) {
+        console.error('Erreur showModal confession:', err);
+      }
+      return;
     } else if (customId === 'suite_invite_btn' || customId === 'suite_exclude_btn') {
       const { getPrivateSuiteByChannel } = require('./database/db');
       const suite = getPrivateSuiteByChannel(interaction.channelId);
@@ -362,6 +385,35 @@ client.on('interactionCreate', async interaction => {
     if (interaction.customId === 'couleur_custom_modal') {
       const hex = interaction.fields.getTextInputValue('hex_code');
       await applyColorRole(interaction, hex);
+      return;
+    } else if (interaction.customId === 'reply_confession_modal') {
+      const content = interaction.fields.getTextInputValue('reply_content');
+      const channel = interaction.channel; // Le thread dans lequel l'interaction a eu lieu
+      
+      try {
+        await interaction.deferReply({ ephemeral: true });
+
+        const embed = new EmbedBuilder()
+          .setDescription(`💬 **Réponse anonyme :**\n${content}`)
+          .setColor('#9B59B6')
+          .setTimestamp();
+        
+        await channel.send({ embeds: [embed] });
+
+        const logEmbed = new EmbedBuilder()
+          .setTitle('🤫 Réponse Anonyme Logguée')
+          .setDescription(`**Auteur :** <@${interaction.user.id}> (${interaction.user.tag})\n**ID de l'auteur :** ${interaction.user.id}\n**Salon :** <#${channel.id}> (Fil/Thread)\n\n**Réponse :**\n${content}`)
+          .setColor('#9B59B6')
+          .setTimestamp();
+        
+        const { sendLog } = require('./utils/helpers');
+        sendLog(interaction.guild, 'confession', logEmbed);
+
+        await interaction.editReply({ content: '✅ Votre réponse anonyme a été postée avec succès !' });
+      } catch (err) {
+        console.error('Erreur réponse confession modal:', err);
+        await interaction.editReply({ content: '❌ Impossible d\'envoyer votre réponse anonyme.' });
+      }
       return;
     }
   }
