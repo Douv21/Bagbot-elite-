@@ -528,6 +528,17 @@ function initDatabase() {
       PRIMARY KEY (guild_id, user1_id, user2_id)
     )
   `).run();
+
+  // 22. Messages personnalisés pour chaque action
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS custom_action_messages (
+      guild_id TEXT,
+      action_name TEXT,
+      self_message TEXT,
+      target_message TEXT,
+      PRIMARY KEY (guild_id, action_name)
+    )
+  `).run();
 }
 
 // --- Fonctions utilitaires de base de données ---
@@ -979,6 +990,19 @@ const getMemberChatCount = (guildId, user1Id, user2Id) => {
   return row ? row.message_count : 0;
 };
 
+const getCustomActionMessage = (guildId, actionName) => {
+  return db.prepare('SELECT * FROM custom_action_messages WHERE guild_id = ? AND action_name = ?').get(guildId, actionName);
+};
+
+const updateCustomActionMessage = (guildId, actionName, selfMessage, targetMessage) => {
+  db.prepare(`
+    INSERT INTO custom_action_messages (guild_id, action_name, self_message, target_message)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT (guild_id, action_name)
+    DO UPDATE SET self_message = EXCLUDED.self_message, target_message = EXCLUDED.target_message
+  `).run(guildId, actionName, selfMessage || null, targetMessage || null);
+};
+
 module.exports = {
   db,
   initDatabase,
@@ -1043,5 +1067,7 @@ module.exports = {
   addActiveTicket,
   deleteActiveTicket,
   incrementMemberChat,
-  getMemberChatCount
+  getMemberChatCount,
+  getCustomActionMessage,
+  updateCustomActionMessage
 };

@@ -1,4 +1,5 @@
-const { getAutomodConfig, updateAutomodConfig, db } = require('../database/db');
+const { getAutomodConfig, updateAutomodConfig, db, getCustomActionMessage, updateCustomActionMessage } = require('../database/db');
+const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 
 async function processAiCommand(guildId, userId, message, client) {
   const guild = client.guilds.cache.get(guildId);
@@ -100,8 +101,108 @@ async function processAiCommand(guildId, userId, message, client) {
     }
   }
 
-  // 7. Permissions du salon (accès)
-  if (msgLower.includes("accès au salon") || msgLower.includes("permissions du salon") || msgLower.includes("bloque le salon") || msgLower.includes("bloquer le salon") || msgLower.includes("debloque le salon") || msgLower.includes("débloquer le salon")) {
+  // 7. Personnaliser les messages d'actions
+  if (msgLower.includes("personnalise le message") || msgLower.includes("personnaliser le message") || msgLower.includes("change le message de l'action")) {
+    const matchAction = message.match(/(?:action|de|du)\s+([a-zA-Z0-9_-]+)/i);
+    const matchText = message.match(/(?:par|avec|de)\s+["']([^"']+)["']/i);
+    const isSelf = msgLower.includes("pour soi") || msgLower.includes("seul");
+
+    if (matchAction && matchText) {
+      const actionName = matchAction[1].toLowerCase();
+      const text = matchText[1];
+      const customMsg = getCustomActionMessage(guildId, actionName) || { self_message: null, target_message: null };
+
+      if (isSelf) {
+        customMsg.self_message = text;
+      } else {
+        customMsg.target_message = text;
+      }
+
+      updateCustomActionMessage(guildId, actionName, customMsg.self_message, customMsg.target_message);
+      actions.push({ type: "update_action_message", action_name: actionName, self: isSelf, text });
+      reply += `📝 Le message de l'action **${actionName}** (${isSelf ? 'pour soi' : 'pour autrui'}) a été configuré en : *"${text}"*. `;
+    }
+  }
+
+  // 8. Modifier les permissions globales d'un rôle
+  if (msgLower.includes("permission") && (msgLower.includes("donne") || msgLower.includes("active") || msgLower.includes("retire") || msgLower.includes("désactive"))) {
+    const enable = !msgLower.includes("retire") && !msgLower.includes("désactive") && !msgLower.includes("desactive");
+    const matchRole = message.match(/(?:rôle|role)\s+["']?([^"'\n]+)["']?/i);
+    
+    if (matchRole) {
+      const role = findRole(matchRole[1]);
+      if (role) {
+        let permissionFlag = null;
+        let permName = "";
+
+        if (msgLower.includes("administrateur") || msgLower.includes("admin")) {
+          permissionFlag = PermissionFlagsBits.Administrator;
+          permName = "Administrateur";
+        } else if (msgLower.includes("bannir") || msgLower.includes("ban")) {
+          permissionFlag = PermissionFlagsBits.BanMembers;
+          permName = "Bannir des membres";
+        } else if (msgLower.includes("expulser") || msgLower.includes("kick")) {
+          permissionFlag = PermissionFlagsBits.KickMembers;
+          permName = "Expulser des membres";
+        } else if (msgLower.includes("gérer les salons") || msgLower.includes("gerer les salons")) {
+          permissionFlag = PermissionFlagsBits.ManageChannels;
+          permName = "Gérer les salons";
+        } else if (msgLower.includes("gérer les rôles") || msgLower.includes("gerer les roles")) {
+          permissionFlag = PermissionFlagsBits.ManageRoles;
+          permName = "Gérer les rôles";
+        } else if (msgLower.includes("parler") || msgLower.includes("envoyer des messages")) {
+          permissionFlag = PermissionFlagsBits.SendMessages;
+          permName = "Envoyer des messages";
+        }
+
+        if (permissionFlag && role) {
+          try {
+            const currentPerms = role.permissions;
+            const newPerms = enable ? currentPerms.add(permissionFlag) : currentPerms.remove(permissionFlag);
+            await role.setPermissions(newPerms, 'Modifié via l\'Assistant IA');
+            actions.push({ type: "set_role_global_permissions", role_id: role.id, permission: permName, enable });
+            reply += `🛡️ La permission **${permName}** a été ${enable ? 'activée' : 'désactivée'} pour le rôle **${role.name}**. `;
+          } catch (err) {
+            reply += `❌ Impossible de modifier les permissions du rôle **${role.name}** (permissions du bot insuffisantes). `;
+          }
+        }
+      }
+    }
+  }
+
+  // 9. Créer un Embed
+  if (msgLower.includes("embed") || msgLower.includes("message personnalisé")) {
+    const matchSalon = message.match(/(?:salon|canal|dans)\s+["']?([^"'\s]+)["']?/i);
+    const matchTitle = message.match(/(?:titre)\s+["']([^"']+)["']/i);
+    const matchDesc = message.match(/(?:description|texte)\s+["']([^"']+)["']/i);
+
+    if (matchSalon) {
+      const channel = findChannel(matchSalon[1]);
+      if (channel) {
+        try {
+          const title = matchTitle ? matchTitle[1] : 'Message';
+          const description = matchDesc ? matchDesc[1] : '';
+
+          const embed = new EmbedBuilder()
+            .setTitle(title)
+            .setDescription(description)
+            .setColor('#9b59b6')
+            .setTimestamp();
+
+          await channel.send({ embeds: [embed] });
+          actions.push({ type: "send_embed", channel_id: channel.id, title, description });
+          reply += `✉️ L'embed avec le titre **"${title}"** a été envoyé dans le salon **#${channel.name}**. `;
+        } catch (err) {
+          reply += `❌ Impossible d'envoyer l'embed dans **#${channel.name}**. `;
+        }
+      } else {
+        reply += `❓ Salon **"${matchSalon[1]}"** introuvable. `;
+      }
+    }
+  }
+
+  // 10. Permissions du salon (accès)
+  if (reply === "" && (msgLower.includes("accès au salon") || msgLower.includes("permissions du salon") || msgLower.includes("bloque le salon") || msgLower.includes("bloquer le salon") || msgLower.includes("debloque le salon") || msgLower.includes("débloquer le salon"))) {
     const isBlock = msgLower.includes("bloque") || msgLower.includes("interdit") || msgLower.includes("retire") || msgLower.includes("enleve");
     
     const matchSalon = message.match(/(?:salon|canal)\s+["']?([^"'\s]+)["']?/i);
@@ -130,68 +231,9 @@ async function processAiCommand(guildId, userId, message, client) {
     }
   }
 
-  // 8. Rôle support ticket
-  if ((msgLower.includes("support des tickets") || msgLower.includes("support du ticket")) && (msgLower.includes("ajoute") || msgLower.includes("mettre"))) {
-    const matchRole = message.match(/(?:rôle|role)\s+["']?([^"'\n]+)["']?/i);
-    if (matchRole) {
-      const role = findRole(matchRole[1]);
-      if (role) {
-        // Ajouter le rôle de support
-        const options = db.prepare('SELECT * FROM ticket_options WHERE guild_id = ?').all(guildId);
-        for (const opt of options) {
-          let supportRoles = [];
-          try {
-            supportRoles = JSON.parse(opt.support_roles || '[]');
-          } catch (e) {}
-          if (!supportRoles.includes(role.id)) {
-            supportRoles.push(role.id);
-            db.prepare('UPDATE ticket_options SET support_roles = ? WHERE guild_id = ? AND id = ?')
-              .run(JSON.stringify(supportRoles), guildId, opt.id);
-          }
-        }
-        actions.push({ type: "set_ticket_support_roles", role_ids: [role.id] });
-        reply += `🎫 Le rôle **${role.name}** a été configuré en tant que rôle de support pour tous les tickets. `;
-      } else {
-        reply += `❓ Rôle **"${matchRole[1]}"** introuvable. `;
-      }
-    }
-  }
-
-  // 9. Rôle à ping tickets
-  if ((msgLower.includes("ping") || msgLower.includes("mentionne")) && msgLower.includes("ticket")) {
-    const matchRole = message.match(/(?:rôle|role)\s+["']?([^"'\n]+)["']?/i);
-    if (matchRole) {
-      const role = findRole(matchRole[1]);
-      if (role) {
-        const options = db.prepare('SELECT * FROM ticket_options WHERE guild_id = ?').all(guildId);
-        for (const opt of options) {
-          let pingRoles = [];
-          try {
-            pingRoles = JSON.parse(opt.ping_users || '[]');
-          } catch (e) {}
-          if (!pingRoles.includes(role.id)) {
-            pingRoles.push(role.id);
-            db.prepare('UPDATE ticket_options SET ping_users = ? WHERE guild_id = ? AND id = ?')
-              .run(JSON.stringify(pingRoles), guildId, opt.id);
-          }
-        }
-        actions.push({ type: "set_ticket_ping_roles", role_ids: [role.id] });
-        reply += `🔔 Le rôle **${role.name}** sera pingé à la création des tickets. `;
-      } else {
-        reply += `❓ Rôle **"${matchRole[1]}"** introuvable. `;
-      }
-    }
-  }
-
   // Fallback / Conversation
   if (reply === "") {
-    if (msgLower.includes("bonjour") || msgLower.includes("salut") || msgLower.includes("hello")) {
-      reply = "👋 Bonjour ! Je suis votre assistant d'administration intelligent. Comment puis-je vous aider aujourd'hui ?";
-    } else if (msgLower.includes("qui es-tu") || msgLower.includes("qui es tu")) {
-      reply = "🤖 Je suis l'Assistant IA d'administration de Bagbot Elite. Je peux configurer votre serveur de manière totalement autonome sans aucune clé d'API !";
-    } else {
-      reply = "👋 Bonjour ! Je suis votre Assistant d'Administration intelligent.\nJe peux exécuter toutes vos commandes d'administration directement sans clé d'API. Essayez par exemple :\n- *\"active l'anti-link\"* ou *\"bloque les insultes\"*\n- *\"crée le rôle Staff\"*\n- *\"supprime le rôle Staff\"*\n- *\"bloque le salon #general pour le rôle @Membres\"*\n- *\"ajoute le rôle @Modérateur au support des tickets\"*\n- *\"ping le rôle @Support à l'ouverture de tickets\"*";
-    }
+    reply = "👋 Bonjour ! Je suis votre Assistant d'Administration intelligent.\nJe peux exécuter toutes vos commandes d'administration directement sans clé d'API. Essayez par exemple :\n- *\"active l'anti-link\"* ou *\"bloque les insultes\"*\n- *\"crée le rôle Staff\"*\n- *\"supprime le rôle Staff\"*\n- *\"donne la permission de bannir au rôle Staff\"*\n- *\"crée un embed dans #annonces avec le titre 'Hello' et la description 'Bienvenue'\"*\n- *\"personnalise le message de calin pour cible par 't'enlace très fort'\"*";
   }
 
   return { reply, actions };

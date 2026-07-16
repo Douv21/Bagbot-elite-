@@ -245,9 +245,19 @@ module.exports = {
       totalCoins = reward;
     }
 
-    const actionMessage = target.id === userId 
+    let actionMessage = target.id === userId 
       ? \`${act.selfMessage}\`
       : \`${act.targetMessage}\`;
+
+    if (guildId) {
+      const { getCustomActionMessage } = require('../../database/db');
+      const customMsg = getCustomActionMessage(guildId, '${act.name}');
+      if (customMsg) {
+        actionMessage = target.id === userId
+          ? (customMsg.self_message || actionMessage)
+          : (customMsg.target_message || actionMessage);
+      }
+    }
 
     const embed = new EmbedBuilder()
       .setTitle("${act.title}")
