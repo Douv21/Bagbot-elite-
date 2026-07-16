@@ -102,6 +102,7 @@
           <button class="tab-btn" data-tab="tab-quarantine"><i class="fa-solid fa-shield-halved"></i> Quarantaine</button>
           <button class="tab-btn" data-tab="tab-automod"><i class="fa-solid fa-user-shield"></i> Auto-Modération</button>
           <button class="tab-btn" data-tab="tab-forums"><i class="fa-solid fa-comments"></i> Forums Illimités</button>
+          <button class="tab-btn" data-tab="tab-permissions"><i class="fa-solid fa-lock"></i> Permissions</button>
         </div>
 
         <div class="sidebar-category">
@@ -1367,6 +1368,19 @@
               <h3>📋 Liste de vos Questions & Défis Personnalisés</h3>
               <p style="color: #b9bbbe; font-size: 0.9rem; margin-bottom: 15px;">Les questions ajoutées ci-dessous remplaceront ou s'ajouteront aux questions par défaut sur votre serveur.</p>
               
+              <div class="form-row mb-3" style="max-width: 320px; margin-bottom: 15px;">
+                <div class="form-group">
+                  <label for="filter-action-verite">Filtrer par type / catégorie :</label>
+                  <select id="filter-action-verite" class="custom-select">
+                    <option value="all">Tout afficher 📋</option>
+                    <option value="action_sfw">Action SFW 🎬🟢</option>
+                    <option value="verite_sfw">Vérité SFW 💬🟢</option>
+                    <option value="action_nsfw">Action NSFW 🎬🔞</option>
+                    <option value="verite_nsfw">Vérité NSFW 💬🔞</option>
+                  </select>
+                </div>
+              </div>
+
               <div style="overflow-x: auto;">
                 <table class="premium-table">
                   <thead>
@@ -1572,6 +1586,40 @@
               <iframe id="map-iframe" src="" style="width: 100%; height: 100%; border: none;"></iframe>
             </div>
           </div>
+
+          <!-- Tab: Permissions -->
+          <div id="tab-permissions" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-lock"></i> Configuration des Permissions</h2>
+            <form id="form-permissions" class="glass-form">
+              <div class="card glass">
+                <p style="color: #b9bbbe; font-size: 0.9rem; margin-bottom: 20px;">
+                  Configurez ici les rôles d'Administration et de Modération de votre serveur. 
+                  Toutes les commandes d'administration et de modération (comme <code>/ban</code>, <code>/kick</code>, <code>/ajouter</code>, <code>/warn</code>, etc.) seront restreintes uniquement aux membres possédant ces rôles (ou ayant la permission Administrateur sur Discord).
+                </p>
+                
+                <div class="form-group">
+                  <label for="perm_admin_role_id">Rôle Administrateur Bot</label>
+                  <select id="perm_admin_role_id" class="role-select">
+                    <option value="">Aucun rôle configuré</option>
+                  </select>
+                  <p class="help-text">Rôle ayant les droits d'administration sur toutes les commandes du bot.</p>
+                </div>
+                
+                <div class="form-group" style="margin-top: 15px;">
+                  <label for="perm_modo_role_id">Rôle Modérateur Bot</label>
+                  <select id="perm_modo_role_id" class="role-select">
+                    <option value="">Aucun rôle configuré</option>
+                  </select>
+                  <p class="help-text">Rôle ayant les droits de modération sur les commandes du bot.</p>
+                </div>
+                
+                <button type="submit" class="btn btn-save" style="margin-top: 20px;">
+                  <i class="fa-solid fa-floppy-disk"></i> Enregistrer les permissions
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
         </div>
       </section>
     </main>

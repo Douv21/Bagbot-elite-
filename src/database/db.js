@@ -488,6 +488,15 @@ function initDatabase() {
       PRIMARY KEY (guild_id, user_id)
     )
   `).run();
+
+  // 20. Configuration des permissions (rôles admin et modo)
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS permissions_config (
+      guild_id TEXT PRIMARY KEY,
+      admin_role_id TEXT,
+      modo_role_id TEXT
+    )
+  `).run();
 }
 
 // --- Fonctions utilitaires de base de données ---
@@ -842,9 +851,24 @@ const deleteActiveTicket = (channelId) => {
   return db.prepare('DELETE FROM active_tickets WHERE channel_id = ?').run(channelId);
 };
 
+const getPermissionsConfig = (guildId) => {
+  let row = db.prepare('SELECT * FROM permissions_config WHERE guild_id = ?').get(guildId);
+  if (!row) {
+    db.prepare('INSERT OR IGNORE INTO permissions_config (guild_id) VALUES (?)').run(guildId);
+    row = { guild_id: guildId, admin_role_id: null, modo_role_id: null };
+  }
+  return row;
+};
+
+const updatePermissionsConfig = (guildId, adminRoleId, modoRoleId) => {
+  return db.prepare('UPDATE permissions_config SET admin_role_id = ?, modo_role_id = ? WHERE guild_id = ?').run(adminRoleId, modoRoleId, guildId);
+};
+
 module.exports = {
   db,
   initDatabase,
+  getPermissionsConfig,
+  updatePermissionsConfig,
   getEconomy,
   updateEconomy,
   getLeveling,

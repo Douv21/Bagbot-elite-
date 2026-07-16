@@ -38,6 +38,7 @@ for (const folder of commandFolders) {
     const filePath = path.join(folderPath, file);
     const command = require(filePath);
     if ('data' in command && 'execute' in command) {
+      command.category = folder;
       client.commands.set(command.data.name, command);
       commandsJSON.push(command.data.toJSON());
     } else {
@@ -374,6 +375,43 @@ client.on('interactionCreate', async interaction => {
   }
 
   const guildId = interaction.guild ? interaction.guild.id : null;
+
+  if (guildId) {
+    const { getPermissionsConfig } = require('./database/db');
+    const permConfig = getPermissionsConfig(guildId);
+    
+    const adminRoleId = permConfig.admin_role_id;
+    const modoRoleId = permConfig.modo_role_id;
+    
+    let subcommand = null;
+    try {
+      subcommand = interaction.options.getSubcommand(false);
+    } catch (e) {}
+
+    const isAllowedForEveryone = 
+      command.category === 'actions' ||
+      ['action-verite', 'niveau', 'solde', 'karma', 'loc', 'proche', 'boutique', 'leaderboard', 'confess', 'deposit', 'withdraw', 'lovecalc'].includes(interaction.commandName) ||
+      (interaction.commandName === 'mot-cache' && ['deviner', 'statut'].includes(subcommand));
+      
+    if (!isAllowedForEveryone) {
+      const { PermissionsBitField } = require('discord.js');
+      const member = interaction.member;
+      const isUserAdmin = member.permissions.has(PermissionsBitField.Flags.Administrator);
+      
+      const hasAllowedRole = 
+        isUserAdmin || 
+        (adminRoleId && member.roles.cache.has(adminRoleId)) || 
+        (modoRoleId && member.roles.cache.has(modoRoleId));
+        
+      if (!hasAllowedRole) {
+        return interaction.reply({
+          content: "❌ Cette commande est réservée aux Administrateurs et Modérateurs.",
+          ephemeral: true
+        });
+      }
+    }
+  }
+
   const userId = interaction.user.id;
   const oldKarma = guildId ? (require('./database/db').getEconomy(guildId, userId)?.karma || 0) : 0;
 

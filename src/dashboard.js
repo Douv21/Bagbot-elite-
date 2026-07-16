@@ -514,8 +514,15 @@ app.get('/api/config', (req, res) => {
     // Counting
     const countingChannels = getCountingChannels(guildId);
 
+    // Permissions Config
+    let permissionsConfig = db.prepare('SELECT * FROM permissions_config WHERE guild_id = ?').get(guildId);
+    if (!permissionsConfig) {
+      permissionsConfig = { admin_role_id: null, modo_role_id: null };
+    }
+
     res.json({
       welcome_leave: welcomeLeave,
+      permissions_config: permissionsConfig,
       confession: { channel_id: confessionChannel },
       confessions: confessions,
       game_config: gameConfig,
@@ -533,6 +540,29 @@ app.get('/api/config', (req, res) => {
   } catch (error) {
     console.error('Erreur chargement config:', error);
     res.status(500).json({ error: 'Erreur chargement' });
+  }
+});
+
+// Sauvegarder la configuration des permissions (admin & modo)
+app.post('/api/config/permissions', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { admin_role_id, modo_role_id } = req.body;
+
+    db.prepare(`
+      INSERT INTO permissions_config (guild_id, admin_role_id, modo_role_id)
+      VALUES (?, ?, ?)
+      ON CONFLICT(guild_id) DO UPDATE SET
+        admin_role_id = excluded.admin_role_id,
+        modo_role_id = excluded.modo_role_id
+    `).run(guildId, admin_role_id || null, modo_role_id || null);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erreur sauvegarde permissions:', error);
+    res.status(500).json({ error: 'Erreur interne' });
   }
 });
 

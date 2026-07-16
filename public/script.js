@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const formTicketPanel = document.getElementById('form-ticket-panel');
   const formTicketOption = document.getElementById('form-ticket-option');
   const ticketOptionsList = document.getElementById('ticket-options-list');
+  const formPermissions = document.getElementById('form-permissions');
 
   // Lists
   const shopItemsList = document.getElementById('shop-items-list');
@@ -38,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let confessionsListState = [];
   let guildsList = [];
   let currentUser = null;
+  let currentActionVeriteItems = [];
   let channelsList = [];
   let rolesList = [];
   let membersList = [];
@@ -576,6 +578,19 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCountingChannels(config.counting_channels || []);
         if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
 
+        // Permissions Configuration
+        const perms = config.permissions_config || {};
+        const adminRoleSel = document.getElementById('perm_admin_role_id');
+        const modoRoleSel = document.getElementById('perm_modo_role_id');
+        if (adminRoleSel) {
+          adminRoleSel.value = perms.admin_role_id || '';
+          if (adminRoleSel.syncCustomSelect) adminRoleSel.syncCustomSelect();
+        }
+        if (modoRoleSel) {
+          modoRoleSel.value = perms.modo_role_id || '';
+          if (modoRoleSel.syncCustomSelect) modoRoleSel.syncCustomSelect();
+        }
+
         // Charger la configuration Karma
         fetch('/api/config/karma')
           .then(res => res.json())
@@ -1051,11 +1066,27 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderActionVerite(items) {
+    currentActionVeriteItems = items || [];
+    const filterVal = document.getElementById('filter-action-verite')?.value || 'all';
+    let filtered = [...currentActionVeriteItems];
+    if (filterVal === 'action_sfw') {
+      filtered = filtered.filter(item => item.type === 'action' && item.category === 'sfw');
+    } else if (filterVal === 'verite_sfw') {
+      filtered = filtered.filter(item => item.type === 'verite' && item.category === 'sfw');
+    } else if (filterVal === 'action_nsfw') {
+      filtered = filtered.filter(item => item.type === 'action' && item.category === 'nsfw');
+    } else if (filterVal === 'verite_nsfw') {
+      filtered = filtered.filter(item => item.type === 'verite' && item.category === 'nsfw');
+    }
+    renderActionVeriteTableOnly(filtered);
+  }
+
+  function renderActionVeriteTableOnly(items) {
     actionVeriteList.innerHTML = '';
     if (items.length === 0) {
       actionVeriteList.innerHTML = `
         <tr>
-          <td colspan="4" class="text-center" style="color: #8e9297;">Aucune question ou défi personnalisé. Le bot utilisera la liste par défaut.</td>
+          <td colspan="4" class="text-center" style="color: #8e9297;">Aucune question ou défi correspondant à ce filtre.</td>
         </tr>
       `;
       return;
@@ -1399,6 +1430,25 @@ document.addEventListener('DOMContentLoaded', () => {
     .catch(err => showToast('Erreur: ' + err.message, true));
   });
 
+  // Filtrage de la liste d'Action ou Vérité
+  const filterActionVerite = document.getElementById('filter-action-verite');
+  if (filterActionVerite) {
+    filterActionVerite.addEventListener('change', (e) => {
+      const val = e.target.value;
+      let filtered = [...currentActionVeriteItems];
+      if (val === 'action_sfw') {
+        filtered = filtered.filter(item => item.type === 'action' && item.category === 'sfw');
+      } else if (val === 'verite_sfw') {
+        filtered = filtered.filter(item => item.type === 'verite' && item.category === 'sfw');
+      } else if (val === 'action_nsfw') {
+        filtered = filtered.filter(item => item.type === 'action' && item.category === 'nsfw');
+      } else if (val === 'verite_nsfw') {
+        filtered = filtered.filter(item => item.type === 'verite' && item.category === 'nsfw');
+      }
+      renderActionVeriteTableOnly(filtered);
+    });
+  }
+
   // Salons Action ou Vérité
   formActionVeriteChannels.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -1559,6 +1609,16 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(err => showToast('Erreur: ' + err.message, true));
   });
+
+  // Permissions Form Submit
+  if (formPermissions) {
+    formPermissions.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const admin_role_id = document.getElementById('perm_admin_role_id').value;
+      const modo_role_id = document.getElementById('perm_modo_role_id').value;
+      saveConfig('/api/config/permissions', { admin_role_id, modo_role_id });
+    });
+  }
 
   // 3. Quarantaine
   formQuarantine.addEventListener('submit', (e) => {
