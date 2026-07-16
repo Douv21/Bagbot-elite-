@@ -57,16 +57,22 @@ Important : Si tu décides de générer des actions JSON, écris-les sous la for
 Pour que le script puisse les parser automatiquement.`;
 
   try {
-    const apiPrompt = `${systemPrompt}\n\nUtilisateur: ${message}\nAssistant:`;
-    const response = await fetch('https://text.pollinations.ai/' + encodeURIComponent(apiPrompt) + '?model=openai', {
-      signal: AbortSignal.timeout(6000) // 6 secondes max
+    const response = await fetch('https://text.pollinations.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: `${systemPrompt}\n\nUtilisateur: ${message}\nAssistant:` }],
+        model: 'openai'
+      }),
+      signal: AbortSignal.timeout(9000) // 9 secondes max
     });
 
     if (!response.ok) {
       throw new Error(`Erreur d'appel API AI (Status: ${response.status})`);
     }
 
-    const fullReply = await response.text();
+    const data = await response.json();
+    const fullReply = data.choices[0].message.content;
 
     // Extraire les actions JSON s'il y en a
     let reply = fullReply;

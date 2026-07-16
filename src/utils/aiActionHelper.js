@@ -13,12 +13,19 @@ async function generateAiActionPhrase(actionName, actionDescription, authorMembe
 Le genre de ${authorName} est ${author.gender} (pronom: ${author.pronoun}) et le genre de ${targetName} est ${target.gender} (pronom: ${target.pronoun}).
 Fais des accords de genre parfaits. Ne mets aucun guillemet ni ponctuation superflue. Réponds uniquement par la phrase générée, sans aucune autre explication ni politesse.`;
 
-    const response = await fetch('https://text.pollinations.ai/' + encodeURIComponent(systemPrompt) + '?model=openai', {
+    const response = await fetch('https://text.pollinations.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: systemPrompt }],
+        model: 'openai'
+      }),
       signal: AbortSignal.timeout(4500) // 4.5 secondes max
     });
 
     if (response.ok) {
-      const text = await response.text();
+      const data = await response.json();
+      const text = data.choices[0].message.content;
       const cleanText = text.trim().replace(/^["']|["']$/g, '');
       // Vérifier que la réponse ne contient pas de message d'erreur ou d'échec du service
       if (cleanText && cleanText.length > 5 && !cleanText.toLowerCase().includes('erreur') && !cleanText.toLowerCase().includes('pollinations')) {
