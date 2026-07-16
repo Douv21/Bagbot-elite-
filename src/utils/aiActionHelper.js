@@ -13,8 +13,8 @@ async function generateAiActionPhrase(actionName, actionDescription, authorMembe
 Le genre de ${authorName} est ${author.gender} (pronom: ${author.pronoun}) et le genre de ${targetName} est ${target.gender} (pronom: ${target.pronoun}).
 Fais des accords de genre parfaits. Ne mets aucun guillemet ni ponctuation superflue. Réponds uniquement par la phrase générée, sans aucune autre explication ni politesse.`;
 
-    const response = await fetch('https://text.pollinations.ai/' + encodeURIComponent(systemPrompt), {
-      signal: AbortSignal.timeout(2500) // 2.5 secondes max pour éviter d'attendre trop longtemps
+    const response = await fetch('https://text.pollinations.ai/' + encodeURIComponent(systemPrompt) + '?model=openai', {
+      signal: AbortSignal.timeout(4500) // 4.5 secondes max
     });
 
     if (response.ok) {
