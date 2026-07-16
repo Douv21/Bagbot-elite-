@@ -75,7 +75,7 @@ module.exports = {
           });
         }
 
-        channel.send({ embeds: [embed], files }).catch(console.error);
+        channel.send({ content: `<@${member.id}>`, embeds: [embed], files }).catch(console.error);
       }
     }
 

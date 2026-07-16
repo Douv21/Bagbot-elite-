@@ -79,7 +79,7 @@ module.exports = {
             });
           }
 
-          channel.send({ embeds: [embed], files }).catch(console.error);
+          channel.send({ content: `<@${newMember.id}>`, embeds: [embed], files }).catch(console.error);
         }
       }
     }

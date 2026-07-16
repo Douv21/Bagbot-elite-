@@ -100,12 +100,9 @@ async function executeAction(interaction, actionName, config) {
     embed.setFooter({ text: '💬 Exécuté en message privé (sans gain de pièces ou de karma)' });
   }
 
-  const mention = target && target.id !== userId ? `<@${target.id}>` : null;
   await interaction.editReply({
-    content: mention,
     embeds: [embed],
-    files: files,
-    allowedMentions: mention ? { users: [target.id] } : { parse: [] }
+    files: files
   });
 
   if (!guildId && target && target.id !== userId) {

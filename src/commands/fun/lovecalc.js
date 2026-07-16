@@ -68,6 +68,6 @@ module.exports = {
       .setThumbnail('https://cdn.pixabay.com/photo/2016/02/07/14/45/heart-1184883_1280.png')
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.reply({ content: `<@${user1.id}> ❤️ <@${user2.id}>`, embeds: [embed] });
   }
 };

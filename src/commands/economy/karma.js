@@ -3,13 +3,13 @@ const { getEconomy, getLeveling } = require('../../database/db');
 const genCard = require('../../carte/holographique');
 
 const KARMA_RANKS = [
-  { min: 10000, name: '👑 LÉGENDE',  next: Infinity, nextName: 'MAX' },
-  { min: 5000,  name: '💎 MAÎTRE',   next: 10000,    nextName: '👑 LÉGENDE' },
-  { min: 2000,  name: '🔮 EXPERT',   next: 5000,     nextName: '💎 MAÎTRE' },
-  { min: 1000,  name: '⭐ VÉTÉRAN',  next: 2000,     nextName: '🔮 EXPERT' },
-  { min: 500,   name: '🔥 ACTIF',    next: 1000,     nextName: '⭐ VÉTÉRAN' },
-  { min: 100,   name: '📈 MONTANT',  next: 500,      nextName: '🔥 ACTIF' },
-  { min: 0,     name: '🌱 DÉBUTANT', next: 100,      nextName: '📈 MONTANT' },
+  { min: 10000, name: '👑 DIEU DU PLAISIR ABSOLU',  next: Infinity, nextName: 'MAX' },
+  { min: 5000,  name: "💎 LÉGENDE DE L'ERP",   next: 10000,    nextName: '👑 DIEU DU PLAISIR ABSOLU' },
+  { min: 2000,  name: '🔮 GOUROU DU KINK',   next: 5000,     nextName: "💎 LÉGENDE DE L'ERP" },
+  { min: 1000,  name: '⭐ SÉDUCTEUR EXPÉRIMENTÉ',  next: 2000,     nextName: '🔮 GOUROU DU KINK' },
+  { min: 500,   name: '🔥 FANTASMEUR',    next: 1000,     nextName: '⭐ SÉDUCTEUR EXPÉRIMENTÉ' },
+  { min: 100,   name: '📈 INITIÉ COQUIN',  next: 500,      nextName: '🔥 FANTASMEUR' },
+  { min: 0,     name: '🌱 VIERGE EFFAROUCHÉE', next: 100,      nextName: '📈 INITIÉ COQUIN' },
 ];
 
 function getKarmaRank(karma) {

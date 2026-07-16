@@ -3,12 +3,12 @@ const { getEconomy, getLeveling } = require('../../database/db');
 const genCard = require('../../carte/holographique');
 
 const WEALTH_RANKS = [
-  { min: 200000, name: '💎 MILLIARDAIRE', next: Infinity, nextName: 'MAX' },
-  { min: 50000,  name: '🏆 FORTUNE',      next: 200000,   nextName: '💎 MILLIARDAIRE' },
-  { min: 10000,  name: '👑 RICHE',         next: 50000,    nextName: '🏆 FORTUNE' },
-  { min: 2000,   name: '💰 AISÉ',          next: 10000,    nextName: '👑 RICHE' },
-  { min: 500,    name: '📈 ÉCONOME',       next: 2000,     nextName: '💰 AISÉ' },
-  { min: 0,      name: '🌱 PAUVRE',        next: 500,      nextName: '📈 ÉCONOME' },
+  { min: 200000, name: '💎 DIEU DE LA LUXURE', next: Infinity, nextName: 'MAX' },
+  { min: 50000,  name: '🏆 STAR DU X',      next: 200000,   nextName: '💎 DIEU DE LA LUXURE' },
+  { min: 10000,  name: '👑 SEXTOY ADDICT',         next: 50000,    nextName: '🏆 STAR DU X' },
+  { min: 2000,   name: '💰 ESCORTE AMATEUR',          next: 10000,    nextName: '👑 SEXTOY ADDICT' },
+  { min: 500,    name: '📈 CURIEUX COQUIN',       next: 2000,     nextName: '💰 ESCORTE AMATEUR' },
+  { min: 0,      name: '🌱 ESCLAVE DU CUL',        next: 500,      nextName: '📈 CURIEUX COQUIN' },
 ];
 
 function getWealthRank(balance) {
