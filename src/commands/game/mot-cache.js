@@ -3,33 +3,36 @@ const { db, getEconomy, updateEconomy } = require('../../database/db');
 const { addXP } = require('../../utils/helpers');
 
 module.exports = {
+  name: "mot-cache",
+  
   data: new SlashCommandBuilder()
     .setName('mot-cache')
-    .setDescription('Jouer au jeu du mot caché')
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('statut')
-        .setDescription('Voir votre progression et le mot caché actuel')
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('deviner')
-        .setDescription('Proposer un mot ou une phrase pour remporter la récompense')
-        .addStringOption(option => option.setName('proposition').setDescription('Votre proposition de réponse').setRequired(true))
-    ),
+    .setDescription('Progression ou proposition de réponse pour le jeu du mot caché')
+    .addStringOption(option => 
+      option.setName('proposition')
+        .setDescription('Votre proposition de phrase ou mot mystère (facultatif)')
+        .setRequired(false))
+    .setDMPermission(false),
+  
+  description: "Progression ou proposition de réponse pour le jeu du mot caché",
+
   async execute(interaction) {
-    const subcommand = interaction.options.getSubcommand();
     const guildId = interaction.guild.id;
     const userId = interaction.user.id;
+    const guess = interaction.options.getString('proposition');
 
     // Récupérer le jeu actif
     const game = db.prepare('SELECT * FROM game_config WHERE guild_id = ? AND is_active = 1').get(guildId);
 
     if (!game) {
-      return interaction.reply({ content: '❌ Il n\'y a pas de jeu du mot caché actif sur ce serveur en ce moment.', ephemeral: true });
+      return interaction.reply({ 
+        content: '❌ Il n\'y a pas de jeu du mot caché actif sur ce serveur en ce moment.', 
+        ephemeral: true 
+      });
     }
 
-    if (subcommand === 'statut') {
+    // Cas 1 : Simple demande de statut / progression
+    if (!guess) {
       const phrase = game.secret_phrase.toUpperCase();
       
       // Récupérer les lettres trouvées par l'utilisateur
@@ -38,7 +41,6 @@ module.exports = {
 
       // Construire la phrase avec les lettres masquées
       let display = '';
-      let discoveredCount = 0;
       let totalLettersToFind = [...new Set(phrase.replace(/[^A-Z]/g, ''))].length;
 
       for (let i = 0; i < phrase.length; i++) {
@@ -68,14 +70,15 @@ module.exports = {
         .setFooter({ text: 'Parlez dans les salons pour trouver d\'autres lettres !' })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed], ephemeral: true });
+      return interaction.reply({ embeds: [embed], ephemeral: true });
     } 
     
-    else if (subcommand === 'deviner') {
-      const guess = interaction.options.getString('proposition').toUpperCase().trim().replace(/\s+/g, ' ');
+    // Cas 2 : L'utilisateur fait une proposition
+    else {
+      const guessUpper = guess.toUpperCase().trim().replace(/\s+/g, ' ');
       const secret = game.secret_phrase.toUpperCase().trim().replace(/\s+/g, ' ');
 
-      if (guess === secret) {
+      if (guessUpper === secret) {
         // Arrêter le jeu
         db.prepare('UPDATE game_config SET is_active = 0 WHERE guild_id = ?').run(guildId);
 
@@ -125,13 +128,16 @@ module.exports = {
           });
         }
 
-        await interaction.reply({ content: '🎉 Proposition correcte ! Vous avez gagné !' });
+        await interaction.reply({ content: '🎉 Proposition correcte ! Vous avez gagné !', ephemeral: true });
         await interaction.channel.send({ embeds: [winEmbed] });
 
         // Nettoyer les lettres trouvées pour ce serveur
         db.prepare('DELETE FROM user_letters WHERE guild_id = ?').run(guildId);
       } else {
-        await interaction.reply({ content: '❌ Ce n\'est pas la bonne phrase secrète ! Retentez votre chance ou continuez à chercher des lettres.', ephemeral: true });
+        await interaction.reply({ 
+          content: '❌ Ce n\'est pas la bonne phrase secrète ! Retentez votre chance ou continuez à chercher des lettres.', 
+          ephemeral: true 
+        });
       }
     }
   }

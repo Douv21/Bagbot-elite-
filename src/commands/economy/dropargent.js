@@ -6,25 +6,25 @@ module.exports = {
   
   data: new SlashCommandBuilder()
     .setName("dropargent")
-    .setDescription("Cr├®er un drop d argent pour le premier membre qui r├®agit")
+    .setDescription("Créer un drop d'argent pour le premier membre qui réagit")
     .addIntegerOption(option =>
       option.setName("montant")
-        .setDescription("Montant d argent ├á gagner")
+        .setDescription("Montant d'argent à gagner")
         .setRequired(true)
         .setMinValue(1))
     .addStringOption(option =>
       option.setName("message")
-        .setDescription("Message personnalis├® (optionnel)")
+        .setDescription("Message personnalisé (optionnel)")
         .setRequired(false))
     .setDMPermission(false),
   
-  description: "Drop d argent pour le premier qui r├®agit",
+  description: "Drop d'argent pour le premier qui réagit",
   
   async execute(interaction) {
     const hasManageGuild = interaction.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild);
     if (!hasManageGuild) {
       return interaction.reply({ 
-        content: "Ôøö Vous devez avoir la permission de g├®rer le serveur pour utiliser cette commande.", 
+        content: "❌ Vous devez avoir la permission de gérer le serveur pour utiliser cette commande.", 
         ephemeral: true 
       });
     }
@@ -34,18 +34,18 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setFooter({ text: "Boys and Girls - Soyez rapide, soyez audacieux" })
-      .setTitle("­ƒÆ░ Tr├®sor Disponible")
-      .setDescription(customMessage || "**" + montant + "** ­ƒ¬Ö attendent celui ou celle qui osera les saisir en premier...")
+      .setTitle("💰 Trésor Disponible")
+      .setDescription(customMessage || `**${montant}** 🪙 attendent celui ou celle qui osera les saisir en premier...`)
       .setColor("#FFD700")
       .addFields(
-        { name: "­ƒÆÁ R├®compense", value: montant + " ­ƒ¬Ö", inline: true },
-        { name: "ÔÜí Statut", value: "Disponible", inline: true }
+        { name: "💵 Récompense", value: montant + " 🪙", inline: true },
+        { name: "⚠️ Statut", value: "Disponible", inline: true }
       )
       .setTimestamp();
 
     const button = new ButtonBuilder()
       .setCustomId("claim_money")
-      .setLabel("­ƒÆ░ R├®clamer la r├®compense")
+      .setLabel("💰 Réclamer la récompense")
       .setStyle(ButtonStyle.Success);
 
     const row = new ActionRowBuilder()
@@ -63,14 +63,14 @@ module.exports = {
     collector.on("collect", async (btnInteraction) => {
       if (claimed) {
         return btnInteraction.reply({ 
-          content: "ÔØî Trop tard... Quelqu un d autre a ├®t├® plus rapide que vous.", 
+          content: "❌ Trop tard... Quelqu'un d'autre a été plus rapide que vous.", 
           ephemeral: true 
         });
       }
 
       if (btnInteraction.user.id === interaction.user.id) {
         return btnInteraction.reply({ 
-          content: "ÔØî Vous ne pouvez pas r├®clamer votre propre tr├®sor.", 
+          content: "❌ Vous ne pouvez pas réclamer votre propre trésor.", 
           ephemeral: true 
         });
       }
@@ -85,11 +85,11 @@ module.exports = {
 
       const updatedEmbed = EmbedBuilder.from(embed)
         .setColor("#00FF00")
-        .spliceFields(1, 1, { name: "ÔÜí Statut", value: "R├®clam├® par " + winner.toString(), inline: true });
+        .spliceFields(1, 1, { name: "⚠️ Statut", value: "Réclamé par " + winner.toString(), inline: true });
 
       const disabledButton = ButtonBuilder.from(button)
         .setDisabled(true)
-        .setLabel("Ô£à Tr├®sor r├®clam├®");
+        .setLabel("✅ Trésor réclamé");
 
       const disabledRow = new ActionRowBuilder()
         .addComponents(disabledButton);
@@ -97,7 +97,7 @@ module.exports = {
       await btnInteraction.update({ embeds: [updatedEmbed], components: [disabledRow] });
       
       await btnInteraction.followUp({ 
-        content: "­ƒÄë " + winner.toString() + " a su saisir sa chance et remporte **" + montant + "** ­ƒ¬Ö", 
+        content: `🎉 ${winner.toString()} a su saisir sa chance et remporte **${montant}** 🪙 !`, 
         ephemeral: false 
       });
 
@@ -108,11 +108,11 @@ module.exports = {
       if (!claimed && reason === "time") {
         const expiredEmbed = EmbedBuilder.from(embed)
           .setColor("#808080")
-          .spliceFields(1, 1, { name: "ÔÜí Statut", value: "Expir├®", inline: true });
+          .spliceFields(1, 1, { name: "⚠️ Statut", value: "Expiré", inline: true });
 
         const disabledButton = ButtonBuilder.from(button)
           .setDisabled(true)
-          .setLabel("ÔÅ░ Trop tard");
+          .setLabel("⏰ Trop tard");
 
         const disabledRow = new ActionRowBuilder()
           .addComponents(disabledButton);

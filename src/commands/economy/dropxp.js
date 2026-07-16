@@ -6,25 +6,25 @@ module.exports = {
   
   data: new SlashCommandBuilder()
     .setName("dropxp")
-    .setDescription("Cr├®er un drop d XP pour le premier membre qui r├®agit")
+    .setDescription("Créer un drop d'XP pour le premier membre qui réagit")
     .addIntegerOption(option =>
       option.setName("quantite")
-        .setDescription("Quantit├® d XP ├á gagner")
+        .setDescription("Quantité d'XP à gagner")
         .setRequired(true)
         .setMinValue(1))
     .addStringOption(option =>
       option.setName("message")
-        .setDescription("Message personnalis├® (optionnel)")
+        .setDescription("Message personnalisé (optionnel)")
         .setRequired(false))
     .setDMPermission(false),
   
-  description: "Drop d XP pour le premier qui r├®agit",
+  description: "Drop d'XP pour le premier qui réagit",
   
   async execute(interaction) {
     const hasManageGuild = interaction.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild);
     if (!hasManageGuild) {
       return interaction.reply({ 
-        content: "Ôøö Vous devez avoir la permission de g├®rer le serveur pour utiliser cette commande.", 
+        content: "❌ Vous devez avoir la permission de gérer le serveur pour utiliser cette commande.", 
         ephemeral: true 
       });
     }
@@ -33,19 +33,19 @@ module.exports = {
     const customMessage = interaction.options.getString("message", false);
 
     const embed = new EmbedBuilder()
-      .setFooter({ text: "Boys and Girls - Montrez votre d├®termination" })
-      .setTitle("Ô£¿ Boost d Exp├®rience")
-      .setDescription(customMessage || "**" + quantite + "** XP sont offerts au plus d├®termin├® d entre vous...")
+      .setFooter({ text: "Boys and Girls - Montrez votre détermination" })
+      .setTitle("✨ Boost d'Expérience")
+      .setDescription(customMessage || `**${quantite}** XP sont offerts au plus déterminé d'entre vous...`)
       .setColor("#9B59B6")
       .addFields(
-        { name: "Ô¡É R├®compense", value: quantite + " XP", inline: true },
-        { name: "ÔÜí Statut", value: "Disponible", inline: true }
+        { name: "⭐ Récompense", value: quantite + " XP", inline: true },
+        { name: "⚠️ Statut", value: "Disponible", inline: true }
       )
       .setTimestamp();
 
     const button = new ButtonBuilder()
       .setCustomId("claim_xp")
-      .setLabel("Ô£¿ R├®clamer l XP")
+      .setLabel("✨ Réclamer l'XP")
       .setStyle(ButtonStyle.Primary);
 
     const row = new ActionRowBuilder()
@@ -63,14 +63,14 @@ module.exports = {
     collector.on("collect", async (btnInteraction) => {
       if (claimed) {
         return btnInteraction.reply({ 
-          content: "ÔØî Trop tard... Quelqu un d autre a ├®t├® plus rapide que vous.", 
+          content: "❌ Trop tard... Quelqu'un d'autre a été plus rapide que vous.", 
           ephemeral: true 
         });
       }
 
       if (btnInteraction.user.id === interaction.user.id) {
         return btnInteraction.reply({ 
-          content: "ÔØî Vous ne pouvez pas r├®clamer votre propre boost.", 
+          content: "❌ Vous ne pouvez pas réclamer votre propre boost.", 
           ephemeral: true 
         });
       }
@@ -82,11 +82,11 @@ module.exports = {
 
       const updatedEmbed = EmbedBuilder.from(embed)
         .setColor("#00FF00")
-        .spliceFields(1, 1, { name: "ÔÜí Statut", value: "R├®clam├® par " + winner.toString(), inline: true });
+        .spliceFields(1, 1, { name: "⚠️ Statut", value: "Réclamé par " + winner.toString(), inline: true });
 
       const disabledButton = ButtonBuilder.from(button)
         .setDisabled(true)
-        .setLabel("Ô£à XP r├®clam├®");
+        .setLabel("✅ XP réclamé");
 
       const disabledRow = new ActionRowBuilder()
         .addComponents(disabledButton);
@@ -94,7 +94,7 @@ module.exports = {
       await btnInteraction.update({ embeds: [updatedEmbed], components: [disabledRow] });
       
       await btnInteraction.followUp({ 
-        content: "­ƒÄë " + winner.toString() + " a prouv├® sa d├®termination et gagne **" + quantite + "** XP", 
+        content: `🎉 ${winner.toString()} a prouvé sa détermination et gagne **${quantite}** XP !`, 
         ephemeral: false 
       });
 
@@ -105,11 +105,11 @@ module.exports = {
       if (!claimed && reason === "time") {
         const expiredEmbed = EmbedBuilder.from(embed)
           .setColor("#808080")
-          .spliceFields(1, 1, { name: "ÔÜí Statut", value: "Expir├®", inline: true });
+          .spliceFields(1, 1, { name: "⚠️ Statut", value: "Expiré", inline: true });
 
         const disabledButton = ButtonBuilder.from(button)
           .setDisabled(true)
-          .setLabel("ÔÅ░ Trop tard");
+          .setLabel("⏰ Trop tard");
 
         const disabledRow = new ActionRowBuilder()
           .addComponents(disabledButton);

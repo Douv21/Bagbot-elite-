@@ -390,8 +390,7 @@ client.on('interactionCreate', async interaction => {
 
     const isAllowedForEveryone = 
       command.category === 'actions' ||
-      ['action-verite', 'niveau', 'solde', 'karma', 'loc', 'proche', 'boutique', 'leaderboard', 'confess', 'deposit', 'withdraw', 'lovecalc'].includes(interaction.commandName) ||
-      (interaction.commandName === 'mot-cache' && ['deviner', 'statut'].includes(subcommand));
+      ['action-verite', 'niveau', 'solde', 'karma', 'loc', 'proche', 'boutique', 'leaderboard', 'confess', 'deposit', 'withdraw', 'lovecalc', 'mot-cache'].includes(interaction.commandName);
       
     if (!isAllowedForEveryone) {
       const { PermissionsBitField } = require('discord.js');
