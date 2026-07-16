@@ -31,8 +31,9 @@ async function handleTicketInteraction(interaction, client) {
     // Filtrer les catégories
     const availableOptions = options.filter(opt => {
       if (isStaff) return true;
-      if (!opt.required_role_id) return true;
-      return memberRoles.includes(opt.required_role_id);
+      const reqRoleId = (opt.required_role_id && opt.required_role_id !== 'null' && opt.required_role_id !== 'undefined') ? opt.required_role_id.trim() : null;
+      if (!reqRoleId || reqRoleId === '') return true;
+      return memberRoles.includes(reqRoleId);
     });
 
     if (availableOptions.length === 0) {
@@ -84,9 +85,10 @@ async function handleTicketInteraction(interaction, client) {
     const member = interaction.member;
 
     // Vérifier les permissions de rôle requis pour utiliser cette option
-    if (option.required_role_id && !member.roles.cache.has(option.required_role_id)) {
+    const reqRoleId = (option.required_role_id && option.required_role_id !== 'null' && option.required_role_id !== 'undefined') ? option.required_role_id.trim() : null;
+    if (reqRoleId && reqRoleId !== '' && !member.roles.cache.has(reqRoleId)) {
       return interaction.reply({ 
-        content: `❌ Vous devez avoir le rôle <@&${option.required_role_id}> pour pouvoir ouvrir ce type de ticket.`, 
+        content: `❌ Vous devez avoir le rôle <@&${reqRoleId}> pour pouvoir ouvrir ce type de ticket.`, 
         ephemeral: true 
       });
     }
@@ -176,7 +178,7 @@ async function handleTicketInteraction(interaction, client) {
     // Embed de bienvenue dans le ticket
     const welcomeEmbed = new EmbedBuilder()
       .setTitle(`🎫 Ticket d'Assistance — ${option.label}`)
-      .setDescription(`Bonjour <@${interaction.user.id}> !\nLe personnel a été notifié et prendra en charge votre demande rapidement. N'hésitez pas à décrire votre problème en détail.\n\nPour fermer ce ticket, cliquez sur le bouton 🔒 ci-dessous.`)
+      .setDescription(option.description ? option.description.replace(/{user}/g, `<@${interaction.user.id}>`) : `Bonjour <@${interaction.user.id}> !\nLe personnel a été notifié et prendra en charge votre demande rapidement. N'hésitez pas à décrire votre problème en détail.\n\nPour fermer ce ticket, cliquez sur le bouton 🔒 ci-dessous.`)
       .setColor('#5865F2')
       .setTimestamp();
 
