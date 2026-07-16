@@ -1687,7 +1687,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     });
-  });
+  }
 
   // Permissions Form Submit
   if (formPermissions) {
