@@ -115,12 +115,21 @@ async function processAiCommand(guildId, userId, message, client) {
   // 7. Personnaliser les messages d'actions
   if (msgLower.includes("personnalise le message") || msgLower.includes("personnaliser le message") || msgLower.includes("change le message de l'action")) {
     const matchAction = message.match(/(?:action|de|du)\s+([a-zA-Z0-9_-]+)/i);
-    const matchText = message.match(/(?:par|avec|de)\s+["']([^"']+)["']/i);
     const isSelf = msgLower.includes("pour soi") || msgLower.includes("seul");
+    
+    let text = null;
+    const quotedMatch = message.match(/(?:par|avec|de)\s+["']([^"']+)["']/i);
+    if (quotedMatch) {
+      text = quotedMatch[1];
+    } else {
+      const unquotedMatch = message.match(/(?:par|avec|de)\s+(.+)$/i);
+      if (unquotedMatch) {
+        text = unquotedMatch[1].trim();
+      }
+    }
 
-    if (matchAction && matchText) {
+    if (matchAction && text) {
       const actionName = matchAction[1].toLowerCase();
-      const text = matchText[1];
       const customMsg = getCustomActionMessage(guildId, actionName) || { self_message: null, target_message: null };
 
       if (isSelf) {
@@ -334,7 +343,7 @@ async function processAiCommand(guildId, userId, message, client) {
 
   // Fallback / Conversation
   if (reply === "") {
-    reply = "👋 Bonjour ! Je suis votre Assistant d'Administration intelligent.\nJe peux exécuter toutes vos commandes d'administration directement sans clé d'API. Essayez par exemple :\n- *\"active l'anti-link\"* ou *\"bloque les insultes\"*\n- *\"crée le rôle Staff\"*\n- *\"supprime le rôle Staff\"*\n- *\"donne le rôle Staff à @NomMembre\"*\n- *\"retire le rôle Staff à @NomMembre\"*\n- *\"timeout @NomMembre pour 10 minutes\"*\n- *\"expulse @NomMembre\"* ou *\"ban @NomMembre\"*\n- *\"crée un embed dans #annonces avec le titre 'Hello' et la description 'Bienvenue'\"*\n- *\"personnalise le message de calin pour cible par 't'enlace très fort'\"*";
+    reply = "👋 Bonjour ! Je suis votre Assistant d'Administration intelligent.\nJe peux exécuter toutes vos commandes d'administration directement sans clé d'API. Essayez par exemple :\n- *\"active l'anti-link\"* ou *\"bloque les insultes\"*\n- *\"crée le rôle VIP en rose avec la permission de bannir\"* (ou couleur rouge, bleu, etc.)\n- *\"supprime le rôle Staff\"*\n- *\"donne le rôle Staff à @NomMembre\"* / *\"retire le rôle Staff à @NomMembre\"*\n- *\"timeout @NomMembre pour 10 minutes\"* / *\"ban @NomMembre\"*\n- *\"crée un embed dans #annonces avec le titre 'Hello' et la description 'Bienvenue'\"*\n- *\"personnalise le message de calin par '{A} serre tendrement {T} contre lui{A:e} dans ses bras'\"*\n\n💡 **Tags de personnalisation par genre dispo :**\n- `{A}` / `{T}` : Nom de l'auteur / de la cible.\n- `{A:e}` / `{T:e}` : Ajoute un 'e' si l'auteur/cible est une femme (ex: *mordu{T:e}*).\n- `{A:pronom}` / `{T:pronom}` : *il* ou *elle*.\n- `{A:le/la}` / `{T:le/la}` : *le* ou *la*.\n- `{A:un/une}` / `{T:un/une}` : *un* ou *une*.\n- `{A:lui/elle}` / `{T:lui/elle}` : *lui* ou *elle*.";
   }
 
   return { reply, actions };
