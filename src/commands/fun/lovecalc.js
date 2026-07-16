@@ -18,7 +18,7 @@ module.exports = {
 
     // Récupérer le nombre de messages échangés sur ce serveur
     const { getMemberChatCount } = require('../../database/db');
-    const msgCount = interaction.guild ? getMemberChatCount(guildId, user1.id, user2.id) : 0;
+    const msgCount = interaction.guild ? getMemberChatCount(interaction.guild.id, user1.id, user2.id) : 0;
     const bonus = Math.min(30, Math.floor(msgCount / 5)); // +1% tous les 5 messages, max +30%
 
     // Générer un score déterministe pour le couple
