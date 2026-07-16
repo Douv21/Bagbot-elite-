@@ -1,6 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 
+const esc = (str) => {
+  if (!str) return '';
+  return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+};
+
 const actions = [
   {
     name: '69',
@@ -200,8 +205,8 @@ const path = require('path');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('${act.name}')
-    .setDescription("${act.description}")
+    .setName('${esc(act.name)}')
+    .setDescription("${esc(act.description)}")
     .addUserOption(option => option.setName('cible').setDescription('Personne ciblée (optionnel)').setRequired(false))
     .setDMPermission(true),
 
@@ -251,7 +256,7 @@ module.exports = {
     // Tenter de générer une phrase unique via l'IA en temps réel
     if (target.id !== userId) {
       const { generateAiActionPhrase } = require('../../utils/aiActionHelper');
-      const aiPhrase = await generateAiActionPhrase('${act.name}', '${act.description}', interaction.member, targetMember);
+      const aiPhrase = await generateAiActionPhrase('${esc(act.name)}', '${esc(act.description)}', interaction.member, targetMember);
       if (aiPhrase) {
         actionMessage = aiPhrase;
       }
@@ -260,12 +265,12 @@ module.exports = {
     // Fallback aux phrases configurées en base de données / par défaut
     if (!actionMessage) {
       actionMessage = target.id === userId 
-        ? \`${act.selfMessage}\`
-        : \`${act.targetMessage}\`;
+        ? \`${esc(act.selfMessage)}\`
+        : \`${esc(act.targetMessage)}\`;
 
       if (guildId) {
         const { getCustomActionMessage } = require('../../database/db');
-        const customMsg = getCustomActionMessage(guildId, '${act.name}');
+        const customMsg = getCustomActionMessage(guildId, '${esc(act.name)}');
         if (customMsg) {
           actionMessage = target.id === userId
             ? (customMsg.self_message || actionMessage)
