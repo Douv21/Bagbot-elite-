@@ -286,7 +286,7 @@ module.exports = {
     }
 
     if (guildId) {
-      embed.setDescription(\`\${actionMessage}\\n\\n💰 **+\${reward} pièces**  ·  ✨ **+\${karmaReward} Karma**\`);
+      embed.setDescription(\`\${actionMessage}\\n\\n💰 **+\${reward} pièces**  ·  ✨ **+\${karmaReward} Karma**\`\);
       embed.setFooter({ text: \`Solde: \${totalCoins} pièces · +\${karmaReward} karma\` });
     } else {
       embed.setFooter({ text: '💬 Exécuté en message privé (sans gain de pièces ou de karma)' });
