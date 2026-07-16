@@ -1,9 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 
-const fs = require('fs');
-const path = require('path');
-
 const dir = path.join(__dirname, '../src/commands/actions');
 if (fs.existsSync(dir)) {
   const files = fs.readdirSync(dir).filter(f => f.endsWith('.js'));
