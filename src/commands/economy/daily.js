@@ -1,12 +1,12 @@
-const { SlashCommandBuilder } = require('discord.js');
-const { getEconomy, updateEconomy } = require('../../database/db');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { getEconomy, updateEconomy, getActionReward } = require('../../database/db');
 
 module.exports = {
   name: 'daily',
   dmPermission: false,
   data: new SlashCommandBuilder()
     .setName('daily')
-    .setDescription('Réclamer votre récompense quotidienne (💰 500 à 1000 pièces)')
+    .setDescription('Réclamer votre récompense quotidienne')
     .setDMPermission(false),
   
   async execute(interaction) {
@@ -21,21 +21,45 @@ module.exports = {
       const remaining = cooldown - (now - economy.last_daily);
       const hours = Math.floor(remaining / 3600);
       const mins = Math.floor((remaining % 3600) / 60);
+
+      const cooldownEmbed = new EmbedBuilder()
+        .setTitle('⏱️ Récompense Quotidienne')
+        .setDescription(`Vous avez déjà réclamé votre récompense.\nRevenez dans **${hours}h et ${mins}m** !`)
+        .setColor(0xe74c3c);
+
       return interaction.reply({ 
-        content: `⏱️ Vous avez déjà réclamé votre daily. Revenez dans **${hours}h et ${mins}m**.`, 
+        embeds: [cooldownEmbed], 
         ephemeral: true 
       });
     }
 
-    const reward = Math.floor(Math.random() * 501) + 500; // 500 à 1000 pièces
+    const rewardConfig = getActionReward(guildId, 'daily');
+    const minReward = rewardConfig.min_money;
+    const maxReward = rewardConfig.max_money;
+    const reward = Math.floor(Math.random() * (maxReward - minReward + 1)) + minReward;
+    const karmaReward = Math.floor(Math.random() * (rewardConfig.max_karma - rewardConfig.min_karma + 1)) + rewardConfig.min_karma;
 
     updateEconomy(guildId, userId, {
       wallet: economy.wallet + reward,
+      karma: economy.karma + karmaReward,
       last_daily: now
     });
 
+    const successEmbed = new EmbedBuilder()
+      .setTitle('🎁 Récompense Quotidienne Réclamée !')
+      .setDescription(`Vous avez reçu votre récompense du jour !`)
+      .addFields(
+        { name: '💰 Pièces gagnées', value: `+${reward} pièces`, inline: true }
+      )
+      .setColor(0x2ecc71)
+      .setTimestamp();
+
+    if (karmaReward > 0) {
+      successEmbed.addFields({ name: '✨ Karma gagné', value: `+${karmaReward} karma`, inline: true });
+    }
+
     return interaction.reply({
-      content: `🎁 **Daily réclamé !** Vous avez reçu **💰 ${reward} pièces** !`
+      embeds: [successEmbed]
     });
   }
 };

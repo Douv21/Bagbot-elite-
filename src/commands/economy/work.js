@@ -1,5 +1,5 @@
-const { SlashCommandBuilder } = require('discord.js');
-const { getEconomy, updateEconomy } = require('../../database/db');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { getEconomy, updateEconomy, getActionReward } = require('../../database/db');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -17,11 +17,23 @@ module.exports = {
       const remaining = cooldown - (now - economy.last_work);
       const mins = Math.floor(remaining / 60);
       const secs = remaining % 60;
-      return interaction.reply({ content: `⏱️ Vous êtes fatigué. Vous pourrez retravailler dans **${mins}m et ${secs}s**.`, ephemeral: true });
+
+      const cooldownEmbed = new EmbedBuilder()
+        .setTitle('⏱️ Travail accompli')
+        .setDescription(`Vous êtes fatigué. Vous pourrez retravailler dans **${mins}m et ${secs}s** !`)
+        .setColor(0xe74c3c);
+
+      return interaction.reply({ 
+        embeds: [cooldownEmbed], 
+        ephemeral: true 
+      });
     }
 
-    const earnings = Math.floor(Math.random() * 201) + 100; // 100 à 300 pièces
-    const karmaGain = 1;
+    const rewardConfig = getActionReward(guildId, 'travailler');
+    const minReward = rewardConfig.min_money;
+    const maxReward = rewardConfig.max_money;
+    const earnings = Math.floor(Math.random() * (maxReward - minReward + 1)) + minReward;
+    const karmaGain = Math.floor(Math.random() * (rewardConfig.max_karma - rewardConfig.min_karma + 1)) + rewardConfig.min_karma;
 
     updateEconomy(guildId, userId, {
       wallet: economy.wallet + earnings,
@@ -29,8 +41,21 @@ module.exports = {
       last_work: now
     });
 
+    const successEmbed = new EmbedBuilder()
+      .setTitle('💼 Travail accompli !')
+      .setDescription(`Vous avez travaillé dur pour le serveur !`)
+      .addFields(
+        { name: '💰 Pièces gagnées', value: `+${earnings} pièces`, inline: true }
+      )
+      .setColor(0x3498db)
+      .setTimestamp();
+
+    if (karmaGain > 0) {
+      successEmbed.addFields({ name: '✨ Karma gagné', value: `+${karmaGain} karma`, inline: true });
+    }
+
     await interaction.reply({
-      content: `💼 **Travail accompli !** Vous avez travaillé dur et gagné **💰 ${earnings} pièces** et **✨ +${karmaGain} Karma** !`
+      embeds: [successEmbed]
     });
   }
 };

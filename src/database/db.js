@@ -892,13 +892,27 @@ const updateTicketOption = (guildId, id, option) => {
 const getActionReward = (guildId, actionName) => {
   let reward = db.prepare('SELECT * FROM action_rewards WHERE guild_id = ? AND action_name = ?').get(guildId, actionName);
   if (!reward) {
+    let defMinMoney = 5, defMaxMoney = 15;
+    let defMinKarma = 1, defMaxKarma = 3;
+    
+    if (actionName === 'daily') {
+      defMinMoney = 500; defMaxMoney = 1000;
+      defMinKarma = 0; defMaxKarma = 0;
+    } else if (actionName === 'travailler') {
+      defMinMoney = 100; defMaxMoney = 300;
+      defMinKarma = 1; defMaxKarma = 1;
+    } else if (actionName === 'pecher') {
+      defMinMoney = 25; defMaxMoney = 400;
+      defMinKarma = 1; defMaxKarma = 1;
+    }
+
     reward = {
       guild_id: guildId,
       action_name: actionName,
-      min_money: 5,
-      max_money: 15,
-      min_karma: 1,
-      max_karma: 3
+      min_money: defMinMoney,
+      max_money: defMaxMoney,
+      min_karma: defMinKarma,
+      max_karma: defMaxKarma
     };
   }
   return reward;
