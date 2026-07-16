@@ -96,10 +96,14 @@ async function sendOrUpdateTicketPanel(guildId, client) {
 
   if (message) {
     // Modifier le message existant
-    await message.edit({ embeds: [embed], components: components }).catch(() => null);
+    await message.edit({ embeds: [embed], components: components }).catch((err) => {
+      console.error('Erreur lors de la modification du panel ticket:', err);
+    });
   } else {
     // Envoyer un nouveau message
-    const newMsg = await channel.send({ embeds: [embed], components: components }).catch(() => null);
+    const newMsg = await channel.send({ embeds: [embed], components: components }).catch((err) => {
+      console.error("Erreur lors de l'envoi du panel ticket:", err);
+    });
     if (newMsg) {
       updateTicketPanel(guildId, { message_id: newMsg.id });
     }
