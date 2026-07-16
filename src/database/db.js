@@ -539,6 +539,15 @@ function initDatabase() {
       PRIMARY KEY (guild_id, action_name)
     )
   `).run();
+
+  // 23. Genre et pronoms des utilisateurs pour les actions personnalisées
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS user_genders (
+      user_id TEXT PRIMARY KEY,
+      gender TEXT,
+      pronoun TEXT
+    )
+  `).run();
 }
 
 // --- Fonctions utilitaires de base de données ---
@@ -1003,6 +1012,19 @@ const updateCustomActionMessage = (guildId, actionName, selfMessage, targetMessa
   `).run(guildId, actionName, selfMessage || null, targetMessage || null);
 };
 
+const getUserGender = (userId) => {
+  return db.prepare('SELECT * FROM user_genders WHERE user_id = ?').get(userId);
+};
+
+const setUserGender = (userId, gender, pronoun) => {
+  db.prepare(`
+    INSERT INTO user_genders (user_id, gender, pronoun)
+    VALUES (?, ?, ?)
+    ON CONFLICT (user_id)
+    DO UPDATE SET gender = EXCLUDED.gender, pronoun = EXCLUDED.pronoun
+  `).run(userId, gender, pronoun);
+};
+
 module.exports = {
   db,
   initDatabase,
@@ -1069,5 +1091,7 @@ module.exports = {
   incrementMemberChat,
   getMemberChatCount,
   getCustomActionMessage,
-  updateCustomActionMessage
+  updateCustomActionMessage,
+  getUserGender,
+  setUserGender
 };

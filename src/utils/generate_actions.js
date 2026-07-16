@@ -259,6 +259,10 @@ module.exports = {
       }
     }
 
+    const { formatGenderMessage } = require('../../utils/genderHelper');
+    const targetMember = interaction.guild ? interaction.guild.members.cache.get(target.id) : null;
+    actionMessage = formatGenderMessage(actionMessage, interaction.member, targetMember);
+
     const embed = new EmbedBuilder()
       .setTitle("${act.title}")
       .setDescription(actionMessage)

@@ -415,10 +415,45 @@ client.on('interactionCreate', async interaction => {
         await interaction.editReply({ content: '❌ Impossible d\'envoyer votre réponse anonyme.' });
       }
       return;
+    } else if (interaction.customId === 'add_emoji_context_modal') {
+      const name = interaction.fields.getTextInputValue('emoji_name_input').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+      const emojiUrl = global.emojiCache ? global.emojiCache.get(interaction.user.id) : null;
+
+      if (!emojiUrl) {
+        return interaction.reply({ content: '❌ URL de l\'émoji introuvable. Veuillez réessayer.', ephemeral: true });
+      }
+
+      try {
+        await interaction.deferReply({ ephemeral: true });
+
+        const createdEmoji = await interaction.guild.emojis.create({
+          attachment: emojiUrl,
+          name: name
+        });
+
+        if (global.emojiCache) global.emojiCache.delete(interaction.user.id);
+
+        const embed = new EmbedBuilder()
+          .setTitle('✅ Émoji Créé !')
+          .setDescription(`L'émoji personnalisé **:${createdEmoji.name}:** a été ajouté avec succès au serveur !`)
+          .addFields(
+            { name: 'Nom', value: `\`${createdEmoji.name}\``, inline: true },
+            { name: 'Rendu', value: `${createdEmoji}`, inline: true }
+          )
+          .setThumbnail(emojiUrl)
+          .setColor('#2ecc71')
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+      } catch (err) {
+        console.error('Erreur addemoji context:', err);
+        await interaction.editReply({ content: `❌ Impossible d'ajouter l'émoji. Raison : ${err.message}` });
+      }
+      return;
     }
   }
 
-  if (!interaction.isChatInputCommand()) return;
+  if (!interaction.isChatInputCommand() && !interaction.isContextMenuCommand()) return;
 
   const command = client.commands.get(interaction.commandName);
   if (!command) {
