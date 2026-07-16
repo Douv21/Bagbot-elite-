@@ -1118,6 +1118,52 @@ app.post('/api/config/autoroles-on-role/delete', (req, res) => {
   }
 });
 
+app.post('/api/config/autoroles-on-role/sync', async (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Guild not found' });
+
+    const { db } = require('./database/db');
+    const triggerRoles = db.prepare('SELECT trigger_role_id, target_role_id FROM autoroles_on_role WHERE guild_id = ?').all(guildId);
+    if (triggerRoles.length === 0) {
+      return res.json({ success: true, syncCount: 0, errorCount: 0, message: "Aucune liaison configurée" });
+    }
+
+    const members = await guild.members.fetch();
+    const botMember = guild.members.me;
+    let syncCount = 0;
+    let errorCount = 0;
+
+    for (const member of members.values()) {
+      if (member.user.bot) continue;
+
+      for (const rule of triggerRoles) {
+        if (member.roles.cache.has(rule.trigger_role_id)) {
+          if (!member.roles.cache.has(rule.target_role_id)) {
+            const targetRole = guild.roles.cache.get(rule.target_role_id);
+            if (targetRole && targetRole.position < botMember.roles.highest.position) {
+              try {
+                await member.roles.add(rule.target_role_id);
+                syncCount++;
+              } catch (e) {
+                errorCount++;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    res.json({ success: true, syncCount, errorCount });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- SYSTEM DE COMPTAGE (COUNTING) ---
 
 app.post('/api/config/counting/add', (req, res) => {

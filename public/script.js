@@ -2291,6 +2291,38 @@ document.addEventListener('DOMContentLoaded', () => {
     .catch(err => showToast(err.message, true));
   });
 
+  const btnSyncAutoroleRole = document.getElementById('btn-sync-autorole-role');
+  if (btnSyncAutoroleRole) {
+    btnSyncAutoroleRole.addEventListener('click', () => {
+      if (!confirm('Voulez-vous vraiment lancer la synchronisation rétroactive des auto-rôles pour tous les membres du serveur ? Cette opération peut prendre quelques secondes.')) return;
+      
+      btnSyncAutoroleRole.disabled = true;
+      btnSyncAutoroleRole.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Synchronisation en cours...';
+
+      fetch('/api/config/autoroles-on-role/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        btnSyncAutoroleRole.disabled = false;
+        btnSyncAutoroleRole.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Synchroniser rétroactivement tous les membres';
+        
+        if (data.success) {
+          showToast(`Liaisons synchronisées ! Rôles attribués: ${data.syncCount}, Échecs: ${data.errorCount}`);
+          loadGuildConfiguration();
+        } else {
+          showToast('Erreur: ' + data.error, true);
+        }
+      })
+      .catch(err => {
+        btnSyncAutoroleRole.disabled = false;
+        btnSyncAutoroleRole.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Synchroniser rétroactivement tous les membres';
+        showToast(err.message, true);
+      });
+    });
+  }
+
   document.getElementById('btn-add-autorole-button').addEventListener('click', () => {
     const role_id = document.getElementById('new-button-role').value;
     const label = document.getElementById('new-button-label').value.trim();

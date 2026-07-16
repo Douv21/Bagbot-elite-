@@ -23,6 +23,17 @@ async function processAiCommand(guildId, userId, message, client) {
     return guild.channels.cache.find(c => c.name.toLowerCase() === clean || c.id === clean);
   };
 
+  // Helper pour trouver un membre par son nom/tag/ID
+  const findMember = (name) => {
+    const clean = name.trim().toLowerCase().replace(/^["']|["']$/g, '').replace(/^@/, '');
+    return guild.members.cache.find(m => 
+      m.user.username.toLowerCase() === clean || 
+      m.user.tag.toLowerCase() === clean || 
+      (m.nickname && m.nickname.toLowerCase() === clean) || 
+      m.id === clean
+    );
+  };
+
   // 1. Anti-link
   if (msgLower.includes("anti-link") || msgLower.includes("anti link") || msgLower.includes("bloque les liens") || msgLower.includes("bloquer les liens") || msgLower.includes("bloque les url")) {
     const enable = !msgLower.includes("désactive") && !msgLower.includes("desactive") && !msgLower.includes("retire") && !msgLower.includes("enleve");
@@ -231,9 +242,99 @@ async function processAiCommand(guildId, userId, message, client) {
     }
   }
 
+  // 11. Donner un rôle à un membre (ex: "donne le rôle VIP à @fru1tdefendu")
+  const matchAddRole = message.match(/(?:donne|attribue|ajoute|met|add)\s+(?:le\s+)?(?:rôle|role)\s+["']?([^"'\n]+)["']?\s+(?:à|au|pour|sur|to)\s+["']?([^"'\n]+)["']?/i);
+  if (matchAddRole) {
+    const role = findRole(matchAddRole[1]);
+    const member = findMember(matchAddRole[2]);
+    if (role && member) {
+      try {
+        await member.roles.add(role.id);
+        actions.push({ type: "add_member_role", member_id: member.id, role_id: role.id });
+        reply += `✅ Le rôle **${role.name}** a été attribué à **${member.displayName}**. `;
+      } catch (err) {
+        reply += `❌ Impossible d'attribuer le rôle **${role.name}** à **${member.displayName}** (permissions insuffisantes). `;
+      }
+    } else {
+      if (!role) reply += `❓ Rôle **"${matchAddRole[1]}"** introuvable. `;
+      if (!member) reply += `❓ Membre **"${matchAddRole[2]}"** introuvable. `;
+    }
+  }
+
+  // 12. Retirer un rôle à un membre (ex: "retire le rôle VIP à @fru1tdefendu")
+  const matchRemoveRole = message.match(/(?:retire|enlève|enleve|supprime|remove)\s+(?:le\s+)?(?:rôle|role)\s+["']?([^"'\n]+)["']?\s+(?:à|au|de|pour|sur|from)\s+["']?([^"'\n]+)["']?/i);
+  if (matchRemoveRole) {
+    const role = findRole(matchRemoveRole[1]);
+    const member = findMember(matchRemoveRole[2]);
+    if (role && member) {
+      try {
+        await member.roles.remove(role.id);
+        actions.push({ type: "remove_member_role", member_id: member.id, role_id: role.id });
+        reply += `✅ Le rôle **${role.name}** a été retiré à **${member.displayName}**. `;
+      } catch (err) {
+        reply += `❌ Impossible de retirer le rôle **${role.name}** à **${member.displayName}** (permissions insuffisantes). `;
+      }
+    } else {
+      if (!role) reply += `❓ Rôle **"${matchRemoveRole[1]}"** introuvable. `;
+      if (!member) reply += `❓ Membre **"${matchRemoveRole[2]}"** introuvable. `;
+    }
+  }
+
+  // 13. Exclure temporairement (Timeout) un membre
+  const matchMute = message.match(/(?:exclus|timeout|muet|mute)\s+["']?([^"'\s]+)["']?(?:\s+(?:pour|pendant)\s+(\d+)\s*(?:minute|minutes|min|m))?/i);
+  if (matchMute) {
+    const member = findMember(matchMute[1]);
+    const minutes = parseInt(matchMute[2]) || 60;
+    if (member) {
+      try {
+        await member.timeout(minutes * 60 * 1000, 'Exclu temporairement via l\'Assistant IA');
+        actions.push({ type: "timeout_member", member_id: member.id, duration: minutes });
+        reply += `🔇 Le membre **${member.displayName}** a été exclu temporairement pour **${minutes} minutes**. `;
+      } catch (err) {
+        reply += `❌ Impossible d'exclure temporairement **${member.displayName}** (permissions insuffisantes). `;
+      }
+    } else {
+      reply += `❓ Membre **"${matchMute[1]}"** introuvable. `;
+    }
+  }
+
+  // 14. Expulser (Kick) un membre
+  const matchKick = message.match(/(?:expulse|expulser|kick)\s+["']?([^"'\s]+)["']?/i);
+  if (matchKick && !msgLower.includes("role") && !msgLower.includes("rôle")) {
+    const member = findMember(matchKick[1]);
+    if (member) {
+      try {
+        await member.kick('Expulsé via l\'Assistant IA');
+        actions.push({ type: "kick_member", member_id: member.id });
+        reply += `👞 Le membre **${member.displayName}** a été expulsé du serveur. `;
+      } catch (err) {
+        reply += `❌ Impossible d'expulser **${member.displayName}** (permissions insuffisantes). `;
+      }
+    } else {
+      reply += `❓ Membre **"${matchKick[1]}"** introuvable. `;
+    }
+  }
+
+  // 15. Bannir (Ban) un membre
+  const matchBan = message.match(/(?:banni|bannir|ban)\s+["']?([^"'\s]+)["']?/i);
+  if (matchBan) {
+    const member = findMember(matchBan[1]);
+    if (member) {
+      try {
+        await member.ban({ reason: 'Banni via l\'Assistant IA' });
+        actions.push({ type: "ban_member", member_id: member.id });
+        reply += `🚫 Le membre **${member.displayName}** a été banni du serveur. `;
+      } catch (err) {
+        reply += `❌ Impossible de bannir **${member.displayName}** (permissions insuffisantes). `;
+      }
+    } else {
+      reply += `❓ Membre **"${matchBan[1]}"** introuvable. `;
+    }
+  }
+
   // Fallback / Conversation
   if (reply === "") {
-    reply = "👋 Bonjour ! Je suis votre Assistant d'Administration intelligent.\nJe peux exécuter toutes vos commandes d'administration directement sans clé d'API. Essayez par exemple :\n- *\"active l'anti-link\"* ou *\"bloque les insultes\"*\n- *\"crée le rôle Staff\"*\n- *\"supprime le rôle Staff\"*\n- *\"donne la permission de bannir au rôle Staff\"*\n- *\"crée un embed dans #annonces avec le titre 'Hello' et la description 'Bienvenue'\"*\n- *\"personnalise le message de calin pour cible par 't'enlace très fort'\"*";
+    reply = "👋 Bonjour ! Je suis votre Assistant d'Administration intelligent.\nJe peux exécuter toutes vos commandes d'administration directement sans clé d'API. Essayez par exemple :\n- *\"active l'anti-link\"* ou *\"bloque les insultes\"*\n- *\"crée le rôle Staff\"*\n- *\"supprime le rôle Staff\"*\n- *\"donne le rôle Staff à @NomMembre\"*\n- *\"retire le rôle Staff à @NomMembre\"*\n- *\"timeout @NomMembre pour 10 minutes\"*\n- *\"expulse @NomMembre\"* ou *\"ban @NomMembre\"*\n- *\"crée un embed dans #annonces avec le titre 'Hello' et la description 'Bienvenue'\"*\n- *\"personnalise le message de calin pour cible par 't'enlace très fort'\"*";
   }
 
   return { reply, actions };

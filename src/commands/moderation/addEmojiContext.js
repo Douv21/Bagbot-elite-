@@ -23,8 +23,19 @@ module.exports = {
     // 2. Sinon, chercher une image/gif en pièce jointe
     else if (message.attachments.size > 0) {
       const attachment = message.attachments.first();
-      if (attachment.contentType && (attachment.contentType.startsWith('image/') || attachment.contentType.includes('gif'))) {
+      const urlLower = attachment.url.toLowerCase();
+      if (
+        (attachment.contentType && (attachment.contentType.startsWith('image/') || attachment.contentType.includes('gif'))) ||
+        urlLower.endsWith('.png') || urlLower.endsWith('.jpg') || urlLower.endsWith('.jpeg') || urlLower.endsWith('.gif') || urlLower.endsWith('.webp')
+      ) {
         emojiUrl = attachment.url;
+      }
+    }
+    // 3. Sinon, chercher dans les embeds (ex: lien Giphy/Tenor ou URL brute d'image qui a été embed par Discord)
+    else if (message.embeds.length > 0) {
+      const imageEmbed = message.embeds.find(e => e.image || e.thumbnail);
+      if (imageEmbed) {
+        emojiUrl = imageEmbed.image ? imageEmbed.image.url : imageEmbed.thumbnail.url;
       }
     }
 
