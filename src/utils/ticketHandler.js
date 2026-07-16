@@ -199,18 +199,18 @@ async function handleTicketInteraction(interaction, client) {
 
     await ticketChannel.send({ embeds: [welcomeEmbed], components: [row] });
 
-    // Pings des membres et rôles
-    let pingUsers = [];
+    // Pings des rôles
+    let pingRoles = [];
     try {
-      pingUsers = JSON.parse(option.ping_users || '[]');
+      pingRoles = JSON.parse(option.ping_users || '[]');
     } catch (e) {}
 
     let pingContent = '';
     supportRoles.forEach(roleId => {
       pingContent += `<@&${roleId}> `;
     });
-    pingUsers.forEach(userId => {
-      pingContent += `<@${userId}> `;
+    pingRoles.forEach(roleId => {
+      pingContent += `<@&${roleId}> `;
     });
 
     if (pingContent.trim().length > 0) {

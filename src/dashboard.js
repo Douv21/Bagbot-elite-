@@ -1563,6 +1563,33 @@ app.post('/api/config/tickets/options/delete', async (req, res) => {
   }
 });
 
+// Assistant IA d'Administration (Owner unique)
+app.post('/api/ai/chat', async (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Guild not found' });
+
+    // Sécurité stricte : réservé uniquement à l'owner du serveur
+    if (!req.session.user || guild.ownerId !== req.session.user.id) {
+      return res.status(403).json({ error: "L'assistant IA est accessible uniquement au Propriétaire (Owner) de ce serveur Discord." });
+    }
+
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: 'Message requis' });
+
+    const { processAiCommand } = require('./utils/aiAssistant');
+    const result = await processAiCommand(guildId, req.session.user.id, message, client);
+
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ Dashboard premium running on port ${PORT}`);
   

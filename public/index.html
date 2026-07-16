@@ -90,6 +90,11 @@
         <button id="mobile-sidebar-close" class="mobile-sidebar-close-btn"><i class="fa-solid fa-xmark"></i></button>
 
         <div class="sidebar-category">
+          <div class="category-title">🤖 ASSISTANT INTELLIGENT</div>
+          <button class="tab-btn" data-tab="tab-ai"><i class="fa-solid fa-robot"></i> Assistant IA Admin</button>
+        </div>
+
+        <div class="sidebar-category">
           <div class="category-title">⚙️ CONFIGURATION</div>
           <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées / Départs</button>
           <button class="tab-btn" data-tab="tab-autoroles"><i class="fa-solid fa-user-plus"></i> Auto-Rôles</button>
@@ -140,6 +145,39 @@
         </div>
 
         <div id="config-forms" style="display: none;">
+          <!-- Tab: AI Assistant -->
+          <div id="tab-ai" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-robot"></i> Assistant IA Admin Premium</h2>
+            <div class="card glass mb-4" style="padding: 20px;">
+              <p style="color: #b9bbbe; font-size: 0.9rem; margin-bottom: 20px;">
+                Discutez avec l'IA d'administration pour configurer automatiquement votre serveur Discord. 
+                Seul le <strong>propriétaire du serveur (Owner)</strong> a l'autorisation d'accéder et de donner des instructions à l'assistant.
+              </p>
+
+              <!-- Chat Container -->
+              <div class="ai-chat-container" style="display: flex; flex-direction: column; height: 500px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden;">
+                <!-- Chat Messages Area -->
+                <div id="ai-chat-messages" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;">
+                  <!-- AI Welcome message -->
+                  <div class="ai-message-bubble ai-bot" style="display: flex; gap: 12px; align-self: flex-start; max-width: 80%;">
+                    <div style="width: 36px; height: 36px; background: #9b59b6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">🤖</div>
+                    <div style="background: rgba(255,255,255,0.06); padding: 12px 16px; border-radius: 0 16px 16px 16px; font-size: 0.92rem; line-height: 1.5; color: #e1e1e1;">
+                      Bonjour ! Je suis votre assistant d'administration intelligent. 💬<br><br>
+                      Je peux vous aider à configurer la sécurité, créer ou supprimer des rôles, régler des permissions, et bien plus encore.<br>
+                      <em>Que souhaitez-vous faire aujourd'hui ?</em>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Chat Input Area -->
+                <form id="form-ai-chat" style="display: flex; gap: 10px; padding: 15px; background: rgba(0,0,0,0.15); border-top: 1px solid rgba(255,255,255,0.05);">
+                  <input type="text" id="ai-chat-input" placeholder="Consigne ex: Crée le rôle VIP..." required style="flex: 1; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; color: #fff; padding: 12px 16px; font-size: 0.92rem; outline: none; transition: border 0.2s;" onfocus="this.style.borderColor='rgba(155,89,182,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">
+                  <button type="submit" class="btn btn-save" style="background: #9b59b6; border-radius: 8px; padding: 0 20px; font-weight: 600;"><i class="fa-solid fa-paper-plane"></i></button>
+                </form>
+              </div>
+            </div>
+          </div>
+
           <!-- Tab: Welcome / Leave -->
           <div id="tab-welcome" class="tab-content active">
             <h2 class="section-title"><i class="fa-solid fa-door-open"></i> Éditeur interactif d'Arrivées & Départs</h2>
@@ -1618,9 +1656,9 @@
                     </select>
                   </div>
                   <div class="form-group">
-                    <label for="ticket_opt_ping_users">Membres à ping à l'ouverture (sélection multiple) :</label>
-                    <select id="ticket_opt_ping_users" multiple class="custom-select" style="height: 120px;">
-                      <option value="">Sélectionner les membres...</option>
+                    <label for="ticket_opt_ping_users">Rôles à ping à l'ouverture (sélection multiple) :</label>
+                    <select id="ticket_opt_ping_users" multiple class="role-select custom-select" style="height: 120px;">
+                      <option value="">Sélectionner les rôles...</option>
                     </select>
                   </div>
                 </div>

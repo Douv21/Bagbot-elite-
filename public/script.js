@@ -429,14 +429,14 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Populate Ticket Members Ping Select
+    // Populate Ticket Roles Ping Select
     const ticketPingSelect = document.getElementById('ticket_opt_ping_users');
     if (ticketPingSelect) {
       ticketPingSelect.innerHTML = '';
-      membersList.forEach(m => {
+      rolesList.forEach(r => {
         const option = document.createElement('option');
-        option.value = m.id;
-        option.textContent = `${m.displayName} (${m.name})`;
+        option.value = r.id;
+        option.textContent = r.name;
         ticketPingSelect.appendChild(option);
       });
     }
@@ -3211,6 +3211,131 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })
       .catch(err => showToast('Erreur: ' + err.message, true));
+    });
+  }
+
+  // --- ASSISTANT IA D'ADMINISTRATION ---
+  const formAiChat = document.getElementById('form-ai-chat');
+  const aiChatInput = document.getElementById('ai-chat-input');
+  const aiChatMessages = document.getElementById('ai-chat-messages');
+
+  if (formAiChat && aiChatInput && aiChatMessages) {
+    formAiChat.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const message = aiChatInput.value.trim();
+      if (!message) return;
+
+      // Vider le champ
+      aiChatInput.value = '';
+
+      // Ajouter le message de l'utilisateur dans l'interface
+      const userBubble = document.createElement('div');
+      userBubble.className = 'ai-message-bubble ai-user';
+      userBubble.style.display = 'flex';
+      userBubble.style.gap = '12px';
+      userBubble.style.alignSelf = 'flex-end';
+      userBubble.style.maxWidth = '80%';
+      userBubble.style.flexDirection = 'row-reverse';
+      userBubble.innerHTML = `
+        <div style="width: 36px; height: 36px; background: #34495e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">👤</div>
+        <div style="background: rgba(52,152,219,0.15); padding: 12px 16px; border-radius: 16px 0 16px 16px; font-size: 0.92rem; line-height: 1.5; color: #e1e1e1;">
+          ${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+        </div>
+      `;
+      aiChatMessages.appendChild(userBubble);
+      aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+
+      // Ajouter l'indicateur d'écriture
+      const typingBubble = document.createElement('div');
+      typingBubble.id = 'ai-typing';
+      typingBubble.className = 'ai-message-bubble ai-bot';
+      typingBubble.style.display = 'flex';
+      typingBubble.style.gap = '12px';
+      typingBubble.style.alignSelf = 'flex-start';
+      typingBubble.style.maxWidth = '80%';
+      typingBubble.innerHTML = `
+        <div style="width: 36px; height: 36px; background: #9b59b6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">🤖</div>
+        <div style="background: rgba(255,255,255,0.06); padding: 12px 16px; border-radius: 0 16px 16px 16px; font-size: 0.92rem; line-height: 1.5; color: #e1e1e1; font-style: italic;">
+          En train d'analyser vos consignes... ⚙️
+        </div>
+      `;
+      aiChatMessages.appendChild(typingBubble);
+      aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+
+      // Envoyer la requête au backend
+      fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+      })
+      .then(res => {
+        if (!res.ok) {
+          // Gestion des erreurs HTTP (ex: 403 Forbidden réservé owner)
+          return res.json().then(errData => {
+            throw new Error(errData.error || 'Erreur lors de la communication avec l\'IA.');
+          });
+        }
+        return res.json();
+      })
+      .then(data => {
+        // Enlever la bulle d'écriture
+        const tb = document.getElementById('ai-typing');
+        if (tb) tb.remove();
+
+        // Afficher la réponse de l'IA
+        const botBubble = document.createElement('div');
+        botBubble.className = 'ai-message-bubble ai-bot';
+        botBubble.style.display = 'flex';
+        botBubble.style.gap = '12px';
+        botBubble.style.alignSelf = 'flex-start';
+        botBubble.style.maxWidth = '80%';
+        
+        let responseText = data.reply;
+        if (data.actions && data.actions.length > 0) {
+          responseText += `<br><br><div style="font-size: 0.82rem; color: #2ecc71; background: rgba(46,204,113,0.08); padding: 8px 12px; border-radius: 6px; border: 1px dashed rgba(46,204,113,0.3);">⚙️ <strong>Actions exécutées :</strong><ul style="margin: 5px 0 0 15px; padding: 0;">`;
+          data.actions.forEach(act => {
+            let actName = act.type;
+            if (act.type === 'create_role') actName = `Création du rôle <strong>"${act.name}"</strong>`;
+            if (act.type === 'delete_role') actName = `Suppression du rôle`;
+            if (act.type === 'update_automod') actName = `Mise à jour des filtres d'auto-modération`;
+            if (act.type === 'add_badword') actName = `Ajout du mot interdit <strong>"${act.word}"</strong>`;
+            responseText += `<li>${actName}</li>`;
+          });
+          responseText += `</ul></div>`;
+          
+          // Rafraîchir les configurations locales puisque des actions ont été prises
+          loadGuildConfiguration();
+        }
+
+        botBubble.innerHTML = `
+          <div style="width: 36px; height: 36px; background: #9b59b6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">🤖</div>
+          <div style="background: rgba(255,255,255,0.06); padding: 12px 16px; border-radius: 0 16px 16px 16px; font-size: 0.92rem; line-height: 1.5; color: #e1e1e1;">
+            ${responseText}
+          </div>
+        `;
+        aiChatMessages.appendChild(botBubble);
+        aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+      })
+      .catch(err => {
+        // Enlever la bulle d'écriture
+        const tb = document.getElementById('ai-typing');
+        if (tb) tb.remove();
+
+        const botBubble = document.createElement('div');
+        botBubble.className = 'ai-message-bubble ai-bot';
+        botBubble.style.display = 'flex';
+        botBubble.style.gap = '12px';
+        botBubble.style.alignSelf = 'flex-start';
+        botBubble.style.maxWidth = '80%';
+        botBubble.innerHTML = `
+          <div style="width: 36px; height: 36px; background: #e74c3c; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">⚠️</div>
+          <div style="background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.2); padding: 12px 16px; border-radius: 0 16px 16px 16px; font-size: 0.92rem; line-height: 1.5; color: #ff8080;">
+            ${err.message}
+          </div>
+        `;
+        aiChatMessages.appendChild(botBubble);
+        aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+      });
     });
   }
 
