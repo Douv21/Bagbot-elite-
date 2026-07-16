@@ -1,21 +1,26 @@
 const fs = require('fs');
 const path = require('path');
 
-const file = path.join(__dirname, '../src/commands/actions/69.js');
-const c = fs.readFileSync(file, 'utf8');
-console.log("LENGTH:", c.length);
-console.log("END:", JSON.stringify(c.slice(-100)));
+const fs = require('fs');
+const path = require('path');
 
-try {
-  eval(c);
-  console.log("EVAL SUCCESS");
-} catch (e) {
-  console.error("EVAL ERROR:", e);
-}
-
-try {
-  require(file);
-  console.log("REQUIRE SUCCESS");
-} catch (e) {
-  console.error("REQUIRE ERROR:", e);
+const dir = path.join(__dirname, '../src/commands/actions');
+if (fs.existsSync(dir)) {
+  const files = fs.readdirSync(dir).filter(f => f.endsWith('.js'));
+  console.log(`Found ${files.length} action files.`);
+  
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    const content = fs.readFileSync(filePath, 'utf8');
+    try {
+      eval(content);
+    } catch (e) {
+      console.error(`Syntax error in ${file}:`, e.message);
+      // Print first line and last 100 chars
+      console.log("  First line:", content.split('\n')[0].slice(0, 150));
+      console.log("  End:", JSON.stringify(content.slice(-100)));
+    }
+  }
+} else {
+  console.log("Actions directory does not exist.");
 }
