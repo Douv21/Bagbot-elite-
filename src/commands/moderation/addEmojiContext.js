@@ -4,10 +4,15 @@ module.exports = {
   data: new ContextMenuCommandBuilder()
     .setName('Ajouter en Émoji')
     .setType(ApplicationCommandType.Message)
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuildExpressions)
     .setDMPermission(false),
 
   async execute(interaction) {
+    // Vérification interne des permissions
+    const member = interaction.member;
+    if (!member.permissions.has(PermissionFlagsBits.ManageGuildExpressions) && !member.permissions.has(PermissionFlagsBits.Administrator)) {
+      return interaction.reply({ content: '❌ Vous devez avoir la permission "Gérer les expressions" (ou être Administrateur) pour exécuter cette action.', ephemeral: true });
+    }
+
     const message = interaction.targetMessage;
     let emojiUrl = null;
 

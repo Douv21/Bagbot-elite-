@@ -7,10 +7,15 @@ module.exports = {
     .addStringOption(option => option.setName('nom').setDescription('Nom de l\'emoji (sans espaces)').setRequired(true))
     .addStringOption(option => option.setName('source').setDescription('Emoji existant, URL de l\'image, ou emoji animé').setRequired(false))
     .addAttachmentOption(option => option.setName('image').setDescription('Fichier image/gif à utiliser').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuildExpressions)
     .setDMPermission(false),
 
   async execute(interaction) {
+    // Vérification interne des permissions
+    const member = interaction.member;
+    if (!member.permissions.has(PermissionFlagsBits.ManageGuildExpressions) && !member.permissions.has(PermissionFlagsBits.Administrator)) {
+      return interaction.reply({ content: '❌ Vous devez avoir la permission "Gérer les expressions" (ou être Administrateur) pour exécuter cette action.', ephemeral: true });
+    }
+
     await interaction.deferReply();
 
     const name = interaction.options.getString('nom').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');

@@ -572,6 +572,14 @@ client.once('ready', async () => {
       { body: commandsJSON }
     );
 
+    // Déploiement instantané dans les guilds (évite le cache Discord global de 1 heure)
+    for (const [guildId, guild] of client.guilds.cache) {
+      await rest.put(
+        Routes.applicationGuildCommands(client.user.id, guildId),
+        { body: commandsJSON }
+      ).catch(e => console.error(`[REST] Erreur d'enregistrement instantané dans la guild ${guild.name}:`, e));
+    }
+
     console.log('Commandes d\'application (/) enregistrées avec succès.');
     
     // Nettoyage automatique des suites privées toutes les 60 secondes
