@@ -144,6 +144,40 @@ async function processAiCommand(guildId, userId, message, client) {
     }
   }
 
+  // 7b. Ajouter une phrase d'action alternative (cumulatif)
+  if (msgLower.includes("ajoute une phrase") || msgLower.includes("ajouter une phrase") || msgLower.includes("ajoute un message") || msgLower.includes("ajouter un message")) {
+    const matchAction = message.match(/(?:action|de|du)\s+([a-zA-Z0-9_-]+)/i);
+    const isSelf = msgLower.includes("pour soi") || msgLower.includes("seul");
+    
+    let text = null;
+    const quotedMatch = message.match(/(?:par|avec|de|:)\s+["']([^"']+)["']/i);
+    if (quotedMatch) {
+      text = quotedMatch[1];
+    } else {
+      const unquotedMatch = message.match(/(?:par|avec|de|:)\s+(.+)$/i);
+      if (unquotedMatch) {
+        text = unquotedMatch[1].trim();
+      }
+    }
+
+    if (matchAction && text) {
+      const actionName = matchAction[1].toLowerCase();
+      const customMsg = getCustomActionMessage(guildId, actionName) || { self_message: null, target_message: null };
+
+      if (isSelf) {
+        const current = customMsg.self_message;
+        customMsg.self_message = current ? `${current} || ${text}` : text;
+      } else {
+        const current = customMsg.target_message;
+        customMsg.target_message = current ? `${current} || ${text}` : text;
+      }
+
+      updateCustomActionMessage(guildId, actionName, customMsg.self_message, customMsg.target_message);
+      actions.push({ type: "update_action_message", action_name: actionName, self: isSelf, text });
+      reply += `📝 Une phrase alternative pour l'action **${actionName}** (${isSelf ? 'pour soi' : 'pour autrui'}) a été ajoutée. Phrases enregistrées : *"${isSelf ? customMsg.self_message : customMsg.target_message}"*. `;
+    }
+  }
+
   // 8. Modifier les permissions globales d'un rôle
   if (msgLower.includes("permission") && (msgLower.includes("donne") || msgLower.includes("active") || msgLower.includes("retire") || msgLower.includes("désactive"))) {
     const enable = !msgLower.includes("retire") && !msgLower.includes("désactive") && !msgLower.includes("desactive");

@@ -259,6 +259,14 @@ module.exports = {
       }
     }
 
+    // Sélectionner une phrase aléatoire si des alternatives séparées par "||" existent
+    if (actionMessage.includes('||')) {
+      const parts = actionMessage.split('||').map(p => p.trim()).filter(p => p.length > 0);
+      if (parts.length > 0) {
+        actionMessage = parts[Math.floor(Math.random() * parts.length)];
+      }
+    }
+
     const { formatGenderMessage } = require('../../utils/genderHelper');
     const targetMember = interaction.guild ? interaction.guild.members.cache.get(target.id) : null;
     actionMessage = formatGenderMessage(actionMessage, interaction.member, targetMember);
