@@ -860,13 +860,13 @@ app.post('/api/config/game', (req, res) => {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { secret_phrase, reward_money, reward_xp, reward_role_id, is_active, reset_progress, appearance_chance, letter_emoji, announce_channel } = req.body;
+    const { secret_phrase, reward_money, reward_xp, reward_role_id, is_active, reset_progress, appearance_chance, letter_emoji, announce_channel, ephemeral_letters } = req.body;
 
     const phraseUpper = (secret_phrase || '').toUpperCase();
 
     db.prepare(`
-      INSERT OR REPLACE INTO game_config (guild_id, secret_phrase, reward_money, reward_xp, reward_role_id, is_active, appearance_chance, letter_emoji, announce_channel)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO game_config (guild_id, secret_phrase, reward_money, reward_xp, reward_role_id, is_active, appearance_chance, letter_emoji, announce_channel, ephemeral_letters)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       guildId,
       phraseUpper,
@@ -876,7 +876,8 @@ app.post('/api/config/game', (req, res) => {
       is_active ? 1 : 0,
       appearance_chance !== undefined ? parseFloat(appearance_chance) : 15,
       letter_emoji || '🔍',
-      announce_channel || 'dm'
+      announce_channel || 'dm',
+      ephemeral_letters ? 1 : 0
     );
 
     // Réinitialiser les lettres trouvées par les utilisateurs si demandé

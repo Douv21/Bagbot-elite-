@@ -337,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const channelSelects = document.querySelectorAll('.channel-select');
     channelSelects.forEach(select => {
       if (select.id === 'game_announce_channel') {
-        select.innerHTML = '<option value="dm">🍑 Message Éphémère (Autodestruction 6s)</option>';
+        select.innerHTML = '<option value="">Salon d\'origine de la discussion</option>';
       } else {
         select.innerHTML = '<option value="">Désactivé</option>';
       }
@@ -500,9 +500,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('game_letter_emoji').value = game.letter_emoji || '🔍';
         const announceChanSel = document.getElementById('game_announce_channel');
         if (announceChanSel) {
-          announceChanSel.value = game.announce_channel || 'dm';
+          announceChanSel.value = (game.announce_channel === 'dm') ? '' : (game.announce_channel || '');
           if (announceChanSel.syncCustomSelect) announceChanSel.syncCustomSelect();
         }
+        document.getElementById('game_ephemeral_letters').checked = (game.ephemeral_letters === undefined || game.ephemeral_letters === null) ? true : !!game.ephemeral_letters;
         document.getElementById('game_reset_progress').checked = false;
 
         // Quarantaine
@@ -1457,7 +1458,8 @@ document.addEventListener('DOMContentLoaded', () => {
       reward_role_id: document.getElementById('game_reward_role_id').value || null,
       appearance_chance: parseFloat(document.getElementById('game_appearance_chance').value) ?? 15,
       letter_emoji: document.getElementById('game_letter_emoji').value || '🔍',
-      announce_channel: document.getElementById('game_announce_channel').value || 'dm',
+      announce_channel: document.getElementById('game_announce_channel').value || '',
+      ephemeral_letters: document.getElementById('game_ephemeral_letters').checked,
       reset_progress: document.getElementById('game_reset_progress').checked
     };
 

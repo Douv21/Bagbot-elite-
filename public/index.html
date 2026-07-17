@@ -1317,11 +1317,18 @@
                     <label for="game_appearance_chance">Taux d'apparition (%) :</label>
                     <input type="number" id="game_appearance_chance" min="0" max="100" step="0.5" value="15">
                   </div>
-                  <div class="form-group" style="flex: 1; min-width: 180px;">
-                    <label for="game_announce_channel">Salon d'annonce :</label>
+                  <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="game_announce_channel">Salon d'annonce de Victoire :</label>
                     <select id="game_announce_channel" class="channel-select custom-select">
-                      <option value="dm">🍑 Message Éphémère (Autodestruction 6s)</option>
+                      <option value="">Salon d'origine de la discussion</option>
                     </select>
+                  </div>
+                  <div class="form-group" style="flex: 1; min-width: 250px; display: flex; align-items: center; margin-top: 25px;">
+                    <label class="switch-label">
+                      <input type="checkbox" id="game_ephemeral_letters">
+                      <span class="slider"></span>
+                      Lettres éphémères (Autodestruction 6s)
+                    </label>
                   </div>
                   <div class="form-group" style="flex: 1; min-width: 220px;">
                     <label for="game_letter_emoji">Émoji de réaction :</label>
