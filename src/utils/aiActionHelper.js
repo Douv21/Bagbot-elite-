@@ -12,7 +12,25 @@ Le ton doit être intime, passionné et torride.
 Le genre de ${authorName} est ${author.gender} (pronom: ${author.pronoun}) et le genre de ${targetName} est ${target.gender} (pronom: ${target.pronoun}).
 Fais des accords de genre parfaits. Ne mets aucun guillemet ni ponctuation superflue. Réponds uniquement par la phrase générée, sans aucune autre explication ni politesse.`;
 
-  // Étape 1 : Essayer via POST avec le modèle Llama (très rapide et de haute qualité)
+  // Étape 1 : Essayer via un appel GET direct (extrêmement rapide, évite le parsing JSON et l'encapsulation HTTP)
+  try {
+    const url = `https://text.pollinations.ai/${encodeURIComponent(systemPrompt)}?model=llama`;
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(4000) // Très rapide : 4s max
+    });
+
+    if (response.ok) {
+      const text = await response.text();
+      const cleanText = text.trim().replace(/^["']|["']$/g, '');
+      if (cleanText && cleanText.length > 5 && !cleanText.toLowerCase().includes('erreur') && !cleanText.toLowerCase().includes('pollinations')) {
+        return cleanText;
+      }
+    }
+  } catch (err) {
+    console.warn('GET AI direct failed, attempting fallback POST...', err.message);
+  }
+
+  // Étape 2 : Si le GET échoue, faire un appel POST de secours (plus lourd)
   try {
     const response = await fetch('https://text.pollinations.ai/v1/chat/completions', {
       method: 'POST',
@@ -21,7 +39,7 @@ Fais des accords de genre parfaits. Ne mets aucun guillemet ni ponctuation super
         messages: [{ role: 'user', content: systemPrompt }],
         model: 'llama'
       }),
-      signal: AbortSignal.timeout(8000) // Augmenté à 8 secondes
+      signal: AbortSignal.timeout(5000) // 5s max
     });
 
     if (response.ok) {
@@ -33,25 +51,7 @@ Fais des accords de genre parfaits. Ne mets aucun guillemet ni ponctuation super
       }
     }
   } catch (err) {
-    console.warn('POST AI failed, attempting fallback GET...', err.message);
-  }
-
-  // Étape 2 : Si le POST échoue ou expire, faire un appel GET de secours (extrêmement rapide et stable)
-  try {
-    const fallbackUrl = `https://text.pollinations.ai/${encodeURIComponent(systemPrompt)}?model=llama`;
-    const response = await fetch(fallbackUrl, {
-      signal: AbortSignal.timeout(5000)
-    });
-
-    if (response.ok) {
-      const text = await response.text();
-      const cleanText = text.trim().replace(/^["']|["']$/g, '');
-      if (cleanText && cleanText.length > 5 && !cleanText.toLowerCase().includes('erreur') && !cleanText.toLowerCase().includes('pollinations')) {
-        return cleanText;
-      }
-    }
-  } catch (err) {
-    console.error('Erreur finale génération phrase IA (GET Fallback):', err.message);
+    console.error('Erreur finale génération phrase IA (POST Fallback):', err.message);
   }
 
   return null;
@@ -63,7 +63,25 @@ Génère un court message (maximum ${lengthLimit} caractères) en français suiv
 Le ton doit être extrêmement sensuel, suggestif, complice et torride, parfaitement adapté à un serveur NSFW haut de gamme.
 Ne mets aucun guillemet ni ponctuation superflue autour du message. Réponds uniquement par la phrase générée, sans aucune autre explication ni politesse.`;
 
-  // POST with Llama
+  // Étape 1 : Essayer via un appel GET direct (extrêmement rapide et stable)
+  try {
+    const url = `https://text.pollinations.ai/${encodeURIComponent(systemPrompt)}?model=llama`;
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(4000) // 4s max
+    });
+
+    if (response.ok) {
+      const text = await response.text();
+      const cleanText = text.trim().replace(/^["']|["']$/g, '');
+      if (cleanText && cleanText.length > 5 && !cleanText.toLowerCase().includes('erreur') && !cleanText.toLowerCase().includes('pollinations')) {
+        return cleanText;
+      }
+    }
+  } catch (err) {
+    console.warn('GET AI generic failed, trying fallback POST...', err.message);
+  }
+
+  // Étape 2 : Si le GET échoue, faire un appel POST de secours
   try {
     const response = await fetch('https://text.pollinations.ai/v1/chat/completions', {
       method: 'POST',
@@ -72,7 +90,7 @@ Ne mets aucun guillemet ni ponctuation superflue autour du message. Réponds uni
         messages: [{ role: 'user', content: systemPrompt }],
         model: 'llama'
       }),
-      signal: AbortSignal.timeout(8000)
+      signal: AbortSignal.timeout(5000)
     });
 
     if (response.ok) {
@@ -84,25 +102,7 @@ Ne mets aucun guillemet ni ponctuation superflue autour du message. Réponds uni
       }
     }
   } catch (err) {
-    console.warn('POST AI generic failed, trying fallback GET...', err.message);
-  }
-
-  // GET Fallback
-  try {
-    const fallbackUrl = `https://text.pollinations.ai/${encodeURIComponent(systemPrompt)}?model=llama`;
-    const response = await fetch(fallbackUrl, {
-      signal: AbortSignal.timeout(5000)
-    });
-
-    if (response.ok) {
-      const text = await response.text();
-      const cleanText = text.trim().replace(/^["']|["']$/g, '');
-      if (cleanText && cleanText.length > 5 && !cleanText.toLowerCase().includes('erreur') && !cleanText.toLowerCase().includes('pollinations')) {
-        return cleanText;
-      }
-    }
-  } catch (err) {
-    console.error('Erreur finale génération texte sensuel IA:', err.message);
+    console.error('Erreur finale génération texte sensuel IA (POST Fallback):', err.message);
   }
 
   return null;

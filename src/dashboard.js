@@ -1704,9 +1704,10 @@ app.post('/api/ai/chat', async (req, res) => {
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return res.status(404).json({ error: 'Guild not found' });
 
-    // Sécurité stricte : réservé uniquement à l'owner du serveur
-    if (!req.session.user || guild.ownerId !== req.session.user.id) {
-      return res.status(403).json({ error: "L'assistant IA est accessible uniquement au Propriétaire (Owner) de ce serveur Discord." });
+    // Sécurité : réservé aux administrateurs ou au propriétaire du serveur
+    const member = guild.members.cache.get(req.session.user.id) || await guild.members.fetch(req.session.user.id).catch(() => null);
+    if (!member || (!member.permissions.has(PermissionFlagsBits.Administrator) && guild.ownerId !== req.session.user.id)) {
+      return res.status(403).json({ error: "L'assistant IA est accessible uniquement aux Administrateurs et au Propriétaire du serveur." });
     }
 
     const { message } = req.body;
