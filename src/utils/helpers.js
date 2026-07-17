@@ -175,6 +175,8 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
             if (roleObj) rewardRoleName = roleObj.name;
           }
 
+          const levelingData = getLeveling(guildId, userId);
+
           const cardPayload = {
             level: newLevel,
             roleName: rewardRoleName,
@@ -182,7 +184,10 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
             displayNumStr: `LVL ${newLevel}`,
             xpPercent: 1.0,
             barLabel: `Félicitations pour le niveau ${newLevel} !`,
-            karma: currentKarma
+            karma: currentKarma,
+            messages: levelingData.total_messages || 0,
+            voiceMinutes: levelingData.voice_minutes || 0,
+            streak: levelingData.nsfw_messages || 0
           };
           const { getMemberCardTheme } = require('./themeHelper');
           const theme = getMemberCardTheme(guild, updatedMember);
