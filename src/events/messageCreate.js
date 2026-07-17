@@ -375,19 +375,21 @@ module.exports = {
                 .setColor('#E74C3C')
                 .setTimestamp();
               
-              // Si ephemeral_letters est activé, on envoie en éphémère (autodestruction 6s) dans le salon de discussion
+              // Trouver le salon d'annonce cible (le salon de victoire ou par défaut le salon de la discussion)
+              let targetAnnounceChannel = message.channel;
+              if (game.announce_channel && game.announce_channel !== 'dm') {
+                const customChan = message.guild.channels.cache.get(game.announce_channel);
+                if (customChan) targetAnnounceChannel = customChan;
+              }
+
+              // Si ephemeral_letters est activé, on envoie en éphémère (autodestruction 6s) dans ce salon cible
               if (game.ephemeral_letters === 1 || game.ephemeral_letters === undefined || game.ephemeral_letters === null) {
-                message.channel.send({ content: `<@${userId}> 🍑 *Ce message s'autodétruira dans 6 secondes...*`, embeds: [gameEmbed] }).then(msg => {
+                targetAnnounceChannel.send({ content: `<@${userId}> 🍑 *Ce message s'autodétruira dans 6 secondes...*`, embeds: [gameEmbed] }).then(msg => {
                   setTimeout(() => msg.delete().catch(() => {}), 6000);
                 }).catch(console.error);
               } else {
-                // Sinon, on envoie dans le salon d'annonce configuré (sans autodestruction)
-                let targetAnnounceChannel = null;
-                if (game.announce_channel && game.announce_channel !== 'dm') {
-                  targetAnnounceChannel = message.guild.channels.cache.get(game.announce_channel);
-                }
-                const destChan = targetAnnounceChannel || message.channel;
-                destChan.send({ content: `<@${userId}>`, embeds: [gameEmbed] }).catch(console.error);
+                // Sinon, on envoie normalement sans autodestruction dans le salon cible
+                targetAnnounceChannel.send({ content: `<@${userId}>`, embeds: [gameEmbed] }).catch(console.error);
               }
             }
           }

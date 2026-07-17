@@ -47,7 +47,7 @@ module.exports = {
     .setDMPermission(false),
 
   async execute(interaction) {
-    await interaction.deferReply();
+    await interaction.deferReply({ ephemeral: true });
     const guildId = interaction.guild.id;
     const userId = interaction.user.id;
     const address = interaction.options.getString('adresse');
