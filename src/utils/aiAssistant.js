@@ -84,14 +84,14 @@ Pour que le script puisse les parser automatiquement.`;
   let fullReply = "";
   let success = false;
 
-  // POST with Llama
+  // POST with openai
   try {
     const response = await fetch('https://text.pollinations.ai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages: [{ role: 'user', content: `${systemPrompt}\n\nUtilisateur: ${message}\nAssistant:` }],
-        model: 'llama'
+        model: 'openai'
       }),
       signal: AbortSignal.timeout(10000) // 10 secondes max
     });
@@ -110,7 +110,7 @@ Pour que le script puisse les parser automatiquement.`;
   // GET Fallback if POST fails
   if (!success) {
     try {
-      const fallbackUrl = `https://text.pollinations.ai/${encodeURIComponent(systemPrompt + '\n\nUtilisateur: ' + message + '\nAssistant:')}?model=llama`;
+      const fallbackUrl = `https://text.pollinations.ai/${encodeURIComponent(systemPrompt + '\n\nUtilisateur: ' + message + '\nAssistant:')}?model=openai`;
       const response = await fetch(fallbackUrl, {
         signal: AbortSignal.timeout(8000)
       });
