@@ -177,13 +177,15 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
 
           const levelingData = getLeveling(guildId, userId);
 
+          const xpRequired = xpNeededForNextLevel(newLevel);
+
           const cardPayload = {
             level: newLevel,
+            xp: newXp,
+            required: xpRequired,
             roleName: rewardRoleName,
             panelTitle: "NIVEAU SUPÉRIEUR",
             displayNumStr: `LVL ${newLevel}`,
-            xpPercent: 1.0,
-            barLabel: `Félicitations pour le niveau ${newLevel} !`,
             karma: currentKarma,
             messages: levelingData.total_messages || 0,
             voiceMinutes: levelingData.voice_minutes || 0,
