@@ -360,9 +360,9 @@ module.exports = {
               }
               
               const gameEmbed = new EmbedBuilder()
-                .setTitle('🔍 Lettre Trouvée !')
-                .setDescription(`✨ Bravo ! Tu as découvert la lettre **${newLetter}** du mot/phrase secret.\nUtilise \`/mot-cache\` pour voir tes lettres trouvées !`)
-                .setColor('#F1C40F')
+                .setTitle('🍑 Lettre Trouvée !')
+                .setDescription(`🔥 Bravo ! Tu as découvert la lettre **${newLetter}** du mot/phrase secret.\nUtilise \`/mot-cache\` pour voir tes lettres trouvées !`)
+                .setColor('#E74C3C')
                 .setTimestamp();
               
               if (game.announce_channel === 'dm') {

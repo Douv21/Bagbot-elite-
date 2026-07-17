@@ -9,7 +9,8 @@ async function generateAiActionPhrase(actionName, actionDescription, authorMembe
     const targetName = targetMember ? targetMember.displayName : 'Cible';
 
     // Construire un prompt ultra direct et précis
-    const systemPrompt = `Tu es un bot Discord. Génère une seule phrase courte, vivante, sensuelle et drôle en français pour l'action "${actionName}" (description: ${actionDescription}) où ${authorName} fait cette action sur ${targetName}.
+    const systemPrompt = `Tu es un bot Discord. Génère une seule phrase courte, très sensuelle, suggestive et torride en français pour l'action "${actionName}" (description: ${actionDescription}) où ${authorName} fait cette action sur ${targetName}.
+Le ton doit être intime, passionné et torride.
 Le genre de ${authorName} est ${author.gender} (pronom: ${author.pronoun}) et le genre de ${targetName} est ${target.gender} (pronom: ${target.pronoun}).
 Fais des accords de genre parfaits. Ne mets aucun guillemet ni ponctuation superflue. Réponds uniquement par la phrase générée, sans aucune autre explication ni politesse.`;
 

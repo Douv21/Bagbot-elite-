@@ -26,7 +26,7 @@ module.exports = {
 
     if (!game) {
       return interaction.reply({ 
-        content: '❌ Il n\'y a pas de jeu du mot caché actif sur ce serveur en ce moment.', 
+        content: '🔞 Il n\'y a pas de jeu du mot caché actif sur ce serveur en ce moment.', 
         ephemeral: true 
       });
     }
@@ -58,12 +58,12 @@ module.exports = {
       }
 
       const embed = new EmbedBuilder()
-        .setTitle('🎮 Votre progression - Jeu du Mot Caché')
+        .setTitle('😈 Votre progression - Jeu du Mot Caché')
         .setDescription(`Voici votre grille personnalisée en fonction des lettres que vous avez trouvées :\n\n\`${display.trim()}\``)
-        .setColor('#F1C40F')
+        .setColor('#E74C3C')
         .addFields(
           {
-            name: '📊 Statistiques',
+            name: '🍒 Statistiques',
             value: `Lettres débloquées : **${unlocked.length} / ${totalLettersToFind}** uniques.\nLettres trouvées : ${unlocked.map(l => `\`${l}\``).join(', ') || 'Aucune pour le moment'}`
           }
         )
@@ -116,19 +116,19 @@ module.exports = {
         }
 
         const winEmbed = new EmbedBuilder()
-          .setTitle('🎉 JEU DEVINÉ ! Victoire !')
-          .setDescription(`🏆 Félicitations à <@${userId}> qui a trouvé la phrase secrète :\n\n🏆 **"${game.secret_phrase}"** !`)
-          .setColor('#2ECC71')
+          .setTitle('💋 JEU DEVINÉ ! Victoire Torride !')
+          .setDescription(`🍒 Félicitations à <@${userId}> qui a percé le secret :\n\n🍑 **"${game.secret_phrase}"** !`)
+          .setColor('#E74C3C')
           .setTimestamp();
 
         if (rewardMessages.length > 0) {
           winEmbed.addFields({
-            name: '🎁 Récompenses obtenues',
+            name: '💋 Récompenses obtenues',
             value: rewardMessages.join('\n')
           });
         }
 
-        await interaction.reply({ content: '🎉 Proposition correcte ! Vous avez gagné !', ephemeral: true });
+        await interaction.reply({ content: '💋 Proposition correcte ! Vous avez gagné !', ephemeral: true });
         
         let announceChan = interaction.channel;
         if (game.announce_channel && game.announce_channel !== 'dm') {
@@ -141,7 +141,7 @@ module.exports = {
         db.prepare('DELETE FROM user_letters WHERE guild_id = ?').run(guildId);
       } else {
         await interaction.reply({ 
-          content: '❌ Ce n\'est pas la bonne phrase secrète ! Retentez votre chance ou continuez à chercher des lettres.', 
+          content: '🔞 Ce n\'est pas la bonne phrase secrète ! Retentez votre chance ou continuez à chercher des lettres.', 
           ephemeral: true 
         });
       }

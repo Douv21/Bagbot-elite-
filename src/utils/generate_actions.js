@@ -10,184 +10,184 @@ const actions = [
   {
     name: '69',
     description: 'Faire un 69 avec quelqu\'un',
-    title: '👉 69',
+    title: '🍑 69',
     selfMessage: '${author} tente de faire un 69 tout seul... C\'est anatomiquement impossible !',
-    targetMessage: '${author} fait un 69 torride avec ${target} !'
+    targetMessage: '${author} s\'entrelace sensuellement pour un 69 torride et humide avec ${target} !'
   },
   {
     name: 'agenouiller',
     description: 'S\'agenouiller devant quelqu\'un',
     title: '🧎 Agenouiller',
     selfMessage: '${author} s\'agenouille devant son reflet.',
-    targetMessage: '${author} s\'agenouille humblement devant ${target}.'
+    targetMessage: '${author} s\'agenouille amoureusement et se soumet devant ${target}.'
   },
   {
     name: 'attrape',
     description: 'Attraper quelqu\'un',
     title: '🏃 Attraper',
     selfMessage: '${author} court en rond et s\'attrape lui-même !',
-    targetMessage: '${author} court après ${target} et l\'attrape de justesse !'
+    targetMessage: '${author} attrape ${target} par la taille et le plaque contre son corps chaud !'
   },
   {
     name: 'batailleoreiller',
     description: 'Lancer une bataille d\'oreillers',
     title: '🛌 Bataille d\'oreillers',
     selfMessage: '${author} se prend un coup d\'oreiller tout seul.',
-    targetMessage: '${author} lance une bataille d\'oreillers frénétique avec ${target} !'
+    targetMessage: '${author} commence une bataille d\'oreillers intime avec ${target} au milieu du lit !'
   },
   {
     name: 'branler',
     description: 'Branler quelqu\'un',
     title: '🍆 Branlette',
     selfMessage: '${author} se fait plaisir en solo...',
-    targetMessage: '${author} branle vigoureusement ${target} !'
+    targetMessage: '${author} caresse et branle chaudement le sexe de ${target} !'
   },
   {
     name: 'calin',
     description: 'Faire un gros câlin à quelqu\'un',
-    title: '🤗 Câlin',
+    title: '❤️ Câlin',
     selfMessage: '${author} se fait un câlin à lui-même.',
-    targetMessage: '${author} serre fort ${target} dans ses bras !'
+    targetMessage: '${author} enserre chaleureusement ${target} tout contre sa poitrine !'
   },
   {
     name: 'caresser',
     description: 'Caresser doucement quelqu\'un',
-    title: '👋 Caresse',
+    title: '🍒 Caresse',
     selfMessage: '${author} se caresse les bras doucement.',
-    targetMessage: '${author} caresse tendrement ${target}.'
+    targetMessage: '${author} caresse lentement et sensuellement les courbes de ${target}.'
   },
   {
     name: 'chatouiller',
     description: 'Chatouiller quelqu\'un',
     title: '👉 Chatouille',
     selfMessage: '${author} essaie de se chatouiller... Mais ça ne marche pas !',
-    targetMessage: '${author} chatouille sans pitié ${target} !'
+    targetMessage: '${author} chatouille malicieusement ${target} pour entendre ses rires doux.'
   },
   {
     name: 'collier',
     description: 'Mettre un collier à quelqu\'un',
     title: '⛓️ Collier',
     selfMessage: '${author} s\'attache un collier autour du cou.',
-    targetMessage: '${author} passe délicatement un collier au cou de ${target}.'
+    targetMessage: '${author} passe doucement un collier autour du cou de ${target} pour en prendre possession.'
   },
   {
     name: 'embrasser',
     description: 'Embrasser quelqu\'un',
     title: '💋 Bisou',
     selfMessage: '${author} embrasse son miroir.',
-    targetMessage: '${author} embrasse amoureusement ${target} !'
+    targetMessage: '${author} plaque ses lèvres chaudes et embrasse goulûment ${target} !'
   },
   {
     name: 'lecher',
     description: 'Lécher quelqu\'un',
     title: '👅 Lécher',
     selfMessage: '${author} se lèche le coude (quel talent !).',
-    targetMessage: '${author} lèche sensuellement ${target}.'
+    targetMessage: '${author} lèche voluptueusement la peau dorée de ${target}.'
   },
   {
     name: 'mordre',
     description: 'Mordre quelqu\'un',
     title: '🦷 Morsure',
     selfMessage: '${author} se mord la langue. Aïe !',
-    targetMessage: '${author} mord doucement ${target} !'
+    targetMessage: '${author} mordille délicatement et sauvagement le cou de ${target} !'
   },
   {
     name: 'mouiller',
     description: 'Mouiller quelqu\'un',
     title: '💦 Mouiller',
     selfMessage: '${author} s\'éclabousse tout seul.',
-    targetMessage: '${author} excite / mouille ${target} !'
+    targetMessage: '${author} excite, caresse et mouille intensément ${target} !'
   },
   {
     name: 'orgasme',
     description: 'Donner un orgasme à quelqu\'un',
     title: '🥵 Orgasme',
     selfMessage: '${author} atteint le septième ciel en solo...',
-    targetMessage: '${author} fait monter ${target} au septième ciel !'
+    targetMessage: '${author} provoque des vagues de plaisir et fait frissonner ${target} jusqu\'à l\'orgasme !'
   },
   {
     name: 'punir',
     description: 'Punir quelqu\'un',
-    title: '💢 Punition',
+    title: '🍑 Punition',
     selfMessage: '${author} se punit lui-même.',
-    targetMessage: '${author} punit sévèrement ${target} !'
+    targetMessage: '${author} fesse et punit avec passion ${target} !'
   },
   {
     name: 'reanimer',
     description: 'Réanimer quelqu\'un',
     title: '🩺 Réanimation',
     selfMessage: '${author} se fait du bouche-à-bouche imaginaire.',
-    targetMessage: '${author} réanime ${target} d\'urgence !'
+    targetMessage: '${author} réanime ${target} avec un bouche-à-bouche sensuel et profond !'
   },
   {
     name: 'reconforter',
     description: 'Réconforter quelqu\'un',
     title: '🧸 Réconfort',
     selfMessage: '${author} se console tout seul.',
-    targetMessage: '${author} apporte du réconfort à ${target} qui en a besoin.'
+    targetMessage: '${author} enlace et réconforte tendrement ${target} contre son torse.'
   },
   {
     name: 'reveiller',
     description: 'Réveiller quelqu\'un',
     title: '⏰ Réveil',
     selfMessage: '${author} sursaute au réveil.',
-    targetMessage: '${author} secoue ${target} pour le/la réveiller !'
+    targetMessage: '${author} réveille doucement ${target} avec des baisers tout au long de son corps.'
   },
   {
     name: 'rose',
     description: 'Offrir une rose à quelqu\'un',
     title: '🌹 Offrir une rose',
     selfMessage: '${author} s\'offre une rose à lui-même.',
-    targetMessage: '${author} offre une magnifique rose à ${target} 🌹.'
+    targetMessage: '${author} offre une rose parfumée à ${target} pour éveiller ses désirs 🌹.'
   },
   {
     name: 'seduire',
     description: 'Séduire quelqu\'un',
     title: '😏 Séduction',
     selfMessage: '${author} se trouve irrésistible devant la glace.',
-    targetMessage: '${author} déploie son charme pour séduire ${target} !'
+    targetMessage: '${author} murmure des mots doux et déploie tout son charme pour séduire ${target} !'
   },
   {
     name: 'sodo',
     description: 'Faire une sodo à quelqu\'un',
     title: '🍑 Sodo',
     selfMessage: '${author} tente des acrobaties impossibles...',
-    targetMessage: '${author} prend sauvagement ${target} par derrière !'
+    targetMessage: '${author} pénètre chaudement et sodo sauvagement ${target} par derrière !'
   },
   {
     name: 'sucer',
     description: 'Sucer quelqu\'un',
     title: '👄 Fellation',
     selfMessage: '${author} essaye mais manque de souplesse...',
-    targetMessage: '${author} suce goulûment ${target} !'
+    targetMessage: '${author} prend en bouche et suce goulûment le sexe de ${target} !'
   },
   {
     name: 'tirercheveux',
     description: 'Tirer les cheveux de quelqu\'un',
     title: '💇 Tirer les cheveux',
     selfMessage: '${author} se tire les cheveux de frustration.',
-    targetMessage: '${author} tire fermement les cheveux de ${target} !'
+    targetMessage: '${author} tire fermement les cheveux de ${target} pour incliner sa tête !'
   },
   {
     name: 'touche',
     description: 'Toucher quelqu\'un',
     title: '👉 Toucher',
     selfMessage: '${author} se touche le visage.',
-    targetMessage: '${author} touche intimement ${target}...'
+    targetMessage: '${author} caresse et effleure intimement les zones érogènes de ${target}...'
   },
   {
     name: 'vin',
     description: 'Partager un verre de vin avec quelqu\'un',
     title: '🍷 Verre de vin',
     selfMessage: '${author} boit un verre de vin en solo. Santé !',
-    targetMessage: '${author} trinque et partage un verre de vin avec ${target} 🍷.'
+    targetMessage: '${author} partage un verre de vin enivrant dans une ambiance intime avec ${target} 🍷.'
   },
   {
     name: 'danser',
     description: 'Danser avec quelqu\'un',
     title: '💃 Danse',
     selfMessage: '${author} se lance dans une danse effrénée en solo !',
-    targetMessage: '${author} invite ${target} à danser et enflamme la piste !'
+    targetMessage: '${author} danse corps à corps de manière collé-serré avec ${target} !'
   }
 ];
 

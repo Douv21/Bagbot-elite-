@@ -199,9 +199,9 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
         }
 
         const embed = new EmbedBuilder()
-          .setTitle('🎉 Nouvelle Montée de Niveau !')
+          .setTitle('❤️‍🔥 Nouvelle Montée de Niveau Torride !')
           .setDescription(desc)
-          .setColor('#F1C40F')
+          .setColor('#E74C3C')
           .setTimestamp();
 
         if (cardAttachment) {

@@ -104,14 +104,14 @@ module.exports = {
 
     if (addedEmojis.length === 0) {
       if (errors.length > 0) {
-        return interaction.editReply({ content: `❌ Impossible d'ajouter l'émoji. Erreur détectée sur : ${errors.join(', ')}` });
+        return interaction.editReply({ content: `🔞 Impossible d'ajouter l'émoji. Désir contrarié sur : ${errors.join(', ')}` });
       }
-      return interaction.editReply({ content: '❌ Aucun émoji personnalisé ou image trouvé dans ce message.' });
+      return interaction.editReply({ content: '🔞 Aucun émoji personnalisé ou image trouvé dans ce message.' });
     }
 
     const renderingList = addedEmojis.map(e => `${e} (:${e.name}:)`).join(', ');
     return interaction.editReply({
-      content: `✅ **${addedEmojis.length}** émoji(s) ajouté(s) avec succès au serveur : ${renderingList}`
+      content: `💋 **${addedEmojis.length}** émoji(s) ajouté(s) avec succès au serveur : ${renderingList}`
     });
   }
 };
