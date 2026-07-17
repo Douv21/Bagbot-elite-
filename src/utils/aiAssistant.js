@@ -56,8 +56,32 @@ async function processAiCommand(guildId, userId, message, client) {
     return member;
   };
 
+  // Récupérer et lister tous les rôles et salons textuels existants du serveur de manière propre
+  const fetchedRoles = await guild.roles.fetch().catch(() => null);
+  const fetchedChannels = await guild.channels.fetch().catch(() => null);
+
+  const rolesList = (fetchedRoles || guild.roles.cache)
+    .filter(r => r.name !== '@everyone')
+    .map(r => `- Rôle: "${r.name}" (ID: ${r.id})`)
+    .join('\n');
+
+  const channelsList = (fetchedChannels || guild.channels.cache)
+    .filter(c => c.isTextBased())
+    .map(c => `- Salon: "#${c.name}" (ID: ${c.id})`)
+    .join('\n');
+
   const systemPrompt = `Tu es l'assistant d'administration intelligent du bot Discord B&G Elite.
 Tu peux exécuter des actions d'administration sur le serveur Discord "${guild.name}" en renvoyant des instructions structurées en JSON à la fin de ta réponse.
+
+Voici la liste des RÔLES EXISTANTS sur ce serveur :
+${rolesList || 'Aucun rôle personnalisé'}
+
+Voici la liste des SALONS TEXTUELS EXISTANTS sur ce serveur :
+${channelsList || 'Aucun salon textuel'}
+
+Règles de décision CRITIQUES :
+1. Avant de générer une action de type "create_role", vérifie attentivement si un rôle similaire ou de même nom n'existe pas déjà dans la liste des RÔLES EXISTANTS ci-dessus. Si le rôle existe déjà, n'utilise PAS "create_role". Utilise directement l'action d'attribution "add_member_role" ou modifie-le si besoin.
+2. Lorsque tu fais référence à un salon, utilise son nom exact ou son ID figurant dans la liste des SALONS EXISTANTS ci-dessus.
 
 Actions d'administration possibles (tu dois les formuler sous forme d'un tableau JSON d'objets, exemple: [{"type": "create_role", "name": "VIP"}]):
 1. {"type": "update_automod", "anti_link": 0/1, "anti_spam": 0/1, "anti_massmention": 0/1, "anti_badwords": 0/1, "spam_max_msgs": nombre, "massmention_limit": nombre, "badwords_list": "mot1,mot2"}
