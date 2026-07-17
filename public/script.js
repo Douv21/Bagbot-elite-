@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const formTicketPanel = document.getElementById('form-ticket-panel');
   const formTicketOption = document.getElementById('form-ticket-option');
   const ticketOptionsList = document.getElementById('ticket-options-list');
+  const formBump = document.getElementById('form-bump');
   const formPermissions = document.getElementById('form-permissions');
   const formActionRewards = document.getElementById('form-action-rewards');
 
@@ -493,6 +494,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('game_reward_xp').value = game.reward_xp ?? 0;
         document.getElementById('game_reward_role_id').value = game.reward_role_id || '';
         document.getElementById('game_appearance_chance').value = game.appearance_chance ?? 15;
+        document.getElementById('game_letter_emoji').value = game.letter_emoji || '🔍';
         document.getElementById('game_reset_progress').checked = false;
 
         // Quarantaine
@@ -682,6 +684,19 @@ document.addEventListener('DOMContentLoaded', () => {
             updateActionRewardsForm();
           })
           .catch(console.error);
+
+        // Charger la configuration des Bumps
+        const bump = config.bump_config || {};
+        const reminderChanSelect = document.getElementById('bump_reminder_channel');
+        const reminderRoleSelect = document.getElementById('bump_reminder_role');
+        if (reminderChanSelect) {
+          reminderChanSelect.value = bump.reminder_channel || '';
+          if (reminderChanSelect.syncCustomSelect) reminderChanSelect.syncCustomSelect();
+        }
+        if (reminderRoleSelect) {
+          reminderRoleSelect.value = bump.reminder_role || '';
+          if (reminderRoleSelect.syncCustomSelect) reminderRoleSelect.syncCustomSelect();
+        }
 
         // Charger les thèmes de cartes par rôle
         loadRoleThemes();
@@ -1433,6 +1448,7 @@ document.addEventListener('DOMContentLoaded', () => {
       reward_xp: parseInt(document.getElementById('game_reward_xp').value) || 0,
       reward_role_id: document.getElementById('game_reward_role_id').value || null,
       appearance_chance: parseFloat(document.getElementById('game_appearance_chance').value) ?? 15,
+      letter_emoji: document.getElementById('game_letter_emoji').value || '🔍',
       reset_progress: document.getElementById('game_reset_progress').checked
     };
 
@@ -1487,6 +1503,31 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(err => showToast('Erreur: ' + err.message, true));
   });
+
+  // Rappel de Bumps
+  if (formBump) {
+    formBump.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const reminder_channel = document.getElementById('bump_reminder_channel').value || null;
+      const reminder_role = document.getElementById('bump_reminder_role').value || null;
+
+      fetch('/api/config/bump', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reminder_channel, reminder_role })
+      })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          showToast('Configuration des rappels de bump enregistrée !');
+          loadGuildConfiguration();
+        } else {
+          showToast('Erreur: ' + resData.error, true);
+        }
+      })
+      .catch(err => showToast('Erreur: ' + err.message, true));
+    });
+  }
 
   // Forums Illimités
   formForums.addEventListener('submit', (e) => {
@@ -3401,11 +3442,11 @@ document.addEventListener('DOMContentLoaded', () => {
       tr.innerHTML = `
         <td><span class="role-badge">${roleName}</span></td>
         <td><span class="badge badge-info" style="background: rgba(0, 210, 227, 0.15); color: #00d2d3; padding: 4px 10px; border-radius: 4px; font-weight: 500; font-size: 0.8rem;">${item.theme_name.toUpperCase()}</span></td>
-        <td><button class="btn btn-danger btn-delete-theme" data-role-id="${item.role_id}"><i class="fa-solid fa-trash-can"></i> Supprimer</button></td>
+        <td><button class="btn btn-danger btn-delete-theme" data-role-id="${item.role_id}" data-theme-name="${item.theme_name}"><i class="fa-solid fa-trash-can"></i> Supprimer</button></td>
       `;
 
       tr.querySelector('.btn-delete-theme').addEventListener('click', () => {
-        deleteRoleTheme(item.role_id);
+        deleteRoleTheme(item.role_id, item.theme_name);
       });
 
       roleThemesList.appendChild(tr);
@@ -3445,13 +3486,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function deleteRoleTheme(roleId) {
+  function deleteRoleTheme(roleId, themeName) {
     if (!confirm('Voulez-vous vraiment supprimer cette association de thème ?')) return;
 
     fetch('/api/config/role-themes/delete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role_id: roleId })
+      body: JSON.stringify({ role_id: roleId, theme_name: themeName })
     })
       .then(res => res.json())
       .then(resData => {

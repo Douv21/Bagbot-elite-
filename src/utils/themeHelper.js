@@ -21,8 +21,11 @@ function getMemberCardTheme(guild, member) {
           .first();
 
         if (highestMatchingRole) {
-          const matched = matchingThemes.find(mt => mt.role_id === highestMatchingRole.id);
-          if (matched) return matched.theme_name;
+          const matchedThemes = matchingThemes.filter(mt => mt.role_id === highestMatchingRole.id);
+          if (matchedThemes.length > 0) {
+            const randomIndex = Math.floor(Math.random() * matchedThemes.length);
+            return matchedThemes[randomIndex].theme_name;
+          }
         }
       }
     }

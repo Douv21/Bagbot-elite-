@@ -116,6 +116,7 @@
           <button class="tab-btn" data-tab="tab-counting"><i class="fa-solid fa-calculator"></i> Counting</button>
           <button class="tab-btn" data-tab="tab-game"><i class="fa-solid fa-gamepad"></i> Jeu Mot Caché</button>
           <button class="tab-btn" data-tab="tab-action-verite"><i class="fa-solid fa-dice"></i> Action / Vérité</button>
+          <button class="tab-btn" data-tab="tab-bump"><i class="fa-solid fa-bell"></i> Rappel de Bumps</button>
         </div>
 
         <div class="sidebar-category">
@@ -1305,16 +1306,20 @@
                 <p>Configurez le jeu du mot ou phrase cachée. Les membres débloquent des lettres au hasard en parlant et essaient de deviner le mot pour remporter des récompenses.</p>
                 
                 <div class="form-row" style="margin-bottom: 15px; display: flex; gap: 15px; flex-wrap: wrap;">
-                  <div class="form-group checkbox-group" style="flex: 1; min-width: 200px;">
+                  <div class="form-group checkbox-group" style="flex: 1; min-width: 150px; display: flex; align-items: center;">
                     <label class="switch-label">
                       <input type="checkbox" id="game_is_active">
                       <span class="slider"></span>
                       Activer le jeu du mot caché
                     </label>
                   </div>
-                  <div class="form-group" style="flex: 1; min-width: 200px;">
+                  <div class="form-group" style="flex: 1; min-width: 150px;">
                     <label for="game_appearance_chance">Taux d'apparition des lettres (%) :</label>
                     <input type="number" id="game_appearance_chance" min="0" max="100" step="0.5" value="15">
+                  </div>
+                  <div class="form-group" style="flex: 1; min-width: 150px;">
+                    <label for="game_letter_emoji">Émoji de réaction (ex: 🔍 ou :nom:) :</label>
+                    <input type="text" id="game_letter_emoji" placeholder="🔍" value="🔍">
                   </div>
                 </div>
 
@@ -1766,6 +1771,35 @@
             <div class="card glass" style="padding: 0; overflow: hidden; border-radius: 12px; height: 700px;">
               <iframe id="map-iframe" src="" style="width: 100%; height: 100%; border: none;"></iframe>
             </div>
+          </div>
+
+          <!-- Tab: Rappel de Bumps -->
+          <div id="tab-bump" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-bell"></i> Rappel de Bumps Multi-Bot</h2>
+            <form id="form-bump" class="glass-form">
+              <div class="card glass">
+                <p>Configurez ici le système de rappels automatiques après un bump (Disboard, Discord-DL, etc.). Le bot enverra un rappel dès que le cooldown est expiré.</p>
+                
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="bump_reminder_channel">Salon d'envoi des rappels :</label>
+                    <select id="bump_reminder_channel" class="channel-select custom-select">
+                      <option value="">Salon où le bump a eu lieu (Automatique)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="bump_reminder_role">Rôle à mentionner (Ping) :</label>
+                    <select id="bump_reminder_role" class="role-select custom-select">
+                      <option value="">Aucun ping</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-save" style="margin-top: 20px;">
+                  <i class="fa-solid fa-floppy-disk"></i> Enregistrer les rappels
+                </button>
+              </div>
+            </form>
           </div>
 
           <!-- Tab: Permissions -->

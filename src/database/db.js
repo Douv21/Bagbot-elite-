@@ -490,10 +490,52 @@ function initDatabase() {
     db.prepare("ALTER TABLE welcome_leave ADD COLUMN custom_bot_avatar TEXT").run();
   } catch (e) {}
 
-  // Migration pour la chance d'apparition des lettres du mot caché
+  // Migration pour la chance d'apparition des lettres du mot caché et l'émoji personnalisé
   try {
     db.prepare("ALTER TABLE game_config ADD COLUMN appearance_chance REAL DEFAULT 15").run();
   } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE game_config ADD COLUMN letter_emoji TEXT DEFAULT '🔍'").run();
+  } catch (e) {}
+
+  // Recréer role_themes pour supporter plusieurs thèmes par rôle (clé composite)
+  try {
+    // Vérifier si la table a une contrainte unique sur role_id en créant une sauvegarde temporaire
+    db.prepare('CREATE TABLE IF NOT EXISTS role_themes_temp (guild_id TEXT, role_id TEXT, theme_name TEXT)').run();
+    db.prepare('INSERT INTO role_themes_temp SELECT guild_id, role_id, theme_name FROM role_themes').run();
+    db.prepare('DROP TABLE IF EXISTS role_themes').run();
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS role_themes (
+        guild_id TEXT,
+        role_id TEXT,
+        theme_name TEXT,
+        PRIMARY KEY (guild_id, role_id, theme_name)
+      )
+    `).run();
+    db.prepare('INSERT OR IGNORE INTO role_themes SELECT guild_id, role_id, theme_name FROM role_themes_temp').run();
+    db.prepare('DROP TABLE IF EXISTS role_themes_temp').run();
+  } catch (e) {
+    console.error('Erreur migration role_themes:', e);
+  }
+
+  // 25. Bump Config et reminders
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS bump_config (
+      guild_id TEXT PRIMARY KEY,
+      reminder_channel TEXT,
+      reminder_role TEXT
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS bump_reminders (
+      guild_id TEXT,
+      bot_name TEXT,
+      next_bump_at INTEGER,
+      channel_id TEXT,
+      PRIMARY KEY (guild_id, bot_name)
+    )
+  `).run();
 
   // 19. Localisation des membres
   db.prepare(`
@@ -1041,15 +1083,35 @@ const getRoleThemes = (guildId) => {
 
 const addRoleTheme = (guildId, roleId, themeName) => {
   db.prepare(`
-    INSERT INTO role_themes (guild_id, role_id, theme_name)
+    INSERT OR IGNORE INTO role_themes (guild_id, role_id, theme_name)
     VALUES (?, ?, ?)
-    ON CONFLICT (guild_id, role_id)
-    DO UPDATE SET theme_name = EXCLUDED.theme_name
   `).run(guildId, roleId, themeName);
 };
 
-const deleteRoleTheme = (guildId, roleId) => {
-  db.prepare('DELETE FROM role_themes WHERE guild_id = ? AND role_id = ?').run(guildId, roleId);
+const deleteRoleTheme = (guildId, roleId, themeName) => {
+  if (themeName) {
+    db.prepare('DELETE FROM role_themes WHERE guild_id = ? AND role_id = ? AND theme_name = ?').run(guildId, roleId, themeName);
+  } else {
+    db.prepare('DELETE FROM role_themes WHERE guild_id = ? AND role_id = ?').run(guildId, roleId);
+  }
+};
+
+const getBumpConfig = (guildId) => {
+  const row = db.prepare('SELECT * FROM bump_config WHERE guild_id = ?').get(guildId);
+  if (!row) {
+    db.prepare('INSERT OR IGNORE INTO bump_config (guild_id) VALUES (?)').run(guildId);
+    return { guild_id: guildId, reminder_channel: null, reminder_role: null };
+  }
+  return row;
+};
+
+const updateBumpConfig = (guildId, reminderChannel, reminderRole) => {
+  getBumpConfig(guildId); // Assure la création
+  db.prepare(`
+    UPDATE bump_config 
+    SET reminder_channel = ?, reminder_role = ?
+    WHERE guild_id = ?
+  `).run(reminderChannel || null, reminderRole || null, guildId);
 };
 
 module.exports = {
@@ -1123,5 +1185,7 @@ module.exports = {
   setUserGender,
   getRoleThemes,
   addRoleTheme,
-  deleteRoleTheme
+  deleteRoleTheme,
+  getBumpConfig,
+  updateBumpConfig
 };

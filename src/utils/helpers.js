@@ -163,13 +163,20 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
           const memberEconomy = db.prepare('SELECT karma FROM economy WHERE guild_id = ? AND user_id = ?').get(guildId, userId);
           const currentKarma = memberEconomy ? memberEconomy.karma : 0;
           
-          let rewardRoleName = 'Nouveau Niveau !';
-          if (rewardThisLevel) {
-            const roleObj = guild.roles.cache.get(rewardThisLevel.role_id);
+          // Récupérer le membre mis à jour pour s'assurer que ses rôles récents soient dans le cache Discord.js
+          const updatedMember = await guild.members.fetch(userId).catch(() => member);
+
+          // Calculer le plus haut rôle de récompense actuel
+          let rewardRoleName = 'MEMBRE DU SERVEUR';
+          const reward = db.prepare('SELECT role_id FROM level_rewards WHERE guild_id = ? AND level <= ? ORDER BY level DESC LIMIT 1')
+            .get(guildId, newLevel);
+          if (reward) {
+            const roleObj = guild.roles.cache.get(reward.role_id);
             if (roleObj) rewardRoleName = roleObj.name;
           }
 
           const cardPayload = {
+            level: newLevel,
             roleName: rewardRoleName,
             panelTitle: "NIVEAU SUPÉRIEUR",
             displayNumStr: `LVL ${newLevel}`,
@@ -178,8 +185,8 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
             karma: currentKarma
           };
           const { getMemberCardTheme } = require('./themeHelper');
-          const theme = getMemberCardTheme(guild, member);
-          cardAttachment = await generateCard(member, cardPayload, theme);
+          const theme = getMemberCardTheme(guild, updatedMember);
+          cardAttachment = await generateCard(updatedMember, cardPayload, theme);
         } catch (error) {
           console.error("Erreur génération de carte de level up:", error);
         }

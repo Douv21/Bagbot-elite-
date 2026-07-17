@@ -520,6 +520,9 @@ app.get('/api/config', (req, res) => {
       permissionsConfig = { admin_role_id: null, modo_role_id: null };
     }
 
+    const { getBumpConfig } = require('./database/db');
+    const bumpConfig = getBumpConfig(guildId);
+
     res.json({
       welcome_leave: welcomeLeave,
       permissions_config: permissionsConfig,
@@ -535,7 +538,8 @@ app.get('/api/config', (req, res) => {
       autorole_embeds: autoroleEmbeds,
       autoroles_on_join: autorolesOnJoin,
       autoroles_on_role: autorolesOnRole,
-      counting_channels: countingChannels
+      counting_channels: countingChannels,
+      bump_config: bumpConfig
     });
   } catch (error) {
     console.error('Erreur chargement config:', error);
@@ -856,13 +860,13 @@ app.post('/api/config/game', (req, res) => {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { secret_phrase, reward_money, reward_xp, reward_role_id, is_active, reset_progress, appearance_chance } = req.body;
+    const { secret_phrase, reward_money, reward_xp, reward_role_id, is_active, reset_progress, appearance_chance, letter_emoji } = req.body;
 
     const phraseUpper = (secret_phrase || '').toUpperCase();
 
     db.prepare(`
-      INSERT OR REPLACE INTO game_config (guild_id, secret_phrase, reward_money, reward_xp, reward_role_id, is_active, appearance_chance)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO game_config (guild_id, secret_phrase, reward_money, reward_xp, reward_role_id, is_active, appearance_chance, letter_emoji)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       guildId,
       phraseUpper,
@@ -870,7 +874,8 @@ app.post('/api/config/game', (req, res) => {
       reward_xp !== undefined ? parseInt(reward_xp) : 0,
       reward_role_id || null,
       is_active ? 1 : 0,
-      appearance_chance !== undefined ? parseFloat(appearance_chance) : 15
+      appearance_chance !== undefined ? parseFloat(appearance_chance) : 15,
+      letter_emoji || '🔍'
     );
 
     // Réinitialiser les lettres trouvées par les utilisateurs si demandé
@@ -1646,11 +1651,11 @@ app.post('/api/config/role-themes/delete', (req, res) => {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { role_id } = req.body;
+    const { role_id, theme_name } = req.body;
     if (!role_id) return res.status(400).json({ error: 'Rôle requis' });
 
     const { deleteRoleTheme } = require('./database/db');
-    deleteRoleTheme(guildId, role_id);
+    deleteRoleTheme(guildId, role_id, theme_name);
     res.json({ success: true });
   } catch (error) {
     console.error(error);
@@ -1679,6 +1684,37 @@ app.post('/api/ai/chat', async (req, res) => {
     const result = await processAiCommand(guildId, req.session.user.id, message, client);
 
     res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Configuration des rappels de Bump
+app.get('/api/config/bump', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { getBumpConfig } = require('./database/db');
+    const config = getBumpConfig(guildId);
+    res.json(config);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/bump', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { reminder_channel, reminder_role } = req.body;
+    const { updateBumpConfig } = require('./database/db');
+    
+    updateBumpConfig(guildId, reminder_channel, reminder_role);
+    res.json({ success: true });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });

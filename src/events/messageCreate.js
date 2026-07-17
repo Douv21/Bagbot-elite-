@@ -17,7 +17,43 @@ const BANNED_WORDS = ['merde', 'connard', 'salope', 'fdp', 'putain', 'encule', '
 module.exports = {
   name: 'messageCreate',
   async execute(message, client) {
-    if (message.author.bot || !message.guild) return;
+    if (!message.guild) return;
+
+    // --- SYSTÈME DE RAPPELS DE BUMPS MULTI-BOT ---
+    try {
+      const isDisboard = message.author.id === '302050872383242240';
+      const isSlashBump = message.interaction && message.interaction.commandName === 'bump';
+      
+      if (isDisboard || isSlashBump) {
+        const botName = isDisboard ? 'disboard' : message.author.username.toLowerCase();
+        let shouldBump = false;
+        
+        if (isSlashBump) {
+          shouldBump = true;
+        } else if (isDisboard) {
+          const embeds = message.embeds;
+          const desc = embeds && embeds[0] && embeds[0].description ? embeds[0].description.toLowerCase() : '';
+          const content = message.content.toLowerCase();
+          if (desc.includes('bump effectué') || desc.includes('bump done') || content.includes('bump effectué') || content.includes('bump done') || desc.includes('page du serveur') || content.includes('page du serveur')) {
+            shouldBump = true;
+          }
+        }
+
+        if (shouldBump) {
+          const nextBump = Math.floor(Date.now() / 1000) + 7200; // 2 heures de cooldown (7200s)
+          db.prepare(`
+            INSERT OR REPLACE INTO bump_reminders (guild_id, bot_name, next_bump_at, channel_id)
+            VALUES (?, ?, ?, ?)
+          `).run(message.guild.id, botName, nextBump, message.channel.id);
+          
+          await message.react('🔔').catch(() => {});
+        }
+      }
+    } catch (e) {
+      console.error('Erreur détection Bump:', e);
+    }
+
+    if (message.author.bot) return;
 
     const guildId = message.guild.id;
     const userId = message.author.id;
@@ -303,6 +339,25 @@ module.exports = {
               
               db.prepare('INSERT OR REPLACE INTO user_letters (guild_id, user_id, unlocked_letters) VALUES (?, ?, ?)')
                 .run(guildId, userId, unlocked.join(''));
+
+              // Réagir au message de l'utilisateur avec l'émoji configuré
+              if (game.letter_emoji) {
+                let emojiToReact = game.letter_emoji.trim();
+                const match = emojiToReact.match(/<?a?:?([a-zA-Z0-9_]+):(\d+)>?/);
+                if (match) {
+                  emojiToReact = match[2];
+                } else if (emojiToReact.startsWith(':') && emojiToReact.endsWith(':')) {
+                  const cleanedName = emojiToReact.slice(1, -1);
+                  const foundEmoji = message.guild.emojis.cache.find(e => e.name === cleanedName);
+                  if (foundEmoji) {
+                    emojiToReact = foundEmoji.id;
+                  }
+                }
+                message.react(emojiToReact).catch(err => {
+                  console.warn(`Impossible de réagir avec l'émoji ${game.letter_emoji}:`, err.message);
+                  message.react('🔍').catch(() => {});
+                });
+              }
               
               const gameEmbed = new EmbedBuilder()
                 .setTitle('🔍 Lettre Trouvée !')

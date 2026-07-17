@@ -586,6 +586,10 @@ client.once('ready', async () => {
     setInterval(() => checkExpiredSuites(client), 60000);
     checkExpiredSuites(client);
 
+    // Vérification des rappels de Bumps toutes les 30 secondes
+    setInterval(() => checkBumpReminders(client), 30000);
+    checkBumpReminders(client);
+
     // Mettre en cache tous les membres de tous les serveurs au démarrage
     client.guilds.cache.forEach(guild => {
       guild.members.fetch()
@@ -882,6 +886,45 @@ async function checkExpiredSuites(client) {
     }
   } catch (err) {
     console.error('Erreur nettoyage suites privées:', err);
+  }
+}
+
+async function checkBumpReminders(client) {
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    const { getBumpConfig, db } = require('./database/db');
+    const expiredReminders = db.prepare('SELECT * FROM bump_reminders WHERE next_bump_at <= ?').all(now);
+
+    for (const reminder of expiredReminders) {
+      try {
+        const guild = client.guilds.cache.get(reminder.guild_id);
+        if (guild) {
+          const bumpConfig = getBumpConfig(reminder.guild_id);
+          const channelId = bumpConfig.reminder_channel || reminder.channel_id;
+          const channel = guild.channels.cache.get(channelId);
+
+          if (channel) {
+            const roleMention = bumpConfig.reminder_role ? `<@&${bumpConfig.reminder_role}>` : '';
+            const embed = new EmbedBuilder()
+              .setTitle('🔔 Rappel de Bump !')
+              .setDescription(`✨ Il est temps de bump le serveur avec le bot **${reminder.bot_name.toUpperCase()}** !`)
+              .setColor('#5865F2')
+              .setTimestamp();
+
+            await channel.send({
+              content: roleMention || undefined,
+              embeds: [embed]
+            }).catch(console.error);
+          }
+        }
+      } catch (err) {
+        console.error(`Erreur d'envoi du rappel de bump pour le serveur ${reminder.guild_id}:`, err);
+      } finally {
+        db.prepare('DELETE FROM bump_reminders WHERE guild_id = ? AND bot_name = ?').run(reminder.guild_id, reminder.bot_name);
+      }
+    }
+  } catch (err) {
+    console.error('Erreur vérification rappels bumps:', err);
   }
 }
 
