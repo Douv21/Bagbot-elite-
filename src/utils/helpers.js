@@ -148,13 +148,29 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
       }
 
       if (targetChannel) {
-        let msgTemplate = lvlConfig.announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !';
-        let desc = msgTemplate
-          .replace(/{user}/g, `<@${userId}>`)
-          .replace(/{level}/g, newLevel);
+        const { generateSensualText } = require('./aiActionHelper');
+        
+        let desc = '';
+        try {
+          const defaultPrompt = `Félicite l'utilisateur <@${userId}> pour son passage au niveau ${newLevel}. Le message doit être très coquin, torride, sensuel et flatteur.`;
+          const customPrompt = rewardThisLevel
+            ? `${defaultPrompt} Mentionne également avec enthousiasme qu'il/elle a débloqué le rôle <@&${rewardThisLevel.role_id}> en récompense de ses désirs.`
+            : defaultPrompt;
 
-        if (rewardThisLevel) {
-          desc += `\n\n🏆 **Récompense débloquée :** Tu as obtenu le rôle <@&${rewardThisLevel.role_id}> !`;
+          desc = await generateSensualText(customPrompt);
+        } catch (e) {
+          console.error("Erreur appel IA annonce level up:", e.message);
+        }
+
+        if (!desc) {
+          let msgTemplate = lvlConfig.announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !';
+          desc = msgTemplate
+            .replace(/{user}/g, `<@${userId}>`)
+            .replace(/{level}/g, newLevel);
+
+          if (rewardThisLevel) {
+            desc += `\n\n🏆 **Récompense débloquée :** Tu as obtenu le rôle <@&${rewardThisLevel.role_id}> !`;
+          }
         }
 
         let cardAttachment = null;

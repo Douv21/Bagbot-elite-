@@ -115,9 +115,12 @@ module.exports = {
           }
         }
 
+        const { generateSensualText } = require('../../utils/aiActionHelper');
+        const aiWinDesc = await generateSensualText(`Annonce la grande victoire torride de l'utilisateur <@${userId}> qui a résolu le jeu du Mot Caché en découvrant la phrase secrète entière : "${game.secret_phrase}". Rends ce message extrêmement brûlant, triomphant et charnel.`);
+
         const winEmbed = new EmbedBuilder()
           .setTitle('💋 JEU DEVINÉ ! Victoire Torride !')
-          .setDescription(`🍒 Félicitations à <@${userId}> qui a percé le secret :\n\n🍑 **"${game.secret_phrase}"** !`)
+          .setDescription(aiWinDesc || `🍒 Félicitations à <@${userId}> qui a percé le secret :\n\n🍑 **"${game.secret_phrase}"** !`)
           .setColor('#E74C3C')
           .setTimestamp();
 

@@ -57,4 +57,55 @@ Fais des accords de genre parfaits. Ne mets aucun guillemet ni ponctuation super
   return null;
 }
 
-module.exports = { generateAiActionPhrase };
+async function generateSensualText(instruction, lengthLimit = 300) {
+  const systemPrompt = `Tu es un bot d'animation Discord pour un serveur communautaire adulte/NSFW de séduction et d'amour.
+Génère un court message (maximum ${lengthLimit} caractères) en français suivant cette consigne : "${instruction}".
+Le ton doit être extrêmement sensuel, suggestif, complice et torride, parfaitement adapté à un serveur NSFW haut de gamme.
+Ne mets aucun guillemet ni ponctuation superflue autour du message. Réponds uniquement par la phrase générée, sans aucune autre explication ni politesse.`;
+
+  // POST with Llama
+  try {
+    const response = await fetch('https://text.pollinations.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: systemPrompt }],
+        model: 'llama'
+      }),
+      signal: AbortSignal.timeout(8000)
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const text = data.choices[0].message.content;
+      const cleanText = text.trim().replace(/^["']|["']$/g, '');
+      if (cleanText && cleanText.length > 5 && !cleanText.toLowerCase().includes('erreur') && !cleanText.toLowerCase().includes('pollinations')) {
+        return cleanText;
+      }
+    }
+  } catch (err) {
+    console.warn('POST AI generic failed, trying fallback GET...', err.message);
+  }
+
+  // GET Fallback
+  try {
+    const fallbackUrl = `https://text.pollinations.ai/${encodeURIComponent(systemPrompt)}?model=llama`;
+    const response = await fetch(fallbackUrl, {
+      signal: AbortSignal.timeout(5000)
+    });
+
+    if (response.ok) {
+      const text = await response.text();
+      const cleanText = text.trim().replace(/^["']|["']$/g, '');
+      if (cleanText && cleanText.length > 5 && !cleanText.toLowerCase().includes('erreur') && !cleanText.toLowerCase().includes('pollinations')) {
+        return cleanText;
+      }
+    }
+  } catch (err) {
+    console.error('Erreur finale génération texte sensuel IA:', err.message);
+  }
+
+  return null;
+}
+
+module.exports = { generateAiActionPhrase, generateSensualText };

@@ -359,9 +359,12 @@ module.exports = {
                 });
               }
               
+              const { generateSensualText } = require('../utils/aiActionHelper');
+              const aiDescription = await generateSensualText(`Félicite chaleureusement l'utilisateur <@${userId}> d'avoir découvert la lettre "${newLetter}" dans le jeu du Mot Caché. Fais une phrase très sensuelle, complice et torride, adaptée à un serveur adulte.`);
+
               const gameEmbed = new EmbedBuilder()
                 .setTitle('🍑 Lettre Trouvée !')
-                .setDescription(`🔥 Bravo ! Tu as découvert la lettre **${newLetter}** du mot/phrase secret.\nUtilise \`/mot-cache\` pour voir tes lettres trouvées !`)
+                .setDescription(aiDescription || `🔥 Bravo ! Tu as découvert la lettre **${newLetter}** du mot/phrase secret.\nUtilise \`/mot-cache\` pour voir tes lettres trouvées !`)
                 .setColor('#E74C3C')
                 .setTimestamp();
               
