@@ -366,10 +366,9 @@ module.exports = {
                 .setTimestamp();
               
               if (game.announce_channel === 'dm') {
-                message.author.send({ embeds: [gameEmbed] }).catch(() => {
-                  // Fallback si DMs fermés : envoyer dans le salon actuel
-                  message.channel.send({ content: `<@${userId}> (DMs fermés)`, embeds: [gameEmbed] }).catch(console.error);
-                });
+                message.channel.send({ content: `<@${userId}> 🍑 *Ce message s'autodétruira dans 6 secondes...*`, embeds: [gameEmbed] }).then(msg => {
+                  setTimeout(() => msg.delete().catch(() => {}), 6000);
+                }).catch(console.error);
               } else if (game.announce_channel && game.announce_channel !== 'dm') {
                 const targetAnnounceChannel = message.guild.channels.cache.get(game.announce_channel);
                 if (targetAnnounceChannel) {

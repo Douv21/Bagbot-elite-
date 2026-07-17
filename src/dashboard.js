@@ -1615,7 +1615,7 @@ app.post('/api/config/tickets/options/delete', async (req, res) => {
   }
 });
 
-app.get('/api/emojis', (req, res) => {
+app.get('/api/emojis', async (req, res) => {
   try {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
@@ -1623,7 +1623,15 @@ app.get('/api/emojis', (req, res) => {
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return res.status(404).json({ error: 'Guild not found' });
 
-    const emojis = guild.emojis.cache.map(e => ({
+    let emojisMap;
+    try {
+      emojisMap = await guild.emojis.fetch();
+    } catch (e) {
+      console.warn('Erreur guild.emojis.fetch(), fallback cache:', e.message);
+      emojisMap = guild.emojis.cache;
+    }
+
+    const emojis = emojisMap.map(e => ({
       id: e.id,
       name: e.name,
       animated: e.animated,

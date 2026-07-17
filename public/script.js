@@ -337,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const channelSelects = document.querySelectorAll('.channel-select');
     channelSelects.forEach(select => {
       if (select.id === 'game_announce_channel') {
-        select.innerHTML = '<option value="dm">💬 Message Privé (DM - Éphémère)</option>';
+        select.innerHTML = '<option value="dm">🍑 Message Éphémère (Autodestruction 6s)</option>';
       } else {
         select.innerHTML = '<option value="">Désactivé</option>';
       }
