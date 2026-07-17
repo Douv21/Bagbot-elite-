@@ -83,17 +83,25 @@ Règles de décision CRITIQUES :
 1. Avant de générer une action de type "create_role", vérifie attentivement si un rôle similaire ou de même nom n'existe pas déjà dans la liste des RÔLES EXISTANTS ci-dessus. Si le rôle existe déjà, n'utilise PAS "create_role". Utilise directement l'action d'attribution "add_member_role" ou modifie-le si besoin.
 2. Lorsque tu fais référence à un salon, utilise son nom exact ou son ID figurant dans la liste des SALONS EXISTANTS ci-dessus.
 
+Liste des permissions valides utilisables pour les actions :
+"Administrator", "BanMembers", "KickMembers", "ModerateMembers", "ManageRoles", "ManageChannels", "ManageMessages", "ViewChannel", "SendMessages", "ReadMessageHistory", "AddReactions", "MuteMembers", "DeafenMembers", "MoveMembers"
+
 Actions d'administration possibles (tu dois les formuler sous forme d'un tableau JSON d'objets, exemple: [{"type": "create_role", "name": "VIP"}]):
 1. {"type": "update_automod", "anti_link": 0/1, "anti_spam": 0/1, "anti_massmention": 0/1, "anti_badwords": 0/1, "spam_max_msgs": nombre, "massmention_limit": nombre, "badwords_list": "mot1,mot2"}
-2. {"type": "create_role", "name": "Nom du rôle", "color": "code hex ou rouge/bleu/vert...", "permissions": ["BanMembers", "KickMembers", "Administrator", "ManageRoles", "ManageChannels", "ManageMessages"]}
+2. {"type": "create_role", "name": "Nom du rôle", "color": "code hex ou rouge/bleu/vert...", "permissions": ["BanMembers", "KickMembers", "Administrator"]}
 3. {"type": "delete_role", "role_name": "Nom ou ID du rôle"}
 4. {"type": "add_member_role", "member_name": "Nom/pseudo/tag du membre", "role_name": "Nom ou ID du rôle"}
 5. {"type": "remove_member_role", "member_name": "Nom/pseudo/tag du membre", "role_name": "Nom ou ID du rôle"}
 6. {"type": "timeout_member", "member_name": "Nom/pseudo/tag du membre", "duration": minutes}
 7. {"type": "kick_member", "member_name": "Nom/pseudo/tag du membre"}
 8. {"type": "ban_member", "member_name": "Nom/pseudo/tag du membre"}
-9. {"type": "send_embed", "channel_name": "Nom ou ID du salon (ex: general ou #general)", "title": "Titre", "description": "Texte"}
-10. {"type": "update_action_message", "action_name": "calin/caresser/sodo...", "self": true/false, "text": "Le message avec balises de genre {A}, {T}, {A:e}, {T:e}, {A:pronom}, {T:pronom} etc."}
+9. {"type": "update_action_message", "action_name": "calin/caresser/sodo...", "self": true/false, "text": "Le message avec balises de genre"}
+10. {"type": "update_role_permissions", "role_name": "Nom ou ID du rôle", "allow": ["KickMembers"], "deny": ["ManageChannels"]}
+11. {"type": "update_channel_permissions", "channel_name": "Nom ou ID du salon", "target_name": "Nom de rôle ou membre", "allow": ["ViewChannel"], "deny": ["SendMessages"]}
+12. {"type": "set_role_position", "role_name": "Nom du rôle à déplacer", "target_role_name": "Nom du rôle repère", "direction": "above" ou "below"}
+13. {"type": "create_channel", "name": "nom-du-salon", "channel_type": "text" ou "voice" ou "category", "category_name": "Nom de la catégorie (optionnel)"}
+14. {"type": "delete_channel", "channel_name": "Nom ou ID du salon"}
+15. {"type": "send_message", "channel_name": "Nom ou ID du salon", "text": "Texte (optionnel)", "embed": {"title": "Titre", "description": "Contenu", "color": "hex ou couleur"}, "pings": ["Nom de membre ou rôle (optionnel)"]}
 
 Analyse la demande de l'utilisateur. Réponds-lui de manière courtoise, chaleureuse et naturelle en français.
 Si la demande nécessite une ou plusieurs actions d'administration ci-dessus, inclus à la fin de ta réponse le tableau d'actions au format JSON.
@@ -285,6 +293,146 @@ Pour que le script puisse les parser automatiquement.`;
               .setTimestamp();
             await channel.send({ embeds: [embed] });
             executedActions.push({ type: 'send_embed', channel: channel.name });
+          } else {
+            reply += `\n❓ Salon "${action.channel_name}" introuvable.`;
+          }
+        }
+
+        else if (action.type === 'send_message') {
+          const channel = await findChannel(action.channel_name);
+          if (channel) {
+            let pingsStr = '';
+            if (action.pings) {
+              for (const pingName of action.pings) {
+                const r = await findRole(pingName);
+                if (r) {
+                  pingsStr += `<@&${r.id}> `;
+                } else {
+                  const m = await findMember(pingName);
+                  if (m) {
+                    pingsStr += `<@${m.id}> `;
+                  }
+                }
+              }
+            }
+
+            const sendPayload = {};
+            if (action.text || pingsStr) {
+              sendPayload.content = (pingsStr + ' ' + (action.text || '')).trim();
+            }
+
+            if (action.embed) {
+              let color = '#9b59b6';
+              if (action.embed.color) {
+                const colors = { rouge: '#ff0000', bleu: '#3498db', vert: '#2ecc71', jaune: '#f1c40f', rose: '#e91e63', violet: '#9b59b6', orange: '#e67e22', noir: '#000000', gris: '#95a5a6' };
+                color = colors[action.embed.color.toLowerCase()] || (action.embed.color.startsWith('#') ? action.embed.color : '#9b59b6');
+              }
+
+              const emb = new EmbedBuilder()
+                .setTitle(action.embed.title || 'Message')
+                .setDescription(action.embed.description || '')
+                .setColor(color)
+                .setTimestamp();
+              sendPayload.embeds = [emb];
+            }
+
+            await channel.send(sendPayload);
+            executedActions.push({ type: 'send_message', channel: channel.name });
+          } else {
+            reply += `\n❓ Salon "${action.channel_name}" introuvable.`;
+          }
+        }
+
+        else if (action.type === 'update_role_permissions') {
+          const role = await findRole(action.role_name);
+          if (role) {
+            let currentPerms = role.permissions;
+            if (action.allow) {
+              action.allow.forEach(perm => {
+                if (PermissionFlagsBits[perm]) currentPerms = currentPerms.add(PermissionFlagsBits[perm]);
+              });
+            }
+            if (action.deny) {
+              action.deny.forEach(perm => {
+                if (PermissionFlagsBits[perm]) currentPerms = currentPerms.remove(PermissionFlagsBits[perm]);
+              });
+            }
+            await role.setPermissions(currentPerms);
+            executedActions.push({ type: 'update_role_permissions', role: role.name });
+          } else {
+            reply += `\n❓ Rôle "${action.role_name}" introuvable.`;
+          }
+        }
+
+        else if (action.type === 'update_channel_permissions') {
+          const channel = await findChannel(action.channel_name);
+          const target = (await findRole(action.target_name)) || (await findMember(action.target_name));
+          if (channel && target) {
+            const allowPerms = [];
+            const denyPerms = [];
+            if (action.allow) {
+              action.allow.forEach(perm => {
+                if (PermissionFlagsBits[perm]) allowPerms.push(PermissionFlagsBits[perm]);
+              });
+            }
+            if (action.deny) {
+              action.deny.forEach(perm => {
+                if (PermissionFlagsBits[perm]) denyPerms.push(PermissionFlagsBits[perm]);
+              });
+            }
+            const overrides = {};
+            allowPerms.forEach(p => overrides[p] = true);
+            denyPerms.forEach(p => overrides[p] = false);
+
+            await channel.permissionOverwrites.edit(target.id, overrides);
+            executedActions.push({ type: 'update_channel_permissions', channel: channel.name, target: target.name || target.displayName });
+          } else {
+            if (!channel) reply += `\n❓ Salon "${action.channel_name}" introuvable.`;
+            if (!target) reply += `\n❓ Cible "${action.target_name}" (rôle ou membre) introuvable.`;
+          }
+        }
+
+        else if (action.type === 'set_role_position') {
+          const role = await findRole(action.role_name);
+          const targetRole = await findRole(action.target_role_name);
+          if (role && targetRole) {
+            let newPos = targetRole.position;
+            if (action.direction === 'above') newPos += 1;
+            else if (action.direction === 'below') newPos -= 1;
+            newPos = Math.max(1, newPos);
+            await role.setPosition(newPos);
+            executedActions.push({ type: 'set_role_position', role: role.name, position: newPos });
+          } else {
+            if (!role) reply += `\n❓ Rôle "${action.role_name}" introuvable.`;
+            if (!targetRole) reply += `\n❓ Rôle cible "${action.target_role_name}" introuvable.`;
+          }
+        }
+
+        else if (action.type === 'create_channel') {
+          const { ChannelType } = require('discord.js');
+          let cType = ChannelType.GuildText;
+          if (action.channel_type === 'voice') cType = ChannelType.GuildVoice;
+          else if (action.channel_type === 'category') cType = ChannelType.GuildCategory;
+
+          let parentCategory = null;
+          if (action.category_name) {
+            const cat = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && c.name.toLowerCase() === action.category_name.toLowerCase());
+            if (cat) parentCategory = cat.id;
+          }
+
+          const newChan = await guild.channels.create({
+            name: action.name,
+            type: cType,
+            parent: parentCategory || undefined
+          });
+          executedActions.push({ type: 'create_channel', name: newChan.name, id: newChan.id });
+        }
+
+        else if (action.type === 'delete_channel') {
+          const channel = await findChannel(action.channel_name);
+          if (channel) {
+            await channel.delete('Supprimé via l\'Assistant IA Dashboard');
+            executedActions.push({ type: 'delete_channel', name: channel.name });
           } else {
             reply += `\n❓ Salon "${action.channel_name}" introuvable.`;
           }
