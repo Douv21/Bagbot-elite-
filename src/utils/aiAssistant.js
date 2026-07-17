@@ -8,27 +8,52 @@ async function processAiCommand(guildId, userId, message, client) {
   }
 
   // Helpers de recherche d'entités par nom
-  const findRole = (name) => {
+  // Helpers asynchrones de recherche d'entités par nom (avec fetch API si cache vide)
+  const findRole = async (name) => {
     if (!name) return null;
     const clean = name.trim().toLowerCase().replace(/^["']|["']$/g, '').replace(/^@/, '');
-    return guild.roles.cache.find(r => r.name.toLowerCase() === clean || r.id === clean);
+    let role = guild.roles.cache.find(r => r.name.toLowerCase() === clean || r.id === clean);
+    if (!role) {
+      const fetchedRoles = await guild.roles.fetch().catch(() => null);
+      if (fetchedRoles) {
+        role = fetchedRoles.find(r => r.name.toLowerCase() === clean || r.id === clean);
+      }
+    }
+    return role;
   };
 
-  const findChannel = (name) => {
+  const findChannel = async (name) => {
     if (!name) return null;
     const clean = name.trim().toLowerCase().replace(/^["']|["']$/g, '').replace(/^#/, '');
-    return guild.channels.cache.find(c => c.name.toLowerCase() === clean || c.id === clean);
+    let channel = guild.channels.cache.find(c => c.name.toLowerCase() === clean || c.id === clean);
+    if (!channel) {
+      const fetchedChannels = await guild.channels.fetch().catch(() => null);
+      if (fetchedChannels) {
+        channel = fetchedChannels.find(c => c.name.toLowerCase() === clean || c.id === clean);
+      }
+    }
+    return channel;
   };
 
-  const findMember = (name) => {
+  const findMember = async (name) => {
     if (!name) return null;
     const clean = name.trim().toLowerCase().replace(/^["']|["']$/g, '').replace(/^@/, '');
-    return guild.members.cache.find(m => 
+    let member = guild.members.cache.find(m => 
       m.user.username.toLowerCase() === clean || 
       m.user.tag.toLowerCase() === clean || 
       (m.nickname && m.nickname.toLowerCase() === clean) || 
       m.id === clean
     );
+    if (!member) {
+      const searchRes = await guild.members.search({ query: clean, limit: 5 }).catch(() => null);
+      if (searchRes && searchRes.size > 0) {
+        member = searchRes.first();
+      }
+      if (!member && /^\d+$/.test(clean)) {
+        member = await guild.members.fetch(clean).catch(() => null);
+      }
+    }
+    return member;
   };
 
   const systemPrompt = `Tu es l'assistant d'administration intelligent du bot Discord B&G Elite.
@@ -56,24 +81,54 @@ Important : Si tu décides de générer des actions JSON, écris-les sous la for
 [ACTIONS_END]
 Pour que le script puisse les parser automatiquement.`;
 
+  let fullReply = "";
+  let success = false;
+
+  // POST with Llama
   try {
     const response = await fetch('https://text.pollinations.ai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages: [{ role: 'user', content: `${systemPrompt}\n\nUtilisateur: ${message}\nAssistant:` }],
-        model: 'openai'
+        model: 'llama'
       }),
-      signal: AbortSignal.timeout(9000) // 9 secondes max
+      signal: AbortSignal.timeout(10000) // 10 secondes max
     });
 
-    if (!response.ok) {
-      throw new Error(`Erreur d'appel API AI (Status: ${response.status})`);
+    if (response.ok) {
+      const data = await response.json();
+      fullReply = data.choices[0].message.content;
+      success = true;
+    } else {
+      console.warn(`POST AI Assistant failed (Status: ${response.status}), attempting fallback GET...`);
     }
+  } catch (err) {
+    console.warn('POST AI Assistant failed, trying fallback GET...', err.message);
+  }
 
-    const data = await response.json();
-    const fullReply = data.choices[0].message.content;
+  // GET Fallback if POST fails
+  if (!success) {
+    try {
+      const fallbackUrl = `https://text.pollinations.ai/${encodeURIComponent(systemPrompt + '\n\nUtilisateur: ' + message + '\nAssistant:')}?model=llama`;
+      const response = await fetch(fallbackUrl, {
+        signal: AbortSignal.timeout(8000)
+      });
 
+      if (response.ok) {
+        fullReply = await response.text();
+        success = true;
+      }
+    } catch (err) {
+      console.error('Erreur finale communication AI Assistant (GET Fallback):', err.message);
+    }
+  }
+
+  if (!success || !fullReply) {
+    return { reply: "❌ Désolé, l'IA d'administration est temporairement indisponible. Veuillez réessayer dans quelques instants." };
+  }
+
+  try {
     // Extraire les actions JSON s'il y en a
     let reply = fullReply;
     let actions = [];
@@ -133,7 +188,7 @@ Pour que le script puisse les parser automatiquement.`;
         }
 
         else if (action.type === 'delete_role') {
-          const role = findRole(action.role_name);
+          const role = await findRole(action.role_name);
           if (role) {
             await role.delete('Supprimé via l\'Assistant IA Dashboard');
             executedActions.push({ type: 'delete_role', name: role.name });
@@ -143,8 +198,8 @@ Pour que le script puisse les parser automatiquement.`;
         }
 
         else if (action.type === 'add_member_role') {
-          const member = findMember(action.member_name);
-          const role = findRole(action.role_name);
+          const member = await findMember(action.member_name);
+          const role = await findRole(action.role_name);
           if (member && role) {
             await member.roles.add(role);
             executedActions.push({ type: 'add_member_role', member: member.displayName, role: role.name });
@@ -155,8 +210,8 @@ Pour que le script puisse les parser automatiquement.`;
         }
 
         else if (action.type === 'remove_member_role') {
-          const member = findMember(action.member_name);
-          const role = findRole(action.role_name);
+          const member = await findMember(action.member_name);
+          const role = await findRole(action.role_name);
           if (member && role) {
             await member.roles.remove(role);
             executedActions.push({ type: 'remove_member_role', member: member.displayName, role: role.name });
@@ -167,7 +222,7 @@ Pour que le script puisse les parser automatiquement.`;
         }
 
         else if (action.type === 'timeout_member') {
-          const member = findMember(action.member_name);
+          const member = await findMember(action.member_name);
           if (member) {
             await member.timeout(action.duration * 60 * 1000, 'Exclu temporairement via l\'Assistant IA');
             executedActions.push({ type: 'timeout_member', member: member.displayName });
@@ -177,7 +232,7 @@ Pour que le script puisse les parser automatiquement.`;
         }
 
         else if (action.type === 'kick_member') {
-          const member = findMember(action.member_name);
+          const member = await findMember(action.member_name);
           if (member) {
             await member.kick('Expulsé via l\'Assistant IA');
             executedActions.push({ type: 'kick_member', member: member.displayName });
@@ -187,7 +242,7 @@ Pour que le script puisse les parser automatiquement.`;
         }
 
         else if (action.type === 'ban_member') {
-          const member = findMember(action.member_name);
+          const member = await findMember(action.member_name);
           if (member) {
             await member.ban({ reason: 'Banni via l\'Assistant IA' });
             executedActions.push({ type: 'ban_member', member: member.displayName });
@@ -197,7 +252,7 @@ Pour que le script puisse les parser automatiquement.`;
         }
 
         else if (action.type === 'send_embed') {
-          const channel = findChannel(action.channel_name);
+          const channel = await findChannel(action.channel_name);
           if (channel) {
             const embed = new EmbedBuilder()
               .setTitle(action.title || 'Message')
