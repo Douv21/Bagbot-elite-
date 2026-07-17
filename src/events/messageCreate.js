@@ -307,11 +307,18 @@ module.exports = {
       
       // Assurer l'existence de la table economy pour l'utilisateur
       db.prepare('INSERT OR IGNORE INTO economy (guild_id, user_id) VALUES (?, ?)').run(guildId, userId);
+      
+      // Gain de Karma configurable
+      const minKarma = lvlConfig.karma_min ?? 1;
+      const maxKarma = lvlConfig.karma_max ?? 3;
+      const karmaRange = Math.max(1, maxKarma - minKarma + 1);
+      const randomKarma = Math.floor(Math.random() * karmaRange) + minKarma;
+
       db.prepare(`
         UPDATE economy 
-        SET wallet = wallet + ? 
+        SET wallet = wallet + ?, karma = karma + ?
         WHERE guild_id = ? AND user_id = ?
-      `).run(totalMoney, guildId, userId);
+      `).run(totalMoney, randomKarma, guildId, userId);
 
       // Appliquer le bonus d'XP NSFW éventuel
       if (nsfwRewardXp > 0) {
