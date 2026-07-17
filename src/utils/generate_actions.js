@@ -250,7 +250,7 @@ module.exports = {
       totalCoins = reward;
     }
 
-    const targetMember = interaction.guild ? interaction.guild.members.cache.get(target.id) : null;
+    const targetMember = interaction.guild ? await interaction.guild.members.fetch(target.id).catch(() => null) : null;
     let actionMessage = "";
 
     // Tenter de générer une phrase unique via l'IA en temps réel

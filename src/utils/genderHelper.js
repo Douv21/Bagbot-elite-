@@ -14,7 +14,7 @@ function getMemberGender(member) {
   }
 
   // 2. Sinon, scanner les rôles du membre
-  const roles = member.roles.cache.map(r => r.name.toLowerCase());
+  const roles = (member.roles && member.roles.cache) ? member.roles.cache.map(r => r.name.toLowerCase()) : [];
   
   const femaleKeywords = ['femme', 'fille', 'girl', 'fem', 'féminin', 'female', 'mme', 'madame', 'she', 'her'];
   const maleKeywords = ['homme', 'garçon', 'boy', 'masc', 'masculin', 'male', 'mr', 'monsieur', 'he', 'him'];
