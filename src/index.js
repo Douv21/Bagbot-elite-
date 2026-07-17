@@ -415,47 +415,6 @@ client.on('interactionCreate', async interaction => {
         await interaction.editReply({ content: '❌ Impossible d\'envoyer votre réponse anonyme.' });
       }
       return;
-    } else if (interaction.customId === 'add_emoji_context_modal') {
-      const name = interaction.fields.getTextInputValue('emoji_name_input').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-      const emojiUrl = global.emojiCache ? global.emojiCache.get(interaction.user.id) : null;
-
-      if (!emojiUrl) {
-        return interaction.reply({ content: '❌ URL de l\'émoji introuvable. Veuillez réessayer.', ephemeral: true });
-      }
-
-      try {
-        await interaction.deferReply({ ephemeral: true });
-
-        // Télécharger l'image de l'émoji dans un Buffer
-        const response = await fetch(emojiUrl);
-        if (!response.ok) throw new Error(`Impossible de télécharger l'image (Status: ${response.status})`);
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
-        const createdEmoji = await interaction.guild.emojis.create({
-          attachment: buffer,
-          name: name
-        });
-
-        if (global.emojiCache) global.emojiCache.delete(interaction.user.id);
-
-        const embed = new EmbedBuilder()
-          .setTitle('✅ Émoji Créé !')
-          .setDescription(`L'émoji personnalisé **:${createdEmoji.name}:** a été ajouté avec succès au serveur !`)
-          .addFields(
-            { name: 'Nom', value: `\`${createdEmoji.name}\``, inline: true },
-            { name: 'Rendu', value: `${createdEmoji}`, inline: true }
-          )
-          .setThumbnail(emojiUrl)
-          .setColor('#2ecc71')
-          .setTimestamp();
-
-        await interaction.editReply({ embeds: [embed] });
-      } catch (err) {
-        console.error('Erreur addemoji context:', err);
-        await interaction.editReply({ content: `❌ Impossible d'ajouter l'émoji. Raison : ${err.message}` });
-      }
-      return;
     }
   }
 

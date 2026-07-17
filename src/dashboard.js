@@ -860,13 +860,13 @@ app.post('/api/config/game', (req, res) => {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { secret_phrase, reward_money, reward_xp, reward_role_id, is_active, reset_progress, appearance_chance, letter_emoji } = req.body;
+    const { secret_phrase, reward_money, reward_xp, reward_role_id, is_active, reset_progress, appearance_chance, letter_emoji, announce_channel } = req.body;
 
     const phraseUpper = (secret_phrase || '').toUpperCase();
 
     db.prepare(`
-      INSERT OR REPLACE INTO game_config (guild_id, secret_phrase, reward_money, reward_xp, reward_role_id, is_active, appearance_chance, letter_emoji)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO game_config (guild_id, secret_phrase, reward_money, reward_xp, reward_role_id, is_active, appearance_chance, letter_emoji, announce_channel)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       guildId,
       phraseUpper,
@@ -875,7 +875,8 @@ app.post('/api/config/game', (req, res) => {
       reward_role_id || null,
       is_active ? 1 : 0,
       appearance_chance !== undefined ? parseFloat(appearance_chance) : 15,
-      letter_emoji || '🔍'
+      letter_emoji || '🔍',
+      announce_channel || 'dm'
     );
 
     // Réinitialiser les lettres trouvées par les utilisateurs si demandé
@@ -1610,6 +1611,29 @@ app.post('/api/config/tickets/options/delete', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/emojis', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Guild not found' });
+
+    const emojis = guild.emojis.cache.map(e => ({
+      id: e.id,
+      name: e.name,
+      animated: e.animated,
+      url: e.imageURL({ size: 64 }) || `https://cdn.discordapp.com/emojis/${e.id}.${e.animated ? 'gif' : 'png'}`,
+      identifier: `<${e.animated ? 'a' : ''}:${e.name}:${e.id}>`
+    }));
+
+    res.json(emojis);
+  } catch (error) {
+    console.error('Erreur GET /api/emojis:', error);
     res.status(500).json({ error: error.message });
   }
 });

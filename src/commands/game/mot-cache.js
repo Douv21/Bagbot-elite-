@@ -129,7 +129,13 @@ module.exports = {
         }
 
         await interaction.reply({ content: '🎉 Proposition correcte ! Vous avez gagné !', ephemeral: true });
-        await interaction.channel.send({ embeds: [winEmbed] });
+        
+        let announceChan = interaction.channel;
+        if (game.announce_channel && game.announce_channel !== 'dm') {
+          const customChan = interaction.guild.channels.cache.get(game.announce_channel);
+          if (customChan) announceChan = customChan;
+        }
+        await announceChan.send({ embeds: [winEmbed] });
 
         // Nettoyer les lettres trouvées pour ce serveur
         db.prepare('DELETE FROM user_letters WHERE guild_id = ?').run(guildId);

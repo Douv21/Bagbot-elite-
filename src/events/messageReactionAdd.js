@@ -29,7 +29,7 @@ module.exports = {
         if (reaction.emoji.id && !guild.emojis.cache.has(reaction.emoji.id)) {
           const isAnimated = reaction.emoji.animated;
           const emojiUrl = `https://cdn.discordapp.com/emojis/${reaction.emoji.id}.${isAnimated ? 'gif' : 'png'}`;
-          const cleanName = reaction.emoji.name.replace(/[^a-zA-Z0-9_]/g, '');
+          const cleanName = reaction.emoji.name.replace(/[^a-zA-Z0-9_]/g, '') || `emoji_${reaction.emoji.id}`;
 
           // Télécharger et créer
           const res = await fetch(emojiUrl);

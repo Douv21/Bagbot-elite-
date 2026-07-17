@@ -336,8 +336,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Populate Channels
     const channelSelects = document.querySelectorAll('.channel-select');
     channelSelects.forEach(select => {
-      // Clear all options except first (Désactivé)
-      select.innerHTML = '<option value="">Désactivé</option>';
+      if (select.id === 'game_announce_channel') {
+        select.innerHTML = '<option value="dm">💬 Message Privé (DM - Éphémère)</option>';
+      } else {
+        select.innerHTML = '<option value="">Désactivé</option>';
+      }
       channelsList.forEach(ch => {
         // Option text channels only (0: GuildText, 5: GuildAnnouncement)
         if (ch.type === 0 || ch.type === 5) {
@@ -495,6 +498,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('game_reward_role_id').value = game.reward_role_id || '';
         document.getElementById('game_appearance_chance').value = game.appearance_chance ?? 15;
         document.getElementById('game_letter_emoji').value = game.letter_emoji || '🔍';
+        const announceChanSel = document.getElementById('game_announce_channel');
+        if (announceChanSel) {
+          announceChanSel.value = game.announce_channel || 'dm';
+          if (announceChanSel.syncCustomSelect) announceChanSel.syncCustomSelect();
+        }
         document.getElementById('game_reset_progress').checked = false;
 
         // Quarantaine
@@ -1449,6 +1457,7 @@ document.addEventListener('DOMContentLoaded', () => {
       reward_role_id: document.getElementById('game_reward_role_id').value || null,
       appearance_chance: parseFloat(document.getElementById('game_appearance_chance').value) ?? 15,
       letter_emoji: document.getElementById('game_letter_emoji').value || '🔍',
+      announce_channel: document.getElementById('game_announce_channel').value || 'dm',
       reset_progress: document.getElementById('game_reset_progress').checked
     };
 
@@ -3504,6 +3513,115 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })
       .catch(err => showToast(err.message, true));
+  }
+
+  // --- Émoji Picker pour Mot Caché ---
+  let serverEmojis = [];
+
+  function loadServerEmojis() {
+    fetch('/api/emojis')
+      .then(res => res.json())
+      .then(emojis => {
+        serverEmojis = emojis || [];
+        renderEmojiPicker(document.getElementById('emoji-search-input')?.value || '');
+      })
+      .catch(err => {
+        console.error('Erreur chargement émojis:', err);
+        serverEmojis = [];
+        renderEmojiPicker(document.getElementById('emoji-search-input')?.value || '');
+      });
+  }
+
+  function renderEmojiPicker(searchQuery = '') {
+    const grid = document.getElementById('emoji-picker-grid');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+    
+    // Émojis standards par défaut
+    const standardEmojis = ['🔍', '📝', '✨', '🏆', '🎉', '💡', '🔥', '🎲', '💬', '❤️', '⭐', '🚀', '🐱', '🐶', '🍕', '🍺', '👑', '💎', '🎨', '⚙️'];
+    
+    const filteredStandards = standardEmojis.filter(emoji => 
+      emoji.includes(searchQuery) || searchQuery === ''
+    );
+
+    filteredStandards.forEach(emoji => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn-select-emoji';
+      btn.style = 'background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 4px; border-radius: 4px; transition: transform 0.1s; display: flex; align-items: center; justify-content: center;';
+      btn.innerHTML = emoji;
+      btn.title = emoji;
+      
+      btn.addEventListener('mouseenter', () => btn.style.transform = 'scale(1.2)');
+      btn.addEventListener('mouseleave', () => btn.style.transform = 'scale(1.0)');
+      btn.addEventListener('click', () => {
+        document.getElementById('game_letter_emoji').value = emoji;
+        document.getElementById('emoji-picker-dropdown').style.display = 'none';
+      });
+      grid.appendChild(btn);
+    });
+
+    const queryLower = searchQuery.toLowerCase();
+    const filteredServer = serverEmojis.filter(emoji => 
+      emoji.name.toLowerCase().includes(queryLower)
+    );
+
+    filteredServer.forEach(emoji => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn-select-emoji';
+      btn.style = 'background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; transition: transform 0.1s; display: flex; align-items: center; justify-content: center;';
+      btn.innerHTML = `<img src="${emoji.url}" alt="${emoji.name}" style="width: 28px; height: 28px; object-fit: contain;">`;
+      btn.title = `:${emoji.name}:`;
+      
+      btn.addEventListener('mouseenter', () => btn.style.transform = 'scale(1.2)');
+      btn.addEventListener('mouseleave', () => btn.style.transform = 'scale(1.0)');
+      btn.addEventListener('click', () => {
+        document.getElementById('game_letter_emoji').value = emoji.identifier;
+        document.getElementById('emoji-picker-dropdown').style.display = 'none';
+      });
+      grid.appendChild(btn);
+    });
+
+    if (filteredStandards.length === 0 && filteredServer.length === 0) {
+      grid.innerHTML = '<div style="grid-column: span 5; color: #72767d; font-size: 0.8rem; text-align: center; padding: 10px 0;">Aucun émoji</div>';
+    }
+  }
+
+  // Bind du bouton d'ouverture
+  const btnEmojiPicker = document.getElementById('btn-open-emoji-picker');
+  const divEmojiDropdown = document.getElementById('emoji-picker-dropdown');
+  
+  if (btnEmojiPicker && divEmojiDropdown) {
+    btnEmojiPicker.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isVisible = divEmojiDropdown.style.display === 'block';
+      divEmojiDropdown.style.display = isVisible ? 'none' : 'block';
+      if (!isVisible) {
+        const searchInput = document.getElementById('emoji-search-input');
+        if (searchInput) {
+          searchInput.value = '';
+          searchInput.focus();
+        }
+        loadServerEmojis();
+      }
+    });
+
+    divEmojiDropdown.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
+    document.addEventListener('click', () => {
+      divEmojiDropdown.style.display = 'none';
+    });
+
+    const searchInput = document.getElementById('emoji-search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        renderEmojiPicker(e.target.value);
+      });
+    }
   }
 
   initializeSearchableSelects();

@@ -361,11 +361,25 @@ module.exports = {
               
               const gameEmbed = new EmbedBuilder()
                 .setTitle('🔍 Lettre Trouvée !')
-                .setDescription(`✨ Bravo <@${userId}> ! Tu as découvert la lettre **${newLetter}** du mot/phrase secret.\nUtilise \`/mot-cache statut\` pour voir tes lettres trouvées !`)
+                .setDescription(`✨ Bravo ! Tu as découvert la lettre **${newLetter}** du mot/phrase secret.\nUtilise \`/mot-cache\` pour voir tes lettres trouvées !`)
                 .setColor('#F1C40F')
                 .setTimestamp();
               
-              message.channel.send({ content: `<@${userId}>`, embeds: [gameEmbed] }).catch(console.error);
+              if (game.announce_channel === 'dm') {
+                message.author.send({ embeds: [gameEmbed] }).catch(() => {
+                  // Fallback si DMs fermés : envoyer dans le salon actuel
+                  message.channel.send({ content: `<@${userId}> (DMs fermés)`, embeds: [gameEmbed] }).catch(console.error);
+                });
+              } else if (game.announce_channel && game.announce_channel !== 'dm') {
+                const targetAnnounceChannel = message.guild.channels.cache.get(game.announce_channel);
+                if (targetAnnounceChannel) {
+                  targetAnnounceChannel.send({ content: `<@${userId}>`, embeds: [gameEmbed] }).catch(console.error);
+                } else {
+                  message.channel.send({ content: `<@${userId}>`, embeds: [gameEmbed] }).catch(console.error);
+                }
+              } else {
+                message.channel.send({ content: `<@${userId}>`, embeds: [gameEmbed] }).catch(console.error);
+              }
             }
           }
         }

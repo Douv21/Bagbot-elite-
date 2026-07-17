@@ -497,6 +497,9 @@ function initDatabase() {
   try {
     db.prepare("ALTER TABLE game_config ADD COLUMN letter_emoji TEXT DEFAULT '🔍'").run();
   } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE game_config ADD COLUMN announce_channel TEXT DEFAULT 'dm'").run();
+  } catch (e) {}
 
   // Recréer role_themes pour supporter plusieurs thèmes par rôle (clé composite)
   try {

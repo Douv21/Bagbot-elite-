@@ -1313,13 +1313,28 @@
                       Activer le jeu du mot caché
                     </label>
                   </div>
-                  <div class="form-group" style="flex: 1; min-width: 150px;">
-                    <label for="game_appearance_chance">Taux d'apparition des lettres (%) :</label>
+                  <div class="form-group" style="flex: 1; min-width: 130px;">
+                    <label for="game_appearance_chance">Taux d'apparition (%) :</label>
                     <input type="number" id="game_appearance_chance" min="0" max="100" step="0.5" value="15">
                   </div>
-                  <div class="form-group" style="flex: 1; min-width: 150px;">
-                    <label for="game_letter_emoji">Émoji de réaction (ex: 🔍 ou :nom:) :</label>
-                    <input type="text" id="game_letter_emoji" placeholder="🔍" value="🔍">
+                  <div class="form-group" style="flex: 1; min-width: 180px;">
+                    <label for="game_announce_channel">Salon d'annonce :</label>
+                    <select id="game_announce_channel" class="channel-select custom-select">
+                      <option value="dm">💬 Message Privé (DM - Éphémère)</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="flex: 1; min-width: 220px;">
+                    <label for="game_letter_emoji">Émoji de réaction :</label>
+                    <div class="emoji-picker-container" style="position: relative; display: flex; gap: 8px;">
+                      <input type="text" id="game_letter_emoji" placeholder="🔍" value="🔍" style="flex: 1;">
+                      <button type="button" id="btn-open-emoji-picker" class="btn" style="background: #5865F2; padding: 0 12px; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: none; cursor: pointer; color: white;"><i class="fa-solid fa-face-smile"></i></button>
+                      <div id="emoji-picker-dropdown" class="glass" style="display: none; position: absolute; top: 100%; right: 0; width: 280px; max-height: 250px; overflow-y: auto; z-index: 1000; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); padding: 10px; margin-top: 5px; background: rgba(10,15,35,0.98); box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+                        <input type="text" id="emoji-search-input" placeholder="Rechercher..." style="width: 100%; padding: 6px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.85rem; margin-bottom: 8px;">
+                        <div id="emoji-picker-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; justify-items: center;">
+                          <!-- Rempli en JS -->
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
