@@ -520,8 +520,13 @@ app.get('/api/config', (req, res) => {
       permissionsConfig = { admin_role_id: null, modo_role_id: null };
     }
 
-    const { getBumpConfig } = require('./database/db');
+    const { getBumpConfig, getShopConfig } = require('./database/db');
     const bumpConfig = getBumpConfig(guildId);
+    const shopConfig = getShopConfig(guildId);
+
+    // Tribunal Config
+    const tribunalDb = require('./utils/tribunal_db');
+    const tribunalConfig = tribunalDb.getTribunalConfig(guildId);
 
     res.json({
       welcome_leave: welcomeLeave,
@@ -539,7 +544,9 @@ app.get('/api/config', (req, res) => {
       autoroles_on_join: autorolesOnJoin,
       autoroles_on_role: autorolesOnRole,
       counting_channels: countingChannels,
-      bump_config: bumpConfig
+      bump_config: bumpConfig,
+      shop_config: shopConfig,
+      tribunal_config: tribunalConfig
     });
   } catch (error) {
     console.error('Erreur chargement config:', error);
@@ -668,6 +675,40 @@ app.post('/api/config/quarantine', (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Sauvegarder la configuration du Tribunal
+app.post('/api/config/tribunal', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { category_id } = req.body;
+    const tribunalDb = require('./utils/tribunal_db');
+    tribunalDb.updateTribunalConfig(guildId, { categoryId: category_id || '' });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erreur sauvegarde config tribunal:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Sauvegarder la configuration de la Boutique (catégorie suites privées)
+app.post('/api/config/shop-settings', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { private_suite_category_id } = req.body;
+    const { updateShopConfig } = require('./database/db');
+    updateShopConfig(guildId, private_suite_category_id || null);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erreur sauvegarde config boutique:', error);
     res.status(500).json({ error: error.message });
   }
 });

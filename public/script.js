@@ -369,6 +369,20 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
+    // Populate Categories (type 4 is GuildCategory)
+    const categorySelects = document.querySelectorAll('.category-select');
+    categorySelects.forEach(select => {
+      select.innerHTML = '<option value="">-- Créer automatiquement une catégorie --</option>';
+      channelsList.forEach(ch => {
+        if (ch.type === 4) {
+          const option = document.createElement('option');
+          option.value = ch.id;
+          option.textContent = `📁 ${ch.name}`;
+          select.appendChild(option);
+        }
+      });
+    });
+
     // Populate Roles
     const roleSelects = document.querySelectorAll('.role-select');
     roleSelects.forEach(select => {
@@ -568,6 +582,22 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('nsfw_money_reward').value = lvl.nsfw_money_reward ?? 0;
         document.getElementById('announce_channel').value = lvl.announce_channel || 'current';
         document.getElementById('announce_msg').value = lvl.announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !';
+        
+        // Tribunal Category
+        const trib = config.tribunal_config || {};
+        const tribCategoryEl = document.getElementById('tribunal_category');
+        if (tribCategoryEl) {
+          tribCategoryEl.value = trib.categoryId || '';
+          if (tribCategoryEl.syncCustomSelect) tribCategoryEl.syncCustomSelect();
+        }
+
+        // Shop Config (Suites privées category)
+        const shopCfg = config.shop_config || {};
+        const privateSuiteCategoryEl = document.getElementById('private_suite_category_id');
+        if (privateSuiteCategoryEl) {
+          privateSuiteCategoryEl.value = shopCfg.privateSuiteCategoryId || '';
+          if (privateSuiteCategoryEl.syncCustomSelect) privateSuiteCategoryEl.syncCustomSelect();
+        }
         
         if (typeof updateXpCurvePreview === 'function') {
           updateXpCurvePreview();
@@ -1786,6 +1816,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const channel_id = document.getElementById('quarantine_channel').value;
     saveConfig('/api/config/quarantine', { role_id, channel_id });
   });
+
+  // Tribunal Form Submit
+  const formTribunal = document.getElementById('form-tribunal');
+  if (formTribunal) {
+    formTribunal.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const category_id = document.getElementById('tribunal_category').value;
+      saveConfig('/api/config/tribunal', { category_id });
+    });
+  }
+
+  // Shop Settings Form Submit (Suites privées category)
+  const formShopSettings = document.getElementById('form-shop-settings');
+  if (formShopSettings) {
+    formShopSettings.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const private_suite_category_id = document.getElementById('private_suite_category_id').value;
+      saveConfig('/api/config/shop-settings', { private_suite_category_id });
+    });
+  }
 
   // 4. Logs
   formLogs.addEventListener('submit', (e) => {

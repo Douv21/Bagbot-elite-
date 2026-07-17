@@ -390,6 +390,13 @@ function initDatabase() {
   `).run();
 
   db.prepare(`
+    CREATE TABLE IF NOT EXISTS shop_config (
+      guild_id TEXT PRIMARY KEY,
+      private_suite_category_id TEXT
+    )
+  `).run();
+
+  db.prepare(`
     CREATE TABLE IF NOT EXISTS unlimited_forums (
       guild_id TEXT,
       channel_id TEXT,
@@ -826,6 +833,25 @@ const updatePrivateSuiteExpiry = (guildId, userId, expiresAt) => {
   return db.prepare('UPDATE private_suites SET expires_at = ? WHERE guild_id = ? AND user_id = ?').run(expiresAt, guildId, userId);
 };
 
+const getShopConfig = (guildId) => {
+  let row = db.prepare('SELECT * FROM shop_config WHERE guild_id = ?').get(guildId);
+  if (!row) {
+    db.prepare('INSERT OR IGNORE INTO shop_config (guild_id, private_suite_category_id) VALUES (?, ?)').run(guildId, null);
+    row = { guild_id: guildId, private_suite_category_id: null };
+  }
+  return {
+    privateSuiteCategoryId: row.private_suite_category_id || ''
+  };
+};
+
+const updateShopConfig = (guildId, privateSuiteCategoryId) => {
+  db.prepare(`
+    INSERT INTO shop_config (guild_id, private_suite_category_id)
+    VALUES (?, ?)
+    ON CONFLICT(guild_id) DO UPDATE SET private_suite_category_id = EXCLUDED.private_suite_category_id
+  `).run(guildId, privateSuiteCategoryId || null);
+};
+
 const getKarmaConfig = (guildId) => {
   let config = db.prepare('SELECT * FROM karma_config WHERE guild_id = ?').get(guildId);
   if (!config) {
@@ -1162,6 +1188,8 @@ module.exports = {
   addPrivateSuite,
   deletePrivateSuite,
   updatePrivateSuiteExpiry,
+  getShopConfig,
+  updateShopConfig,
   getKarmaConfig,
   updateKarmaConfig,
   getUnlimitedForums,

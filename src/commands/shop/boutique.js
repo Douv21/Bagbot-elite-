@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { db, getEconomy, updateEconomy, getPrivateSuite, updatePrivateSuiteExpiry, addPrivateSuite, getKarmaConfig } = require('../../database/db');
+const { db, getEconomy, updateEconomy, getPrivateSuite, updatePrivateSuiteExpiry, addPrivateSuite, getKarmaConfig, getShopConfig } = require('../../database/db');
 
 function getKarmaDiscount(guildId, userId) {
   const economy = getEconomy(guildId, userId);
@@ -135,18 +135,31 @@ module.exports = {
         }
       }
 
-      let category = interaction.guild.channels.cache.find(c => c.name === '🔑 Suites Privées' && c.type === ChannelType.GuildCategory);
+      // Récupérer la catégorie configurée en base de données
+      const shopCfg = getShopConfig(guildId);
+      let category = null;
+      if (shopCfg && shopCfg.privateSuiteCategoryId) {
+        category = interaction.guild.channels.cache.get(shopCfg.privateSuiteCategoryId);
+        if (!category) {
+          category = await interaction.guild.channels.fetch(shopCfg.privateSuiteCategoryId).catch(() => null);
+        }
+      }
+
+      // Si aucune catégorie n'est configurée ou trouvée, on cherche la catégorie par défaut ou on la crée
       if (!category) {
-        category = await interaction.guild.channels.create({
-          name: '🔑 Suites Privées',
-          type: ChannelType.GuildCategory,
-          permissionOverwrites: [
-            {
-              id: interaction.guild.id,
-              deny: [PermissionFlagsBits.ViewChannel]
-            }
-          ]
-        }).catch(() => null);
+        category = interaction.guild.channels.cache.find(c => c.name === '🔑 Suites Privées' && c.type === ChannelType.GuildCategory);
+        if (!category) {
+          category = await interaction.guild.channels.create({
+            name: '🔑 Suites Privées',
+            type: ChannelType.GuildCategory,
+            permissionOverwrites: [
+              {
+                id: interaction.guild.id,
+                deny: [PermissionFlagsBits.ViewChannel]
+              }
+            ]
+          }).catch(() => null);
+        }
       }
 
       try {

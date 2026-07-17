@@ -108,6 +108,7 @@
           <button class="tab-btn" data-tab="tab-automod"><i class="fa-solid fa-user-shield"></i> Auto-Modération</button>
           <button class="tab-btn" data-tab="tab-forums"><i class="fa-solid fa-comments"></i> Forums Illimités</button>
           <button class="tab-btn" data-tab="tab-permissions"><i class="fa-solid fa-lock"></i> Permissions</button>
+          <button class="tab-btn" data-tab="tab-tribunal"><i class="fa-solid fa-gavel"></i> Tribunal</button>
         </div>
 
         <div class="sidebar-category">
@@ -653,6 +654,26 @@
               </div>
             </form>
           </div>
+ 
+          <!-- Tab: Tribunal -->
+          <div id="tab-tribunal" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-gavel"></i> Système de Tribunal</h2>
+            <form id="form-tribunal" class="glass-form">
+              <div class="card glass">
+                <p>Gérez et configurez le système de justice de votre serveur Discord pour ouvrir des procès, désigner des avocats et des juges dans des salons dédiés.</p>
+                <div class="form-group">
+                  <label for="tribunal_category">Catégorie pour les procès (Suites privées de jugement) :</label>
+                  <select id="tribunal_category" class="category-select">
+                    <option value="">-- Créer automatiquement une catégorie --</option>
+                  </select>
+                  <small class="form-help">Sélectionnez la catégorie Discord dans laquelle les salons textuels temporaires des procès seront créés.</small>
+                </div>
+              </div>
+              <div class="actions-bar">
+                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer le tribunal</button>
+              </div>
+            </form>
+          </div>
 
           <!-- Tab: Logs -->
           <div id="tab-logs" class="tab-content">
@@ -890,6 +911,21 @@
           <!-- Tab: Shop -->
           <div id="tab-shop" class="tab-content">
             <h2 class="section-title"><i class="fa-solid fa-shop"></i> Gestion de la Boutique (Shop)</h2>
+            
+            <!-- Shop configuration (Private suites category) -->
+            <div class="card glass mb-4">
+              <h3>Configuration générale de la Boutique</h3>
+              <form id="form-shop-settings" class="inner-form">
+                <div class="form-group">
+                  <label for="private_suite_category_id">Catégorie de création des Suites Privées :</label>
+                  <select id="private_suite_category_id" class="category-select">
+                    <option value="">-- Créer automatiquement une catégorie --</option>
+                  </select>
+                  <small class="form-help">Sélectionnez la catégorie Discord dans laquelle les salons des Suites Privées (achetées en boutique) seront créés automatiquement.</small>
+                </div>
+                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les paramètres de la boutique</button>
+              </form>
+            </div>
             
             <!-- Items list -->
             <div class="card glass mb-4">

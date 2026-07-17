@@ -165,7 +165,10 @@ function slugifyChannelName(s) {
 async function getOrCreateTribunalCategory(guild, storage) {
   const gid = guild.id;
   const cfg = await storage.getTribunalConfig(gid);
-  const byId = cfg.categoryId ? guild.channels.cache.get(cfg.categoryId) : null;
+  let byId = cfg.categoryId ? guild.channels.cache.get(cfg.categoryId) : null;
+  if (!byId && cfg.categoryId) {
+    byId = await guild.channels.fetch(cfg.categoryId).catch(() => null);
+  }
   if (byId && byId.type === ChannelType.GuildCategory) return byId;
 
   const existing = guild.channels.cache.find(
