@@ -248,7 +248,7 @@ const actions = [
   {
     name: 'lit',
     description: 'Aller au lit avec quelqu\'un',
-    title: '🛏️ Partie de Jambes en l'air',
+    title: '🛏️ Partie de Jambes en l\'air',
     selfMessage: '${author} s\'allonge sur le lit en rêvant de compagnie.',
     targetMessage: '${author} entraîne ${target} sous les draps pour une nuit torride et agitée...'
   },
