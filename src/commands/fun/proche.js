@@ -33,7 +33,7 @@ module.exports = {
     // Récupérer la position de l'utilisateur
     const myLoc = db.prepare('SELECT * FROM member_locations WHERE guild_id = ? AND user_id = ?').get(guildId, userId);
     if (!myLoc) {
-      return interaction.editReply({ content: '❌ Vous devez d\'abord enregistrer votre position avec `/loc [votre adresse/ville]`.' });
+      return interaction.editReply({ content: '❌ Vous devez d\'abord enregistrer votre position avec `/mapville [votre adresse/ville]`.' });
     }
 
     // Récupérer la liste de tous les autres membres localisés sur le serveur

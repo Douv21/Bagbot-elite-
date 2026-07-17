@@ -37,7 +37,7 @@ async function geocode(address) {
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('loc')
+    .setName('mapville')
     .setDescription('Définir ou supprimer votre localisation (adresse ou ville) sur la carte')
     .addStringOption(option => 
       option.setName('adresse')
