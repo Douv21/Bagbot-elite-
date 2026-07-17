@@ -352,12 +352,26 @@ module.exports = {
                 let emojiToReact = game.letter_emoji.trim();
                 const match = emojiToReact.match(/<?a?:?([a-zA-Z0-9_]+):(\d+)>?/);
                 if (match) {
-                  emojiToReact = match[2];
+                  const emojiId = match[2];
+                  let foundEmoji = message.guild.emojis.cache.get(emojiId);
+                  if (!foundEmoji) {
+                    const fetchedEmojis = await message.guild.emojis.fetch().catch(() => null);
+                    if (fetchedEmojis) {
+                      foundEmoji = fetchedEmojis.get(emojiId);
+                    }
+                  }
+                  emojiToReact = foundEmoji || `${match[1]}:${match[2]}`;
                 } else if (emojiToReact.startsWith(':') && emojiToReact.endsWith(':')) {
                   const cleanedName = emojiToReact.slice(1, -1);
-                  const foundEmoji = message.guild.emojis.cache.find(e => e.name === cleanedName);
+                  let foundEmoji = message.guild.emojis.cache.find(e => e.name === cleanedName);
+                  if (!foundEmoji) {
+                    const fetchedEmojis = await message.guild.emojis.fetch().catch(() => null);
+                    if (fetchedEmojis) {
+                      foundEmoji = fetchedEmojis.find(e => e.name === cleanedName);
+                    }
+                  }
                   if (foundEmoji) {
-                    emojiToReact = foundEmoji.id;
+                    emojiToReact = foundEmoji;
                   }
                 }
                 message.react(emojiToReact).catch(err => {
