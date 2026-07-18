@@ -1301,6 +1301,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('ticket_opt_view_role').value = opt.required_role_id || '';
         document.getElementById('ticket_opt_description').value = opt.description || '';
         document.getElementById('ticket_opt_image_url').value = opt.image_url || '';
+        document.getElementById('ticket_opt_show_member').checked = opt.show_member_button !== 0;
+        document.getElementById('ticket_opt_show_certify').checked = opt.show_certify_button !== 0;
 
         // Rôles support
         let sRoles = [];
@@ -1814,7 +1816,9 @@ document.addEventListener('DOMContentLoaded', () => {
       member_roles_add,
       member_roles_remove,
       certify_roles_add,
-      certify_roles_remove
+      certify_roles_remove,
+      show_member_button: document.getElementById('ticket_opt_show_member').checked ? 1 : 0,
+      show_certify_button: document.getElementById('ticket_opt_show_certify').checked ? 1 : 0
     };
 
     fetch('/api/config/tickets/options/add', {

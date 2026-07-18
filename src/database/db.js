@@ -483,6 +483,24 @@ function initDatabase() {
   try {
     db.prepare("ALTER TABLE ticket_options ADD COLUMN image_url TEXT").run();
   } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE ticket_options ADD COLUMN member_roles_add TEXT").run();
+  } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE ticket_options ADD COLUMN member_roles_remove TEXT").run();
+  } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE ticket_options ADD COLUMN certify_roles_add TEXT").run();
+  } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE ticket_options ADD COLUMN certify_roles_remove TEXT").run();
+  } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE ticket_options ADD COLUMN show_member_button INTEGER DEFAULT 1").run();
+  } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE ticket_options ADD COLUMN show_certify_button INTEGER DEFAULT 1").run();
+  } catch (e) {}
 
   db.prepare(`
     CREATE TABLE IF NOT EXISTS active_tickets (
@@ -1000,10 +1018,10 @@ const getTicketOptions = (guildId) => {
 };
 
 const addTicketOption = (guildId, option) => {
-  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove } = option;
+  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button } = option;
   return db.prepare(`
-    INSERT INTO ticket_options (guild_id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO ticket_options (guild_id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     guildId, 
     label, 
@@ -1019,7 +1037,9 @@ const addTicketOption = (guildId, option) => {
     JSON.stringify(member_roles_add || []),
     JSON.stringify(member_roles_remove || []),
     JSON.stringify(certify_roles_add || []),
-    JSON.stringify(certify_roles_remove || [])
+    JSON.stringify(certify_roles_remove || []),
+    show_member_button !== undefined ? show_member_button : 1,
+    show_certify_button !== undefined ? show_certify_button : 1
   );
 };
 
@@ -1028,7 +1048,7 @@ const deleteTicketOption = (guildId, id) => {
 };
 
 const updateTicketOption = (guildId, id, option) => {
-  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove } = option;
+  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button } = option;
   return db.prepare(`
     UPDATE ticket_options SET
       label = ?,
@@ -1044,7 +1064,9 @@ const updateTicketOption = (guildId, id, option) => {
       member_roles_add = ?,
       member_roles_remove = ?,
       certify_roles_add = ?,
-      certify_roles_remove = ?
+      certify_roles_remove = ?,
+      show_member_button = ?,
+      show_certify_button = ?
     WHERE guild_id = ? AND id = ?
   `).run(
     label,
@@ -1061,6 +1083,8 @@ const updateTicketOption = (guildId, id, option) => {
     JSON.stringify(member_roles_remove || []),
     JSON.stringify(certify_roles_add || []),
     JSON.stringify(certify_roles_remove || []),
+    show_member_button !== undefined ? show_member_button : 1,
+    show_certify_button !== undefined ? show_certify_button : 1,
     guildId,
     id
   );

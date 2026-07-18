@@ -220,7 +220,7 @@ async function handleTicketInteraction(interaction, client) {
       welcomeEmbed.setImage(option.image_url);
     }
 
-    const row = new ActionRowBuilder().addComponents(
+    const buttons = [
       new ButtonBuilder()
         .setCustomId('ticket_claim')
         .setLabel('Prendre en charge 🙋‍♂️')
@@ -228,16 +228,35 @@ async function handleTicketInteraction(interaction, client) {
       new ButtonBuilder()
         .setCustomId('ticket_assign')
         .setLabel('Assigner 👤')
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId('ticket_manage_member')
-        .setLabel('Gérer membre 👥')
-        .setStyle(ButtonStyle.Secondary),
+        .setStyle(ButtonStyle.Primary)
+    ];
+
+    if (option.show_member_button !== 0) {
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId('ticket_member')
+          .setLabel('Membre 👥')
+          .setStyle(ButtonStyle.Secondary)
+      );
+    }
+
+    if (option.show_certify_button !== 0) {
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId('ticket_certify')
+          .setLabel('Certifier ✅')
+          .setStyle(ButtonStyle.Secondary)
+      );
+    }
+
+    buttons.push(
       new ButtonBuilder()
         .setCustomId('ticket_close')
         .setLabel('Fermer 🔒')
         .setStyle(ButtonStyle.Danger)
     );
+
+    const row = new ActionRowBuilder().addComponents(buttons);
 
     // Pings des rôles
     let pingRoles = [];
