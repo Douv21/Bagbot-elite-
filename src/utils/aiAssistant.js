@@ -111,7 +111,7 @@ Actions d'administration possibles (tu devez les formuler sous forme d'un tablea
 8. {"type": "ban_member", "member_name": "Nom/pseudo/tag du membre"}
 9. {"type": "update_action_message", "action_name": "calin/caresser/sodo...", "self": true/false, "text": "Le message avec balises de genre"}
 10. {"type": "update_role_permissions", "role_name": "Nom ou ID du rôle", "allow": ["KickMembers"], "deny": ["ManageChannels"]}
-11. {"type": "update_channel_permissions", "channel_name": "Nom ou ID du salon", "target_name": "Nom de rôle ou membre", "allow": ["ViewChannel"], "deny": ["SendMessages"]}
+11. {"type": "update_channel_permissions", "channel_name": "Nom ou ID du salon, ou 'all' pour cibler tous les salons", "target_name": "Nom de rôle ou membre", "allow": ["ViewChannel"], "deny": ["SendMessages"]}
 12. {"type": "set_role_position", "role_name": "Nom du rôle à déplacer", "target_role_name": "Nom du rôle repère", "direction": "above" ou "below"}
 13. {"type": "create_channel", "name": "nom-du-salon", "channel_type": "text" ou "voice" ou "category", "category_name": "Nom de la catégorie (optionnel)"}
 14. {"type": "delete_channel", "channel_name": "Nom ou ID du salon"}
@@ -310,9 +310,11 @@ Pour que le script puisse les parser automatiquement.`;
           if (channel) {
             const embed = new EmbedBuilder()
               .setTitle(action.title || 'Message')
-              .setDescription(action.description || '')
               .setColor('#9b59b6')
               .setTimestamp();
+            if (action.description) {
+              embed.setDescription(action.description);
+            }
             await channel.send({ embeds: [embed] });
             executedActions.push({ type: 'send_embed', channel: channel.name });
           } else {
@@ -352,9 +354,11 @@ Pour que le script puisse les parser automatiquement.`;
 
               const emb = new EmbedBuilder()
                 .setTitle(action.embed.title || 'Message')
-                .setDescription(action.embed.description || '')
                 .setColor(color)
                 .setTimestamp();
+              if (action.embed.description) {
+                emb.setDescription(action.embed.description);
+              }
               sendPayload.embeds = [emb];
             }
 
@@ -397,30 +401,57 @@ Pour que le script puisse les parser automatiquement.`;
         }
 
         else if (action.type === 'update_channel_permissions') {
-          const channel = await findChannel(action.channel_name);
           const target = (await findRole(action.target_name)) || (await findMember(action.target_name));
-          if (channel && target) {
-            const allowPerms = [];
-            const denyPerms = [];
-            if (action.allow) {
-              action.allow.forEach(perm => {
+          if (!target) {
+            reply += `\n❓ Cible "${action.target_name}" (rôle ou membre) introuvable.`;
+            continue;
+          }
+
+          const allowPerms = [];
+          const denyPerms = [];
+          if (action.allow) {
+            const allowArray = Array.isArray(action.allow) ? action.allow : [action.allow];
+            if (allowArray.some(p => typeof p === 'string' && p.toLowerCase() === 'all')) {
+              allowPerms.push(...Object.values(PermissionFlagsBits));
+            } else {
+              allowArray.forEach(perm => {
                 if (PermissionFlagsBits[perm]) allowPerms.push(PermissionFlagsBits[perm]);
               });
             }
-            if (action.deny) {
-              action.deny.forEach(perm => {
+          }
+          if (action.deny) {
+            const denyArray = Array.isArray(action.deny) ? action.deny : [action.deny];
+            if (denyArray.some(p => typeof p === 'string' && p.toLowerCase() === 'all')) {
+              denyPerms.push(...Object.values(PermissionFlagsBits));
+            } else {
+              denyArray.forEach(perm => {
                 if (PermissionFlagsBits[perm]) denyPerms.push(PermissionFlagsBits[perm]);
               });
             }
-            const overrides = {};
-            allowPerms.forEach(p => overrides[p] = true);
-            denyPerms.forEach(p => overrides[p] = false);
+          }
 
-            await channel.permissionOverwrites.edit(target.id, overrides);
-            executedActions.push({ type: 'update_channel_permissions', channel: channel.name, target: target.name || target.displayName });
+          const overrides = {};
+          allowPerms.forEach(p => overrides[p] = true);
+          denyPerms.forEach(p => overrides[p] = false);
+
+          if (typeof action.channel_name === 'string' && action.channel_name.toLowerCase() === 'all') {
+            const channels = guild.channels.cache;
+            for (const [id, chan] of channels) {
+              try {
+                await chan.permissionOverwrites.edit(target.id, overrides);
+              } catch (e) {
+                // ignorer silencieusement pour les salons système / inaccessibles
+              }
+            }
+            executedActions.push({ type: 'update_channel_permissions', channel: 'tous les salons', target: target.name || target.displayName });
           } else {
-            if (!channel) reply += `\n❓ Salon "${action.channel_name}" introuvable.`;
-            if (!target) reply += `\n❓ Cible "${action.target_name}" (rôle ou membre) introuvable.`;
+            const channel = await findChannel(action.channel_name);
+            if (channel) {
+              await channel.permissionOverwrites.edit(target.id, overrides);
+              executedActions.push({ type: 'update_channel_permissions', channel: channel.name, target: target.name || target.displayName });
+            } else {
+              reply += `\n❓ Salon "${action.channel_name}" introuvable.`;
+            }
           }
         }
 
