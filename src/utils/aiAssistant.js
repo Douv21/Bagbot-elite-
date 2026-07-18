@@ -56,15 +56,15 @@ async function processAiCommand(guildId, userId, message, client) {
     return member;
   };
 
-  // Récupérer et lister tous les rôles et salons du serveur de manière propre
+  // Récupérer et lister tous les rôles et salons du serveur de manière propre et très compacte
   const fetchedRoles = await guild.roles.fetch().catch(() => null);
   const fetchedChannels = await guild.channels.fetch().catch(() => null);
 
   const rolesList = (fetchedRoles || guild.roles.cache)
     .filter(r => r.name !== '@everyone')
     .sort((a, b) => b.position - a.position)
-    .map(r => `- Rôle: "${r.name}" (ID: ${r.id}, Position: ${r.position})`)
-    .join('\n');
+    .map(r => `@${r.name} (ID: ${r.id}, Position: ${r.position})`)
+    .join(', ');
 
   const channelsList = (fetchedChannels || guild.channels.cache)
     .map(c => {
@@ -74,9 +74,9 @@ async function processAiCommand(guildId, userId, message, client) {
       else if (c.type === 2) typeStr = 'Vocal';
       else if (c.type === 5) typeStr = 'Annonces';
       else if (c.type === 15) typeStr = 'Forum';
-      return `- Salon: "${c.name}" (ID: ${c.id}, Type: ${typeStr}${c.parent ? ', Catégorie parente: ' + c.parent.name : ''})`;
+      return `#${c.name} (ID: ${c.id}, Type: ${typeStr}${c.parent ? ', Parent: ' + c.parent.name : ''})`;
     })
-    .join('\n');
+    .join(', ');
 
   const systemPrompt = `Tu es l'assistant d'administration intelligent du bot Discord B&G Elite.
 Tu peux exécuter des actions d'administration sur le serveur Discord "${guild.name}" en renvoyant des instructions structurées en JSON à la fin de ta réponse.
@@ -124,7 +124,7 @@ Pour que le script puisse les parser automatiquement.`;
   let fullReply = "";
   let success = false;
 
-  // POST with openai
+  // 1. Tenter avec OpenAI
   try {
     const response = await fetch('https://text.pollinations.ai/v1/chat/completions', {
       method: 'POST',
@@ -136,7 +136,7 @@ Pour que le script puisse les parser automatiquement.`;
         ],
         model: 'openai'
       }),
-      signal: AbortSignal.timeout(10000) // 10 secondes max
+      signal: AbortSignal.timeout(12000) // 12 secondes
     });
 
     if (response.ok) {
@@ -144,13 +144,41 @@ Pour que le script puisse les parser automatiquement.`;
       fullReply = data.choices[0].message.content;
       success = true;
     } else {
-      console.warn(`POST AI Assistant failed (Status: ${response.status}), attempting fallback model...`);
+      console.warn(`POST AI Assistant (OpenAI) failed (Status: ${response.status}), trying fallback...`);
     }
   } catch (err) {
-    console.warn('POST AI Assistant failed, trying fallback model...', err.message);
+    console.warn(`POST AI Assistant (OpenAI) failed or timed out: ${err.message}`);
   }
 
-  // Fallback avec Mistral si OpenAI échoue
+  // 2. Tenter avec Qwen (Excellent modèle de codage et de JSON)
+  if (!success) {
+    try {
+      const response = await fetch('https://text.pollinations.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message }
+          ],
+          model: 'qwen'
+        }),
+        signal: AbortSignal.timeout(12000)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        fullReply = data.choices[0].message.content;
+        success = true;
+      } else {
+        console.warn(`POST AI Assistant (Qwen) failed (Status: ${response.status}), trying fallback...`);
+      }
+    } catch (err) {
+      console.warn(`POST AI Assistant (Qwen) failed or timed out: ${err.message}`);
+    }
+  }
+
+  // 3. Tenter avec Mistral en dernier recours
   if (!success) {
     try {
       const response = await fetch('https://text.pollinations.ai/v1/chat/completions', {
@@ -163,7 +191,7 @@ Pour que le script puisse les parser automatiquement.`;
           ],
           model: 'mistral'
         }),
-        signal: AbortSignal.timeout(10000)
+        signal: AbortSignal.timeout(12000)
       });
 
       if (response.ok) {
