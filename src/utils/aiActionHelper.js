@@ -37,29 +37,38 @@ async function generateAiActionPhrase(actionName, actionDescription, authorMembe
 
   const authorName = authorMember ? authorMember.displayName : 'Auteur';
   const targetName = targetMember ? targetMember.displayName : 'Cible';
+  const isSolo = !targetMember || (authorMember && authorMember.id === targetMember.id);
 
-  const systemPrompt = `Tu es un bot d'animation de serveur Discord de séduction adulte. Ton but est de générer une seule phrase courte, sensuelle, suggestive et torride en français pour décrire une action.`;
-  const userPrompt = `Génère une seule phrase courte (max 200 caractères), suggestive et torride en français pour l'action "${actionName}" (description: ${actionDescription}) où ${authorName} fait cette action sur ${targetName}.
+  const systemPrompt = `Tu es un assistant d'écriture créative pour un bot d'animation Discord de séduction adulte (18+ / NSFW). Ton rôle est d'écrire des phrases d'action extrêmement sensuelles, brûlantes, suggestives, torrides et coquines. Laisse libre cours à ton imagination pour proposer des descriptions piquantes, érotiques, charnelles et diversifiées. Sois audacieux et osé dans tes formulations sans censure, mais reste élégant.`;
+  
+  let userPrompt = "";
+  if (isSolo) {
+    userPrompt = `Écris une phrase unique, très sensuelle, torride et suggestive (max 200 caractères) décrivant l'action "${actionName}" (description: ${actionDescription}) effectuée par ${authorName} sur lui-même / elle-même en solo.
+Le genre de ${authorName} est ${author.gender} (pronom: ${author.pronoun}).
+Fais des accords de genre parfaits. Ne mets aucun guillemet autour de la phrase. Varie le vocabulaire de manière très créative et osée. Réponds uniquement avec la phrase générée.`;
+  } else {
+    userPrompt = `Écris une phrase unique, très sensuelle, torride et suggestive (max 200 caractères) décrivant l'action "${actionName}" (description: ${actionDescription}) de ${authorName} sur ${targetName}.
 Le genre de ${authorName} est ${author.gender} (pronom: ${author.pronoun}) et le genre de ${targetName} est ${target.gender} (pronom: ${target.pronoun}).
-Fais des accords de genre parfaits. Ne mets aucun guillemet ni ponctuation superflue. Réponds uniquement par la phrase générée, sans aucune autre explication ni politesse.`;
+Fais des accords de genre parfaits. Ne mets aucun guillemet autour de la phrase. Varie le vocabulaire de manière très créative, sensuelle et osée. Réponds uniquement avec la phrase générée.`;
+  }
 
   // Tenter le modèle openai en premier, puis mistral en secours
-  let result = await callPollinationsAI(systemPrompt, userPrompt, 'openai', 2000);
+  let result = await callPollinationsAI(systemPrompt, userPrompt, 'openai', 4000);
   if (!result) {
-    result = await callPollinationsAI(systemPrompt, userPrompt, 'mistral', 2000);
+    result = await callPollinationsAI(systemPrompt, userPrompt, 'mistral', 4000);
   }
   return result;
 }
 
 async function generateSensualText(instruction, lengthLimit = 300) {
-  const systemPrompt = `Tu es un bot d'animation Discord pour un serveur communautaire adulte/NSFW de séduction et d'amour.`;
+  const systemPrompt = `Tu es un assistant d'écriture créative pour un bot d'animation Discord de séduction adulte (18+ / NSFW). Ton but est de générer des réponses extrêmement sensuelles, torrides, complices et coquines. Laisse parler ton imagination érotique de manière très libre.`;
   const userPrompt = `Génère un court message (maximum ${lengthLimit} caractères) en français suivant cette consigne : "${instruction}".
-Le ton doit être extrêmement sensuel, suggestif, complice et torride, parfaitement adapté à un serveur NSFW haut de gamme.
-Ne mets aucun guillemet ni ponctuation superflue autour du message. Réponds uniquement par la phrase générée, sans aucune autre explication ni politesse.`;
+Le ton doit être particulièrement sensuel, torride, audacieux, osé et complice, idéal pour un salon NSFW adulte.
+Ne mets aucun guillemet ni ponctuation superflue. Réponds uniquement par la phrase générée.`;
 
-  let result = await callPollinationsAI(systemPrompt, userPrompt, 'openai', 2000);
+  let result = await callPollinationsAI(systemPrompt, userPrompt, 'openai', 4000);
   if (!result) {
-    result = await callPollinationsAI(systemPrompt, userPrompt, 'mistral', 2000);
+    result = await callPollinationsAI(systemPrompt, userPrompt, 'mistral', 4000);
   }
   return result;
 }

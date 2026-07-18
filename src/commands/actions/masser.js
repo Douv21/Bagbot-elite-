@@ -48,7 +48,7 @@ module.exports = {
     let actionMessage = "";
 
     // Tenter de générer une phrase unique via l'IA en temps réel
-    if (target.id !== userId) {
+    if (true) {
       const { generateAiActionPhrase } = require('../../utils/aiActionHelper');
       const aiPhrase = await generateAiActionPhrase('masser', 'Masser quelqu\'un', interaction.member, targetMember);
       if (aiPhrase) {
