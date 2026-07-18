@@ -17,13 +17,7 @@ module.exports = {
     let target = interaction.options.getUser('cible');
 
     if (!target) {
-      if (interaction.guild) {
-        const members = await interaction.guild.members.fetch({ limit: 100 }).catch(() => null);
-        const randomMember = members ? members.filter(m => m.id !== userId).random() : null;
-        target = randomMember ? randomMember.user : interaction.user;
-      } else {
-        target = interaction.user;
-      }
+      target = interaction.user;
     }
 
     const author = interaction.user;
