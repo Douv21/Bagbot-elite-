@@ -60,6 +60,12 @@ async function processAiCommand(guildId, userId, message, client) {
   const fetchedRoles = await guild.roles.fetch().catch(() => null);
   const fetchedChannels = await guild.channels.fetch().catch(() => null);
 
+  // Extraire toutes les permissions possibles disponibles dans l'énumération PermissionFlagsBits
+  const allPermissionsList = Object.keys(PermissionFlagsBits)
+    .filter(key => typeof PermissionFlagsBits[key] === 'bigint')
+    .map(key => `"${key}"`)
+    .join(', ');
+
   const rolesList = (fetchedRoles || guild.roles.cache)
     .filter(r => r.name !== '@everyone')
     .sort((a, b) => b.position - a.position)
@@ -92,7 +98,7 @@ Règles de décision CRITIQUES :
 2. Lorsque tu fais référence à un salon, utilise son nom exact ou son ID figurant dans la liste des SALONS EXISTANTS ci-dessus.
 
 Liste des permissions valides utilisables pour les actions :
-"all" (pour attribuer toutes les permissions d'un coup), "Administrator", "BanMembers", "KickMembers", "ModerateMembers", "ManageRoles", "ManageChannels", "ManageMessages", "ViewChannel", "SendMessages", "ReadMessageHistory", "AddReactions", "MuteMembers", "DeafenMembers", "MoveMembers", "EmbedLinks", "AttachFiles", "MentionEveryone", "UseExternalEmojis", "Connect", "Speak", "UseVAD", "ChangeNickname", "ManageNicknames", "ManageWebhooks", "CreateInstantInvite", "ViewAuditLog", "CreatePublicThreads", "CreatePrivateThreads", "SendMessagesInThreads", "UseExternalStickers", "UseExternalSounds", "UseSoundboard", "SendVoiceMessages", "UseEmbeddedActivities", "PrioritySpeaker", "Stream", "ManageGuild", "ManageThreads", "ManageEmojisAndStickers", "ManageEvents", "UseApplicationCommands", "RequestToSpeak"
+"all" (pour attribuer toutes les permissions d'un coup), ${allPermissionsList}
 
 Actions d'administration possibles (tu devez les formuler sous forme d'un tableau JSON d'objets, exemple: [{"type": "create_role", "name": "VIP"}]):
 1. {"type": "update_automod", "anti_link": 0/1, "anti_spam": 0/1, "anti_massmention": 0/1, "anti_badwords": 0/1, "spam_max_msgs": nombre, "massmention_limit": nombre, "badwords_list": "mot1,mot2"}
