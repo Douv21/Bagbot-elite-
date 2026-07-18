@@ -56,28 +56,36 @@ async function processAiCommand(guildId, userId, message, client) {
     return member;
   };
 
-  // Récupérer et lister tous les rôles et salons textuels existants du serveur de manière propre
+  // Récupérer et lister tous les rôles et salons du serveur de manière propre
   const fetchedRoles = await guild.roles.fetch().catch(() => null);
   const fetchedChannels = await guild.channels.fetch().catch(() => null);
 
   const rolesList = (fetchedRoles || guild.roles.cache)
     .filter(r => r.name !== '@everyone')
-    .map(r => `- Rôle: "${r.name}" (ID: ${r.id})`)
+    .sort((a, b) => b.position - a.position)
+    .map(r => `- Rôle: "${r.name}" (ID: ${r.id}, Position: ${r.position})`)
     .join('\n');
 
   const channelsList = (fetchedChannels || guild.channels.cache)
-    .filter(c => c.isTextBased())
-    .map(c => `- Salon: "#${c.name}" (ID: ${c.id})`)
+    .map(c => {
+      let typeStr = 'Autre';
+      if (c.type === 4) typeStr = 'Catégorie';
+      else if (c.type === 0) typeStr = 'Text';
+      else if (c.type === 2) typeStr = 'Vocal';
+      else if (c.type === 5) typeStr = 'Annonces';
+      else if (c.type === 15) typeStr = 'Forum';
+      return `- Salon: "${c.name}" (ID: ${c.id}, Type: ${typeStr}${c.parent ? ', Catégorie parente: ' + c.parent.name : ''})`;
+    })
     .join('\n');
 
   const systemPrompt = `Tu es l'assistant d'administration intelligent du bot Discord B&G Elite.
 Tu peux exécuter des actions d'administration sur le serveur Discord "${guild.name}" en renvoyant des instructions structurées en JSON à la fin de ta réponse.
 
-Voici la liste des RÔLES EXISTANTS sur ce serveur :
+Voici la liste ordonnée des RÔLES EXISTANTS sur ce serveur (du plus haut au plus bas) :
 ${rolesList || 'Aucun rôle personnalisé'}
 
-Voici la liste des SALONS TEXTUELS EXISTANTS sur ce serveur :
-${channelsList || 'Aucun salon textuel'}
+Voici la liste de TOUS LES SALONS EXISTANTS sur ce serveur :
+${channelsList || 'Aucun salon'}
 
 Règles de décision CRITIQUES :
 1. Avant de générer une action de type "create_role", vérifie attentivement si un rôle similaire ou de même nom n'existe pas déjà dans la liste des RÔLES EXISTANTS ci-dessus. Si le rôle existe déjà, n'utilise PAS "create_role". Utilise directement l'action d'attribution "add_member_role" ou modifie-le si besoin.
@@ -86,7 +94,7 @@ Règles de décision CRITIQUES :
 Liste des permissions valides utilisables pour les actions :
 "Administrator", "BanMembers", "KickMembers", "ModerateMembers", "ManageRoles", "ManageChannels", "ManageMessages", "ViewChannel", "SendMessages", "ReadMessageHistory", "AddReactions", "MuteMembers", "DeafenMembers", "MoveMembers"
 
-Actions d'administration possibles (tu dois les formuler sous forme d'un tableau JSON d'objets, exemple: [{"type": "create_role", "name": "VIP"}]):
+Actions d'administration possibles (tu devez les formuler sous forme d'un tableau JSON d'objets, exemple: [{"type": "create_role", "name": "VIP"}]):
 1. {"type": "update_automod", "anti_link": 0/1, "anti_spam": 0/1, "anti_massmention": 0/1, "anti_badwords": 0/1, "spam_max_msgs": nombre, "massmention_limit": nombre, "badwords_list": "mot1,mot2"}
 2. {"type": "create_role", "name": "Nom du rôle", "color": "code hex ou rouge/bleu/vert...", "permissions": ["BanMembers", "KickMembers", "Administrator"]}
 3. {"type": "delete_role", "role_name": "Nom ou ID du rôle"}
@@ -122,7 +130,10 @@ Pour que le script puisse les parser automatiquement.`;
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        messages: [{ role: 'user', content: `${systemPrompt}\n\nUtilisateur: ${message}\nAssistant:` }],
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message }
+        ],
         model: 'openai'
       }),
       signal: AbortSignal.timeout(10000) // 10 secondes max
@@ -133,26 +144,35 @@ Pour que le script puisse les parser automatiquement.`;
       fullReply = data.choices[0].message.content;
       success = true;
     } else {
-      console.warn(`POST AI Assistant failed (Status: ${response.status}), attempting fallback GET...`);
+      console.warn(`POST AI Assistant failed (Status: ${response.status}), attempting fallback model...`);
     }
   } catch (err) {
-    console.warn('POST AI Assistant failed, trying fallback GET...', err.message);
+    console.warn('POST AI Assistant failed, trying fallback model...', err.message);
   }
 
-  // GET Fallback if POST fails
+  // Fallback avec Mistral si OpenAI échoue
   if (!success) {
     try {
-      const fallbackUrl = `https://text.pollinations.ai/${encodeURIComponent(systemPrompt + '\n\nUtilisateur: ' + message + '\nAssistant:')}?model=openai`;
-      const response = await fetch(fallbackUrl, {
-        signal: AbortSignal.timeout(8000)
+      const response = await fetch('https://text.pollinations.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message }
+          ],
+          model: 'mistral'
+        }),
+        signal: AbortSignal.timeout(10000)
       });
 
       if (response.ok) {
-        fullReply = await response.text();
+        const data = await response.json();
+        fullReply = data.choices[0].message.content;
         success = true;
       }
     } catch (err) {
-      console.error('Erreur finale communication AI Assistant (GET Fallback):', err.message);
+      console.error('Erreur finale communication AI Assistant (Mistral Fallback):', err.message);
     }
   }
 
