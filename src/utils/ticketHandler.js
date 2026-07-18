@@ -28,11 +28,24 @@ async function handleTicketInteraction(interaction, client) {
 
     const isStaff = memberRoles.some(roleId => allSupportRoles.has(roleId)) || member.permissions.has(PermissionFlagsBits.Administrator);
 
-    // Filtrer les catégories
+    // Filtrer les catégories de manière stricte et sécurisée
     const availableOptions = options.filter(opt => {
-      if (isStaff) return true;
+      // Le propriétaire du serveur et les administrateurs voient tout
+      if (member.id === interaction.guild.ownerId || member.permissions.has(PermissionFlagsBits.Administrator)) {
+        return true;
+      }
+
+      // Si le membre fait partie des rôles de support de cette option spécifique, il y a accès
+      let optionSupportRoles = [];
+      try {
+        optionSupportRoles = JSON.parse(opt.support_roles || '[]');
+      } catch (e) {}
+      const isSupportForThisOption = memberRoles.some(roleId => optionSupportRoles.includes(roleId));
+      if (isSupportForThisOption) return true;
+
+      // Sinon, on vérifie le rôle requis pour cette option
       const reqRoleId = (opt.required_role_id && opt.required_role_id !== 'null' && opt.required_role_id !== 'undefined') ? opt.required_role_id.trim() : null;
-      if (!reqRoleId || reqRoleId === '') return true;
+      if (!reqRoleId || reqRoleId === '') return true; // Accessible à tous si aucun rôle requis
       return memberRoles.includes(reqRoleId);
     });
 
@@ -88,9 +101,10 @@ async function handleTicketInteraction(interaction, client) {
 
     const member = interaction.member;
 
-    // Vérifier les permissions de rôle requis pour utiliser cette option
+    // Vérifier les permissions de rôle requis pour utiliser cette option (avec bypass administrateurs & propriétaire)
+    const isOwnerOrAdmin = member.id === interaction.guild.ownerId || member.permissions.has(PermissionFlagsBits.Administrator);
     const reqRoleId = (option.required_role_id && option.required_role_id !== 'null' && option.required_role_id !== 'undefined') ? option.required_role_id.trim() : null;
-    if (reqRoleId && reqRoleId !== '' && !member.roles.cache.has(reqRoleId)) {
+    if (reqRoleId && reqRoleId !== '' && !member.roles.cache.has(reqRoleId) && !isOwnerOrAdmin) {
       return interaction.reply({ 
         content: `❌ Vous devez avoir le rôle <@&${reqRoleId}> pour pouvoir ouvrir ce type de ticket.`, 
         ephemeral: true 
@@ -131,6 +145,22 @@ async function handleTicketInteraction(interaction, client) {
         ]
       }
     ];
+
+    // Toujours donner l'accès au propriétaire du serveur (Owner)
+    if (interaction.guild.ownerId && interaction.guild.ownerId !== interaction.user.id) {
+      permissionOverwrites.push({
+        id: interaction.guild.ownerId,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.AttachFiles,
+          PermissionFlagsBits.ReadMessageHistory,
+          PermissionFlagsBits.ManageChannels,
+          PermissionFlagsBits.ManageRoles
+        ]
+      });
+    }
 
     // Rôles de support ayant accès au ticket
     let supportRoles = [];
@@ -192,9 +222,21 @@ async function handleTicketInteraction(interaction, client) {
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
+        .setCustomId('ticket_claim')
+        .setLabel('Prendre en charge 🙋‍♂️')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId('ticket_assign')
+        .setLabel('Assigner 👤')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('ticket_manage_member')
+        .setLabel('Gérer membre 👥')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
         .setCustomId('ticket_close')
         .setLabel('Fermer 🔒')
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Danger)
     );
 
     // Pings des rôles
@@ -228,6 +270,11 @@ async function handleTicketInteraction(interaction, client) {
       return interaction.reply({ content: '❌ Ce salon n\'est pas un ticket actif ou a déjà été clôturé.', ephemeral: true });
     }
 
+    const isStaff = await checkIsTicketStaff(interaction);
+    if (!isStaff) {
+      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+    }
+
     const embed = new EmbedBuilder()
       .setTitle('🔒 Fermeture du Ticket')
       .setDescription('Êtes-vous sûr de vouloir fermer ce ticket ? Cette action supprimera définitivement le salon.')
@@ -254,6 +301,11 @@ async function handleTicketInteraction(interaction, client) {
       return interaction.reply({ content: '❌ Ce salon n\'est pas un ticket actif.', ephemeral: true });
     }
 
+    const isStaff = await checkIsTicketStaff(interaction);
+    if (!isStaff) {
+      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+    }
+
     await interaction.reply({ content: '📁 **Fermeture du ticket dans 5 secondes...**' });
 
     setTimeout(async () => {
@@ -266,6 +318,181 @@ async function handleTicketInteraction(interaction, client) {
   else if (customId === 'ticket_close_cancel') {
     await interaction.message.delete().catch(() => null);
   }
+
+  // --- ACTIONS DE GESTION DE TICKET ---
+
+  else if (customId === 'ticket_claim') {
+    const isStaff = await checkIsTicketStaff(interaction);
+    if (!isStaff) {
+      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+    }
+
+    const embed = EmbedBuilder.from(interaction.message.embeds[0]);
+    const currentFields = embed.data.fields || [];
+    const claimedField = currentFields.find(f => f.name === '🙋‍♂️ Pris en charge par');
+    
+    if (claimedField) {
+      return interaction.reply({ content: '❌ Ce ticket est déjà pris en charge par un autre membre du personnel.', ephemeral: true });
+    }
+
+    embed.addFields({ name: '🙋‍♂️ Pris en charge par', value: `<@${interaction.user.id}>`, inline: true });
+    
+    await interaction.message.edit({ embeds: [embed] });
+    await interaction.channel.setTopic(`Ticket pris en charge par ${interaction.user.tag}.`).catch(() => {});
+    await interaction.reply({ content: `🙋‍♂️ <@${interaction.user.id}> a pris en charge ce ticket.` });
+  }
+
+  else if (customId === 'ticket_assign') {
+    const isStaff = await checkIsTicketStaff(interaction);
+    if (!isStaff) {
+      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+    }
+
+    const { UserSelectMenuBuilder } = require('discord.js');
+    const select = new UserSelectMenuBuilder()
+      .setCustomId('ticket_assign_select')
+      .setPlaceholder('Sélectionnez un membre du staff...')
+      .setMinValues(1)
+      .setMaxValues(1);
+
+    const row = new ActionRowBuilder().addComponents(select);
+    await interaction.reply({ content: '👤 **Choisissez le membre du personnel à qui assigner ce ticket :**', components: [row], ephemeral: true });
+  }
+
+  else if (customId === 'ticket_assign_select' && interaction.isUserSelectMenu()) {
+    const isStaff = await checkIsTicketStaff(interaction);
+    if (!isStaff) {
+      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+    }
+
+    const targetUserId = interaction.values[0];
+    const messages = await interaction.channel.messages.fetch({ limit: 50 });
+    const welcomeMsg = messages.find(m => m.embeds.length > 0 && m.embeds[0].title && m.embeds[0].title.startsWith("🎫 Ticket d'Assistance"));
+    
+    if (welcomeMsg) {
+      const embed = EmbedBuilder.from(welcomeMsg.embeds[0]);
+      const currentFields = embed.data.fields || [];
+      const newFields = currentFields.filter(f => f.name !== '🙋‍♂️ Pris en charge par');
+      newFields.push({ name: '🙋‍♂️ Pris en charge par', value: `<@${targetUserId}>`, inline: true });
+      embed.setFields(newFields);
+      
+      await welcomeMsg.edit({ embeds: [embed] });
+    }
+
+    await interaction.channel.setTopic(`Ticket assigné à <@${targetUserId}>.`).catch(() => {});
+    await interaction.reply({ content: `👤 Le ticket a été assigné à <@${targetUserId}>.` });
+  }
+
+  else if (customId === 'ticket_manage_member') {
+    const isStaff = await checkIsTicketStaff(interaction);
+    if (!isStaff) {
+      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+    }
+
+    const manageRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('ticket_add_member_btn')
+        .setLabel('Ajouter un membre ➕')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId('ticket_remove_member_btn')
+        .setLabel('Retirer un membre ➖')
+        .setStyle(ButtonStyle.Danger)
+    );
+
+    await interaction.reply({ content: '👥 **Que souhaitez-vous faire ?**', components: [manageRow], ephemeral: true });
+  }
+
+  else if (customId === 'ticket_add_member_btn') {
+    const isStaff = await checkIsTicketStaff(interaction);
+    if (!isStaff) {
+      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+    }
+
+    const { UserSelectMenuBuilder } = require('discord.js');
+    const select = new UserSelectMenuBuilder()
+      .setCustomId('ticket_add_member_select')
+      .setPlaceholder('Sélectionnez le membre à ajouter...')
+      .setMinValues(1)
+      .setMaxValues(1);
+    const row = new ActionRowBuilder().addComponents(select);
+    await interaction.reply({ content: '➕ **Choisissez le membre à ajouter au ticket :**', components: [row], ephemeral: true });
+  }
+
+  else if (customId === 'ticket_remove_member_btn') {
+    const isStaff = await checkIsTicketStaff(interaction);
+    if (!isStaff) {
+      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+    }
+
+    const { UserSelectMenuBuilder } = require('discord.js');
+    const select = new UserSelectMenuBuilder()
+      .setCustomId('ticket_remove_member_select')
+      .setPlaceholder('Sélectionnez le membre à retirer...')
+      .setMinValues(1)
+      .setMaxValues(1);
+    const row = new ActionRowBuilder().addComponents(select);
+    await interaction.reply({ content: '➖ **Choisissez le membre à retirer du ticket :**', components: [row], ephemeral: true });
+  }
+
+  else if (customId === 'ticket_add_member_select' && interaction.isUserSelectMenu()) {
+    const isStaff = await checkIsTicketStaff(interaction);
+    if (!isStaff) {
+      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+    }
+
+    const targetUserId = interaction.values[0];
+    await interaction.channel.permissionOverwrites.create(targetUserId, {
+      ViewChannel: true,
+      SendMessages: true,
+      EmbedLinks: true,
+      AttachFiles: true,
+      ReadMessageHistory: true
+    });
+    await interaction.reply({ content: `➕ <@${targetUserId}> a été ajouté au ticket.` });
+  }
+
+  else if (customId === 'ticket_remove_member_select' && interaction.isUserSelectMenu()) {
+    const isStaff = await checkIsTicketStaff(interaction);
+    if (!isStaff) {
+      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+    }
+
+    const targetUserId = interaction.values[0];
+    await interaction.channel.permissionOverwrites.delete(targetUserId);
+    await interaction.reply({ content: `➖ <@${targetUserId}> a été retiré du ticket.` });
+  }
+}
+
+async function checkIsTicketStaff(interaction) {
+  const guild = interaction.guild;
+  const member = interaction.member;
+  if (!guild || !member) return false;
+
+  // Propriétaire du serveur et administrateurs
+  if (member.id === guild.ownerId || member.permissions.has(PermissionFlagsBits.Administrator)) {
+    return true;
+  }
+
+  // Récupérer le ticket actif depuis la BDD
+  const activeTicket = getActiveTicket(interaction.channelId);
+  if (!activeTicket) return false;
+
+  const option = db.prepare('SELECT * FROM ticket_options WHERE guild_id = ? AND id = ?').get(guild.id, activeTicket.option_id);
+  if (!option) return false;
+
+  let supportRoles = [];
+  try {
+    supportRoles = JSON.parse(option.support_roles || '[]');
+  } catch (e) {}
+
+  let pingRoles = [];
+  try {
+    pingRoles = JSON.parse(option.ping_users || '[]');
+  } catch (e) {}
+
+  const allStaffRoles = new Set([...supportRoles, ...pingRoles]);
+  return member.roles.cache.some(role => allStaffRoles.has(role.id));
 }
 
 module.exports = { handleTicketInteraction };
