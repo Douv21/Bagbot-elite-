@@ -6,7 +6,7 @@ const path = require('path');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('caresser')
-    .setDescription("Caresser doucement quelqu'un")
+    .setDescription("Caresser doucement quelqu\'un")
     .addUserOption(option => option.setName('cible').setDescription('Personne ciblée (optionnel)').setRequired(false))
     .setDMPermission(true),
 
@@ -17,7 +17,13 @@ module.exports = {
     let target = interaction.options.getUser('cible');
 
     if (!target) {
-      target = interaction.user;
+      if (interaction.guild) {
+        const members = await interaction.guild.members.fetch({ limit: 100 }).catch(() => null);
+        const randomMember = members ? members.filter(m => m.id !== userId).random() : null;
+        target = randomMember ? randomMember.user : interaction.user;
+      } else {
+        target = interaction.user;
+      }
     }
 
     const author = interaction.user;
@@ -44,12 +50,48 @@ module.exports = {
       totalCoins = reward;
     }
 
-    const actionMessage = target.id === userId 
-      ? `${author} se caresse les bras doucement.`
-      : `${author} caresse tendrement ${target}.`;
+    const targetMember = interaction.guild ? await interaction.guild.members.fetch(target.id).catch(() => null) : null;
+    let actionMessage = "";
+
+    // Tenter de générer une phrase unique via l'IA en temps réel
+    if (target.id !== userId) {
+      const { generateAiActionPhrase } = require('../../utils/aiActionHelper');
+      const aiPhrase = await generateAiActionPhrase('caresser', 'Caresser doucement quelqu\'un', interaction.member, targetMember);
+      if (aiPhrase) {
+        actionMessage = aiPhrase;
+      }
+    }
+
+    // Fallback aux phrases configurées en base de données / par défaut
+    if (!actionMessage) {
+      actionMessage = target.id === userId 
+        ? `${author} se caresse les bras doucement.`
+        : `${author} caresse lentement et sensuellement les courbes de ${target}. || Les doigts de ${author} effleurent doucement la peau frémissante de ${target}... || ${author} dessine des caresses brûlantes tout le long du corps de ${target}.`;
+
+      if (guildId) {
+        const { getCustomActionMessage } = require('../../database/db');
+        const customMsg = getCustomActionMessage(guildId, 'caresser');
+        if (customMsg) {
+          actionMessage = target.id === userId
+            ? (customMsg.self_message || actionMessage)
+            : (customMsg.target_message || actionMessage);
+        }
+      }
+
+      // Sélectionner une phrase aléatoire si des alternatives séparées par "||" existent
+      if (actionMessage.includes('||')) {
+        const parts = actionMessage.split('||').map(p => p.trim()).filter(p => p.length > 0);
+        if (parts.length > 0) {
+          actionMessage = parts[Math.floor(Math.random() * parts.length)];
+        }
+      }
+
+      const { formatGenderMessage } = require('../../utils/genderHelper');
+      actionMessage = formatGenderMessage(actionMessage, interaction.member, targetMember);
+    }
 
     const embed = new EmbedBuilder()
-      .setTitle("👋 Caresse")
+      .setTitle("🍒 Caresse")
       .setDescription(actionMessage)
       .setColor(0x8B0000)
       .setAuthor({ name: author.username, iconURL: author.displayAvatarURL({ dynamic: true }) })

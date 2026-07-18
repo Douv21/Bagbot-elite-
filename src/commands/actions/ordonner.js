@@ -5,8 +5,8 @@ const path = require('path');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('mordre')
-    .setDescription("Mordre quelqu\'un")
+    .setName('ordonner')
+    .setDescription("Ordonner à quelqu\'un")
     .addUserOption(option => option.setName('cible').setDescription('Personne ciblée (optionnel)').setRequired(false))
     .setDMPermission(true),
 
@@ -56,7 +56,7 @@ module.exports = {
     // Tenter de générer une phrase unique via l'IA en temps réel
     if (target.id !== userId) {
       const { generateAiActionPhrase } = require('../../utils/aiActionHelper');
-      const aiPhrase = await generateAiActionPhrase('mordre', 'Mordre quelqu\'un', interaction.member, targetMember);
+      const aiPhrase = await generateAiActionPhrase('ordonner', 'Ordonner à quelqu\'un', interaction.member, targetMember);
       if (aiPhrase) {
         actionMessage = aiPhrase;
       }
@@ -65,12 +65,12 @@ module.exports = {
     // Fallback aux phrases configurées en base de données / par défaut
     if (!actionMessage) {
       actionMessage = target.id === userId 
-        ? `${author} se mord la langue. Aïe !`
-        : `${author} mordille délicatement et sauvagement le cou de ${target} ! || ${author} enfonce doucement ses dents dans la chair de ${target} pour éveiller ses désirs... || Une morsure complice et coquine de ${author} fait frissonner ${target}.`;
+        ? `${author} se donne des ordres à lui-même.`
+        : `${author} soumet ${target} à son autorité et lui ordonne de lui obéir... || ${author} prend une voix ferme et ordonne à ${target} de satisfaire ses désirs... || ${target} écoute docilement ce que ${author} lui ordonne de faire.`;
 
       if (guildId) {
         const { getCustomActionMessage } = require('../../database/db');
-        const customMsg = getCustomActionMessage(guildId, 'mordre');
+        const customMsg = getCustomActionMessage(guildId, 'ordonner');
         if (customMsg) {
           actionMessage = target.id === userId
             ? (customMsg.self_message || actionMessage)
@@ -91,7 +91,7 @@ module.exports = {
     }
 
     const embed = new EmbedBuilder()
-      .setTitle("🦷 Morsure")
+      .setTitle("👑 Ordre de Domination")
       .setDescription(actionMessage)
       .setColor(0x8B0000)
       .setAuthor({ name: author.username, iconURL: author.displayAvatarURL({ dynamic: true }) })
@@ -102,10 +102,10 @@ module.exports = {
     
     let gifs = [];
     if (guildId) {
-      gifs = getActionGifs(guildId, 'mordre');
+      gifs = getActionGifs(guildId, 'ordonner');
     } else {
       try {
-        gifs = db.prepare('SELECT * FROM action_gifs WHERE action_name = ?').all('mordre');
+        gifs = db.prepare('SELECT * FROM action_gifs WHERE action_name = ?').all('ordonner');
       } catch (e) {
         console.error('Erreur lecture gifs en MP:', e);
       }

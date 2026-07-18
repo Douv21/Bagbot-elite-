@@ -5,8 +5,8 @@ const path = require('path');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('mordre')
-    .setDescription("Mordre quelqu\'un")
+    .setName('cuisiner')
+    .setDescription("Cuisiner pour quelqu\'un")
     .addUserOption(option => option.setName('cible').setDescription('Personne ciblée (optionnel)').setRequired(false))
     .setDMPermission(true),
 
@@ -56,7 +56,7 @@ module.exports = {
     // Tenter de générer une phrase unique via l'IA en temps réel
     if (target.id !== userId) {
       const { generateAiActionPhrase } = require('../../utils/aiActionHelper');
-      const aiPhrase = await generateAiActionPhrase('mordre', 'Mordre quelqu\'un', interaction.member, targetMember);
+      const aiPhrase = await generateAiActionPhrase('cuisiner', 'Cuisiner pour quelqu\'un', interaction.member, targetMember);
       if (aiPhrase) {
         actionMessage = aiPhrase;
       }
@@ -65,12 +65,12 @@ module.exports = {
     // Fallback aux phrases configurées en base de données / par défaut
     if (!actionMessage) {
       actionMessage = target.id === userId 
-        ? `${author} se mord la langue. Aïe !`
-        : `${author} mordille délicatement et sauvagement le cou de ${target} ! || ${author} enfonce doucement ses dents dans la chair de ${target} pour éveiller ses désirs... || Une morsure complice et coquine de ${author} fait frissonner ${target}.`;
+        ? `${author} se cuisine un petit plat en solo.`
+        : `${author} prépare un dîner chaud et intime pour ${target} afin de pimenter leur soirée ! || ${author} se met aux fourneaux pour séduire ${target} par ses saveurs... || ${author} prépare de douces gourmandises pour éveiller les papilles de ${target}.`;
 
       if (guildId) {
         const { getCustomActionMessage } = require('../../database/db');
-        const customMsg = getCustomActionMessage(guildId, 'mordre');
+        const customMsg = getCustomActionMessage(guildId, 'cuisiner');
         if (customMsg) {
           actionMessage = target.id === userId
             ? (customMsg.self_message || actionMessage)
@@ -91,7 +91,7 @@ module.exports = {
     }
 
     const embed = new EmbedBuilder()
-      .setTitle("🦷 Morsure")
+      .setTitle("🍳 Cuisine Intime")
       .setDescription(actionMessage)
       .setColor(0x8B0000)
       .setAuthor({ name: author.username, iconURL: author.displayAvatarURL({ dynamic: true }) })
@@ -102,10 +102,10 @@ module.exports = {
     
     let gifs = [];
     if (guildId) {
-      gifs = getActionGifs(guildId, 'mordre');
+      gifs = getActionGifs(guildId, 'cuisiner');
     } else {
       try {
-        gifs = db.prepare('SELECT * FROM action_gifs WHERE action_name = ?').all('mordre');
+        gifs = db.prepare('SELECT * FROM action_gifs WHERE action_name = ?').all('cuisiner');
       } catch (e) {
         console.error('Erreur lecture gifs en MP:', e);
       }
