@@ -68,6 +68,7 @@ async function processAiCommand(guildId, userId, message, client) {
 
   const rolesList = (fetchedRoles || guild.roles.cache)
     .filter(r => r.name !== '@everyone')
+    .filter(r => !r.name.includes('---') && !r.name.includes('──') && !r.name.includes('===') && !r.name.includes('___'))
     .sort((a, b) => b.position - a.position)
     .map(r => `@${r.name} (ID: ${r.id}, Position: ${r.position})`)
     .join(', ');
@@ -412,20 +413,20 @@ Pour que le script puisse les parser automatiquement.`;
           if (action.allow) {
             const allowArray = Array.isArray(action.allow) ? action.allow : [action.allow];
             if (allowArray.some(p => typeof p === 'string' && p.toLowerCase() === 'all')) {
-              allowPerms.push(...Object.values(PermissionFlagsBits));
+              allowPerms.push(...Object.keys(PermissionFlagsBits));
             } else {
               allowArray.forEach(perm => {
-                if (PermissionFlagsBits[perm]) allowPerms.push(PermissionFlagsBits[perm]);
+                if (PermissionFlagsBits[perm]) allowPerms.push(perm);
               });
             }
           }
           if (action.deny) {
             const denyArray = Array.isArray(action.deny) ? action.deny : [action.deny];
             if (denyArray.some(p => typeof p === 'string' && p.toLowerCase() === 'all')) {
-              denyPerms.push(...Object.values(PermissionFlagsBits));
+              denyPerms.push(...Object.keys(PermissionFlagsBits));
             } else {
               denyArray.forEach(perm => {
-                if (PermissionFlagsBits[perm]) denyPerms.push(PermissionFlagsBits[perm]);
+                if (PermissionFlagsBits[perm]) denyPerms.push(perm);
               });
             }
           }
