@@ -92,7 +92,7 @@ Règles de décision CRITIQUES :
 2. Lorsque tu fais référence à un salon, utilise son nom exact ou son ID figurant dans la liste des SALONS EXISTANTS ci-dessus.
 
 Liste des permissions valides utilisables pour les actions :
-"Administrator", "BanMembers", "KickMembers", "ModerateMembers", "ManageRoles", "ManageChannels", "ManageMessages", "ViewChannel", "SendMessages", "ReadMessageHistory", "AddReactions", "MuteMembers", "DeafenMembers", "MoveMembers"
+"all" (pour attribuer toutes les permissions d'un coup), "Administrator", "BanMembers", "KickMembers", "ModerateMembers", "ManageRoles", "ManageChannels", "ManageMessages", "ViewChannel", "SendMessages", "ReadMessageHistory", "AddReactions", "MuteMembers", "DeafenMembers", "MoveMembers", "EmbedLinks", "AttachFiles", "MentionEveryone", "UseExternalEmojis", "Connect", "Speak", "UseVAD", "ChangeNickname", "ManageNicknames", "ManageWebhooks", "CreateInstantInvite", "ViewAuditLog"
 
 Actions d'administration possibles (tu devez les formuler sous forme d'un tableau JSON d'objets, exemple: [{"type": "create_role", "name": "VIP"}]):
 1. {"type": "update_automod", "anti_link": 0/1, "anti_spam": 0/1, "anti_massmention": 0/1, "anti_badwords": 0/1, "spam_max_msgs": nombre, "massmention_limit": nombre, "badwords_list": "mot1,mot2"}
@@ -223,11 +223,16 @@ Pour que le script puisse les parser automatiquement.`;
             color = colors[action.color.toLowerCase()] || (action.color.startsWith('#') ? action.color : null);
           }
 
-          const permissions = [];
+          let permissions = [];
           if (action.permissions) {
-            action.permissions.forEach(perm => {
-              if (PermissionFlagsBits[perm]) permissions.push(PermissionFlagsBits[perm]);
-            });
+            const permsArray = Array.isArray(action.permissions) ? action.permissions : [action.permissions];
+            if (permsArray.some(p => typeof p === 'string' && p.toLowerCase() === 'all')) {
+              permissions = Object.values(PermissionFlagsBits);
+            } else {
+              permsArray.forEach(perm => {
+                if (PermissionFlagsBits[perm]) permissions.push(PermissionFlagsBits[perm]);
+              });
+            }
           }
 
           const newRole = await guild.roles.create({
@@ -368,14 +373,24 @@ Pour que le script puisse les parser automatiquement.`;
           if (role) {
             let currentPerms = role.permissions;
             if (action.allow) {
-              action.allow.forEach(perm => {
-                if (PermissionFlagsBits[perm]) currentPerms = currentPerms.add(PermissionFlagsBits[perm]);
-              });
+              const allowArray = Array.isArray(action.allow) ? action.allow : [action.allow];
+              if (allowArray.some(p => typeof p === 'string' && p.toLowerCase() === 'all')) {
+                currentPerms = Object.values(PermissionFlagsBits);
+              } else {
+                allowArray.forEach(perm => {
+                  if (PermissionFlagsBits[perm]) currentPerms = currentPerms.add(PermissionFlagsBits[perm]);
+                });
+              }
             }
             if (action.deny) {
-              action.deny.forEach(perm => {
-                if (PermissionFlagsBits[perm]) currentPerms = currentPerms.remove(PermissionFlagsBits[perm]);
-              });
+              const denyArray = Array.isArray(action.deny) ? action.deny : [action.deny];
+              if (denyArray.some(p => typeof p === 'string' && p.toLowerCase() === 'all')) {
+                currentPerms = [];
+              } else {
+                denyArray.forEach(perm => {
+                  if (PermissionFlagsBits[perm]) currentPerms = currentPerms.remove(PermissionFlagsBits[perm]);
+                });
+              }
             }
             await role.setPermissions(currentPerms);
             executedActions.push({ type: 'update_role_permissions', role: role.name });
