@@ -966,11 +966,46 @@
                   <label for="shop_item_desc">Description :</label>
                   <input type="text" id="shop_item_desc" placeholder="Ex: Rôle VIP Gold donnant accès à des salons privés">
                 </div>
-                <div class="form-group">
-                  <label for="shop_item_role">Rôle à attribuer lors de l'achat (optionnel) :</label>
-                  <select id="shop_item_role" class="role-select">
-                    <option value="">Aucun rôle (Objet virtuel/custom)</option>
-                  </select>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="shop_item_role">Rôle à attribuer lors de l'achat (optionnel) :</label>
+                    <select id="shop_item_role" class="role-select">
+                      <option value="">Aucun rôle (Objet virtuel/custom)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="shop_item_role_type">Type de rôle :</label>
+                    <select id="shop_item_role_type" class="custom-select">
+                      <option value="permanent">Permanent</option>
+                      <option value="temporary">Temporaire</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row" id="shop_item_duration_row" style="display: none;">
+                  <div class="form-group">
+                    <label for="shop_item_duration_val">Durée :</label>
+                    <input type="number" id="shop_item_duration_val" min="1" placeholder="Ex: 7">
+                  </div>
+                  <div class="form-group">
+                    <label for="shop_item_duration_unit">Unité de temps :</label>
+                    <select id="shop_item_duration_unit" class="custom-select">
+                      <option value="days">Jours</option>
+                      <option value="hours">Heures</option>
+                      <option value="minutes">Minutes</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="shop_item_xp">Bonus d'XP accordé (optionnel) :</label>
+                    <input type="number" id="shop_item_xp" min="0" placeholder="Ex: 100">
+                  </div>
+                  <div class="form-group">
+                    <label for="shop_item_karma">Bonus de Karma accordé (optionnel) :</label>
+                    <input type="number" id="shop_item_karma" min="0" placeholder="Ex: 5">
+                  </div>
                 </div>
                 <button type="submit" class="btn btn-add"><i class="fa-solid fa-plus"></i> Ajouter l'objet</button>
               </form>

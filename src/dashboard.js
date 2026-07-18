@@ -739,15 +739,24 @@ app.post('/api/config/shop/add', (req, res) => {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { item_name, price, description, role_id } = req.body;
+    const { item_name, price, description, role_id, role_duration_ms, reward_xp, reward_karma } = req.body;
     if (!item_name || !price) {
       return res.status(400).json({ error: 'Nom et prix requis' });
     }
 
     db.prepare(`
-      INSERT OR REPLACE INTO shop (guild_id, item_name, price, description, role_id)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(guildId, item_name, price, description || '', role_id || null);
+      INSERT OR REPLACE INTO shop (guild_id, item_name, price, description, role_id, role_duration_ms, reward_xp, reward_karma)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      guildId,
+      item_name,
+      price,
+      description || '',
+      role_id || null,
+      role_duration_ms || 0,
+      reward_xp || 0,
+      reward_karma || 0
+    );
 
     res.json({ success: true });
   } catch (error) {

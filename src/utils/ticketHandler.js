@@ -197,8 +197,6 @@ async function handleTicketInteraction(interaction, client) {
         .setStyle(ButtonStyle.Secondary)
     );
 
-    await ticketChannel.send({ embeds: [welcomeEmbed], components: [row] });
-
     // Pings des rôles
     let pingRoles = [];
     try {
@@ -206,18 +204,19 @@ async function handleTicketInteraction(interaction, client) {
     } catch (e) {}
 
     let pingContent = '';
-    supportRoles.forEach(roleId => {
-      pingContent += `<@&${roleId}> `;
-    });
-    pingRoles.forEach(roleId => {
+    const allPings = new Set();
+    supportRoles.forEach(roleId => allPings.add(roleId));
+    pingRoles.forEach(roleId => allPings.add(roleId));
+
+    allPings.forEach(roleId => {
       pingContent += `<@&${roleId}> `;
     });
 
-    if (pingContent.trim().length > 0) {
-      const pingMsg = await ticketChannel.send({ content: pingContent });
-      // Supprimer le ping après 1.5 seconde
-      setTimeout(() => pingMsg.delete().catch(() => null), 1500);
-    }
+    await ticketChannel.send({ 
+      content: pingContent.trim() || undefined, 
+      embeds: [welcomeEmbed], 
+      components: [row] 
+    });
 
     await interaction.followUp({ content: `✅ Votre ticket a été créé avec succès dans <#${ticketChannel.id}>.`, ephemeral: true });
   }

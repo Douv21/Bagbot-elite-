@@ -184,6 +184,28 @@ function initDatabase() {
     )
   `).run();
 
+  // 9b. Rôles Temporaires
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS temporary_roles (
+      guild_id TEXT,
+      user_id TEXT,
+      role_id TEXT,
+      expires_at INTEGER,
+      PRIMARY KEY (guild_id, user_id, role_id)
+    )
+  `).run();
+
+  // Migrations pour ajouter les colonnes supplémentaires à la table shop
+  try {
+    db.prepare('ALTER TABLE shop ADD COLUMN role_duration_ms INTEGER DEFAULT 0').run();
+  } catch (_) {}
+  try {
+    db.prepare('ALTER TABLE shop ADD COLUMN reward_xp INTEGER DEFAULT 0').run();
+  } catch (_) {}
+  try {
+    db.prepare('ALTER TABLE shop ADD COLUMN reward_karma INTEGER DEFAULT 0').run();
+  } catch (_) {}
+
   // 10. Inventaire
   db.prepare(`
     CREATE TABLE IF NOT EXISTS inventory (
@@ -852,6 +874,22 @@ const updateShopConfig = (guildId, privateSuiteCategoryId) => {
   `).run(guildId, privateSuiteCategoryId || null);
 };
 
+const addTemporaryRole = (guildId, userId, roleId, expiresAt) => {
+  db.prepare(`
+    INSERT OR REPLACE INTO temporary_roles (guild_id, user_id, role_id, expires_at)
+    VALUES (?, ?, ?, ?)
+  `).run(guildId, userId, roleId, expiresAt);
+};
+
+const getTemporaryRoles = () => {
+  return db.prepare('SELECT * FROM temporary_roles').all();
+};
+
+const deleteTemporaryRole = (guildId, userId, roleId) => {
+  db.prepare('DELETE FROM temporary_roles WHERE guild_id = ? AND user_id = ? AND role_id = ?')
+    .run(guildId, userId, roleId);
+};
+
 const getKarmaConfig = (guildId) => {
   let config = db.prepare('SELECT * FROM karma_config WHERE guild_id = ?').get(guildId);
   if (!config) {
@@ -1190,6 +1228,9 @@ module.exports = {
   updatePrivateSuiteExpiry,
   getShopConfig,
   updateShopConfig,
+  addTemporaryRole,
+  getTemporaryRoles,
+  deleteTemporaryRole,
   getKarmaConfig,
   updateKarmaConfig,
   getUnlimitedForums,

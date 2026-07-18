@@ -1935,13 +1935,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- SHOP MANAGER ---
 
+  // Gestion de l'affichage de la durée du rôle temporaire
+  const roleTypeSelect = document.getElementById('shop_item_role_type');
+  const durationRow = document.getElementById('shop_item_duration_row');
+  if (roleTypeSelect && durationRow) {
+    roleTypeSelect.addEventListener('change', () => {
+      durationRow.style.display = roleTypeSelect.value === 'temporary' ? 'flex' : 'none';
+    });
+  }
+
   formAddShopItem.addEventListener('submit', (e) => {
     e.preventDefault();
+
+    let roleDurationMs = 0;
+    const roleType = document.getElementById('shop_item_role_type').value;
+    if (roleType === 'temporary') {
+      const val = parseInt(document.getElementById('shop_item_duration_val').value) || 0;
+      const unit = document.getElementById('shop_item_duration_unit').value;
+      if (val > 0) {
+        if (unit === 'days') roleDurationMs = val * 24 * 60 * 60 * 1000;
+        else if (unit === 'hours') roleDurationMs = val * 60 * 60 * 1000;
+        else if (unit === 'minutes') roleDurationMs = val * 60 * 1000;
+      }
+    }
+
     const data = {
       item_name: document.getElementById('shop_item_name').value,
       price: parseInt(document.getElementById('shop_item_price').value),
       description: document.getElementById('shop_item_desc').value,
-      role_id: document.getElementById('shop_item_role').value || null
+      role_id: document.getElementById('shop_item_role').value || null,
+      role_duration_ms: roleDurationMs,
+      reward_xp: parseInt(document.getElementById('shop_item_xp').value) || 0,
+      reward_karma: parseInt(document.getElementById('shop_item_karma').value) || 0
     };
 
     fetch('/api/config/shop/add', {
@@ -1953,6 +1978,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(resData => {
         if (resData.success) {
           formAddShopItem.reset();
+          if (durationRow) durationRow.style.display = 'none';
           // Reload configuration to refresh lists
           loadGuildConfiguration();
           showToast('Objet ajouté à la boutique !');
@@ -1973,7 +1999,28 @@ document.addEventListener('DOMContentLoaded', () => {
     items.forEach(item => {
       const tr = document.createElement('tr');
       
-      const roleName = item.role_id ? (rolesList.find(r => r.id === item.role_id)?.name || `<@&${item.role_id}>`) : 'Aucun';
+      let roleDetails = 'Aucun';
+      if (item.role_id) {
+        const foundName = rolesList.find(r => r.id === item.role_id)?.name || `<@&${item.role_id}>`;
+        if (item.role_duration_ms > 0) {
+          const durationMins = Math.round(item.role_duration_ms / 60000);
+          let durationStr = `${durationMins}m`;
+          if (durationMins >= 1440) {
+            durationStr = `${Math.round(durationMins / 1440)}j`;
+          } else if (durationMins >= 60) {
+            durationStr = `${Math.round(durationMins / 60)}h`;
+          }
+          roleDetails = `<span class="role-badge">${foundName}</span> <span style="font-size: 0.8rem; color: #f1c40f; font-weight: bold; margin-left: 5px;">⏱️ ${durationStr}</span>`;
+        } else {
+          roleDetails = `<span class="role-badge">${foundName}</span> <span style="font-size: 0.8rem; color: #2ecc71; font-weight: bold; margin-left: 5px;">♾️ Perm</span>`;
+        }
+      }
+
+      let bonuses = [];
+      if (item.reward_xp > 0) bonuses.push(`⭐ +${item.reward_xp} XP`);
+      if (item.reward_karma > 0) bonuses.push(`✨ +${item.reward_karma} Karma`);
+      const bonusText = bonuses.length > 0 ? `<div style="font-size: 0.8rem; color: #2ecc71; font-weight: bold; margin-top: 4px; display: flex; gap: 8px;">${bonuses.join(' | ')}</div>` : '';
+
       const isSuite = item.item_name.toLowerCase().startsWith('suite privée');
 
       const priceHTML = `
@@ -1989,10 +2036,10 @@ document.addEventListener('DOMContentLoaded', () => {
         : `<button class="btn btn-danger btn-delete-shop" data-name="${item.item_name}"><i class="fa-solid fa-trash-can"></i> Supprimer</button>`;
 
       tr.innerHTML = `
-        <td><strong>${item.item_name}</strong></td>
+        <td><strong>${item.item_name}</strong>${bonusText}</td>
         <td>${priceHTML}</td>
         <td>${item.description || '—'}</td>
-        <td><span class="role-badge">${roleName}</span></td>
+        <td>${roleDetails}</td>
         <td style="text-align: center; vertical-align: middle;">${actionHTML}</td>
       `;
 

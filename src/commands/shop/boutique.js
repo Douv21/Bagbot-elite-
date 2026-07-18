@@ -1,5 +1,14 @@
 const { SlashCommandBuilder, EmbedBuilder, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { db, getEconomy, updateEconomy, getPrivateSuite, updatePrivateSuiteExpiry, addPrivateSuite, getKarmaConfig, getShopConfig } = require('../../database/db');
+const { db, getEconomy, updateEconomy, getPrivateSuite, updatePrivateSuiteExpiry, addPrivateSuite, getKarmaConfig, getShopConfig, addTemporaryRole } = require('../../database/db');
+
+function formatDuration(ms) {
+  const mins = Math.round(ms / 60000);
+  if (mins < 60) return `${mins} minute(s)`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} heure(s)`;
+  const days = Math.round(hours / 24);
+  return `${days} jour(s)`;
+}
 
 function getKarmaDiscount(guildId, userId) {
   const economy = getEconomy(guildId, userId);
@@ -251,8 +260,9 @@ module.exports = {
         .run(guildId, userId, item.item_name);
     }
 
-    // Si l'objet donne un rôle, l'attribuer
-    let roleGiven = '';
+    let rewardsGiven = [];
+
+    // Si l'objet donne un rôle, l'attribuer (permanent ou temporaire)
     if (item.role_id) {
       const role = interaction.guild.roles.cache.get(item.role_id);
       if (role) {
@@ -260,15 +270,44 @@ module.exports = {
         if (member) {
           try {
             await member.roles.add(role);
-            roleGiven = ` et le rôle <@&${item.role_id}> vous a été attribué !`;
+            if (item.role_duration_ms > 0) {
+              const expiresAt = Date.now() + item.role_duration_ms;
+              addTemporaryRole(guildId, userId, item.role_id, expiresAt);
+              rewardsGiven.push(`le rôle temporaire **${role.name}** (pendant ${formatDuration(item.role_duration_ms)})`);
+            } else {
+              rewardsGiven.push(`le rôle permanent **${role.name}**`);
+            }
           } catch (e) {
             console.error(e);
-            roleGiven = `, mais je n'ai pas pu vous attribuer le rôle (vérifiez mes permissions).`;
+            rewardsGiven.push(`le rôle **${role.name}** (erreur d'attribution, contactez le staff)`);
           }
         }
       }
     }
 
-    return interaction.reply({ content: `🎉 Vous avez acheté **${item.item_name}** pour **${finalPrice}** pièces${roleGiven} !` });
+    // Gain d'XP
+    if (item.reward_xp > 0) {
+      const member = interaction.guild.members.cache.get(userId);
+      if (member) {
+        const { addXP } = require('../../utils/helpers');
+        await addXP(interaction.guild, member, item.reward_xp, interaction.channel);
+        rewardsGiven.push(`**+${item.reward_xp} XP**`);
+      }
+    }
+
+    // Gain de Karma
+    if (item.reward_karma > 0) {
+      updateEconomy(guildId, userId, {
+        karma: economy.karma + item.reward_karma
+      });
+      rewardsGiven.push(`**+${item.reward_karma} Karma**`);
+    }
+
+    let rewardText = '';
+    if (rewardsGiven.length > 0) {
+      rewardText = ` (Vous avez reçu : ${rewardsGiven.join(', ')})`;
+    }
+
+    return interaction.reply({ content: `🎉 **Achat réussi !** Vous avez acheté **${item.item_name}** pour **${finalPrice}** pièces${rewardText} !` });
   }
 };

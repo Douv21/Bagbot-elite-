@@ -443,7 +443,7 @@ client.on('interactionCreate', async interaction => {
 
     const isAllowedForEveryone = 
       command.category === 'actions' ||
-      ['action-verite', 'niveau', 'solde', 'karma', 'mapville', 'proche', 'boutique', 'leaderboard', 'confess', 'deposit', 'withdraw', 'lovecalc', 'mot-cache'].includes(interaction.commandName);
+      ['action-verite', 'niveau', 'solde', 'karma', 'mapville', 'proche', 'boutique', 'leaderboard', 'confess', 'confesser', 'deposit', 'withdraw', 'lovecalc', 'mot-cache'].includes(interaction.commandName);
       
     if (!isAllowedForEveryone) {
       const { PermissionsBitField } = require('discord.js');
@@ -545,6 +545,10 @@ client.once('ready', async () => {
     // Nettoyage automatique des suites privées toutes les 60 secondes
     setInterval(() => checkExpiredSuites(client), 60000);
     checkExpiredSuites(client);
+
+    // Nettoyage automatique des rôles temporaires toutes les 60 secondes
+    setInterval(() => checkExpiredTemporaryRoles(client), 60000);
+    checkExpiredTemporaryRoles(client);
 
     // Vérification des rappels de Bumps toutes les 30 secondes
     setInterval(() => checkBumpReminders(client), 30000);
@@ -846,6 +850,33 @@ async function checkExpiredSuites(client) {
     }
   } catch (err) {
     console.error('Erreur nettoyage suites privées:', err);
+  }
+}
+
+async function checkExpiredTemporaryRoles(client) {
+  try {
+    const now = Date.now();
+    const { getTemporaryRoles, deleteTemporaryRole } = require('./database/db');
+    const tempRoles = getTemporaryRoles();
+
+    for (const entry of tempRoles) {
+      if (entry.expires_at <= now) {
+        const guild = client.guilds.cache.get(entry.guild_id);
+        if (guild) {
+          const member = await guild.members.fetch(entry.user_id).catch(() => null);
+          if (member) {
+            const role = guild.roles.cache.get(entry.role_id);
+            if (role) {
+              await member.roles.remove(role).catch(console.error);
+              await member.send(`⏳ Votre rôle temporaire **${role.name}** sur le serveur **${guild.name}** a expiré et vous a été retiré.`).catch(() => {});
+            }
+          }
+        }
+        deleteTemporaryRole(entry.guild_id, entry.user_id, entry.role_id);
+      }
+    }
+  } catch (err) {
+    console.error('Erreur nettoyage rôles temporaires:', err);
   }
 }
 
