@@ -130,7 +130,7 @@ Pour que le script puisse les parser automatiquement.`;
   let fullReply = "";
   let success = false;
 
-  // 1. Tenter avec OpenAI
+  // 1. Tenter l'appel POST completions sur le modèle principal
   try {
     const response = await fetch('https://text.pollinations.ai/v1/chat/completions', {
       method: 'POST',
@@ -142,7 +142,7 @@ Pour que le script puisse les parser automatiquement.`;
         ],
         model: 'openai'
       }),
-      signal: AbortSignal.timeout(12000) // 12 secondes
+      signal: AbortSignal.timeout(35000) // Laisser 35 secondes au modèle pour raisonner
     });
 
     if (response.ok) {
@@ -156,57 +156,20 @@ Pour que le script puisse les parser automatiquement.`;
     console.warn(`POST AI Assistant (OpenAI) failed or timed out: ${err.message}`);
   }
 
-  // 2. Tenter avec Qwen (Excellent modèle de codage et de JSON)
+  // 2. Fallback avec un appel GET simple si le POST completions échoue
   if (!success) {
     try {
-      const response = await fetch('https://text.pollinations.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: message }
-          ],
-          model: 'qwen'
-        }),
-        signal: AbortSignal.timeout(12000)
+      const promptSimple = `${systemPrompt}\n\nUtilisateur: ${message}\nAssistant:`;
+      const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(promptSimple)}?model=openai`, {
+        signal: AbortSignal.timeout(20000) // 20 secondes pour le GET
       });
 
       if (response.ok) {
-        const data = await response.json();
-        fullReply = data.choices[0].message.content;
-        success = true;
-      } else {
-        console.warn(`POST AI Assistant (Qwen) failed (Status: ${response.status}), trying fallback...`);
-      }
-    } catch (err) {
-      console.warn(`POST AI Assistant (Qwen) failed or timed out: ${err.message}`);
-    }
-  }
-
-  // 3. Tenter avec Mistral en dernier recours
-  if (!success) {
-    try {
-      const response = await fetch('https://text.pollinations.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: message }
-          ],
-          model: 'mistral'
-        }),
-        signal: AbortSignal.timeout(12000)
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        fullReply = data.choices[0].message.content;
+        fullReply = await response.text();
         success = true;
       }
     } catch (err) {
-      console.error('Erreur finale communication AI Assistant (Mistral Fallback):', err.message);
+      console.error('Erreur finale communication AI Assistant (GET Fallback):', err.message);
     }
   }
 
