@@ -2,30 +2,32 @@ async function test() {
   const systemPrompt = "Tu es un assistant utile.";
   const userPrompt = "Dis bonjour courtement.";
 
-  const urls = [
-    { name: "POST text.pollinations.ai/v1/chat/completions", url: "https://text.pollinations.ai/v1/chat/completions", method: "POST", body: { messages: [{role:"system", content: systemPrompt}, {role:"user", content: userPrompt}], model: "openai" } },
-    { name: "POST text.pollinations.ai/", url: "https://text.pollinations.ai/", method: "POST", body: { messages: [{role:"system", content: systemPrompt}, {role:"user", content: userPrompt}], model: "openai" } },
-    { name: "POST text.pollinations.ai/v1/chat/completions (qwen)", url: "https://text.pollinations.ai/v1/chat/completions", method: "POST", body: { messages: [{role:"system", content: systemPrompt}, {role:"user", content: userPrompt}], model: "qwen" } },
-    { name: "GET text.pollinations.ai", url: `https://text.pollinations.ai/${encodeURIComponent(systemPrompt + " " + userPrompt)}?model=openai`, method: "GET" }
-  ];
+  const models = ["openai", "qwen", "mistral"];
 
-  for (const item of urls) {
+  for (const model of models) {
     try {
-      console.log(`\nTesting ${item.name}...`);
-      const options = {
-        method: item.method,
-        headers: item.method === "POST" ? { "Content-Type": "application/json" } : {},
-      };
-      if (item.method === "POST") {
-        options.body = JSON.stringify(item.body);
-      }
+      console.log(`\nTesting model "${model}"...`);
       const t0 = Date.now();
-      const res = await fetch(item.url, options);
+      const res = await fetch("https://text.pollinations.ai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          model: model
+        })
+      });
       console.log(`Status: ${res.status} (${Date.now() - t0}ms)`);
-      const text = await res.text();
-      console.log(`Response snippet: ${text.slice(0, 150)}`);
+      if (res.ok) {
+        const data = await res.json();
+        console.log(`Response: ${JSON.stringify(data.choices[0].message)}`);
+      } else {
+        console.log(`Error body: ${await res.text()}`);
+      }
     } catch (e) {
-      console.error(`Error: ${e.message}`);
+      console.error(`Error for ${model}: ${e.message}`);
     }
   }
 }
