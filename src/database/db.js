@@ -1000,11 +1000,27 @@ const getTicketOptions = (guildId) => {
 };
 
 const addTicketOption = (guildId, option) => {
-  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url } = option;
+  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove } = option;
   return db.prepare(`
-    INSERT INTO ticket_options (guild_id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(guildId, label, value, emoji, button_style || 'Primary', category_id || null, required_role_id || null, JSON.stringify(support_roles || []), JSON.stringify(ping_users || []), description || null, image_url || null);
+    INSERT INTO ticket_options (guild_id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    guildId, 
+    label, 
+    value, 
+    emoji || null, 
+    button_style || 'Primary', 
+    category_id || null, 
+    required_role_id || null, 
+    JSON.stringify(support_roles || []), 
+    JSON.stringify(ping_users || []), 
+    description || null, 
+    image_url || null,
+    JSON.stringify(member_roles_add || []),
+    JSON.stringify(member_roles_remove || []),
+    JSON.stringify(certify_roles_add || []),
+    JSON.stringify(certify_roles_remove || [])
+  );
 };
 
 const deleteTicketOption = (guildId, id) => {
@@ -1012,7 +1028,7 @@ const deleteTicketOption = (guildId, id) => {
 };
 
 const updateTicketOption = (guildId, id, option) => {
-  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url } = option;
+  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove } = option;
   return db.prepare(`
     UPDATE ticket_options SET
       label = ?,
@@ -1024,7 +1040,11 @@ const updateTicketOption = (guildId, id, option) => {
       support_roles = ?,
       ping_users = ?,
       description = ?,
-      image_url = ?
+      image_url = ?,
+      member_roles_add = ?,
+      member_roles_remove = ?,
+      certify_roles_add = ?,
+      certify_roles_remove = ?
     WHERE guild_id = ? AND id = ?
   `).run(
     label,
@@ -1037,6 +1057,10 @@ const updateTicketOption = (guildId, id, option) => {
     JSON.stringify(ping_users || []),
     description || null,
     image_url || null,
+    JSON.stringify(member_roles_add || []),
+    JSON.stringify(member_roles_remove || []),
+    JSON.stringify(certify_roles_add || []),
+    JSON.stringify(certify_roles_remove || []),
     guildId,
     id
   );

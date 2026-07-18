@@ -449,15 +449,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Populate Ticket Roles Ping Select
     const ticketPingSelect = document.getElementById('ticket_opt_ping_users');
-    if (ticketPingSelect) {
-      ticketPingSelect.innerHTML = '';
-      rolesList.forEach(r => {
-        const option = document.createElement('option');
-        option.value = r.id;
-        option.textContent = r.name;
-        ticketPingSelect.appendChild(option);
-      });
-    }
+    const ticketMemberAddSelect = document.getElementById('ticket_opt_member_roles_add');
+    const ticketMemberRemoveSelect = document.getElementById('ticket_opt_member_roles_remove');
+    const ticketCertifyAddSelect = document.getElementById('ticket_opt_certify_roles_add');
+    const ticketCertifyRemoveSelect = document.getElementById('ticket_opt_certify_roles_remove');
+
+    const selectToPopulate = [
+      ticketPingSelect,
+      ticketMemberAddSelect,
+      ticketMemberRemoveSelect,
+      ticketCertifyAddSelect,
+      ticketCertifyRemoveSelect
+    ];
+
+    selectToPopulate.forEach(selectEl => {
+      if (selectEl) {
+        selectEl.innerHTML = '';
+        rolesList.forEach(r => {
+          const option = document.createElement('option');
+          option.value = r.id;
+          option.textContent = r.name;
+          selectEl.appendChild(option);
+        });
+      }
+    });
 
     // Synchroniser tous les sélecteurs de recherche personnalisés
     document.querySelectorAll('.channel-select, .announce-channel-select, .role-select, .custom-select').forEach(select => {
@@ -1303,8 +1318,48 @@ document.addEventListener('DOMContentLoaded', () => {
           option.selected = pUsers.includes(option.value);
         });
 
+        // Bouton Membre Roles à ajouter
+        let mRolesAdd = [];
+        try { mRolesAdd = JSON.parse(opt.member_roles_add || '[]'); } catch (e) {}
+        const memberAddSelect = document.getElementById('ticket_opt_member_roles_add');
+        if (memberAddSelect) {
+          Array.from(memberAddSelect.options).forEach(option => {
+            option.selected = mRolesAdd.includes(option.value);
+          });
+        }
+
+        // Bouton Membre Roles à retirer
+        let mRolesRemove = [];
+        try { mRolesRemove = JSON.parse(opt.member_roles_remove || '[]'); } catch (e) {}
+        const memberRemoveSelect = document.getElementById('ticket_opt_member_roles_remove');
+        if (memberRemoveSelect) {
+          Array.from(memberRemoveSelect.options).forEach(option => {
+            option.selected = mRolesRemove.includes(option.value);
+          });
+        }
+
+        // Bouton Certifier Roles à ajouter
+        let cRolesAdd = [];
+        try { cRolesAdd = JSON.parse(opt.certify_roles_add || '[]'); } catch (e) {}
+        const certifyAddSelect = document.getElementById('ticket_opt_certify_roles_add');
+        if (certifyAddSelect) {
+          Array.from(certifyAddSelect.options).forEach(option => {
+            option.selected = cRolesAdd.includes(option.value);
+          });
+        }
+
+        // Bouton Certifier Roles à retirer
+        let cRolesRemove = [];
+        try { cRolesRemove = JSON.parse(opt.certify_roles_remove || '[]'); } catch (e) {}
+        const certifyRemoveSelect = document.getElementById('ticket_opt_certify_roles_remove');
+        if (certifyRemoveSelect) {
+          Array.from(certifyRemoveSelect.options).forEach(option => {
+            option.selected = cRolesRemove.includes(option.value);
+          });
+        }
+
         // Synchroniser les custom selects du formulaire
-        ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users'].forEach(id => {
+        ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users', 'ticket_opt_member_roles_add', 'ticket_opt_member_roles_remove', 'ticket_opt_certify_roles_add', 'ticket_opt_certify_roles_remove'].forEach(id => {
           const selectEl = document.getElementById(id);
           if (selectEl && selectEl.syncCustomSelect) {
             selectEl.syncCustomSelect();
@@ -1730,6 +1785,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const pingSelect = document.getElementById('ticket_opt_ping_users');
     const ping_users = Array.from(pingSelect.selectedOptions).map(opt => opt.value);
 
+    const memberAddSel = document.getElementById('ticket_opt_member_roles_add');
+    const member_roles_add = memberAddSel ? Array.from(memberAddSel.selectedOptions).map(opt => opt.value) : [];
+
+    const memberRemoveSel = document.getElementById('ticket_opt_member_roles_remove');
+    const member_roles_remove = memberRemoveSel ? Array.from(memberRemoveSel.selectedOptions).map(opt => opt.value) : [];
+
+    const certifyAddSel = document.getElementById('ticket_opt_certify_roles_add');
+    const certify_roles_add = certifyAddSel ? Array.from(certifyAddSel.selectedOptions).map(opt => opt.value) : [];
+
+    const certifyRemoveSel = document.getElementById('ticket_opt_certify_roles_remove');
+    const certify_roles_remove = certifyRemoveSel ? Array.from(certifyRemoveSel.selectedOptions).map(opt => opt.value) : [];
+
     const id = document.getElementById('ticket_opt_id').value;
 
     const data = {
@@ -1743,7 +1810,11 @@ document.addEventListener('DOMContentLoaded', () => {
       support_roles,
       ping_users,
       description: document.getElementById('ticket_opt_description').value || null,
-      image_url: document.getElementById('ticket_opt_image_url').value || null
+      image_url: document.getElementById('ticket_opt_image_url').value || null,
+      member_roles_add,
+      member_roles_remove,
+      certify_roles_add,
+      certify_roles_remove
     };
 
     fetch('/api/config/tickets/options/add', {
@@ -1764,7 +1835,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btn-ticket-cancel-edit').style.display = 'none';
 
         // Synchroniser tous les custom selects pour réinitialisation
-        ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users'].forEach(selId => {
+        ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users', 'ticket_opt_member_roles_add', 'ticket_opt_member_roles_remove', 'ticket_opt_certify_roles_add', 'ticket_opt_certify_roles_remove'].forEach(selId => {
           const selectEl = document.getElementById(selId);
           if (selectEl && selectEl.syncCustomSelect) {
             selectEl.syncCustomSelect();
@@ -1790,7 +1861,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btnTicketCancelEdit.style.display = 'none';
 
       // Synchroniser tous les custom selects pour réinitialisation
-      ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users'].forEach(selId => {
+      ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users', 'ticket_opt_member_roles_add', 'ticket_opt_member_roles_remove', 'ticket_opt_certify_roles_add', 'ticket_opt_certify_roles_remove'].forEach(selId => {
         const selectEl = document.getElementById(selId);
         if (selectEl && selectEl.syncCustomSelect) {
           selectEl.syncCustomSelect();
