@@ -118,6 +118,7 @@
           <button class="tab-btn" data-tab="tab-game"><i class="fa-solid fa-gamepad"></i> Jeu Mot Caché</button>
           <button class="tab-btn" data-tab="tab-action-verite"><i class="fa-solid fa-dice"></i> Action / Vérité</button>
           <button class="tab-btn" data-tab="tab-bump"><i class="fa-solid fa-bell"></i> Rappel de Bumps</button>
+          <button class="tab-btn" data-tab="tab-autothread"><i class="fa-solid fa-comments"></i> Auto-Thread</button>
         </div>
 
         <div class="sidebar-category">
@@ -622,6 +623,54 @@
                   </thead>
                   <tbody id="counting-channels-list-tbody">
                     <!-- Salons de comptage insérés dynamiquement -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Auto-Thread -->
+          <div id="tab-autothread" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-comments"></i> Système d'Auto-Thread</h2>
+            
+            <div class="card glass">
+              <p>Configurez des salons textuels où chaque nouveau message créera automatiquement un fil de discussion (thread). Vous pouvez également restreindre ces salons aux images uniquement.</p>
+              
+              <form id="form-add-autothread-channel" style="margin-top: 20px;">
+                <div class="form-row">
+                  <div class="form-group flex-2">
+                    <label for="autothread-channel-select"><i class="fa-solid fa-hashtag"></i> Salon textuel :</label>
+                    <select id="autothread-channel-select" class="channel-select" required>
+                      <option value="">Sélectionner un salon...</option>
+                    </select>
+                  </div>
+                  <div class="form-group flex-1 checkbox-group" style="display: flex; align-items: center; justify-content: center; height: 100%; margin-top: 25px;">
+                    <label class="custom-checkbox" style="font-size: 15px;">
+                      <input type="checkbox" id="autothread-image-only">
+                      <span class="checkmark"></span>
+                      Images Uniquement 🖼️
+                    </label>
+                  </div>
+                  <div class="form-group flex-1" style="margin-top: 25px;">
+                    <button type="submit" class="btn btn-primary" style="width: 100%; height: 42px;"><i class="fa-solid fa-plus"></i> Ajouter</button>
+                  </div>
+                </div>
+              </form>
+
+              <hr style="margin: 30px 0; border: 0; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+
+              <h3 class="subsection-title">Salons Auto-Thread configurés</h3>
+              <div class="table-responsive" style="margin-top: 15px; overflow-x: auto;">
+                <table class="config-table" style="width: 100%;">
+                  <thead>
+                    <tr>
+                      <th>Salon</th>
+                      <th>Type / Mode</th>
+                      <th style="width: 100px;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="autothread-channels-list-tbody">
+                    <!-- Salons insérés dynamiquement -->
                   </tbody>
                 </table>
               </div>

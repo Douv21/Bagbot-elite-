@@ -40,7 +40,9 @@ const {
   updateTicketPanel,
   getTicketOptions,
   addTicketOption,
-  deleteTicketOption
+  deleteTicketOption,
+  getAutoThreadChannels,
+  updateAutoThreadChannels
 } = require('./database/db');
 
 const app = express();
@@ -1420,6 +1422,37 @@ app.post('/api/config/unlimited-forums', (req, res) => {
     const { scanAndReopenAllUnlimitedForums } = require('./utils/forums');
     scanAndReopenAllUnlimitedForums(client).catch(console.error);
 
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- CONFIGURATION DE L'AUTO-THREAD ---
+
+app.get('/api/config/autothread', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const channels = getAutoThreadChannels(guildId);
+    res.json({ channels });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/autothread', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { channels } = req.body;
+    if (!Array.isArray(channels)) return res.status(400).json({ error: 'Channels must be an array' });
+
+    updateAutoThreadChannels(guildId, channels);
     res.json({ success: true });
   } catch (error) {
     console.error(error);

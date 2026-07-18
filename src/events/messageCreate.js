@@ -166,6 +166,45 @@ module.exports = {
       }
     }
 
+    // --- SYSTÈME D'AUTO-THREAD ---
+    try {
+      const autothread = db.prepare('SELECT * FROM autothread_channels WHERE guild_id = ? AND channel_id = ?').get(guildId, message.channel.id);
+      if (autothread) {
+        // Vérifier si le salon est uniquement pour les images
+        if (autothread.image_only === 1) {
+          const hasImage = message.attachments.size > 0 || message.embeds.some(emb => emb.image || emb.thumbnail || emb.video || emb.type === 'gifv' || emb.type === 'image' || emb.type === 'video');
+          const isStaff = message.member && (
+            message.member.permissions.has(PermissionFlagsBits.Administrator) ||
+            message.member.permissions.has(PermissionFlagsBits.ManageMessages)
+          );
+          
+          if (!hasImage && !isStaff) {
+            // Supprimer le message car il n'y a pas d'image
+            await message.delete().catch(() => null);
+            const warn = await message.channel.send(`<@${userId}> ⚠️ Ce salon est réservé uniquement aux images. Pour en discuter, utilisez le fil de discussion créé sous chaque image.`);
+            setTimeout(() => warn.delete().catch(() => {}), 5000);
+            return; // Stopper le traitement
+          }
+        }
+
+        // Créer automatiquement le fil de discussion sous le message (si ce n'est pas déjà un fil)
+        if (!message.channel.isThread()) {
+          const threadName = `Discussion - ${message.member ? (message.member.displayName || message.author.username) : message.author.username}`;
+          const thread = await message.startThread({
+            name: threadName,
+            autoArchiveDuration: 1440, // 24 heures
+            reason: 'Création automatique de fil (Auto-Thread)'
+          }).catch(console.error);
+
+          if (thread) {
+            await thread.send(`👋 N'hésitez pas à réagir ou à discuter sous le poste de ${message.author} !`).catch(() => null);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Erreur Auto-Thread:', e);
+    }
+
     // --- AUTOMODÉRATION ---
     const automod = db.prepare('SELECT * FROM automod_config WHERE guild_id = ?').get(guildId) || {
       anti_link: 0,

@@ -338,6 +338,8 @@ document.addEventListener('DOMContentLoaded', () => {
     channelSelects.forEach(select => {
       if (select.id === 'game_announce_channel') {
         select.innerHTML = '<option value="">Salon d\'origine de la discussion</option>';
+      } else if (select.id === 'autothread-channel-select') {
+        select.innerHTML = '<option value="">Sélectionner un salon...</option>';
       } else {
         select.innerHTML = '<option value="">Désactivé</option>';
       }
@@ -675,6 +677,14 @@ document.addEventListener('DOMContentLoaded', () => {
             checkboxes.forEach(cb => {
               cb.checked = data.channels && data.channels.includes(cb.value);
             });
+          })
+          .catch(console.error);
+
+        // Charger la configuration Auto-Thread
+        fetch('/api/config/autothread')
+          .then(res => res.json())
+          .then(data => {
+            renderAutoThreadChannels(data.channels || []);
           })
           .catch(console.error);
 
@@ -2821,6 +2831,28 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('autorole-embed-existing-msg').addEventListener('input', updateAutorolePreview);
 
+  // --- LOGIQUE INTERACTIVE DE L'AUTO-THREAD ---
+
+  document.getElementById('form-add-autothread-channel').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const channel_id = document.getElementById('autothread-channel-select').value;
+    const image_only = document.getElementById('autothread-image-only').checked ? 1 : 0;
+
+    if (autothreadChannelsList.some(ch => ch.channel_id === channel_id)) {
+      showToast('Ce salon est déjà configuré.', true);
+      return;
+    }
+
+    const updatedList = [...autothreadChannelsList, { channel_id, image_only }];
+    saveAutoThreadChannels(updatedList);
+    
+    // Reset form fields
+    document.getElementById('autothread-channel-select').value = '';
+    document.getElementById('autothread-image-only').checked = false;
+    const select = document.getElementById('autothread-channel-select');
+    if (select.syncCustomSelect) select.syncCustomSelect();
+  });
+
   // --- LOGIQUE INTERACTIVE DU COUNTING ---
 
   document.getElementById('form-add-counting-channel').addEventListener('submit', (e) => {
@@ -3011,6 +3043,60 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Error rendering active autorole item:', err, item);
       }
     });
+  }
+
+  // --- RENDERS POUR AUTO-THREAD ---
+
+  let autothreadChannelsList = [];
+
+  function renderAutoThreadChannels(list) {
+    autothreadChannelsList = list;
+    const container = document.getElementById('autothread-channels-list-tbody');
+    container.innerHTML = '';
+    if (list.length === 0) {
+      container.innerHTML = '<tr><td colspan="3" style="color: #8e9297; text-align: center; font-style: italic; padding: 15px;">Aucun salon Auto-Thread configuré.</td></tr>';
+      return;
+    }
+    list.forEach(item => {
+      const channelName = getChannelName(item.channel_id);
+      const tr = document.createElement('tr');
+      
+      const typeLabel = item.image_only === 1 ? '🖼️ Images Uniquement (Thread-only chat)' : '💬 Normal (Création de fil)';
+
+      tr.innerHTML = `
+        <td style="font-weight: 600;"><i class="fa-solid fa-hashtag" style="color: #7289da;"></i> ${channelName}</td>
+        <td><span class="badge" style="background: rgba(114, 137, 218, 0.2); color: #7289da; padding: 4px 8px; border-radius: 4px;">${typeLabel}</span></td>
+        <td>
+          <button class="btn btn-delete btn-sm" style="padding: 4px 8px; font-size: 0.8rem;"><i class="fa-solid fa-trash"></i> Retirer</button>
+        </td>
+      `;
+
+      tr.querySelector('.btn-delete').addEventListener('click', () => {
+        if (!confirm('Voulez-vous désactiver l\'Auto-Thread pour ce salon ?')) return;
+        const updatedList = autothreadChannelsList.filter(ch => ch.channel_id !== item.channel_id);
+        saveAutoThreadChannels(updatedList);
+      });
+
+      container.appendChild(tr);
+    });
+  }
+
+  function saveAutoThreadChannels(channels) {
+    fetch('/api/config/autothread', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channels })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        showToast('Configuration Auto-Thread mise à jour !');
+        renderAutoThreadChannels(channels);
+      } else {
+        showToast('Erreur: ' + data.error, true);
+      }
+    })
+    .catch(err => showToast(err.message, true));
   }
 
   // --- RENDERS POUR COUNTING ---

@@ -650,7 +650,17 @@ function initDatabase() {
       guild_id TEXT,
       role_id TEXT,
       theme_name TEXT,
-      PRIMARY KEY (guild_id, role_id)
+      PRIMARY KEY (guild_id, role_id, theme_name)
+    )
+  `).run();
+
+  // 26. Auto-Thread Channels
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS autothread_channels (
+      guild_id TEXT,
+      channel_id TEXT,
+      image_only INTEGER DEFAULT 0,
+      PRIMARY KEY (guild_id, channel_id)
     )
   `).run();
 }
@@ -932,6 +942,18 @@ const updateUnlimitedForums = (guildId, channelIds) => {
   const insert = db.prepare('INSERT INTO unlimited_forums (guild_id, channel_id) VALUES (?, ?)');
   for (const chId of channelIds) {
     insert.run(guildId, chId);
+  }
+};
+
+const getAutoThreadChannels = (guildId) => {
+  return db.prepare('SELECT * FROM autothread_channels WHERE guild_id = ?').all(guildId);
+};
+
+const updateAutoThreadChannels = (guildId, channels) => {
+  db.prepare('DELETE FROM autothread_channels WHERE guild_id = ?').run(guildId);
+  const insert = db.prepare('INSERT INTO autothread_channels (guild_id, channel_id, image_only) VALUES (?, ?, ?)');
+  for (const ch of channels) {
+    insert.run(guildId, ch.channel_id, ch.image_only ? 1 : 0);
   }
 };
 
@@ -1310,5 +1332,7 @@ module.exports = {
   addRoleTheme,
   deleteRoleTheme,
   getBumpConfig,
-  updateBumpConfig
+  updateBumpConfig,
+  getAutoThreadChannels,
+  updateAutoThreadChannels
 };
