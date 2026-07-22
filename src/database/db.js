@@ -708,6 +708,31 @@ function initDatabase() {
       PRIMARY KEY (channel_id, user_id)
     )
   `).run();
+
+  // 28. Clés d'API Multi-Fournisseurs IA (Groq, Gemini)
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS ai_keys (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      provider TEXT, -- 'groq' ou 'gemini'
+      category TEXT DEFAULT 'all', -- 'all', 'text', 'vision', 'server'
+      api_key TEXT,
+      label TEXT,
+      is_active INTEGER DEFAULT 1,
+      created_at INTEGER
+    )
+  `).run();
+
+  // 29. Configuration globale IA par guilde
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS ai_config (
+      guild_id TEXT PRIMARY KEY,
+      preferred_provider TEXT DEFAULT 'auto',
+      groq_text_model TEXT DEFAULT 'llama-3.3-70b-versatile',
+      groq_vision_model TEXT DEFAULT 'llama-3.2-11b-vision-preview',
+      groq_server_model TEXT DEFAULT 'llama-3.3-70b-versatile',
+      gemini_model TEXT DEFAULT 'gemini-2.0-flash'
+    )
+  `).run();
 }
 
 // --- Fonctions utilitaires de base de données ---
@@ -1000,6 +1025,53 @@ const updateAutoThreadChannels = (guildId, channels) => {
   for (const ch of channels) {
     insert.run(guildId, ch.channel_id, ch.image_only ? 1 : 0);
   }
+};
+
+const getAiKeys = (provider = null, category = null) => {
+  let query = 'SELECT * FROM ai_keys WHERE 1=1';
+  const params = [];
+  if (provider) {
+    query += ' AND provider = ?';
+    params.push(provider);
+  }
+  if (category && category !== 'all') {
+    query += ' AND (category = ? OR category = "all")';
+    params.push(category);
+  }
+  query += ' ORDER BY id ASC';
+  return db.prepare(query).all(...params);
+};
+
+const addAiKey = (provider, category, apiKey, label) => {
+  return db.prepare(`
+    INSERT INTO ai_keys (provider, category, api_key, label, is_active, created_at)
+    VALUES (?, ?, ?, ?, 1, ?)
+  `).run(provider, category || 'all', apiKey.trim(), label || `${provider.toUpperCase()} Key`, Date.now());
+};
+
+const updateAiKey = (id, updates) => {
+  const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
+  const values = Object.values(updates);
+  return db.prepare(`UPDATE ai_keys SET ${fields} WHERE id = ?`).run(...values, id);
+};
+
+const deleteAiKey = (id) => {
+  return db.prepare('DELETE FROM ai_keys WHERE id = ?').run(id);
+};
+
+const getAiConfig = (guildId) => {
+  let config = db.prepare('SELECT * FROM ai_config WHERE guild_id = ?').get(guildId);
+  if (!config) {
+    db.prepare('INSERT OR IGNORE INTO ai_config (guild_id) VALUES (?)').run(guildId);
+    config = db.prepare('SELECT * FROM ai_config WHERE guild_id = ?').get(guildId);
+  }
+  return config;
+};
+
+const updateAiConfig = (guildId, updates) => {
+  const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
+  const values = Object.values(updates);
+  return db.prepare(`UPDATE ai_config SET ${fields} WHERE guild_id = ?`).run(...values, guildId);
 };
 
 const incrementCountingStat = (channelId, userId) => {
@@ -1426,5 +1498,11 @@ module.exports = {
   updateAutoThreadChannels,
   incrementCountingStat,
   getCountingStats,
-  resetCountingStats
+  resetCountingStats,
+  getAiKeys,
+  addAiKey,
+  updateAiKey,
+  deleteAiKey,
+  getAiConfig,
+  updateAiConfig
 };

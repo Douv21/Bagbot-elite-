@@ -132,46 +132,20 @@ Pour que le script puisse les parser automatiquement.`;
   let success = false;
 
   // 1. Tenter l'appel POST completions sur le modèle principal
+  const { generateAiCompletion } = require('./aiManager');
+
   try {
-    const response = await fetch('https://text.pollinations.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
-        ],
-        model: 'openai'
-      }),
-      signal: AbortSignal.timeout(35000) // Laisser 35 secondes au modèle pour raisonner
+    fullReply = await generateAiCompletion({
+      guildId,
+      category: 'server',
+      systemPrompt,
+      userPrompt: message,
+      temperature: 0.2,
+      maxTokens: 2000
     });
-
-    if (response.ok) {
-      const data = await response.json();
-      fullReply = data.choices[0].message.content;
-      success = true;
-    } else {
-      console.warn(`POST AI Assistant (OpenAI) failed (Status: ${response.status}), trying fallback...`);
-    }
+    if (fullReply) success = true;
   } catch (err) {
-    console.warn(`POST AI Assistant (OpenAI) failed or timed out: ${err.message}`);
-  }
-
-  // 2. Fallback avec un appel GET simple si le POST completions échoue
-  if (!success) {
-    try {
-      const promptSimple = `${systemPrompt}\n\nUtilisateur: ${message}\nAssistant:`;
-      const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(promptSimple)}?model=openai`, {
-        signal: AbortSignal.timeout(20000) // 20 secondes pour le GET
-      });
-
-      if (response.ok) {
-        fullReply = await response.text();
-        success = true;
-      }
-    } catch (err) {
-      console.error('Erreur finale communication AI Assistant (GET Fallback):', err.message);
-    }
+    console.error('Erreur communication AI Assistant:', err.message);
   }
 
   if (!success || !fullReply) {

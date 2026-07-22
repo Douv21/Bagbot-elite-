@@ -45,7 +45,13 @@ const {
   addTicketOption,
   deleteTicketOption,
   getAutoThreadChannels,
-  updateAutoThreadChannels
+  updateAutoThreadChannels,
+  getAiKeys,
+  addAiKey,
+  updateAiKey,
+  deleteAiKey,
+  getAiConfig,
+  updateAiConfig
 } = require('./database/db');
 
 const app = express();
@@ -1648,6 +1654,101 @@ app.post('/api/config/tickets/panel/delete', async (req, res) => {
     }
 
     deleteTicketPanel(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- CONFIGURATION MULTI-CLÉS ET PROVIDERS IA (GROQ & GEMINI) ---
+
+app.get('/api/config/ai', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const keys = getAiKeys();
+    const config = getAiConfig(guildId);
+    res.json({ keys, config });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/ai/keys/add', (req, res) => {
+  try {
+    const { provider, category, api_key, label } = req.body;
+    if (!provider || !api_key) {
+      return res.status(400).json({ error: 'Fournisseur et Clé API requis' });
+    }
+
+    addAiKey(provider, category || 'all', api_key, label);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/ai/keys/toggle', (req, res) => {
+  try {
+    const { id, is_active } = req.body;
+    if (!id) return res.status(400).json({ error: 'ID de clé manquant' });
+
+    updateAiKey(id, { is_active: is_active ? 1 : 0 });
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/ai/keys/delete', (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: 'ID de clé manquant' });
+
+    deleteAiKey(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/ai/keys/test', async (req, res) => {
+  try {
+    const { provider, api_key } = req.body;
+    if (!provider || !api_key) {
+      return res.status(400).json({ error: 'Fournisseur et Clé API requis' });
+    }
+
+    const { testAiKey } = require('./utils/aiManager');
+    const result = await testAiKey(provider, api_key);
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/ai/config/update', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { preferred_provider, groq_text_model, groq_vision_model, groq_server_model, gemini_model } = req.body;
+
+    updateAiConfig(guildId, {
+      preferred_provider: preferred_provider || 'auto',
+      groq_text_model: groq_text_model || 'llama-3.3-70b-versatile',
+      groq_vision_model: groq_vision_model || 'llama-3.2-11b-vision-preview',
+      groq_server_model: groq_server_model || 'llama-3.3-70b-versatile',
+      gemini_model: gemini_model || 'gemini-2.0-flash'
+    });
+
     res.json({ success: true });
   } catch (error) {
     console.error(error);

@@ -738,6 +738,34 @@ document.addEventListener('DOMContentLoaded', () => {
           })
           .catch(console.error);
 
+        // Charger la configuration IA (Multi-Clés & Modèles)
+        fetch('/api/config/ai')
+          .then(res => res.json())
+          .then(data => {
+            const config = data.config || {};
+            const keys = data.keys || [];
+
+            const pProv = document.getElementById('ai_preferred_provider');
+            const gText = document.getElementById('ai_groq_text_model');
+            const gVis = document.getElementById('ai_groq_vision_model');
+            const gServ = document.getElementById('ai_groq_server_model');
+            const gemMod = document.getElementById('ai_gemini_model');
+
+            if (pProv) pProv.value = config.preferred_provider || 'auto';
+            if (gText) gText.value = config.groq_text_model || 'llama-3.3-70b-versatile';
+            if (gVis) gVis.value = config.groq_vision_model || 'llama-3.2-11b-vision-preview';
+            if (gServ) gServ.value = config.groq_server_model || 'llama-3.3-70b-versatile';
+            if (gemMod) gemMod.value = config.gemini_model || 'gemini-2.0-flash';
+
+            ['ai_preferred_provider', 'ai_groq_text_model', 'ai_groq_vision_model', 'ai_groq_server_model', 'ai_gemini_model'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el && el.syncCustomSelect) el.syncCustomSelect();
+            });
+
+            renderAiKeys(keys);
+          })
+          .catch(console.error);
+
         // Charger la configuration des Gains des Actions
         fetch('/api/config/action-rewards')
           .then(res => res.json())
@@ -4105,6 +4133,225 @@ document.addEventListener('DOMContentLoaded', () => {
         renderEmojiPicker(e.target.value);
       });
     }
+  }
+
+  // --- RENDERS ET GESTIONNAIRES IA MULTI-CLÉS ---
+
+  function renderAiKeys(keys) {
+    const tbody = document.getElementById('ai-keys-list-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (keys.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="color: #8e9297; padding: 15px; font-style: italic;">Aucune clé d\'API configurée. Le bot utilisera le service gratuit Pollinations AI.</td></tr>';
+      return;
+    }
+
+    keys.forEach(k => {
+      const tr = document.createElement('tr');
+
+      const tdProvider = document.createElement('td');
+      let providerBadge = '<span class="badge" style="background: rgba(230,126,34,0.2); color: #e67e22; padding: 4px 8px; border-radius: 4px; font-weight: bold;">⚡ Groq API</span>';
+      if (k.provider === 'gemini') {
+        providerBadge = '<span class="badge" style="background: rgba(52,152,219,0.2); color: #3498db; padding: 4px 8px; border-radius: 4px; font-weight: bold;">✨ Gemini API</span>';
+      }
+      tdProvider.innerHTML = providerBadge;
+
+      const tdCategory = document.createElement('td');
+      let catText = '🌐 Tous les générateurs';
+      if (k.category === 'text') catText = '💬 Texte (Actions/Chat)';
+      if (k.category === 'vision') catText = '👁️ Vision (Images)';
+      if (k.category === 'server') catText = '🛡️ Gestion Serveur';
+      tdCategory.textContent = catText;
+
+      const tdLabel = document.createElement('td');
+      tdLabel.innerHTML = `<strong>${k.label || 'Sans nom'}</strong>`;
+
+      const tdKey = document.createElement('td');
+      const masked = k.api_key ? (k.api_key.substring(0, 7) + '...' + k.api_key.substring(k.api_key.length - 4)) : '***';
+      tdKey.innerHTML = `<code>${masked}</code>`;
+
+      const tdStatus = document.createElement('td');
+      if (k.is_active === 1) {
+        tdStatus.innerHTML = '<span style="color:#2ecc71; font-weight: bold;">🟢 Actif</span>';
+      } else {
+        tdStatus.innerHTML = '<span style="color:#e74c3c; font-weight: bold;">🔴 Inactif</span>';
+      }
+
+      const tdActions = document.createElement('td');
+      tdActions.style.textAlign = 'center';
+      tdActions.style.display = 'flex';
+      tdActions.style.gap = '5px';
+      tdActions.style.justifyContent = 'center';
+
+      const btnToggle = document.createElement('button');
+      btnToggle.type = 'button';
+      btnToggle.className = 'btn-delete-gif';
+      btnToggle.style.background = k.is_active === 1 ? '#e67e22' : '#2ecc71';
+      btnToggle.innerHTML = k.is_active === 1 ? '<i class="fa-solid fa-power-off"></i>' : '<i class="fa-solid fa-check"></i>';
+      btnToggle.title = k.is_active === 1 ? 'Désactiver cette clé' : 'Activer cette clé';
+      btnToggle.addEventListener('click', () => {
+        fetch('/api/config/ai/keys/toggle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: k.id, is_active: k.is_active === 1 ? 0 : 1 })
+        })
+        .then(res => res.json())
+        .then(resData => {
+          if (resData.success) {
+            showToast('Statut de la clé mis à jour !');
+            loadGuildConfiguration();
+          } else {
+            showToast('Erreur: ' + resData.error, true);
+          }
+        });
+      });
+
+      const btnTest = document.createElement('button');
+      btnTest.type = 'button';
+      btnTest.className = 'btn-delete-gif';
+      btnTest.style.background = '#3498db';
+      btnTest.innerHTML = '<i class="fa-solid fa-vial"></i>';
+      btnTest.title = 'Tester la validité de cette clé';
+      btnTest.addEventListener('click', () => {
+        showToast(`Test de la clé ${k.label}...`);
+        fetch('/api/config/ai/keys/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: k.provider, api_key: k.api_key })
+        })
+        .then(res => res.json())
+        .then(resData => {
+          if (resData.success) {
+            showToast(resData.message);
+          } else {
+            showToast('Test échoué : ' + resData.error, true);
+          }
+        });
+      });
+
+      const btnDel = document.createElement('button');
+      btnDel.type = 'button';
+      btnDel.className = 'btn-delete-gif';
+      btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
+      btnDel.title = 'Supprimer cette clé';
+      btnDel.addEventListener('click', () => {
+        if (!confirm(`Supprimer la clé "${k.label}" ?`)) return;
+        fetch('/api/config/ai/keys/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: k.id })
+        })
+        .then(res => res.json())
+        .then(resData => {
+          if (resData.success) {
+            showToast('Clé supprimée avec succès !');
+            loadGuildConfiguration();
+          } else {
+            showToast('Erreur: ' + resData.error, true);
+          }
+        });
+      });
+
+      tdActions.appendChild(btnToggle);
+      tdActions.appendChild(btnTest);
+      tdActions.appendChild(btnDel);
+
+      tr.appendChild(tdProvider);
+      tr.appendChild(tdCategory);
+      tr.appendChild(tdLabel);
+      tr.appendChild(tdKey);
+      tr.appendChild(tdStatus);
+      tr.appendChild(tdActions);
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  const formAiConfig = document.getElementById('form-ai-config');
+  if (formAiConfig) {
+    formAiConfig.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const body = {
+        preferred_provider: document.getElementById('ai_preferred_provider').value,
+        groq_text_model: document.getElementById('ai_groq_text_model').value,
+        groq_vision_model: document.getElementById('ai_groq_vision_model').value,
+        groq_server_model: document.getElementById('ai_groq_server_model').value,
+        gemini_model: document.getElementById('ai_gemini_model').value
+      };
+
+      fetch('/api/config/ai/config/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          showToast('Modèles et préférences IA enregistrés !');
+        } else {
+          showToast('Erreur: ' + resData.error, true);
+        }
+      })
+      .catch(err => showToast(err.message, true));
+    });
+  }
+
+  const formAddAiKey = document.getElementById('form-add-ai-key');
+  if (formAddAiKey) {
+    formAddAiKey.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const body = {
+        provider: document.getElementById('ai_key_provider').value,
+        category: document.getElementById('ai_key_category').value,
+        label: document.getElementById('ai_key_label').value,
+        api_key: document.getElementById('ai_key_val').value
+      };
+
+      fetch('/api/config/ai/keys/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          showToast('Clé d\'API ajoutée avec succès au pool !');
+          formAddAiKey.reset();
+          loadGuildConfiguration();
+        } else {
+          showToast('Erreur: ' + resData.error, true);
+        }
+      })
+      .catch(err => showToast(err.message, true));
+    });
+  }
+
+  const btnTestAiKeyInput = document.getElementById('btn-test-ai-key-input');
+  if (btnTestAiKeyInput) {
+    btnTestAiKeyInput.addEventListener('click', () => {
+      const provider = document.getElementById('ai_key_provider').value;
+      const api_key = document.getElementById('ai_key_val').value;
+      if (!api_key) {
+        showToast('Veuillez d\'abord saisir une clé d\'API dans le champ.', true);
+        return;
+      }
+      showToast('Test de la clé en cours...');
+      fetch('/api/config/ai/keys/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider, api_key })
+      })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          showToast(resData.message);
+        } else {
+          showToast('Test échoué : ' + resData.error, true);
+        }
+      })
+      .catch(err => showToast(err.message, true));
+    });
   }
 
   initializeSearchableSelects();
