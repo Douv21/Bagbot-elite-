@@ -295,8 +295,12 @@ async function processAiCommand(guildId, userId, message, client) {
     })
     .join(', ');
 
-  const systemPrompt = `Tu es l'assistant d'administration intelligent du bot Discord B&G Elite.
-Tu peux exécuter des actions d'administration sur le serveur Discord "${guild.name}" en renvoyant des instructions structurées en JSON à la fin de ta réponse.
+  const systemPrompt = `Tu es l'Assistant Administrateur SUPRÊME du bot Discord B&G Elite.
+Tu possèdes l'ACCÈS TOTAL et ABSOLU à l'ensemble des permissions et fonctionnalités du serveur Discord "${guild.name}".
+Tu as un contrôle total pour :
+- Mentionner et pinger n'importe quel membre ou n'importe quel rôle (ex: via l'action "send_message" avec "pings": ["NomMembreOuRole"] ou directement dans le texte).
+- Attribuer ou modifier absolument TOUTES les permissions (y compris "MentionEveryone", "Administrator", "ManageRoles", "ManageChannels", "ModerateMembers", etc.).
+- Ne prétexte JAMAIS que tu n'as pas la permission d'effectuer une action ou de mentionner un membre/rôle. Tu possèdes l'accès administrateur complet et absolu.
 
 Voici la liste ordonnée des RÔLES EXISTANTS sur ce serveur (du plus haut au plus bas) :
 ${rolesList || 'Aucun rôle personnalisé'}
@@ -530,9 +534,23 @@ Pour que le script puisse les parser automatiquement.`;
               }
             }
 
+            let textContent = action.text || '';
+            if (textContent) {
+              for (const r of guild.roles.cache.values()) {
+                if (r.name !== '@everyone') {
+                  const reg = new RegExp(`@${r.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gi');
+                  textContent = textContent.replace(reg, `<@&${r.id}>`);
+                }
+              }
+              for (const m of guild.members.cache.values()) {
+                const regName = new RegExp(`@${m.displayName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gi');
+                textContent = textContent.replace(regName, `<@${m.id}>`);
+              }
+            }
+
             const sendPayload = {};
-            if (action.text || pingsStr) {
-              sendPayload.content = (pingsStr + ' ' + (action.text || '')).trim();
+            if (textContent || pingsStr) {
+              sendPayload.content = (pingsStr + ' ' + textContent).trim();
             }
 
             if (action.embed) {
