@@ -18,20 +18,41 @@ async function callGroqApi(apiKey, model, systemPrompt, userPrompt, temperature 
   }
   messages.push({ role: 'user', content: userPrompt });
 
-  const response = await fetch(url, {
+  let targetModel = model || 'llama-3.3-70b-versatile';
+
+  let response = await fetch(url, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: model || 'llama-3.3-70b-versatile',
+      model: targetModel,
       messages,
       temperature,
       max_tokens: maxTokens
     }),
-    signal: AbortSignal.timeout(12000)
+    signal: AbortSignal.timeout(15000)
   });
+
+  // Si limite de taux (429) sur le modèle 70B, retenter immédiatement avec llama-3.1-8b-instant (30k TPM)
+  if (response.status === 429 && targetModel !== 'llama-3.1-8b-instant') {
+    console.warn(`[AI Manager] 429 Rate Limit sur ${targetModel}, basculement automatique sur llama-3.1-8b-instant...`);
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages,
+        temperature,
+        max_tokens: maxTokens
+      }),
+      signal: AbortSignal.timeout(15000)
+    });
+  }
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => '');

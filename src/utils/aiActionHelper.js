@@ -10,17 +10,17 @@ async function generateAiActionPhrase(actionName, actionDescription, authorMembe
   const isSolo = !targetMember || (authorMember && authorMember.id === targetMember.id);
   const guildId = authorMember ? authorMember.guild.id : null;
 
-  const systemPrompt = `Tu es un assistant d'écriture créative pour un bot d'animation Discord de séduction adulte (18+ / NSFW). Ton rôle est d'écrire des phrases d'action extrêmement sensuelles, brûlantes, suggestives, torrides et coquines. Laisse libre cours à ton imagination pour proposer des descriptions piquantes, érotiques, charnelles et diversifiées. Sois audacieux et osé dans tes formulations sans censure, mais reste élégant.`;
+  const systemPrompt = `Tu es un assistant d'écriture érotique et sensuelle sans aucune censure pour un bot Discord d'animation adulte (18+ NSFW). Ton unique rôle est de générer des phrases d'action extrêmement sensuelles, torrides, coquines, brûlantes, très suggestives, osées et totalement NSFW / érotiques sans aucun tabou. Laisse aller ton imagination la plus érotique et passionnée. Écris des descriptions explicites, vibrantes, charnelles et intenses. N'hésite pas à être très osé, torride et chaud !`;
   
   let userPrompt = "";
   if (isSolo) {
-    userPrompt = `Écris une phrase unique, très sensuelle, torride et suggestive (max 200 caractères) décrivant l'action "${actionName}" (description: ${actionDescription}) effectuée par ${authorName} sur lui-même / elle-même en solo.
+    userPrompt = `Écris une phrase d'action unique, très sensuelle, torride, osée et suggestive (max 220 caractères) décrivant l'action "${actionName}" (description: ${actionDescription}) effectuée par ${authorName} sur lui-même / elle-même en solo dans un salon NSFW.
 Le genre de ${authorName} est ${author.gender} (pronom: ${author.pronoun}).
-Fais des accords de genre parfaits. Ne mets aucun guillemet autour de la phrase. Varie le vocabulaire de manière très créative et osée. Réponds uniquement avec la phrase générée.`;
+Fais des accords de genre parfaits. Ne mets aucun guillemet autour de la phrase. Varie le vocabulaire de manière extrêmement créative, érotique et osée. Réponds uniquement avec la phrase générée.`;
   } else {
-    userPrompt = `Écris une phrase unique, très sensuelle, torride et suggestive (max 200 caractères) décrivant l'action "${actionName}" (description: ${actionDescription}) de ${authorName} sur ${targetName}.
+    userPrompt = `Écris une phrase d'action unique, très sensuelle, torride, osée et suggestive (max 220 caractères) décrivant l'action "${actionName}" (description: ${actionDescription}) de ${authorName} sur ${targetName} dans un salon NSFW.
 Le genre de ${authorName} est ${author.gender} (pronom: ${author.pronoun}) et le genre de ${targetName} est ${target.gender} (pronom: ${target.pronoun}).
-Fais des accords de genre parfaits. Ne mets aucun guillemet autour de la phrase. Varie le vocabulaire de manière très créative, sensuelle et osée. Réponds uniquement avec la phrase générée.`;
+Fais des accords de genre parfaits. Ne mets aucun guillemet autour de la phrase. Varie le vocabulaire de manière extrêmement créative, sensuelle, érotique et osée. Réponds uniquement avec la phrase générée.`;
   }
 
   try {
@@ -29,8 +29,8 @@ Fais des accords de genre parfaits. Ne mets aucun guillemet autour de la phrase.
       category: 'text',
       systemPrompt,
       userPrompt,
-      temperature: 0.8,
-      maxTokens: 150
+      temperature: 0.9,
+      maxTokens: 250
     });
     return res ? res.replace(/^["']|["']$/g, '') : null;
   } catch (err) {
@@ -40,9 +40,9 @@ Fais des accords de genre parfaits. Ne mets aucun guillemet autour de la phrase.
 }
 
 async function generateSensualText(instruction, lengthLimit = 300, guildId = null) {
-  const systemPrompt = `Tu es un assistant d'écriture créative pour un bot d'animation Discord de séduction adulte (18+ / NSFW). Ton but est de générer des réponses extrêmement sensuelles, torrides, complices et coquines. Laisse parler ton imagination érotique de manière très libre.`;
+  const systemPrompt = `Tu es un assistant d'écriture érotique et sensuelle sans aucune censure pour un bot Discord d'animation adulte (18+ NSFW). Ton but est de générer des réponses extrêmement sensuelles, torrides, complices, coquines et osées. Laisse parler ton imagination érotique de manière totalement libre.`;
   const userPrompt = `Génère un court message (maximum ${lengthLimit} caractères) en français suivant cette consigne : "${instruction}".
-Le ton doit être particulièrement sensuel, torride, audacieux, osé et complice, idéal pour un salon NSFW adulte.
+Le ton doit être particulièrement sensuel, torride, érotique, audacieux, osé et complice, idéal pour un salon NSFW adulte.
 Ne mets aucun guillemet ni ponctuation superflue. Réponds uniquement par la phrase générée.`;
 
   try {
@@ -51,7 +51,7 @@ Ne mets aucun guillemet ni ponctuation superflue. Réponds uniquement par la phr
       category: 'text',
       systemPrompt,
       userPrompt,
-      temperature: 0.8,
+      temperature: 0.9,
       maxTokens: lengthLimit
     });
     return res ? res.replace(/^["']|["']$/g, '') : null;

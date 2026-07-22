@@ -134,6 +134,7 @@ Pour que le script puisse les parser automatiquement.`;
   // 1. Tenter l'appel POST completions sur le modèle principal
   const { generateAiCompletion } = require('./aiManager');
 
+  let lastErrorMsg = null;
   try {
     fullReply = await generateAiCompletion({
       guildId,
@@ -146,10 +147,11 @@ Pour que le script puisse les parser automatiquement.`;
     if (fullReply) success = true;
   } catch (err) {
     console.error('Erreur communication AI Assistant:', err.message);
+    lastErrorMsg = err.message;
   }
 
   if (!success || !fullReply) {
-    return { reply: "❌ Désolé, l'IA d'administration est temporairement indisponible. Veuillez réessayer dans quelques instants." };
+    return { reply: `❌ Erreur communication IA : ${lastErrorMsg || "Le service est temporairement indisponible."}` };
   }
 
   try {
