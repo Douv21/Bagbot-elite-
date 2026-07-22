@@ -120,6 +120,94 @@ function parsePermissions(permsInput) {
   return resolved;
 }
 
+/**
+ * Générateur d'Embeds Discord Ultra-Riches avec Logo du serveur, Footer, Auteur, Champs et Couleurs
+ */
+function buildRichEmbed(embedData, guild, client) {
+  if (!embedData) return null;
+
+  const embed = new EmbedBuilder();
+
+  // 1. Titre & URL
+  if (embedData.title) embed.setTitle(embedData.title);
+  if (embedData.url) embed.setURL(embedData.url);
+
+  // 2. Description
+  if (embedData.description) embed.setDescription(embedData.description);
+
+  // 3. Couleur (Hex ou nom de couleur en français)
+  let color = '#9b59b6';
+  if (embedData.color) {
+    const colors = {
+      rouge: '#ff0000', bleu: '#3498db', vert: '#2ecc71', jaune: '#f1c40f',
+      rose: '#e91e63', violet: '#9b59b6', orange: '#e67e22', noir: '#000000',
+      gris: '#95a5a6', or: '#f39c12', turquoise: '#1abc9c', cyan: '#00e5ff'
+    };
+    const cLower = String(embedData.color).toLowerCase().trim();
+    color = colors[cLower] || (cLower.startsWith('#') ? cLower : '#9b59b6');
+  }
+  embed.setColor(color);
+
+  // 4. Thumbnail / Logo du serveur
+  const guildIcon = guild ? guild.iconURL({ dynamic: true, size: 512 }) : null;
+  const botAvatar = client?.user?.displayAvatarURL({ dynamic: true, size: 512 });
+
+  if (embedData.thumbnail === true || embedData.thumbnail === 'guild' || embedData.thumbnail === 'server' || embedData.thumbnail === undefined) {
+    if (guildIcon) embed.setThumbnail(guildIcon);
+    else if (botAvatar) embed.setThumbnail(botAvatar);
+  } else if (typeof embedData.thumbnail === 'string' && embedData.thumbnail.startsWith('http')) {
+    embed.setThumbnail(embedData.thumbnail);
+  }
+
+  // 5. Image de bannière / GIF
+  if (embedData.image && typeof embedData.image === 'string' && embedData.image.startsWith('http')) {
+    embed.setImage(embedData.image);
+  }
+
+  // 6. Auteur (Author) avec Nom & Logo
+  if (embedData.author) {
+    if (typeof embedData.author === 'string') {
+      embed.setAuthor({ name: embedData.author, iconURL: guildIcon || botAvatar || undefined });
+    } else if (typeof embedData.author === 'object') {
+      embed.setAuthor({
+        name: embedData.author.name || (guild ? guild.name : 'Bot B&G Elite'),
+        iconURL: embedData.author.iconURL || guildIcon || botAvatar || undefined,
+        url: embedData.author.url || undefined
+      });
+    }
+  } else if (guild) {
+    embed.setAuthor({ name: guild.name, iconURL: guildIcon || botAvatar || undefined });
+  }
+
+  // 7. Footer & Logo
+  const footerText = embedData.footer
+    ? (typeof embedData.footer === 'string' ? embedData.footer : embedData.footer.text)
+    : `${guild ? guild.name : 'Bot'} • Assistant IA B&G Elite`;
+
+  const footerIcon = (embedData.footer && typeof embedData.footer === 'object' && embedData.footer.iconURL)
+    || guildIcon
+    || botAvatar
+    || undefined;
+
+  embed.setFooter({ text: footerText, iconURL: footerIcon });
+
+  // 8. Champs (Fields)
+  if (Array.isArray(embedData.fields)) {
+    embedData.fields.forEach(f => {
+      if (f && f.name && f.value) {
+        embed.addFields({ name: String(f.name), value: String(f.value), inline: !!f.inline });
+      }
+    });
+  }
+
+  // 9. Horodatage (Timestamp)
+  if (embedData.timestamp !== false) {
+    embed.setTimestamp();
+  }
+
+  return embed;
+}
+
 async function processAiCommand(guildId, userId, message, client) {
   const guild = client.guilds.cache.get(guildId);
   if (!guild) {
@@ -238,7 +326,7 @@ Actions d'administration possibles (tu devez les formuler sous forme d'un tablea
 12. {"type": "set_role_position", "role_name": "Nom du rôle à déplacer", "target_role_name": "Nom du rôle repère", "direction": "above" ou "below"}
 13. {"type": "create_channel", "name": "nom-du-salon", "channel_type": "text" ou "voice" ou "category", "category_name": "Nom de la catégorie (optionnel)"}
 14. {"type": "delete_channel", "channel_name": "Nom ou ID du salon"}
-15. {"type": "send_message", "channel_name": "Nom ou ID du salon", "text": "Texte (optionnel)", "embed": {"title": "Titre", "description": "Contenu", "color": "hex ou couleur"}, "pings": ["Nom de membre ou rôle (optionnel)"]}
+15. {"type": "send_message", "channel_name": "Nom ou ID du salon", "text": "Texte avec pings (optionnel)", "embed": {"title": "Titre", "description": "Description", "color": "rouge/bleu/rose/#ff0000", "fields": [{"name": "Nom du champ", "value": "Valeur", "inline": true}], "footer": "Texte de bas de page", "image": "URL de la bannière/GIF"}, "pings": ["Nom de rôle ou membre"]}
 
 Analyse la demande de l'utilisateur. Réponds-lui de manière courtoise, chaleureuse et naturelle en français.
 Si la demande nécessite une ou plusieurs actions d'administration ci-dessus, inclus à la fin de ta réponse le tableau d'actions au format JSON.
@@ -416,13 +504,7 @@ Pour que le script puisse les parser automatiquement.`;
         else if (action.type === 'send_embed') {
           const channel = await findChannel(action.channel_name);
           if (channel) {
-            const embed = new EmbedBuilder()
-              .setTitle(action.title || 'Message')
-              .setColor('#9b59b6')
-              .setTimestamp();
-            if (action.description) {
-              embed.setDescription(action.description);
-            }
+            const embed = buildRichEmbed(action, guild, client);
             await channel.send({ embeds: [embed] });
             executedActions.push({ type: 'send_embed', channel: channel.name });
           } else {
@@ -454,19 +536,7 @@ Pour que le script puisse les parser automatiquement.`;
             }
 
             if (action.embed) {
-              let color = '#9b59b6';
-              if (action.embed.color) {
-                const colors = { rouge: '#ff0000', bleu: '#3498db', vert: '#2ecc71', jaune: '#f1c40f', rose: '#e91e63', violet: '#9b59b6', orange: '#e67e22', noir: '#000000', gris: '#95a5a6' };
-                color = colors[action.embed.color.toLowerCase()] || (action.embed.color.startsWith('#') ? action.embed.color : '#9b59b6');
-              }
-
-              const emb = new EmbedBuilder()
-                .setTitle(action.embed.title || 'Message')
-                .setColor(color)
-                .setTimestamp();
-              if (action.embed.description) {
-                emb.setDescription(action.embed.description);
-              }
+              const emb = buildRichEmbed(action.embed, guild, client);
               sendPayload.embeds = [emb];
             }
 
