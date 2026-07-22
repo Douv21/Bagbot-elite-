@@ -68,7 +68,7 @@ async function processAiCommand(guildId, userId, message, client) {
     'Connect', 'Speak', 'MuteMembers', 'DeafenMembers', 'MoveMembers', 'UseVAD'
   ].map(key => `"${key}"`).join(', ');
 
-  const rolesList = (fetchedRoles || guild.roles.cache)
+  const rolesList = Array.from((fetchedRoles || guild.roles.cache).values())
     .filter(r => r.name !== '@everyone')
     .filter(r => !r.name.includes('---') && !r.name.includes('──') && !r.name.includes('===') && !r.name.includes('___'))
     .sort((a, b) => b.position - a.position)
@@ -76,7 +76,7 @@ async function processAiCommand(guildId, userId, message, client) {
     .map(r => `@${r.name} (ID: ${r.id})`)
     .join(', ');
 
-  const channelsList = (fetchedChannels || guild.channels.cache)
+  const channelsList = Array.from((fetchedChannels || guild.channels.cache).values())
     .slice(0, 50)
     .map(c => {
       let typeStr = 'Texte';
