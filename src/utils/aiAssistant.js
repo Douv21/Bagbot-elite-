@@ -1,5 +1,123 @@
 const { getAutomodConfig, updateAutomodConfig, db, getCustomActionMessage, updateCustomActionMessage } = require('../database/db');
-const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { EmbedBuilder, PermissionFlagsBits, PermissionsBitField } = require('discord.js');
+
+/**
+ * Dictionnaire complet de résolution des permissions Discord
+ */
+function parsePermissions(permsInput) {
+  if (!permsInput) return [];
+  const permsArray = Array.isArray(permsInput) ? permsInput : [permsInput];
+
+  // Si "all", "tout", "toutes", ou "all_permissions" est présent -> Renvoyer TOUTES les permissions BigInt Discord
+  if (permsArray.some(p => typeof p === 'string' && ['all', 'tout', 'toutes', 'all_permissions', 'full'].includes(p.toLowerCase().trim()))) {
+    return Object.values(PermissionFlagsBits).filter(v => typeof v === 'bigint');
+  }
+
+  const resolved = [];
+
+  const PERM_LOOKUP = {
+    // Admin & Serveur
+    'administrator': PermissionFlagsBits.Administrator,
+    'admin': PermissionFlagsBits.Administrator,
+    'manageguild': PermissionFlagsBits.ManageGuild,
+    'manageserver': PermissionFlagsBits.ManageGuild,
+    'gererserveur': PermissionFlagsBits.ManageGuild,
+    'manageroles': PermissionFlagsBits.ManageRoles,
+    'gererroles': PermissionFlagsBits.ManageRoles,
+    'managechannels': PermissionFlagsBits.ManageChannels,
+    'gerersalons': PermissionFlagsBits.ManageChannels,
+
+    // Membres, Sanctions & Modération
+    'kickmembers': PermissionFlagsBits.KickMembers,
+    'expulser': PermissionFlagsBits.KickMembers,
+    'banmembers': PermissionFlagsBits.BanMembers,
+    'bannir': PermissionFlagsBits.BanMembers,
+    'moderatemembers': PermissionFlagsBits.ModerateMembers,
+    'timeoutmembers': PermissionFlagsBits.ModerateMembers,
+    'timeout': PermissionFlagsBits.ModerateMembers,
+    'exclure': PermissionFlagsBits.ModerateMembers,
+    'excluretemporairement': PermissionFlagsBits.ModerateMembers,
+    'exclusiontemporaire': PermissionFlagsBits.ModerateMembers,
+
+    // Messages, Épinglage & Mode lent
+    'sendmessages': PermissionFlagsBits.SendMessages,
+    'envoyermessages': PermissionFlagsBits.SendMessages,
+    'managemessages': PermissionFlagsBits.ManageMessages,
+    'gerermessages': PermissionFlagsBits.ManageMessages,
+    'epingler': PermissionFlagsBits.ManageMessages,
+    'epinglermessages': PermissionFlagsBits.ManageMessages,
+    'pinmessages': PermissionFlagsBits.ManageMessages,
+    'ignorermodelent': PermissionFlagsBits.ManageMessages,
+    'bypassslowmode': PermissionFlagsBits.ManageMessages,
+    'readmessagehistory': PermissionFlagsBits.ReadMessageHistory,
+    'voirhistorique': PermissionFlagsBits.ReadMessageHistory,
+    'mentioneveryone': PermissionFlagsBits.MentionEveryone,
+    'mentionnertoutlemonde': PermissionFlagsBits.MentionEveryone,
+
+    // Fils de discussion (Threads)
+    'managethreads': PermissionFlagsBits.ManageThreads,
+    'gererfils': PermissionFlagsBits.ManageThreads,
+    'gererlesfils': PermissionFlagsBits.ManageThreads,
+    'createpublicthreads': PermissionFlagsBits.CreatePublicThreads,
+    'createprivatethreads': PermissionFlagsBits.CreatePrivateThreads,
+    'sendmessagesinthreads': PermissionFlagsBits.SendMessagesInThreads,
+
+    // Expressions, Emojis & Stickers
+    'createguildexpressions': PermissionFlagsBits.CreateGuildExpressions || PermissionFlagsBits.ManageEmojisAndStickers,
+    'creerexpressions': PermissionFlagsBits.CreateGuildExpressions || PermissionFlagsBits.ManageEmojisAndStickers,
+    'manageguildexpressions': PermissionFlagsBits.ManageGuildExpressions || PermissionFlagsBits.ManageEmojisAndStickers,
+    'gererexpressions': PermissionFlagsBits.ManageGuildExpressions || PermissionFlagsBits.ManageEmojisAndStickers,
+    'manageemojisandstickers': PermissionFlagsBits.ManageEmojisAndStickers,
+    'gereremojis': PermissionFlagsBits.ManageEmojisAndStickers,
+    'useexternalemojis': PermissionFlagsBits.UseExternalEmojis,
+    'useexternalstickers': PermissionFlagsBits.UseExternalStickers,
+
+    // Événements (Events)
+    'createevents': PermissionFlagsBits.CreateEvents || PermissionFlagsBits.ManageEvents,
+    'creerevenements': PermissionFlagsBits.CreateEvents || PermissionFlagsBits.ManageEvents,
+    'manageevents': PermissionFlagsBits.ManageEvents,
+    'gererevenements': PermissionFlagsBits.ManageEvents,
+    'evenements': PermissionFlagsBits.ManageEvents,
+
+    // Voix & Salon Vocal
+    'connect': PermissionFlagsBits.Connect,
+    'seconnecter': PermissionFlagsBits.Connect,
+    'speak': PermissionFlagsBits.Speak,
+    'parler': PermissionFlagsBits.Speak,
+    'priorityspeaker': PermissionFlagsBits.PrioritySpeaker,
+    'voixprioritaire': PermissionFlagsBits.PrioritySpeaker,
+    'mutemembers': PermissionFlagsBits.MuteMembers,
+    'muter': PermissionFlagsBits.MuteMembers,
+    'deafenmembers': PermissionFlagsBits.DeafenMembers,
+    'assourdir': PermissionFlagsBits.DeafenMembers,
+    'movemembers': PermissionFlagsBits.MoveMembers,
+    'deplacer': PermissionFlagsBits.MoveMembers,
+
+    // Salons & Divers
+    'viewchannel': PermissionFlagsBits.ViewChannel,
+    'voirsalons': PermissionFlagsBits.ViewChannel,
+    'embedlinks': PermissionFlagsBits.EmbedLinks,
+    'integrerliens': PermissionFlagsBits.EmbedLinks,
+    'attachfiles': PermissionFlagsBits.AttachFiles,
+    'joindrefichiers': PermissionFlagsBits.AttachFiles,
+    'useapplicationcommands': PermissionFlagsBits.UseApplicationCommands,
+    'stream': PermissionFlagsBits.Stream,
+    'video': PermissionFlagsBits.Stream
+  };
+
+  permsArray.forEach(perm => {
+    if (typeof perm !== 'string') return;
+    const cleanKey = perm.toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    if (PERM_LOOKUP[cleanKey]) {
+      resolved.push(PERM_LOOKUP[cleanKey]);
+    } else if (PermissionFlagsBits[perm]) {
+      resolved.push(PermissionFlagsBits[perm]);
+    }
+  });
+
+  return resolved;
+}
 
 async function processAiCommand(guildId, userId, message, client) {
   const guild = client.guilds.cache.get(guildId);
@@ -218,14 +336,7 @@ Pour que le script puisse les parser automatiquement.`;
 
           let permissions = [];
           if (action.permissions) {
-            const permsArray = Array.isArray(action.permissions) ? action.permissions : [action.permissions];
-            if (permsArray.some(p => typeof p === 'string' && p.toLowerCase() === 'all')) {
-              permissions = Object.values(PermissionFlagsBits);
-            } else {
-              permsArray.forEach(perm => {
-                if (PermissionFlagsBits[perm]) permissions.push(PermissionFlagsBits[perm]);
-              });
-            }
+            permissions = parsePermissions(action.permissions);
           }
 
           const newRole = await guild.roles.create({
@@ -368,24 +479,21 @@ Pour que le script puisse les parser automatiquement.`;
         else if (action.type === 'update_role_permissions') {
           const role = await findRole(action.role_name);
           if (role) {
-            let currentPerms = role.permissions;
+            let currentPerms = new PermissionsBitField(role.permissions);
             if (action.allow) {
-              const allowArray = Array.isArray(action.allow) ? action.allow : [action.allow];
-              if (allowArray.some(p => typeof p === 'string' && p.toLowerCase() === 'all')) {
-                currentPerms = Object.values(PermissionFlagsBits);
-              } else {
-                allowArray.forEach(perm => {
-                  if (PermissionFlagsBits[perm]) currentPerms = currentPerms.add(PermissionFlagsBits[perm]);
-                });
-              }
+              const allowedBits = parsePermissions(action.allow);
+              allowedBits.forEach(bit => {
+                currentPerms = currentPerms.add(bit);
+              });
             }
             if (action.deny) {
               const denyArray = Array.isArray(action.deny) ? action.deny : [action.deny];
-              if (denyArray.some(p => typeof p === 'string' && p.toLowerCase() === 'all')) {
-                currentPerms = [];
+              if (denyArray.some(p => typeof p === 'string' && ['all', 'tout', 'toutes'].includes(p.toLowerCase().trim()))) {
+                currentPerms = new PermissionsBitField();
               } else {
-                denyArray.forEach(perm => {
-                  if (PermissionFlagsBits[perm]) currentPerms = currentPerms.remove(PermissionFlagsBits[perm]);
+                const deniedBits = parsePermissions(action.deny);
+                deniedBits.forEach(bit => {
+                  currentPerms = currentPerms.remove(bit);
                 });
               }
             }
@@ -403,34 +511,25 @@ Pour que le script puisse les parser automatiquement.`;
             continue;
           }
 
-          const allowPerms = [];
-          const denyPerms = [];
+          const overrides = {};
           if (action.allow) {
-            const allowArray = Array.isArray(action.allow) ? action.allow : [action.allow];
-            if (allowArray.some(p => typeof p === 'string' && p.toLowerCase() === 'all')) {
-              allowPerms.push(...Object.keys(PermissionFlagsBits));
-            } else {
-              allowArray.forEach(perm => {
-                if (PermissionFlagsBits[perm]) allowPerms.push(perm);
-              });
-            }
+            const allowBits = parsePermissions(action.allow);
+            Object.keys(PermissionFlagsBits).forEach(key => {
+              if (typeof PermissionFlagsBits[key] === 'bigint' && allowBits.includes(PermissionFlagsBits[key])) {
+                overrides[key] = true;
+              }
+            });
           }
           if (action.deny) {
-            const denyArray = Array.isArray(action.deny) ? action.deny : [action.deny];
-            if (denyArray.some(p => typeof p === 'string' && p.toLowerCase() === 'all')) {
-              denyPerms.push(...Object.keys(PermissionFlagsBits));
-            } else {
-              denyArray.forEach(perm => {
-                if (PermissionFlagsBits[perm]) denyPerms.push(perm);
-              });
-            }
+            const denyBits = parsePermissions(action.deny);
+            Object.keys(PermissionFlagsBits).forEach(key => {
+              if (typeof PermissionFlagsBits[key] === 'bigint' && denyBits.includes(PermissionFlagsBits[key])) {
+                overrides[key] = false;
+              }
+            });
           }
 
-          const overrides = {};
-          allowPerms.forEach(p => overrides[p] = true);
-          denyPerms.forEach(p => overrides[p] = false);
-
-          if (typeof action.channel_name === 'string' && action.channel_name.toLowerCase() === 'all') {
+          if (typeof action.channel_name === 'string' && ['all', 'tout', 'tous'].includes(action.channel_name.toLowerCase())) {
             const channels = guild.channels.cache;
             for (const [id, chan] of channels) {
               try {
