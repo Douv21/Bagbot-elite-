@@ -1,35 +1,33 @@
-const { getUserGender } = require('../database/db');
-
-// Déterminer le genre et pronom d'un membre
+// Déterminer le genre et pronom d'un membre exclusivement via ses rôles Discord
 function getMemberGender(member) {
   if (!member) return { gender: 'homme', pronoun: 'il' };
 
-  // 1. Essayer de récupérer depuis la base de données
-  const dbGender = getUserGender(member.id);
-  if (dbGender) {
-    return {
-      gender: dbGender.gender,
-      pronoun: dbGender.pronoun || (dbGender.gender === 'femme' ? 'elle' : 'il')
-    };
-  }
-
-  // 2. Sinon, scanner les rôles du membre
-  const roles = (member.roles && member.roles.cache) ? member.roles.cache.map(r => r.name.toLowerCase()) : [];
+  // Scanner les rôles Discord du membre
+  const roles = (member.roles && member.roles.cache) ? member.roles.cache.map(r => r.name.toLowerCase().trim()) : [];
   
-  const femaleKeywords = ['femme', 'fille', 'girl', 'fem', 'féminin', 'female', 'mme', 'madame', 'she', 'her'];
-  const maleKeywords = ['homme', 'garçon', 'boy', 'masc', 'masculin', 'male', 'mr', 'monsieur', 'he', 'him'];
+  // 1. Détection des rôles Femme / Elle
+  const femaleKeywords = ['femme', 'fille', 'girl', 'fem', 'féminin', 'female', 'mme', 'madame', 'she', 'her', 'elle', '♀'];
+  const hasFemaleRole = roles.some(roleName => {
+    const words = roleName.split(/[\s/\\_-]+/);
+    return femaleKeywords.some(kw => words.includes(kw) || roleName === kw);
+  });
 
-  const hasFemaleRole = roles.some(roleName => femaleKeywords.some(kw => roleName.includes(kw)));
   if (hasFemaleRole) {
     return { gender: 'femme', pronoun: 'elle' };
   }
 
-  const hasMaleRole = roles.some(roleName => maleKeywords.some(kw => roleName.includes(kw)));
+  // 2. Détection des rôles Homme / Il
+  const maleKeywords = ['homme', 'garçon', 'boy', 'masc', 'masculin', 'male', 'mr', 'monsieur', 'he', 'him', 'il', '♂'];
+  const hasMaleRole = roles.some(roleName => {
+    const words = roleName.split(/[\s/\\_-]+/);
+    return maleKeywords.some(kw => words.includes(kw) || roleName === kw);
+  });
+
   if (hasMaleRole) {
     return { gender: 'homme', pronoun: 'il' };
   }
 
-  // 3. Par défaut : homme / il
+  // 3. Par défaut si aucun rôle n'apparaît : homme / il
   return { gender: 'homme', pronoun: 'il' };
 }
 
