@@ -1692,6 +1692,25 @@ app.post('/api/config/ai/keys/add', (req, res) => {
   }
 });
 
+app.post('/api/config/ai/keys/update', (req, res) => {
+  try {
+    const { id, provider, category, api_key, label } = req.body;
+    if (!id) return res.status(400).json({ error: 'ID de clé manquant' });
+
+    const updates = {};
+    if (provider) updates.provider = provider;
+    if (category) updates.category = category;
+    if (label !== undefined) updates.label = label;
+    if (api_key) updates.api_key = api_key.trim();
+
+    updateAiKey(id, updates);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/config/ai/keys/toggle', (req, res) => {
   try {
     const { id, is_active } = req.body;

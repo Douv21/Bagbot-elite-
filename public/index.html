@@ -2082,10 +2082,12 @@
               </form>
             </div>
 
-            <!-- Card 2: Formulaire d'ajout de Clés d'API -->
+            <!-- Card 2: Formulaire d'ajout ou modification de Clés d'API -->
             <div class="card glass mb-4">
-              <h3>🔑 Ajouter une Clé d'API (Multi-Clés Pool)</h3>
+              <h3>🔑 <span id="ai-key-form-title">Ajouter une Clé d'API (Multi-Clés Pool)</span></h3>
               <form id="form-add-ai-key" class="inner-form">
+                <input type="hidden" id="ai_key_id" value="">
+
                 <div class="form-row">
                   <div class="form-group">
                     <label for="ai_key_provider">Fournisseur :</label>
@@ -2111,14 +2113,15 @@
                     <input type="text" id="ai_key_label" class="inner-input" placeholder="ex: Clé Groq #1">
                   </div>
                   <div class="form-group">
-                    <label for="ai_key_val">Clé d'API (Secret) :</label>
-                    <input type="password" id="ai_key_val" required class="inner-input" placeholder="gsk_... ou AIzaSy...">
+                    <label for="ai_key_val">Clé d'API (Secret, laisser vide si inchangée en modif) :</label>
+                    <input type="password" id="ai_key_val" class="inner-input" placeholder="gsk_... ou AIzaSy...">
                   </div>
                 </div>
 
                 <div class="actions-bar" style="margin-top: 15px; display: flex; gap: 10px;">
-                  <button type="submit" class="btn btn-save" style="flex: 1;"><i class="fa-solid fa-plus"></i> Ajouter la Clé au Pool</button>
+                  <button type="submit" id="btn-submit-ai-key" class="btn btn-save" style="flex: 1;"><i class="fa-solid fa-plus"></i> Enregistrer la Clé dans le Pool</button>
                   <button type="button" id="btn-test-ai-key-input" class="btn" style="background: #3498db; color: #fff;"><i class="fa-solid fa-vial"></i> Tester la clé</button>
+                  <button type="button" id="btn-cancel-ai-key-edit" class="btn" style="display: none; background: #7f8c8d; color: #fff;"><i class="fa-solid fa-xmark"></i> Annuler</button>
                 </div>
               </form>
             </div>
@@ -2188,6 +2191,6 @@
 
   <div id="toast" class="toast glass">Configuration enregistrée !</div>
 
-  <script src="script.js?v=1.0.3"></script>
+  <script src="script.js?v=1.0.4"></script>
 </body>
 </html>

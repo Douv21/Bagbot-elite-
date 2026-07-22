@@ -4177,6 +4177,37 @@ document.addEventListener('DOMContentLoaded', () => {
       tdActions.style.gap = '5px';
       tdActions.style.justifyContent = 'center';
 
+      const btnEdit = document.createElement('button');
+      btnEdit.type = 'button';
+      btnEdit.className = 'btn-delete-gif';
+      btnEdit.style.background = '#9b59b6';
+      btnEdit.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>';
+      btnEdit.title = 'Modifier l\'usage ou les infos de cette clé';
+      btnEdit.addEventListener('click', () => {
+        document.getElementById('ai_key_id').value = k.id;
+        document.getElementById('ai_key_provider').value = k.provider;
+        document.getElementById('ai_key_category').value = k.category || 'all';
+        document.getElementById('ai_key_label').value = k.label || '';
+        document.getElementById('ai_key_val').value = '';
+        document.getElementById('ai_key_val').placeholder = 'Inchangée (' + (k.api_key ? k.api_key.substring(0, 6) + '...' : '') + ')';
+        
+        ['ai_key_provider', 'ai_key_category'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el && el.syncCustomSelect) el.syncCustomSelect();
+        });
+
+        const titleEl = document.getElementById('ai-key-form-title');
+        if (titleEl) titleEl.textContent = `Modifier la Clé API "${k.label || 'Sans nom'}"`;
+        
+        const btnSubmit = document.getElementById('btn-submit-ai-key');
+        if (btnSubmit) btnSubmit.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Enregistrer les modifications';
+
+        const btnCancel = document.getElementById('btn-cancel-ai-key-edit');
+        if (btnCancel) btnCancel.style.display = 'inline-flex';
+
+        document.getElementById('form-add-ai-key').scrollIntoView({ behavior: 'smooth' });
+      });
+
       const btnToggle = document.createElement('button');
       btnToggle.type = 'button';
       btnToggle.className = 'btn-delete-gif';
@@ -4246,6 +4277,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
 
+      tdActions.appendChild(btnEdit);
       tdActions.appendChild(btnToggle);
       tdActions.appendChild(btnTest);
       tdActions.appendChild(btnDel);
@@ -4259,6 +4291,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
       tbody.appendChild(tr);
     });
+  }
+
+  function resetAiKeyForm() {
+    const keyIdInput = document.getElementById('ai_key_id');
+    if (keyIdInput) keyIdInput.value = '';
+    const form = document.getElementById('form-add-ai-key');
+    if (form) form.reset();
+    const valInput = document.getElementById('ai_key_val');
+    if (valInput) valInput.placeholder = 'gsk_... ou AIzaSy...';
+    
+    ['ai_key_provider', 'ai_key_category'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.syncCustomSelect) el.syncCustomSelect();
+    });
+
+    const titleEl = document.getElementById('ai-key-form-title');
+    if (titleEl) titleEl.textContent = 'Ajouter une Clé d\'API (Multi-Clés Pool)';
+    
+    const btnSubmit = document.getElementById('btn-submit-ai-key');
+    if (btnSubmit) btnSubmit.innerHTML = '<i class="fa-solid fa-plus"></i> Ajouter la Clé au Pool';
+
+    const btnCancel = document.getElementById('btn-cancel-ai-key-edit');
+    if (btnCancel) btnCancel.style.display = 'none';
+  }
+
+  const btnCancelAiKeyEdit = document.getElementById('btn-cancel-ai-key-edit');
+  if (btnCancelAiKeyEdit) {
+    btnCancelAiKeyEdit.addEventListener('click', resetAiKeyForm);
   }
 
   const formAiConfig = document.getElementById('form-ai-config');
@@ -4294,14 +4354,18 @@ document.addEventListener('DOMContentLoaded', () => {
   if (formAddAiKey) {
     formAddAiKey.addEventListener('submit', (e) => {
       e.preventDefault();
+      const keyId = document.getElementById('ai_key_id').value;
       const body = {
         provider: document.getElementById('ai_key_provider').value,
         category: document.getElementById('ai_key_category').value,
         label: document.getElementById('ai_key_label').value,
         api_key: document.getElementById('ai_key_val').value
       };
+      if (keyId) body.id = keyId;
 
-      fetch('/api/config/ai/keys/add', {
+      const url = keyId ? '/api/config/ai/keys/update' : '/api/config/ai/keys/add';
+
+      fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -4309,8 +4373,8 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(res => res.json())
       .then(resData => {
         if (resData.success) {
-          showToast('Clé d\'API ajoutée avec succès au pool !');
-          formAddAiKey.reset();
+          showToast(keyId ? 'Clé d\'API modifiée avec succès !' : 'Clé d\'API ajoutée avec succès au pool !');
+          resetAiKeyForm();
           loadGuildConfiguration();
         } else {
           showToast('Erreur: ' + resData.error, true);
