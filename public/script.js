@@ -2031,13 +2031,6 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(err => showToast('Erreur: ' + err.message, true));
   });
-        loadGuildConfiguration();
-      } else {
-        showToast('Erreur: ' + resData.error, true);
-      }
-    })
-    .catch(err => showToast('Erreur: ' + err.message, true));
-  });
 
   formTicketOption.addEventListener('submit', (e) => {
     e.preventDefault();
