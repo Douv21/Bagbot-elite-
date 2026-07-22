@@ -698,6 +698,16 @@ function initDatabase() {
       PRIMARY KEY (guild_id, channel_id)
     )
   `).run();
+
+  // 27. Statistiques des sessions de comptage (Leaderboard par session)
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS counting_stats (
+      channel_id TEXT,
+      user_id TEXT,
+      count INTEGER DEFAULT 0,
+      PRIMARY KEY (channel_id, user_id)
+    )
+  `).run();
 }
 
 // --- Fonctions utilitaires de base de données ---
@@ -990,6 +1000,22 @@ const updateAutoThreadChannels = (guildId, channels) => {
   for (const ch of channels) {
     insert.run(guildId, ch.channel_id, ch.image_only ? 1 : 0);
   }
+};
+
+const incrementCountingStat = (channelId, userId) => {
+  return db.prepare(`
+    INSERT INTO counting_stats (channel_id, user_id, count)
+    VALUES (?, ?, 1)
+    ON CONFLICT(channel_id, user_id) DO UPDATE SET count = count + 1
+  `).run(channelId, userId);
+};
+
+const getCountingStats = (channelId) => {
+  return db.prepare('SELECT user_id, count FROM counting_stats WHERE channel_id = ? ORDER BY count DESC LIMIT 10').all(channelId);
+};
+
+const resetCountingStats = (channelId) => {
+  return db.prepare('DELETE FROM counting_stats WHERE channel_id = ?').run(channelId);
 };
 
 const DEFAULT_AV = [
@@ -1397,5 +1423,8 @@ module.exports = {
   getBumpConfig,
   updateBumpConfig,
   getAutoThreadChannels,
-  updateAutoThreadChannels
+  updateAutoThreadChannels,
+  incrementCountingStat,
+  getCountingStats,
+  resetCountingStats
 };

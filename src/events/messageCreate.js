@@ -74,75 +74,124 @@ module.exports = {
     }
 
     // --- SYSTÈME DE COMPTAGE (COUNTING) ---
-    const countingChan = db.prepare('SELECT * FROM counting_channels WHERE guild_id = ? AND channel_id = ?').get(guildId, message.channel.id);
-    if (countingChan) {
-      const contentStr = message.content.trim();
-      
-      // Ignorer les messages contenant des lettres (A à Z)
-      if (/[a-zA-Z]/.test(contentStr)) {
-        return;
-      }
-      
-      let proposedNumber = null;
-      
-      if (countingChan.mode === 'math') {
-        proposedNumber = evaluateMath(contentStr);
-      } else {
-        if (/^-?[0-9.]+$/.test(contentStr)) {
-          proposedNumber = parseFloat(contentStr);
-        }
-      }
-
-      if (proposedNumber === null || isNaN(proposedNumber)) {
-        await message.react('❌').catch(() => {});
-        db.prepare('UPDATE counting_channels SET current_number = start_number, last_user_id = NULL WHERE channel_id = ?').run(message.channel.id);
-        await message.reply(`💥 **Erreur !** Ce n'est pas un nombre valide. Le compteur a été réinitialisé à **${countingChan.start_number}** !`).catch(() => {});
-        return;
-      }
-
-      if (countingChan.last_user_id === userId) {
-        await message.react('❌').catch(() => {});
-        db.prepare('UPDATE counting_channels SET current_number = start_number, last_user_id = NULL WHERE channel_id = ?').run(message.channel.id);
-        await message.reply(`💥 **Erreur !** <@${userId}>, tu ne peux pas compter deux fois de suite ! Le compteur a été réinitialisé à **${countingChan.start_number}** !`).catch(() => {});
-        return;
-      }
-
-      let isCorrect = false;
-      let nextNumber = 0;
-      if (countingChan.mode === 'reverse') {
-        nextNumber = countingChan.current_number - 1;
-        isCorrect = (proposedNumber === nextNumber);
-      } else {
-        nextNumber = countingChan.current_number + 1;
-        isCorrect = (proposedNumber === nextNumber);
-      }
-
-      if (isCorrect) {
-        await message.react('✅').catch(() => {});
+    if (!message.channel.isThread() && !message.system) {
+      const countingChan = db.prepare('SELECT * FROM counting_channels WHERE guild_id = ? AND channel_id = ?').get(guildId, message.channel.id);
+      if (countingChan) {
+        const contentStr = message.content.trim();
         
-        let newHighScore = countingChan.high_score;
-        if (countingChan.mode === 'reverse') {
-          const currentProgress = countingChan.start_number - nextNumber;
-          if (currentProgress > countingChan.high_score) {
-            newHighScore = currentProgress;
+        // Ignorer les messages contenant des lettres (A à Z)
+        if (!/[a-zA-Z]/.test(contentStr)) {
+          let proposedNumber = null;
+          
+          if (countingChan.mode === 'math') {
+            proposedNumber = evaluateMath(contentStr);
+          } else {
+            if (/^-?[0-9.]+$/.test(contentStr)) {
+              proposedNumber = parseFloat(contentStr);
+            }
           }
-        } else {
-          if (nextNumber > countingChan.high_score) {
-            newHighScore = nextNumber;
-          }
-        }
 
-        db.prepare('UPDATE counting_channels SET current_number = ?, last_user_id = ?, high_score = ? WHERE channel_id = ?')
-          .run(nextNumber, userId, newHighScore, message.channel.id);
-      } else {
-        await message.react('❌').catch(() => {});
-        db.prepare('UPDATE counting_channels SET current_number = start_number, last_user_id = NULL WHERE channel_id = ?').run(message.channel.id);
-        const expected = countingChan.mode === 'reverse' 
-          ? (countingChan.current_number - 1) 
-          : (countingChan.current_number + 1);
-        await message.reply(`💥 **Erreur !** Le nombre attendu était **${expected}** (tu as écrit **${proposedNumber}**). Le compteur a été réinitialisé à **${countingChan.start_number}** !`).catch(() => {});
+          const { incrementCountingStat, getCountingStats, resetCountingStats } = require('../database/db');
+
+          const sendCountingErrorEmbed = async (reason) => {
+            const stats = getCountingStats(message.channel.id);
+            const medals = ['🥇', '🥈', '🥉'];
+            let leaderboardText = '*(Aucun chiffre validé dans cette session)*';
+            if (stats && stats.length > 0) {
+              leaderboardText = stats.map((r, i) => {
+                const prefix = medals[i] || `**#${i + 1}**`;
+                return `${prefix} <@${r.user_id}> — **${r.count}** nombre${r.count > 1 ? 's' : ''} validé${r.count > 1 ? 's' : ''}`;
+              }).join('\n');
+            }
+
+            resetCountingStats(message.channel.id);
+            db.prepare('UPDATE counting_channels SET current_number = start_number, last_user_id = NULL WHERE channel_id = ?').run(message.channel.id);
+
+            const errorEmbed = new EmbedBuilder()
+              .setTitle('💥 ERREUR DE COMPTAGE !')
+              .setDescription(`${reason}\n\nLe compteur a été réinitialisé à **${countingChan.start_number}** !`)
+              .addFields({ name: '📊 Classement de la session (Top Participants)', value: leaderboardText })
+              .setColor('#E74C3C')
+              .setTimestamp();
+
+            await message.react('❌').catch(() => {});
+            await message.reply({ embeds: [errorEmbed] }).catch(() => {});
+          };
+
+          if (proposedNumber === null || isNaN(proposedNumber)) {
+            await sendCountingErrorEmbed("Ce n'est pas un nombre valide.");
+            return;
+          }
+
+          if (countingChan.last_user_id === userId) {
+            await sendCountingErrorEmbed(`<@${userId}>, tu ne peux pas compter deux fois de suite !`);
+            return;
+          }
+
+          let isCorrect = false;
+          let nextNumber = 0;
+          if (countingChan.mode === 'reverse') {
+            nextNumber = countingChan.current_number - 1;
+            isCorrect = (proposedNumber === nextNumber);
+          } else {
+            nextNumber = countingChan.current_number + 1;
+            isCorrect = (proposedNumber === nextNumber);
+          }
+
+          if (isCorrect) {
+            incrementCountingStat(message.channel.id, userId);
+
+            let newHighScore = countingChan.high_score;
+            if (countingChan.mode === 'reverse') {
+              const currentProgress = countingChan.start_number - nextNumber;
+              if (currentProgress > countingChan.high_score) {
+                newHighScore = currentProgress;
+              }
+            } else {
+              if (nextNumber > countingChan.high_score) {
+                newHighScore = nextNumber;
+              }
+            }
+
+            if (countingChan.mode === 'reverse' && nextNumber === 0) {
+              await message.react('🎉').catch(() => {});
+              
+              const stats = getCountingStats(message.channel.id);
+              const medals = ['🥇', '🥈', '🥉'];
+              let leaderboardText = '*(Aucun chiffre validé dans cette session)*';
+              if (stats && stats.length > 0) {
+                leaderboardText = stats.map((r, i) => {
+                  const prefix = medals[i] || `**#${i + 1}**`;
+                  return `${prefix} <@${r.user_id}> — **${r.count}** nombre${r.count > 1 ? 's' : ''} validé${r.count > 1 ? 's' : ''}`;
+                }).join('\n');
+              }
+
+              resetCountingStats(message.channel.id);
+              db.prepare('UPDATE counting_channels SET current_number = start_number, last_user_id = NULL, high_score = ? WHERE channel_id = ?')
+                .run(newHighScore, message.channel.id);
+
+              const victoryEmbed = new EmbedBuilder()
+                .setTitle('🎉 VICTOIRE ! Le compteur est arrivé à 0 !')
+                .setDescription(`Félicitations à tous ! Vous avez réussi à décompter jusqu'à **0** !\nLe compteur repart à **${countingChan.start_number}**.`)
+                .addFields({ name: '🏆 Classement des Meilleurs Participants', value: leaderboardText })
+                .setColor('#2ECC71')
+                .setTimestamp();
+
+              await message.channel.send({ embeds: [victoryEmbed] }).catch(() => {});
+            } else {
+              await message.react('✅').catch(() => {});
+              db.prepare('UPDATE counting_channels SET current_number = ?, last_user_id = ?, high_score = ? WHERE channel_id = ?')
+                .run(nextNumber, userId, newHighScore, message.channel.id);
+            }
+          } else {
+            const expected = countingChan.mode === 'reverse' 
+              ? (countingChan.current_number - 1) 
+              : (countingChan.current_number + 1);
+            await sendCountingErrorEmbed(`Le nombre attendu était **${expected}** (tu as écrit **${proposedNumber}**).`);
+          }
+          return;
+        }
       }
-      return;
     }
 
     // --- FILTRAGE ET ANONYMISATION DES COMMENTAIRES DE CONFESSIONS ---
