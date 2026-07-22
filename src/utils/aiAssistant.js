@@ -60,28 +60,31 @@ async function processAiCommand(guildId, userId, message, client) {
   const fetchedRoles = await guild.roles.fetch().catch(() => null);
   const fetchedChannels = await guild.channels.fetch().catch(() => null);
 
-  // Extraire toutes les permissions possibles disponibles dans l'énumération PermissionFlagsBits
-  const allPermissionsList = Object.keys(PermissionFlagsBits)
-    .filter(key => typeof PermissionFlagsBits[key] === 'bigint')
-    .map(key => `"${key}"`)
-    .join(', ');
+  const mainPermissionsList = [
+    'Administrator', 'ManageGuild', 'ManageRoles', 'ManageChannels', 'KickMembers',
+    'BanMembers', 'CreateInstantInvite', 'ManageNicknames', 'ChangeNickname', 'ManageWebhooks',
+    'ViewChannel', 'SendMessages', 'SendTTSMessages', 'ManageMessages', 'EmbedLinks',
+    'AttachFiles', 'ReadMessageHistory', 'MentionEveryone', 'UseExternalEmojis', 'AddReactions',
+    'Connect', 'Speak', 'MuteMembers', 'DeafenMembers', 'MoveMembers', 'UseVAD'
+  ].map(key => `"${key}"`).join(', ');
 
   const rolesList = (fetchedRoles || guild.roles.cache)
     .filter(r => r.name !== '@everyone')
     .filter(r => !r.name.includes('---') && !r.name.includes('──') && !r.name.includes('===') && !r.name.includes('___'))
     .sort((a, b) => b.position - a.position)
-    .map(r => `@${r.name} (ID: ${r.id}, Position: ${r.position})`)
+    .slice(0, 45)
+    .map(r => `@${r.name} (ID: ${r.id})`)
     .join(', ');
 
   const channelsList = (fetchedChannels || guild.channels.cache)
+    .slice(0, 50)
     .map(c => {
-      let typeStr = 'Autre';
+      let typeStr = 'Texte';
       if (c.type === 4) typeStr = 'Catégorie';
-      else if (c.type === 0) typeStr = 'Text';
       else if (c.type === 2) typeStr = 'Vocal';
       else if (c.type === 5) typeStr = 'Annonces';
       else if (c.type === 15) typeStr = 'Forum';
-      return `#${c.name} (ID: ${c.id}, Type: ${typeStr}${c.parent ? ', Parent: ' + c.parent.name : ''})`;
+      return `#${c.name} (ID: ${c.id}, ${typeStr})`;
     })
     .join(', ');
 
@@ -99,7 +102,7 @@ Règles de décision CRITIQUES :
 2. Lorsque tu fais référence à un salon, utilise son nom exact ou son ID figurant dans la liste des SALONS EXISTANTS ci-dessus.
 
 Liste des permissions valides utilisables pour les actions :
-"all" (pour attribuer toutes les permissions d'un coup), ${allPermissionsList}
+"all" (pour attribuer toutes les permissions d'un coup), ${mainPermissionsList}
 
 Actions d'administration possibles (tu devez les formuler sous forme d'un tableau JSON d'objets, exemple: [{"type": "create_role", "name": "VIP"}]):
 1. {"type": "update_automod", "anti_link": 0/1, "anti_spam": 0/1, "anti_massmention": 0/1, "anti_badwords": 0/1, "spam_max_msgs": nombre, "massmention_limit": nombre, "badwords_list": "mot1,mot2"}
