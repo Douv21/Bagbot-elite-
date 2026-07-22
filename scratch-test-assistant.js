@@ -12,9 +12,9 @@ client.once('ready', async () => {
     process.exit(1);
   }
 
-  console.log(`Testing processAiCommand on guild "${guild.name}" (${guild.id})...`);
+  console.log(`Testing processAiCommand Action on guild "${guild.name}" (${guild.id})...`);
   try {
-    const res = await processAiCommand(guild.id, guild.ownerId, 'Bonjour, présente-toi brièvement.', client);
+    const res = await processAiCommand(guild.id, guild.ownerId, 'Peux-tu créer un rôle nommé TestVIP en couleur rouge ?', client);
     console.log('RESULT SUCCESS:\n', res);
   } catch (err) {
     console.error('RESULT FAILED:\n', err);
