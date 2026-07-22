@@ -18,52 +18,56 @@ async function callGroqApi(apiKey, model, systemPrompt, userPrompt, temperature 
   }
   messages.push({ role: 'user', content: userPrompt });
 
-  let targetModel = model || 'llama-3.3-70b-versatile';
+  const modelsToTry = [
+    model || 'llama-3.1-8b-instant',
+    'llama-3.1-8b-instant',
+    'gemma2-9b-it',
+    'llama-3.3-70b-versatile'
+  ];
 
-  let response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: targetModel,
-      messages,
-      temperature,
-      max_tokens: maxTokens
-    }),
-    signal: AbortSignal.timeout(15000)
-  });
+  const uniqueModels = [...new Set(modelsToTry)];
+  let lastError = null;
 
-  // Si limite de taux (429) sur le modèle 70B, retenter immédiatement avec llama-3.1-8b-instant (30k TPM)
-  if (response.status === 429 && targetModel !== 'llama-3.1-8b-instant') {
-    console.warn(`[AI Manager] 429 Rate Limit sur ${targetModel}, basculement automatique sur llama-3.1-8b-instant...`);
-    response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
-        messages,
-        temperature,
-        max_tokens: maxTokens
-      }),
-      signal: AbortSignal.timeout(15000)
-    });
+  for (const targetModel of uniqueModels) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: targetModel,
+          messages,
+          temperature,
+          max_tokens: maxTokens
+        }),
+        signal: AbortSignal.timeout(15000)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+          return data.choices[0].message.content.trim();
+        }
+      } else {
+        const errorText = await response.text().catch(() => '');
+        lastError = new Error(`Groq API (${targetModel}) HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+        
+        if (errorText.includes('organization_restricted') || errorText.includes('invalid_api_key') || response.status === 401 || response.status === 403) {
+          throw lastError;
+        }
+        console.warn(`[AI Manager] Groq modèle ${targetModel} indisponible (${response.status}), tentative sur modèle alternatif...`);
+      }
+    } catch (err) {
+      if (err.message.includes('organization_restricted') || err.message.includes('invalid_api_key') || err.message.includes('401') || err.message.includes('403')) {
+        throw err;
+      }
+      lastError = err;
+    }
   }
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => '');
-    throw new Error(`Groq API HTTP ${response.status}: ${errorText.substring(0, 200)}`);
-  }
-
-  const data = await response.json();
-  if (data.choices && data.choices[0] && data.choices[0].message) {
-    return data.choices[0].message.content.trim();
-  }
-  throw new Error('Groq API response format invalid');
+  throw lastError || new Error('Groq API request failed');
 }
 
 /**
@@ -170,7 +174,7 @@ async function callPollinationsFallback(systemPrompt, userPrompt) {
           { role: 'system', content: systemPrompt || '' },
           { role: 'user', content: userPrompt }
         ],
-        model: 'openai'
+        model: 'mistral'
       }),
       signal: AbortSignal.timeout(10000)
     });
@@ -180,8 +184,7 @@ async function callPollinationsFallback(systemPrompt, userPrompt) {
       if (text && text.trim().length > 0) return text.trim();
     }
 
-    // Backup GET
-    const getRes = await fetch(`https://text.pollinations.ai/${encodeURIComponent(promptFull)}?model=openai`, {
+    const getRes = await fetch(`https://text.pollinations.ai/${encodeURIComponent(promptFull.substring(0, 500))}`, {
       signal: AbortSignal.timeout(10000)
     });
     if (getRes.ok) {
@@ -213,7 +216,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
   // Déterminer les modèles à utiliser selon la catégorie
   let groqModel = config.groq_text_model || 'llama-3.3-70b-versatile';
   if (category === 'vision') groqModel = config.groq_vision_model || 'llama-3.2-11b-vision-preview';
-  if (category === 'server') groqModel = config.groq_server_model || 'llama-3.3-70b-versatile';
+  if (category === 'server') groqModel = config.groq_server_model || 'llama-3.1-8b-instant';
 
   const geminiModel = config.gemini_model || 'gemini-2.0-flash';
 
