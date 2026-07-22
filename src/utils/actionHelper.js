@@ -63,6 +63,21 @@ async function executeAction(interaction, actionName, config) {
     .setAuthor({ name: author.username, iconURL: author.displayAvatarURL({ dynamic: true }) })
     .setTimestamp();
 
+// Carte de rotation en mémoire pour éviter la répétition du même GIF deux fois de suite
+const gifRotationIndexMap = new Map();
+
+function getNextRotatedGif(guildId, actionName, gifs) {
+  if (!gifs || gifs.length === 0) return null;
+  if (gifs.length === 1) return gifs[0].gif_url;
+
+  const key = `${guildId || 'global'}:${actionName}`;
+  const lastIndex = gifRotationIndexMap.get(key) ?? -1;
+  const nextIndex = (lastIndex + 1) % gifs.length;
+  gifRotationIndexMap.set(key, nextIndex);
+
+  return gifs[nextIndex].gif_url;
+}
+
   const files = [];
   const targetFiles = [];
   
@@ -79,17 +94,17 @@ async function executeAction(interaction, actionName, config) {
   }
 
   if (gifs && gifs.length > 0) {
-    const randomGif = gifs[Math.floor(Math.random() * gifs.length)].gif_url;
-    if (randomGif.startsWith('/uploads/')) {
-      const absPath = path.join(__dirname, '../../public', randomGif);
+    const selectedGif = getNextRotatedGif(guildId, actionName, gifs);
+    if (selectedGif.startsWith('/uploads/')) {
+      const absPath = path.join(__dirname, '../../public', selectedGif);
       if (fs.existsSync(absPath)) {
-        const filename = path.basename(randomGif);
+        const filename = path.basename(selectedGif);
         files.push(new AttachmentBuilder(absPath, { name: filename }));
         targetFiles.push(new AttachmentBuilder(absPath, { name: filename }));
         embed.setImage(`attachment://${filename}`);
       }
-    } else if (randomGif.startsWith('http://') || randomGif.startsWith('https://')) {
-      embed.setImage(randomGif);
+    } else if (selectedGif.startsWith('http://') || selectedGif.startsWith('https://')) {
+      embed.setImage(selectedGif);
     }
   }
 
