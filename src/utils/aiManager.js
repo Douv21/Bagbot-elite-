@@ -234,6 +234,12 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
         return result;
       } catch (err) {
         console.warn(`[AI Manager] Clé Groq ID ${keyObj.id} (${keyObj.label}) échouée : ${err.message}. Essai de la clé suivante...`);
+        if (err.message.includes('organization_restricted') || err.message.includes('invalid_api_key') || err.message.includes('HTTP 401') || err.message.includes('HTTP 403')) {
+          try {
+            updateAiKey(keyObj.id, { is_active: 0 });
+            console.warn(`[AI Manager] Clé Groq ID ${keyObj.id} (${keyObj.label}) désactivée automatiquement car restreinte par Groq.`);
+          } catch (e) {}
+        }
       }
     }
     return null;
@@ -251,6 +257,12 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
         return result;
       } catch (err) {
         console.warn(`[AI Manager] Clé Gemini ID ${keyObj.id} (${keyObj.label}) échouée : ${err.message}. Essai de la clé suivante...`);
+        if (err.message.includes('API key not valid') || err.message.includes('HTTP 400') || err.message.includes('HTTP 401')) {
+          try {
+            updateAiKey(keyObj.id, { is_active: 0 });
+            console.warn(`[AI Manager] Clé Gemini ID ${keyObj.id} (${keyObj.label}) désactivée automatiquement car invalide.`);
+          } catch (e) {}
+        }
       }
     }
     return null;
@@ -298,7 +310,15 @@ async function testAiKey(provider, apiKey) {
       return { success: false, error: "Fournisseur inconnu." };
     }
   } catch (err) {
-    return { success: false, error: err.message };
+    let cleanErr = err.message;
+    if (cleanErr.includes('organization_restricted')) {
+      cleanErr = 'Clé restreinte par Groq (Organization Restricted). Veuillez générer une nouvelle clé valide sur console.groq.com.';
+    } else if (cleanErr.includes('invalid_api_key')) {
+      cleanErr = 'Clé API Groq invalide ou inexistante.';
+    } else if (cleanErr.includes('429')) {
+      cleanErr = 'Quota dépassé (429 Rate limit). Veuillez patienter ou ajouter une autre clé.';
+    }
+    return { success: false, error: cleanErr };
   }
 }
 
