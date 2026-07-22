@@ -2033,12 +2033,13 @@
                   <div class="form-group">
                     <label for="ai_preferred_provider">Fournisseur Prioritaire :</label>
                     <select id="ai_preferred_provider" class="custom-select">
-                      <option value="auto">🔄 Auto (Groq ➔ Gemini ➔ Fallback)</option>
+                      <option value="auto">🔄 Auto (Ollama ➔ Groq ➔ Gemini ➔ Fallback)</option>
+                      <option value="ollama">🏠 Ollama (LLM Local Freebox / Serveur - 0 Quota)</option>
                       <option value="groq">⚡ Groq API (Ultra-rapide Llama 3.3)</option>
                       <option value="gemini">✨ Google AI Studio Gemini (Gemini 2.0 Flash)</option>
                       <option value="pollinations">🌐 Pollinations AI (Secours sans clé)</option>
                     </select>
-                    <small class="form-help">En mode Auto, si vos clés Groq sont saturées (429), le système bascule automatiquement sur vos clés Gemini.</small>
+                    <small class="form-help">En mode Auto, le système essaie vos modèles en priorité selon leur disponibilité sans aucune interruption.</small>
                   </div>
                   <div class="form-group">
                     <label for="ai_gemini_model">Modèle Gemini (AI Studio) :</label>
@@ -2070,6 +2071,7 @@
                   <div class="form-group">
                     <label for="ai_groq_server_model">Modèle Administration Serveur Groq :</label>
                     <select id="ai_groq_server_model" class="custom-select">
+                      <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant 🚀 (Ultra-rapide & 30k TPM)</option>
                       <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile 🛡️</option>
                       <option value="mixtral-8x7b-32768">Mixtral 8x7B 32k 🛡️</option>
                     </select>
@@ -2094,6 +2096,7 @@
                     <select id="ai_key_provider" required class="custom-select">
                       <option value="groq">⚡ Groq API (Console Groq)</option>
                       <option value="gemini">✨ Google AI Studio Gemini</option>
+                      <option value="ollama">🏠 Ollama (LLM Local Freebox/Serveur)</option>
                     </select>
                   </div>
                   <div class="form-group">
@@ -2191,6 +2194,6 @@
 
   <div id="toast" class="toast glass">Configuration enregistrée !</div>
 
-  <script src="script.js?v=1.0.5"></script>
+  <script src="script.js?v=1.0.6"></script>
 </body>
 </html>

@@ -4147,6 +4147,8 @@ document.addEventListener('DOMContentLoaded', () => {
       let providerBadge = '<span class="badge" style="background: rgba(230,126,34,0.2); color: #e67e22; padding: 4px 8px; border-radius: 4px; font-weight: bold;">⚡ Groq API</span>';
       if (k.provider === 'gemini') {
         providerBadge = '<span class="badge" style="background: rgba(52,152,219,0.2); color: #3498db; padding: 4px 8px; border-radius: 4px; font-weight: bold;">✨ Gemini API</span>';
+      } else if (k.provider === 'ollama') {
+        providerBadge = '<span class="badge" style="background: rgba(155,89,182,0.2); color: #9b59b6; padding: 4px 8px; border-radius: 4px; font-weight: bold;">🏠 Ollama Local</span>';
       }
       tdProvider.innerHTML = providerBadge;
 

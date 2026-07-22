@@ -198,18 +198,19 @@ async function callPollinationsFallback(systemPrompt, userPrompt) {
 }
 
 /**
- * Moteur principal de génération d'IA avec Pool Multi-Clés et Basculement Automatique (Groq -> Gemini -> Fallback)
+ * Moteur principal de génération d'IA avec Pool Multi-Clés et Basculement Automatique (Ollama -> Groq -> Gemini -> Fallback)
  */
 async function generateAiCompletion({ guildId = null, category = 'text', systemPrompt = '', userPrompt = '', imageUrl = null, temperature = 0.7, maxTokens = 1000 }) {
   const config = guildId ? getAiConfig(guildId) : {
     preferred_provider: 'auto',
     groq_text_model: 'llama-3.3-70b-versatile',
     groq_vision_model: 'llama-3.2-11b-vision-preview',
-    groq_server_model: 'llama-3.3-70b-versatile',
+    groq_server_model: 'llama-3.1-8b-instant',
     gemini_model: 'gemini-2.0-flash'
   };
 
   const activeKeys = getAiKeys(null, category).filter(k => k.is_active === 1);
+  const ollamaKeys = activeKeys.filter(k => k.provider === 'ollama');
   const groqKeys = activeKeys.filter(k => k.provider === 'groq');
   const geminiKeys = activeKeys.filter(k => k.provider === 'gemini');
 
@@ -219,6 +220,21 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
   if (category === 'server') groqModel = config.groq_server_model || 'llama-3.1-8b-instant';
 
   const geminiModel = config.gemini_model || 'gemini-2.0-flash';
+
+  const tryOllamaPool = async () => {
+    if (ollamaKeys.length === 0) return null;
+    for (const keyObj of ollamaKeys) {
+      try {
+        const hostUrl = keyObj.api_key || 'http://127.0.0.1:11434';
+        const model = keyObj.label || 'qwen2.5:7b';
+        const result = await callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperature, maxTokens);
+        return result;
+      } catch (err) {
+        console.warn(`[AI Manager] Ollama local (${keyObj.api_key}) échoué : ${err.message}`);
+      }
+    }
+    return null;
+  };
 
   const tryGroqPool = async () => {
     if (groqKeys.length === 0) return null;
@@ -273,7 +289,10 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
 
   const pref = config.preferred_provider || 'auto';
 
-  if (pref === 'groq') {
+  if (pref === 'ollama') {
+    const resOllama = await tryOllamaPool();
+    if (resOllama) return resOllama;
+  } else if (pref === 'groq') {
     const resGroq = await tryGroqPool();
     if (resGroq) return resGroq;
   } else if (pref === 'gemini') {
@@ -283,7 +302,10 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
     const resPol = await callPollinationsFallback(systemPrompt, userPrompt);
     if (resPol) return resPol;
   } else {
-    // Mode Auto : Groq en premier, puis Gemini, puis Pollinations
+    // Mode Auto : Ollama (si configuré) -> Groq -> Gemini -> Pollinations
+    const resOllama = await tryOllamaPool();
+    if (resOllama) return resOllama;
+
     const resGroq = await tryGroqPool();
     if (resGroq) return resGroq;
 
@@ -295,11 +317,11 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
   const fallbackRes = await callPollinationsFallback(systemPrompt, userPrompt);
   if (fallbackRes) return fallbackRes;
 
-  throw new Error("Toutes les clés d'API IA (Groq, Gemini) et le service de secours ont échoué.");
+  throw new Error("Toutes les clés d'API IA (Ollama, Groq, Gemini) et le service de secours ont échoué.");
 }
 
 /**
- * Teste la validité d'une clé API Groq ou Gemini
+ * Teste la validité d'une clé API Groq, Gemini ou Ollama
  */
 async function testAiKey(provider, apiKey) {
   try {
@@ -309,6 +331,10 @@ async function testAiKey(provider, apiKey) {
     } else if (provider === 'gemini') {
       const res = await callGeminiApi(apiKey, 'gemini-2.0-flash', 'Test', 'Bonjour', 0.5, 10);
       return { success: true, message: `✅ Clé Gemini valide ! Réponse : "${res.substring(0, 50)}"` };
+    } else if (provider === 'ollama') {
+      const hostUrl = apiKey || 'http://127.0.0.1:11434';
+      const res = await callOllamaApi(hostUrl, 'qwen2.5:7b', 'Test', 'Bonjour', 0.5, 10);
+      return { success: true, message: `✅ Instance Ollama locale connectée ! Réponse : "${res.substring(0, 50)}"` };
     } else {
       return { success: false, error: "Fournisseur inconnu." };
     }
@@ -329,6 +355,7 @@ module.exports = {
   callGroqApi,
   callGroqVisionApi,
   callGeminiApi,
+  callOllamaApi,
   callPollinationsFallback,
   generateAiCompletion,
   testAiKey

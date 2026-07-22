@@ -159,12 +159,28 @@ Pour que le script puisse les parser automatiquement.`;
     let reply = fullReply;
     let actions = [];
 
+    let jsonStr = null;
     const startIndex = fullReply.indexOf('[ACTIONS_START]');
     const endIndex = fullReply.indexOf('[ACTIONS_END]');
 
     if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
-      const jsonStr = fullReply.substring(startIndex + '[ACTIONS_START]'.length, endIndex).trim();
+      jsonStr = fullReply.substring(startIndex + '[ACTIONS_START]'.length, endIndex).trim();
       reply = fullReply.substring(0, startIndex).trim();
+    } else {
+      const matchCodeBlock = fullReply.match(/```(?:json)?\s*(\[\s*\{[\s\S]*?\}\s*\])\s*```/i);
+      if (matchCodeBlock) {
+        jsonStr = matchCodeBlock[1].trim();
+        reply = fullReply.replace(matchCodeBlock[0], '').trim();
+      } else {
+        const matchRawArray = fullReply.match(/(\[\s*\{\s*"type"[\s\S]*?\}\s*\])/i);
+        if (matchRawArray) {
+          jsonStr = matchRawArray[1].trim();
+          reply = fullReply.replace(matchRawArray[0], '').trim();
+        }
+      }
+    }
+
+    if (jsonStr) {
       try {
         actions = JSON.parse(jsonStr);
       } catch (e) {
