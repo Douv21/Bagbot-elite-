@@ -1035,7 +1035,7 @@ const getAiKeys = (provider = null, category = null) => {
     params.push(provider);
   }
   if (category && category !== 'all') {
-    query += ' AND (category = ? OR category = "all")';
+    query += " AND (category = ? OR category = 'all')";
     params.push(category);
   }
   query += ' ORDER BY id ASC';
