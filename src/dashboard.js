@@ -36,8 +36,11 @@ const {
   deleteActionVeriteItem,
   getActionVeriteConfig,
   updateActionVeriteConfig,
-  getTicketPanel,
-  updateTicketPanel,
+  getTicketPanels,
+  getTicketPanelById,
+  addTicketPanel,
+  updateTicketPanelById,
+  deleteTicketPanel,
   getTicketOptions,
   addTicketOption,
   deleteTicketOption,
@@ -1546,41 +1549,105 @@ app.get('/api/config/tickets', (req, res) => {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const panel = getTicketPanel(guildId);
+    const panels = getTicketPanels(guildId);
     const options = getTicketOptions(guildId);
-    res.json({ panel, options });
+    res.json({ panels, options });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });
   }
 });
 
-app.post('/api/config/tickets/panel', async (req, res) => {
+app.post('/api/config/tickets/panel/add', async (req, res) => {
   try {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { title, description, color, thumbnail, selector_type, channel_id, image_url } = req.body;
+    const { title, description, color, thumbnail, selector_type, channel_id, image_url, allowed_options } = req.body;
 
-    updateTicketPanel(guildId, {
+    const result = addTicketPanel(guildId, {
       title: title || '🎫 Support / Tickets',
       description: description || '',
       color: color || '#5865F2',
       thumbnail: thumbnail ? 1 : 0,
       selector_type: selector_type || 'select',
       channel_id: channel_id || null,
-      image_url: image_url || null
+      image_url: image_url || null,
+      allowed_options: allowed_options || []
     });
 
-    // Envoyer ou mettre à jour le panel dans le salon
+    const panelId = result.lastInsertRowid;
+
     if (channel_id) {
       const { sendOrUpdateTicketPanel } = require('./utils/tickets');
-      const sendRes = await sendOrUpdateTicketPanel(guildId, client);
+      const sendRes = await sendOrUpdateTicketPanel(panelId, client);
+      if (!sendRes.success) {
+        return res.json({ success: true, panelId, warning: sendRes.error });
+      }
+    }
+
+    res.json({ success: true, panelId });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/tickets/panel/update', async (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { id, title, description, color, thumbnail, selector_type, channel_id, image_url, allowed_options } = req.body;
+    if (!id) return res.status(400).json({ error: 'Missing panel ID' });
+
+    updateTicketPanelById(id, {
+      title: title || '🎫 Support / Tickets',
+      description: description || '',
+      color: color || '#5865F2',
+      thumbnail: thumbnail ? 1 : 0,
+      selector_type: selector_type || 'select',
+      channel_id: channel_id || null,
+      image_url: image_url || null,
+      allowed_options: allowed_options || []
+    });
+
+    if (channel_id) {
+      const { sendOrUpdateTicketPanel } = require('./utils/tickets');
+      const sendRes = await sendOrUpdateTicketPanel(id, client);
       if (!sendRes.success) {
         return res.json({ success: true, warning: sendRes.error });
       }
     }
 
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/tickets/panel/delete', async (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: 'Missing panel ID' });
+
+    const panel = getTicketPanelById(id);
+    if (panel && panel.channel_id && panel.message_id) {
+      const guild = client.guilds.cache.get(guildId);
+      if (guild) {
+        const channel = await guild.channels.fetch(panel.channel_id).catch(() => null);
+        if (channel) {
+          const msg = await channel.messages.fetch(panel.message_id).catch(() => null);
+          if (msg) await msg.delete().catch(() => null);
+        }
+      }
+    }
+
+    deleteTicketPanel(id);
     res.json({ success: true });
   } catch (error) {
     console.error(error);

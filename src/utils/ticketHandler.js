@@ -9,9 +9,23 @@ async function handleTicketInteraction(interaction, client) {
 
   // Handler du Bouton Unique "Ouvrir ticket" (filtrage dynamique)
   if (customId === 'ticket_open_button') {
-    const options = db.prepare('SELECT * FROM ticket_options WHERE guild_id = ?').all(guildId);
+    let options = db.prepare('SELECT * FROM ticket_options WHERE guild_id = ?').all(guildId);
+    
+    // Si le panel spécifie des catégories autorisées, on filtre
+    if (interaction.message && interaction.message.id) {
+      const panel = db.prepare('SELECT * FROM ticket_panels WHERE message_id = ?').get(interaction.message.id);
+      if (panel && panel.allowed_options) {
+        try {
+          const allowed = JSON.parse(panel.allowed_options);
+          if (Array.isArray(allowed) && allowed.length > 0) {
+            options = options.filter(opt => allowed.includes(opt.value));
+          }
+        } catch (e) {}
+      }
+    }
+
     if (options.length === 0) {
-      return interaction.reply({ content: '❌ Aucune catégorie de ticket n\'est configurée pour ce serveur.', ephemeral: true });
+      return interaction.reply({ content: '❌ Aucune catégorie de ticket n\'est configurée pour ce panel.', ephemeral: true });
     }
 
     const member = interaction.member;

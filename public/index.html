@@ -1713,12 +1713,38 @@
           <div id="tab-tickets" class="tab-content">
             <h2 class="section-title"><i class="fa-solid fa-ticket"></i> Système de Tickets d'Assistance</h2>
 
+            <!-- Card: Liste des Panneaux Existants -->
+            <div class="card glass mb-4">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0;"><i class="fa-solid fa-layer-group"></i> Vos Panneaux de Tickets Configurés</h3>
+                <button type="button" id="btn-create-new-ticket-panel" class="btn btn-save" style="font-size: 0.85rem; padding: 6px 12px;"><i class="fa-solid fa-plus"></i> Créer un nouveau panneau</button>
+              </div>
+              <div style="overflow-x: auto;">
+                <table class="premium-table">
+                  <thead>
+                    <tr>
+                      <th>Titre</th>
+                      <th>Salon</th>
+                      <th>Type</th>
+                      <th>Catégories Incluses</th>
+                      <th style="width: 110px; text-align: center;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ticket-panels-list-tbody">
+                    <!-- Rempli en JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
             <div class="row">
-              <!-- Left: Panel Config -->
+              <!-- Left: Panel Config Form -->
               <div class="col-md-7">
                 <div class="card glass mb-4">
-                  <h3>🎨 Configurer l'Embed du Panel</h3>
+                  <h3 id="ticket-panel-form-title">🎨 Editeur de Panneau de Ticket</h3>
                   <form id="form-ticket-panel" class="inner-form">
+                    <input type="hidden" id="ticket_panel_id" value="">
+                    
                     <div class="form-row">
                       <div class="form-group">
                         <label for="ticket_panel_title">Titre de l'embed :</label>
@@ -1753,6 +1779,14 @@
                     </div>
 
                     <div class="form-group">
+                      <label>Catégories autorisées sur ce panneau :</label>
+                      <div id="ticket_panel_allowed_options_container" style="display: flex; flex-wrap: wrap; gap: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); max-height: 150px; overflow-y: auto;">
+                        <!-- Inséré en JS (cases à cocher des catégories) -->
+                      </div>
+                      <small class="form-help">Si aucune case n'est cochée, toutes les catégories de tickets apparaîtront sur ce panneau.</small>
+                    </div>
+
+                    <div class="form-group">
                       <label for="ticket_panel_image_url">URL de l'image / du GIF de l'embed (facultatif) :</label>
                       <input type="text" id="ticket_panel_image_url" class="inner-input" placeholder="ex: https://site.com/image.gif">
                     </div>
@@ -1765,8 +1799,9 @@
                       <span>Afficher l'avatar du serveur en miniature</span>
                     </div>
 
-                    <div class="actions-bar" style="margin-top: 15px;">
-                      <button type="submit" class="btn btn-save" style="width: 100%;"><i class="fa-solid fa-paper-plane"></i> Enregistrer et Déployer le Panel</button>
+                    <div class="actions-bar" style="margin-top: 15px; display: flex; gap: 10px;">
+                      <button type="submit" class="btn btn-save" style="flex: 1;"><i class="fa-solid fa-paper-plane"></i> Enregistrer et Déployer</button>
+                      <button type="button" id="btn-cancel-ticket-panel" class="btn" style="background: rgba(255,255,255,0.1); color: #fff; display: none;">Annuler</button>
                     </div>
                   </form>
                 </div>

@@ -1,9 +1,21 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
-const { getTicketPanel, getTicketOptions, updateTicketPanel } = require('../database/db');
+const { getTicketPanelById, getTicketOptions, updateTicketPanelById } = require('../database/db');
 
-async function sendOrUpdateTicketPanel(guildId, client) {
-  const panelConfig = getTicketPanel(guildId);
-  const options = getTicketOptions(guildId);
+async function sendOrUpdateTicketPanel(panelId, client) {
+  const panelConfig = getTicketPanelById(panelId);
+  if (!panelConfig) return { success: false, error: "Configuration du panel introuvable." };
+  
+  const guildId = panelConfig.guild_id;
+  let options = getTicketOptions(guildId);
+  
+  if (panelConfig.allowed_options) {
+    try {
+      const allowed = JSON.parse(panelConfig.allowed_options);
+      if (Array.isArray(allowed) && allowed.length > 0) {
+        options = options.filter(opt => allowed.includes(opt.value));
+      }
+    } catch (e) {}
+  }
 
   if (!panelConfig.channel_id) return { success: false, error: "Aucun salon configuré pour le panel." };
 
@@ -109,7 +121,7 @@ async function sendOrUpdateTicketPanel(guildId, client) {
       console.error("Erreur lors de l'envoi du panel ticket:", err);
     });
     if (newMsg) {
-      updateTicketPanel(guildId, { message_id: newMsg.id });
+      updateTicketPanelById(panelId, { message_id: newMsg.id });
     }
   }
 

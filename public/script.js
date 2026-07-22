@@ -710,33 +710,31 @@ document.addEventListener('DOMContentLoaded', () => {
           })
           .catch(console.error);
 
-        // Charger la configuration des Tickets (Panel et Options)
+        // Charger la configuration des Tickets (Panneaux et Options)
         fetch('/api/config/tickets')
           .then(res => res.json())
           .then(data => {
-            const panel = data.panel;
-            const options = data.options;
+            currentTicketPanels = data.panels || [];
+            currentTicketOptions = data.options || [];
 
-            // Remplir le formulaire du Panel
-            document.getElementById('ticket_panel_title').value = panel.title || '';
-            document.getElementById('ticket_panel_desc').value = panel.description || '';
-            document.getElementById('ticket_panel_color').value = panel.color || '#5865f2';
-            document.getElementById('ticket_panel_selector').value = panel.selector_type || 'select';
-            document.getElementById('ticket_panel_channel').value = panel.channel_id || '';
-            document.getElementById('ticket_panel_thumbnail').checked = !!panel.thumbnail;
-            document.getElementById('ticket_panel_image_url').value = panel.image_url || '';
+            renderTicketPanelsList(currentTicketPanels, currentTicketOptions);
+            renderTicketOptions(currentTicketOptions);
 
-            // Synchroniser les custom selects du panel
-            const channelSel = document.getElementById('ticket_panel_channel');
-            const selectorSel = document.getElementById('ticket_panel_selector');
-            if (channelSel.syncCustomSelect) channelSel.syncCustomSelect();
-            if (selectorSel.syncCustomSelect) selectorSel.syncCustomSelect();
-
-            // Mettre à jour l'aperçu en direct
-            updateTicketPreview(panel, options);
-
-            // Rendre la liste des options de ticket
-            renderTicketOptions(options);
+            const panelIdInput = document.getElementById('ticket_panel_id');
+            if (panelIdInput && panelIdInput.value) {
+              const currentEditing = currentTicketPanels.find(p => p.id == panelIdInput.value);
+              if (currentEditing) {
+                loadPanelIntoForm(currentEditing, currentTicketOptions);
+              } else if (currentTicketPanels.length > 0) {
+                loadPanelIntoForm(currentTicketPanels[0], currentTicketOptions);
+              } else {
+                resetPanelForm(currentTicketOptions);
+              }
+            } else if (currentTicketPanels.length > 0) {
+              loadPanelIntoForm(currentTicketPanels[0], currentTicketOptions);
+            } else {
+              resetPanelForm(currentTicketOptions);
+            }
           })
           .catch(console.error);
 
@@ -1727,7 +1725,226 @@ document.addEventListener('DOMContentLoaded', () => {
     .catch(err => showToast('Erreur: ' + err.message, true));
   });
 
-  // --- SYSTÈME DE TICKETS ---
+  // --- SYSTÈME DE TICKETS MULTI-PANNEAUX ---
+  let currentTicketPanels = [];
+  let currentTicketOptions = [];
+
+  function renderTicketPanelsList(panels, options) {
+    const tbody = document.getElementById('ticket-panels-list-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (panels.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="color:#8e9297; padding: 15px; font-style: italic;">Aucun panneau configuré. Créez-en un avec le formulaire ci-dessous.</td></tr>';
+      return;
+    }
+
+    panels.forEach(p => {
+      const tr = document.createElement('tr');
+
+      const tdTitle = document.createElement('td');
+      tdTitle.innerHTML = `<strong>${p.title || '🎫 Support'}</strong>`;
+
+      const tdChannel = document.createElement('td');
+      const chanName = p.channel_id ? (getChannelName(p.channel_id) || `<#${p.channel_id}>`) : 'Non configuré';
+      tdChannel.innerHTML = `<span style="color:#7289da;"><i class="fa-solid fa-hashtag"></i> ${chanName}</span>`;
+
+      const tdType = document.createElement('td');
+      let typeText = 'Menu déroulant 💬';
+      if (p.selector_type === 'buttons') typeText = 'Boutons 🔘';
+      if (p.selector_type === 'single_button') typeText = 'Bouton Unique 🎫';
+      tdType.textContent = typeText;
+
+      const tdCats = document.createElement('td');
+      let allowedArr = [];
+      try { allowedArr = JSON.parse(p.allowed_options || '[]'); } catch (e) {}
+      if (!allowedArr || allowedArr.length === 0) {
+        tdCats.innerHTML = '<span style="color:#2ecc71;">Toutes (Par défaut)</span>';
+      } else {
+        const labels = allowedArr.map(val => {
+          const o = options.find(opt => opt.value === val);
+          return o ? o.label : val;
+        }).join(', ');
+        tdCats.textContent = labels;
+      }
+
+      const tdActions = document.createElement('td');
+      tdActions.style.textAlign = 'center';
+      tdActions.style.display = 'flex';
+      tdActions.style.gap = '5px';
+      tdActions.style.justifyContent = 'center';
+
+      const btnEdit = document.createElement('button');
+      btnEdit.type = 'button';
+      btnEdit.className = 'btn-delete-gif';
+      btnEdit.style.background = '#3498db';
+      btnEdit.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>';
+      btnEdit.title = 'Modifier ce panneau';
+      btnEdit.addEventListener('click', () => {
+        loadPanelIntoForm(p, options);
+      });
+
+      const btnDel = document.createElement('button');
+      btnDel.type = 'button';
+      btnDel.className = 'btn-delete-gif';
+      btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
+      btnDel.title = 'Supprimer ce panneau';
+      btnDel.addEventListener('click', () => {
+        if (!confirm(`Supprimer le panneau "${p.title}" ?\nLe message sur Discord sera également supprimé si présent.`)) return;
+        fetch('/api/config/tickets/panel/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: p.id })
+        })
+        .then(res => res.json())
+        .then(resData => {
+          if (resData.success) {
+            showToast('Panneau supprimé !');
+            loadGuildConfiguration();
+          } else {
+            showToast('Erreur: ' + resData.error, true);
+          }
+        })
+        .catch(err => showToast('Erreur: ' + err.message, true));
+      });
+
+      tdActions.appendChild(btnEdit);
+      tdActions.appendChild(btnDel);
+
+      tr.appendChild(tdTitle);
+      tr.appendChild(tdChannel);
+      tr.appendChild(tdType);
+      tr.appendChild(tdCats);
+      tr.appendChild(tdActions);
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderAllowedOptionsCheckboxes(options, selectedAllowed = []) {
+    const container = document.getElementById('ticket_panel_allowed_options_container');
+    if (!container) return;
+    container.innerHTML = '';
+    if (options.length === 0) {
+      container.innerHTML = '<span style="color:#8e9297;font-style:italic;">Aucune catégorie de ticket configurée sur le serveur.</span>';
+      return;
+    }
+    options.forEach(opt => {
+      const label = document.createElement('label');
+      label.style.display = 'inline-flex';
+      label.style.alignItems = 'center';
+      label.style.gap = '6px';
+      label.style.background = 'rgba(255,255,255,0.05)';
+      label.style.padding = '4px 10px';
+      label.style.borderRadius = '4px';
+      label.style.cursor = 'pointer';
+      label.style.fontSize = '0.85rem';
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'panel-allowed-option-cb';
+      cb.value = opt.value;
+      cb.checked = selectedAllowed.length === 0 || selectedAllowed.includes(opt.value);
+
+      cb.addEventListener('change', () => {
+        updateLiveTicketPreviewFromForm();
+      });
+
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode((opt.emoji ? opt.emoji + ' ' : '') + opt.label));
+      container.appendChild(label);
+    });
+  }
+
+  function loadPanelIntoForm(p, options) {
+    document.getElementById('ticket_panel_id').value = p.id || '';
+    document.getElementById('ticket_panel_title').value = p.title || '';
+    document.getElementById('ticket_panel_desc').value = p.description || '';
+    document.getElementById('ticket_panel_color').value = p.color || '#5865f2';
+    document.getElementById('ticket_panel_selector').value = p.selector_type || 'select';
+    document.getElementById('ticket_panel_channel').value = p.channel_id || '';
+    document.getElementById('ticket_panel_thumbnail').checked = !!p.thumbnail;
+    document.getElementById('ticket_panel_image_url').value = p.image_url || '';
+
+    const titleEl = document.getElementById('ticket-panel-form-title');
+    if (titleEl) titleEl.innerHTML = `✏️ Modifier le Panneau (ID: ${p.id})`;
+    const btnCancel = document.getElementById('btn-cancel-ticket-panel');
+    if (btnCancel) btnCancel.style.display = 'inline-block';
+
+    const channelSel = document.getElementById('ticket_panel_channel');
+    const selectorSel = document.getElementById('ticket_panel_selector');
+    if (channelSel.syncCustomSelect) channelSel.syncCustomSelect();
+    if (selectorSel.syncCustomSelect) selectorSel.syncCustomSelect();
+
+    let allowedArr = [];
+    try { allowedArr = JSON.parse(p.allowed_options || '[]'); } catch (e) {}
+    renderAllowedOptionsCheckboxes(options, allowedArr);
+
+    updateLiveTicketPreviewFromForm();
+  }
+
+  function resetPanelForm(options) {
+    document.getElementById('ticket_panel_id').value = '';
+    document.getElementById('ticket_panel_title').value = '🎫 Support / Tickets';
+    document.getElementById('ticket_panel_desc').value = 'Sélectionnez ou cliquez sur le bouton correspondant pour ouvrir un ticket d\'assistance.';
+    document.getElementById('ticket_panel_color').value = '#5865f2';
+    document.getElementById('ticket_panel_selector').value = 'select';
+    document.getElementById('ticket_panel_channel').value = '';
+    document.getElementById('ticket_panel_thumbnail').checked = true;
+    document.getElementById('ticket_panel_image_url').value = '';
+
+    const titleEl = document.getElementById('ticket-panel-form-title');
+    if (titleEl) titleEl.innerHTML = '🎨 Nouveau Panneau de Ticket';
+    const btnCancel = document.getElementById('btn-cancel-ticket-panel');
+    if (btnCancel) btnCancel.style.display = 'none';
+
+    const channelSel = document.getElementById('ticket_panel_channel');
+    const selectorSel = document.getElementById('ticket_panel_selector');
+    if (channelSel.syncCustomSelect) channelSel.syncCustomSelect();
+    if (selectorSel.syncCustomSelect) selectorSel.syncCustomSelect();
+
+    renderAllowedOptionsCheckboxes(options, []);
+    updateLiveTicketPreviewFromForm();
+  }
+
+  function updateLiveTicketPreviewFromForm() {
+    const allowedCbs = document.querySelectorAll('.panel-allowed-option-cb:checked');
+    const allCbs = document.querySelectorAll('.panel-allowed-option-cb');
+    let allowedVals = [];
+    if (allowedCbs.length > 0 && allowedCbs.length < allCbs.length) {
+      allowedVals = Array.from(allowedCbs).map(cb => cb.value);
+    }
+
+    let filteredOpts = currentTicketOptions;
+    if (allowedVals.length > 0) {
+      filteredOpts = currentTicketOptions.filter(opt => allowedVals.includes(opt.value));
+    }
+
+    const panel = {
+      title: document.getElementById('ticket_panel_title').value,
+      description: document.getElementById('ticket_panel_desc').value,
+      color: document.getElementById('ticket_panel_color').value,
+      selector_type: document.getElementById('ticket_panel_selector').value,
+      thumbnail: document.getElementById('ticket_panel_thumbnail').checked,
+      image_url: document.getElementById('ticket_panel_image_url').value
+    };
+
+    updateTicketPreview(panel, filteredOpts);
+  }
+
+  const btnCreateNewPanel = document.getElementById('btn-create-new-ticket-panel');
+  if (btnCreateNewPanel) {
+    btnCreateNewPanel.addEventListener('click', () => {
+      resetPanelForm(currentTicketOptions);
+    });
+  }
+
+  const btnCancelPanel = document.getElementById('btn-cancel-ticket-panel');
+  if (btnCancelPanel) {
+    btnCancelPanel.addEventListener('click', () => {
+      resetPanelForm(currentTicketOptions);
+    });
+  }
 
   // Live Preview Bindings for Ticket Panel
   ['ticket_panel_title', 'ticket_panel_desc', 'ticket_panel_color', 'ticket_panel_selector', 'ticket_panel_thumbnail', 'ticket_panel_image_url'].forEach(id => {
@@ -1735,21 +1952,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (el) {
       const eventName = el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input';
       el.addEventListener(eventName, () => {
-        const panel = {
-          title: document.getElementById('ticket_panel_title').value,
-          description: document.getElementById('ticket_panel_desc').value,
-          color: document.getElementById('ticket_panel_color').value,
-          selector_type: document.getElementById('ticket_panel_selector').value,
-          thumbnail: document.getElementById('ticket_panel_thumbnail').checked,
-          image_url: document.getElementById('ticket_panel_image_url').value
-        };
-        fetch('/api/config/tickets')
-          .then(res => res.json())
-          .then(data => {
-            updateTicketPreview(panel, data.options);
-          }).catch(() => {
-            updateTicketPreview(panel, []);
-          });
+        updateLiveTicketPreviewFromForm();
       });
     }
   });
@@ -1757,17 +1960,30 @@ document.addEventListener('DOMContentLoaded', () => {
   // Ticket Panel Submit
   formTicketPanel.addEventListener('submit', (e) => {
     e.preventDefault();
+    const panelId = document.getElementById('ticket_panel_id').value;
+
+    const allowedCbs = document.querySelectorAll('.panel-allowed-option-cb:checked');
+    const allCbs = document.querySelectorAll('.panel-allowed-option-cb');
+    let allowed_options = [];
+    if (allowedCbs.length > 0 && allowedCbs.length < allCbs.length) {
+      allowed_options = Array.from(allowedCbs).map(cb => cb.value);
+    }
+
     const data = {
+      id: panelId ? parseInt(panelId) : undefined,
       title: document.getElementById('ticket_panel_title').value,
       description: document.getElementById('ticket_panel_desc').value,
       color: document.getElementById('ticket_panel_color').value,
       selector_type: document.getElementById('ticket_panel_selector').value,
       channel_id: document.getElementById('ticket_panel_channel').value,
-      thumbnail: document.getElementById('ticket_panel_thumbnail').checked,
-      image_url: document.getElementById('ticket_panel_image_url').value
+      thumbnail: document.getElementById('ticket_panel_thumbnail').checked ? 1 : 0,
+      image_url: document.getElementById('ticket_panel_image_url').value,
+      allowed_options
     };
 
-    fetch('/api/config/tickets/panel', {
+    const url = panelId ? '/api/config/tickets/panel/update' : '/api/config/tickets/panel/add';
+
+    fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -1778,8 +1994,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (resData.warning) {
           showToast('Panel enregistré, mais attention : ' + resData.warning, true);
         } else {
-          showToast('Panel de tickets enregistré et déployé !');
+          showToast('Panel de tickets enregistré et déployé avec succès !');
         }
+        loadGuildConfiguration();
+      } else {
+        showToast('Erreur: ' + resData.error, true);
+      }
+    })
+    .catch(err => showToast('Erreur: ' + err.message, true));
+  });
         loadGuildConfiguration();
       } else {
         showToast('Erreur: ' + resData.error, true);

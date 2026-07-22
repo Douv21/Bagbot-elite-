@@ -116,5 +116,19 @@ module.exports = {
         .setTimestamp();
       sendLog(member.guild, 'memberRemove', logEmbed, { isBot: member.user.bot });
     }
+
+    // --- FERMETURE AUTOMATIQUE DES TICKETS DU MEMBRE ---
+    try {
+      const tickets = db.prepare('SELECT * FROM active_tickets WHERE guild_id = ? AND user_id = ?').all(guildId, member.id);
+      for (const ticket of tickets) {
+        db.prepare('DELETE FROM active_tickets WHERE channel_id = ?').run(ticket.channel_id);
+        const ticketChannel = member.guild.channels.cache.get(ticket.channel_id) || await member.guild.channels.fetch(ticket.channel_id).catch(() => null);
+        if (ticketChannel) {
+          await ticketChannel.delete('Fermeture automatique : le membre a quitté le serveur.').catch(() => null);
+        }
+      }
+    } catch (err) {
+      console.error('Erreur fermeture automatique tickets membre sortant:', err);
+    }
   }
 };

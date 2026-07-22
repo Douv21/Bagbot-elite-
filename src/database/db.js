@@ -445,15 +445,17 @@ function initDatabase() {
 
   db.prepare(`
     CREATE TABLE IF NOT EXISTS ticket_panels (
-      guild_id TEXT PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT,
       channel_id TEXT,
       message_id TEXT,
       title TEXT,
       description TEXT,
       color TEXT,
-      thumbnail INTEGER DEFAULT 0,
+      thumbnail INTEGER DEFAULT 1,
       selector_type TEXT DEFAULT 'select',
-      image_url TEXT
+      image_url TEXT,
+      allowed_options TEXT -- Liste stockée en JSON des options autorisées
     )
   `).run();
 
@@ -501,6 +503,39 @@ function initDatabase() {
   try {
     db.prepare("ALTER TABLE ticket_options ADD COLUMN show_certify_button INTEGER DEFAULT 1").run();
   } catch (e) {}
+
+  try {
+    const tableInfo = db.prepare("PRAGMA table_info(ticket_panels)").all();
+    const isPrimaryKeyGuildId = tableInfo.some(col => col.name === 'guild_id' && col.pk === 1);
+    if (isPrimaryKeyGuildId) {
+      db.prepare('CREATE TABLE IF NOT EXISTS ticket_panels_backup (guild_id TEXT, channel_id TEXT, message_id TEXT, title TEXT, description TEXT, color TEXT, thumbnail INTEGER, selector_type TEXT, image_url TEXT)').run();
+      db.prepare('INSERT OR IGNORE INTO ticket_panels_backup SELECT guild_id, channel_id, message_id, title, description, color, thumbnail, selector_type, image_url FROM ticket_panels').run();
+      db.prepare('DROP TABLE IF EXISTS ticket_panels').run();
+      db.prepare(`
+        CREATE TABLE IF NOT EXISTS ticket_panels (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          guild_id TEXT,
+          channel_id TEXT,
+          message_id TEXT,
+          title TEXT,
+          description TEXT,
+          color TEXT,
+          thumbnail INTEGER DEFAULT 1,
+          selector_type TEXT DEFAULT 'select',
+          image_url TEXT,
+          allowed_options TEXT
+        )
+      `).run();
+      const oldPanels = db.prepare('SELECT * FROM ticket_panels_backup').all();
+      const insert = db.prepare('INSERT INTO ticket_panels (guild_id, channel_id, message_id, title, description, color, thumbnail, selector_type, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+      for (const p of oldPanels) {
+        insert.run(p.guild_id, p.channel_id, p.message_id, p.title, p.description, p.color, p.thumbnail || 1, p.selector_type || 'select', p.image_url);
+      }
+      db.prepare('DROP TABLE IF EXISTS ticket_panels_backup').run();
+    }
+  } catch (e) {
+    console.error('Error during ticket_panels migration:', e);
+  }
 
   db.prepare(`
     CREATE TABLE IF NOT EXISTS active_tickets (
@@ -1019,20 +1054,45 @@ const updateActionVeriteConfig = (guildId, updates) => {
   return db.prepare(`UPDATE action_verite_config SET ${fields} WHERE guild_id = ?`).run(...values, guildId);
 };
 
-const getTicketPanel = (guildId) => {
-  let panel = db.prepare('SELECT * FROM ticket_panels WHERE guild_id = ?').get(guildId);
-  if (!panel) {
-    db.prepare('INSERT OR IGNORE INTO ticket_panels (guild_id, title, description, color, selector_type) VALUES (?, ?, ?, ?, ?)')
-      .run(guildId, '🎫 Support / Tickets', 'Sélectionnez ou cliquez sur le bouton correspondant pour ouvrir un ticket d\'assistance.', '#5865F2', 'select');
-    panel = db.prepare('SELECT * FROM ticket_panels WHERE guild_id = ?').get(guildId);
-  }
-  return panel;
+const getTicketPanels = (guildId) => {
+  return db.prepare('SELECT * FROM ticket_panels WHERE guild_id = ?').all(guildId);
 };
 
-const updateTicketPanel = (guildId, updates) => {
-  const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
-  const values = Object.values(updates);
-  return db.prepare(`UPDATE ticket_panels SET ${fields} WHERE guild_id = ?`).run(...values, guildId);
+const getTicketPanelById = (panelId) => {
+  return db.prepare('SELECT * FROM ticket_panels WHERE id = ?').get(panelId);
+};
+
+const addTicketPanel = (guildId, panel) => {
+  const { channel_id, message_id, title, description, color, thumbnail, selector_type, image_url, allowed_options } = panel;
+  return db.prepare(`
+    INSERT INTO ticket_panels (guild_id, channel_id, message_id, title, description, color, thumbnail, selector_type, image_url, allowed_options)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    guildId,
+    channel_id || null,
+    message_id || null,
+    title || '🎫 Support / Tickets',
+    description || 'Sélectionnez ou cliquez sur le bouton correspondant pour ouvrir un ticket d\'assistance.',
+    color || '#5865F2',
+    thumbnail === undefined ? 1 : (thumbnail ? 1 : 0),
+    selector_type || 'select',
+    image_url || null,
+    JSON.stringify(allowed_options || [])
+  );
+};
+
+const updateTicketPanelById = (panelId, updates) => {
+  const u = { ...updates };
+  if (u.allowed_options) {
+    u.allowed_options = JSON.stringify(u.allowed_options);
+  }
+  const fields = Object.keys(u).map(k => `${k} = ?`).join(', ');
+  const values = Object.values(u);
+  return db.prepare(`UPDATE ticket_panels SET ${fields} WHERE id = ?`).run(...values, panelId);
+};
+
+const deleteTicketPanel = (panelId) => {
+  return db.prepare('DELETE FROM ticket_panels WHERE id = ?').run(panelId);
 };
 
 const getTicketOptions = (guildId) => {
@@ -1311,8 +1371,11 @@ module.exports = {
   getRandomActionVeriteItem,
   getActionVeriteConfig,
   updateActionVeriteConfig,
-  getTicketPanel,
-  updateTicketPanel,
+  getTicketPanels,
+  getTicketPanelById,
+  addTicketPanel,
+  updateTicketPanelById,
+  deleteTicketPanel,
   getTicketOptions,
   addTicketOption,
   updateTicketOption,
