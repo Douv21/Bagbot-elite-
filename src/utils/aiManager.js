@@ -161,6 +161,46 @@ async function callGeminiApi(apiKey, model, systemPrompt, userPrompt, temperatur
 }
 
 /**
+ * Appelle une instance locale Ollama (ex: Freebox / Serveur Debian local)
+ */
+async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperature = 0.7, maxTokens = 1000) {
+  const baseUrl = (hostUrl || 'http://127.0.0.1:11434').replace(/\/+$/, '');
+  const url = `${baseUrl}/api/chat`;
+
+  const messages = [];
+  if (systemPrompt) {
+    messages.push({ role: 'system', content: systemPrompt });
+  }
+  messages.push({ role: 'user', content: userPrompt });
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: model || 'qwen2.5:7b',
+      messages,
+      stream: false,
+      options: {
+        temperature,
+        num_predict: maxTokens
+      }
+    }),
+    signal: AbortSignal.timeout(60000)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '');
+    throw new Error(`Ollama API HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+  }
+
+  const data = await response.json();
+  if (data.message && data.message.content) {
+    return data.message.content.trim();
+  }
+  throw new Error('Format de réponse Ollama invalide');
+}
+
+/**
  * Appelle Pollinations AI (Fallback sans clé)
  */
 async function callPollinationsFallback(systemPrompt, userPrompt) {
