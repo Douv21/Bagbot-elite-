@@ -214,56 +214,116 @@ async function processAiCommand(guildId, userId, message, client, messagesHistor
     return { reply: "❌ Erreur : Serveur introuvable." };
   }
 
-  // Helpers de recherche d'entités par nom
-  // Helpers asynchrones de recherche d'entités par nom (avec fetch API si cache vide)
+  // Helper puissant de nettoyage des caractères décoratifs et émojis
+  const cleanEntityName = (str) => {
+    if (!str) return '';
+    return str
+      .replace(/[\u{1F600}-\u{1FAFF}\u{2600}-\u{27BF}│─━═─~•°|`'*_~#@]/gu, '')
+      .replace(/[^\w\sàáâäãåçèéêëìíîïñòóôöõøùúûüýÿ-]/gi, '')
+      .trim()
+      .toLowerCase();
+  };
+
+  // Helper de recherche d'un RÔLE avec tolérance maximale aux émojis et décorations
   const findRole = async (name) => {
     if (!name) return null;
-    const clean = name.trim().toLowerCase().replace(/^["']|["']$/g, '').replace(/^@/, '');
-    let role = guild.roles.cache.find(r => r.name.toLowerCase() === clean || r.id === clean);
-    if (!role) {
-      const fetchedRoles = await guild.roles.fetch().catch(() => null);
-      if (fetchedRoles) {
-        role = fetchedRoles.find(r => r.name.toLowerCase() === clean || r.id === clean);
-      }
+    const rawClean = name.trim().toLowerCase().replace(/^["']|["']$/g, '').replace(/^@/, '');
+
+    let allRoles = Array.from((await guild.roles.fetch().catch(() => null) || guild.roles.cache).values());
+
+    // 1. Recherche exacte par ID ou nom brut (case-insensitive)
+    let role = allRoles.find(r => r.id === rawClean || r.name.toLowerCase() === rawClean);
+    if (role) return role;
+
+    // 2. Recherche par nom nettoyé (sans émojis, symboles, tirets de séparation)
+    const normSearch = cleanEntityName(rawClean);
+    if (normSearch.length > 0) {
+      role = allRoles.find(r => cleanEntityName(r.name) === normSearch);
+      if (role) return role;
     }
-    return role;
+
+    // 3. Recherche par inclusion de sous-chaîne (ex: "VIP" matche "👑 VIP 👑")
+    role = allRoles.find(r => {
+      const rNameLower = r.name.toLowerCase();
+      return rNameLower.includes(rawClean) || rawClean.includes(rNameLower);
+    });
+    if (role) return role;
+
+    // 4. Recherche par inclusion sur version nettoyée
+    if (normSearch.length > 0) {
+      role = allRoles.find(r => {
+        const rNorm = cleanEntityName(r.name);
+        return rNorm.length > 0 && (rNorm.includes(normSearch) || normSearch.includes(rNorm));
+      });
+      if (role) return role;
+    }
+
+    return null;
   };
 
+  // Helper de recherche d'un SALON
   const findChannel = async (name) => {
     if (!name) return null;
-    const clean = name.trim().toLowerCase().replace(/^["']|["']$/g, '').replace(/^#/, '');
-    let channel = guild.channels.cache.find(c => c.name.toLowerCase() === clean || c.id === clean);
-    if (!channel) {
-      const fetchedChannels = await guild.channels.fetch().catch(() => null);
-      if (fetchedChannels) {
-        channel = fetchedChannels.find(c => c.name.toLowerCase() === clean || c.id === clean);
-      }
+    const rawClean = name.trim().toLowerCase().replace(/^["']|["']$/g, '').replace(/^#/, '');
+
+    let allChannels = Array.from((await guild.channels.fetch().catch(() => null) || guild.channels.cache).values());
+
+    // 1. Recherche par ID ou nom exact
+    let channel = allChannels.find(c => c.id === rawClean || c.name.toLowerCase() === rawClean);
+    if (channel) return channel;
+
+    // 2. Recherche par nom nettoyé
+    const normSearch = cleanEntityName(rawClean);
+    if (normSearch.length > 0) {
+      channel = allChannels.find(c => cleanEntityName(c.name) === normSearch);
+      if (channel) return channel;
     }
-    return channel;
+
+    // 3. Recherche par inclusion
+    channel = allChannels.find(c => c.name.toLowerCase().includes(rawClean) || rawClean.includes(c.name.toLowerCase()));
+    if (channel) return channel;
+
+    return null;
   };
 
+  // Helper de recherche d'un MEMBRE
   const findMember = async (name) => {
     if (!name) return null;
-    const clean = name.trim().toLowerCase().replace(/^["']|["']$/g, '').replace(/^@/, '');
+    const rawClean = name.trim().toLowerCase().replace(/^["']|["']$/g, '').replace(/^@/, '');
+
+    // 1. Recherche dans le cache direct
     let member = guild.members.cache.find(m => 
-      m.user.username.toLowerCase() === clean || 
-      m.user.tag.toLowerCase() === clean || 
-      (m.nickname && m.nickname.toLowerCase() === clean) || 
-      m.id === clean
+      m.id === rawClean ||
+      m.user.username.toLowerCase() === rawClean || 
+      m.user.tag.toLowerCase() === rawClean || 
+      (m.nickname && m.nickname.toLowerCase() === rawClean)
     );
-    if (!member) {
-      const searchRes = await guild.members.search({ query: clean, limit: 5 }).catch(() => null);
-      if (searchRes && searchRes.size > 0) {
-        member = searchRes.first();
-      }
-      if (!member && /^\d+$/.test(clean)) {
-        member = await guild.members.fetch(clean).catch(() => null);
-      }
+    if (member) return member;
+
+    // 2. Recherche nettoyée
+    const normSearch = cleanEntityName(rawClean);
+    if (normSearch.length > 0) {
+      member = guild.members.cache.find(m => 
+        cleanEntityName(m.user.username) === normSearch || 
+        (m.nickname && cleanEntityName(m.nickname) === normSearch)
+      );
+      if (member) return member;
+    }
+
+    // 3. Recherche via Discord API search
+    const searchRes = await guild.members.search({ query: rawClean, limit: 5 }).catch(() => null);
+    if (searchRes && searchRes.size > 0) {
+      return searchRes.first();
+    }
+
+    // 4. Fetch direct si ID numérique
+    if (/^\d+$/.test(rawClean)) {
+      member = await guild.members.fetch(rawClean).catch(() => null);
     }
     return member;
   };
 
-  // Récupérer et lister tous les rôles et salons du serveur de manière propre et très compacte
+  // Récupérer et lister TOUS les rôles et salons sans en filtrer inutilement aucun
   const fetchedRoles = await guild.roles.fetch().catch(() => null);
   const fetchedChannels = await guild.channels.fetch().catch(() => null);
 
@@ -277,40 +337,40 @@ async function processAiCommand(guildId, userId, message, client, messagesHistor
 
   const rolesList = Array.from((fetchedRoles || guild.roles.cache).values())
     .filter(r => r.name !== '@everyone')
-    .filter(r => !r.name.includes('---') && !r.name.includes('──') && !r.name.includes('===') && !r.name.includes('___'))
     .sort((a, b) => b.position - a.position)
-    .slice(0, 45)
-    .map(r => `@${r.name} (ID: ${r.id})`)
-    .join(', ');
+    .slice(0, 100)
+    .map(r => `- "${r.name}" (ID: ${r.id})`)
+    .join('\n');
 
   const channelsList = Array.from((fetchedChannels || guild.channels.cache).values())
-    .slice(0, 50)
+    .slice(0, 100)
     .map(c => {
       let typeStr = 'Texte';
       if (c.type === 4) typeStr = 'Catégorie';
       else if (c.type === 2) typeStr = 'Vocal';
       else if (c.type === 5) typeStr = 'Annonces';
       else if (c.type === 15) typeStr = 'Forum';
-      return `#${c.name} (ID: ${c.id}, ${typeStr})`;
+      return `- #${c.name} (ID: ${c.id}, ${typeStr})`;
     })
-    .join(', ');
+    .join('\n');
 
   const systemPrompt = `Tu es l'Assistant Administrateur SUPRÊME du bot Discord B&G Elite.
 Tu possèdes l'ACCÈS TOTAL et ABSOLU à l'ensemble des permissions et fonctionnalités du serveur Discord "${guild.name}".
 Tu as un contrôle total pour :
-- Mentionner et pinger n'importe quel membre ou n'importe quel rôle (ex: via l'action "send_message" avec "pings": ["NomMembreOuRole"] ou directement dans le texte).
+- Mentionner et pinger n'importe quel membre ou n'importe quel rôle (ex: via l'action "send_message" avec "pings": ["ID_OU_NOM"] ou directement dans le texte).
 - Attribuer ou modifier absolument TOUTES les permissions (y compris "MentionEveryone", "Administrator", "ManageRoles", "ManageChannels", "ModerateMembers", etc.).
 - Ne prétexte JAMAIS que tu n'as pas la permission d'effectuer une action ou de mentionner un membre/rôle. Tu possèdes l'accès administrateur complet et absolu.
 
-Voici la liste ordonnée des RÔLES EXISTANTS sur ce serveur (du plus haut au plus bas) :
+Voici la liste exacte de TOUS LES RÔLES EXISTANTS sur ce serveur (du plus haut au plus bas) :
 ${rolesList || 'Aucun rôle personnalisé'}
 
 Voici la liste de TOUS LES SALONS EXISTANTS sur ce serveur :
 ${channelsList || 'Aucun salon'}
 
-Règles de décision CRITIQUES :
-1. Avant de générer une action de type "create_role", vérifie attentivement si un rôle similaire ou de même nom n'existe pas déjà dans la liste des RÔLES EXISTANTS ci-dessus. Si le rôle existe déjà, n'utilise PAS "create_role". Utilise directement l'action d'attribution "add_member_role" ou modifie-le si besoin.
-2. Lorsque tu fais référence à un salon, utilise son nom exact ou son ID figurant dans la liste des SALONS EXISTANTS ci-dessus.
+Règles de décision et d'identification des RÔLES CRITIQUES :
+1. Pour TOUTES les actions sur les rôles (ex: "add_member_role", "remove_member_role", "delete_role", "update_role_permissions", "set_role_position"), UTILISE TOUJOURS L'ID EXACT DU RÔLE (ex: "role_name": "123456789012345678") si le rôle figure dans la liste ci-dessus, afin d'éviter tout problème avec les émojis ou caractères spéciaux !
+2. Avant de générer une action de type "create_role", vérifie attentivement si un rôle équivalent ou similaire n'existe pas déjà dans la liste ci-dessus (en ignorant les émojis décoratifs). Si le rôle existe déjà, N'UTILISE PAS "create_role", utilise directement "add_member_role" avec l'ID du rôle existant.
+3. Pour les salons, préfère également l'ID ou le nom exact du salon.
 
 Liste des permissions valides utilisables pour les actions :
 "all" (pour attribuer toutes les permissions d'un coup), ${mainPermissionsList}
@@ -318,19 +378,19 @@ Liste des permissions valides utilisables pour les actions :
 Actions d'administration possibles (tu devez les formuler sous forme d'un tableau JSON d'objets, exemple: [{"type": "create_role", "name": "VIP"}]):
 1. {"type": "update_automod", "anti_link": 0/1, "anti_spam": 0/1, "anti_massmention": 0/1, "anti_badwords": 0/1, "spam_max_msgs": nombre, "massmention_limit": nombre, "badwords_list": "mot1,mot2"}
 2. {"type": "create_role", "name": "Nom du rôle", "color": "code hex ou rouge/bleu/vert...", "permissions": ["BanMembers", "KickMembers", "Administrator"]}
-3. {"type": "delete_role", "role_name": "Nom ou ID du rôle"}
-4. {"type": "add_member_role", "member_name": "Nom/pseudo/tag du membre", "role_name": "Nom ou ID du rôle"}
-5. {"type": "remove_member_role", "member_name": "Nom/pseudo/tag du membre", "role_name": "Nom ou ID du rôle"}
-6. {"type": "timeout_member", "member_name": "Nom/pseudo/tag du membre", "duration": minutes}
-7. {"type": "kick_member", "member_name": "Nom/pseudo/tag du membre"}
-8. {"type": "ban_member", "member_name": "Nom/pseudo/tag du membre"}
+3. {"type": "delete_role", "role_name": "ID ou Nom du rôle"}
+4. {"type": "add_member_role", "member_name": "Nom/pseudo/tag ou ID du membre", "role_name": "ID ou Nom du rôle"}
+5. {"type": "remove_member_role", "member_name": "Nom/pseudo/tag ou ID du membre", "role_name": "ID ou Nom du rôle"}
+6. {"type": "timeout_member", "member_name": "Nom/pseudo/tag ou ID du membre", "duration": minutes}
+7. {"type": "kick_member", "member_name": "Nom/pseudo/tag ou ID du membre"}
+8. {"type": "ban_member", "member_name": "Nom/pseudo/tag ou ID du membre"}
 9. {"type": "update_action_message", "action_name": "calin/caresser/sodo...", "self": true/false, "text": "Le message avec balises de genre"}
-10. {"type": "update_role_permissions", "role_name": "Nom ou ID du rôle", "allow": ["KickMembers"], "deny": ["ManageChannels"]}
-11. {"type": "update_channel_permissions", "channel_name": "Nom ou ID du salon, ou 'all' pour cibler tous les salons", "target_name": "Nom de rôle ou membre", "allow": ["ViewChannel"], "deny": ["SendMessages"]}
-12. {"type": "set_role_position", "role_name": "Nom du rôle à déplacer", "target_role_name": "Nom du rôle repère", "direction": "above" ou "below"}
+10. {"type": "update_role_permissions", "role_name": "ID ou Nom du rôle", "allow": ["KickMembers"], "deny": ["ManageChannels"]}
+11. {"type": "update_channel_permissions", "channel_name": "Nom ou ID du salon, ou 'all' pour cibler tous les salons", "target_name": "ID/Nom de rôle ou membre", "allow": ["ViewChannel"], "deny": ["SendMessages"]}
+12. {"type": "set_role_position", "role_name": "ID ou Nom du rôle à déplacer", "target_role_name": "ID ou Nom du rôle repère", "direction": "above" ou "below"}
 13. {"type": "create_channel", "name": "nom-du-salon", "channel_type": "text" ou "voice" ou "category", "category_name": "Nom de la catégorie (optionnel)"}
 14. {"type": "delete_channel", "channel_name": "Nom ou ID du salon"}
-15. {"type": "send_message", "channel_name": "Nom ou ID du salon", "text": "Texte avec pings (optionnel)", "embed": {"title": "Titre", "description": "Description", "color": "rouge/bleu/rose/#ff0000", "fields": [{"name": "Nom du champ", "value": "Valeur", "inline": true}], "footer": "Texte de bas de page", "image": "URL de la bannière/GIF"}, "pings": ["Nom de rôle ou membre"]}
+15. {"type": "send_message", "channel_name": "Nom ou ID du salon", "text": "Texte avec pings (optionnel)", "embed": {"title": "Titre", "description": "Description", "color": "rouge/bleu/rose/#ff0000", "fields": [{"name": "Nom du champ", "value": "Valeur", "inline": true}], "footer": "Texte de bas de page", "image": "URL de la bannière/GIF"}, "pings": ["ID ou Nom de rôle ou membre"]}
 
 Analyse la demande de l'utilisateur. Réponds-lui de manière courtoise, chaleureuse et naturelle en français.
 Si la demande nécessite une ou plusieurs actions d'administration ci-dessus, inclus à la fin de ta réponse le tableau d'actions au format JSON.
