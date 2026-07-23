@@ -373,20 +373,23 @@ module.exports = {
 
         const hasMedia = message.attachments.size > 0 || message.embeds.some(emb => emb.image || emb.thumbnail || emb.video || emb.type === 'gifv' || emb.type === 'image' || emb.type === 'video');
 
-        let category = 'normal';
-        let pointsToAdd = starConfig.points_normal ?? 1;
+        const currentChanId = message.channel.id;
+        const parentChanId = message.channel.parentId || null;
 
-        if (nudeChannels.includes(message.channel.id)) {
+        const isNudeMatch = nudeChannels.includes(currentChanId) || (parentChanId && nudeChannels.includes(parentChanId));
+        const isSelfieMatch = selfieChannels.includes(currentChanId) || (parentChanId && selfieChannels.includes(parentChanId));
+
+        if (isNudeMatch) {
           if (hasMedia || nudeChannels.length > 0) {
             category = 'nude';
             pointsToAdd = starConfig.points_nude ?? 5;
           }
-        } else if (selfieChannels.includes(message.channel.id)) {
+        } else if (isSelfieMatch) {
           if (hasMedia || selfieChannels.length > 0) {
             category = 'selfie';
             pointsToAdd = starConfig.points_selfie ?? 3;
           }
-        } else if (message.channel.nsfw) {
+        } else if (message.channel.nsfw || (message.channel.parent && message.channel.parent.nsfw)) {
           category = 'nsfw';
           pointsToAdd = starConfig.points_nsfw ?? 2;
         }

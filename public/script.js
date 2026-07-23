@@ -391,10 +391,12 @@ document.addEventListener('DOMContentLoaded', () => {
     multiChannelSelects.forEach(select => {
       select.innerHTML = '';
       channelsList.forEach(ch => {
-        if (ch.type === 0 || ch.type === 5) {
+        // Option text channels (0: GuildText, 5: GuildAnnouncement) et salons Forum (15: GuildForum)
+        if (ch.type === 0 || ch.type === 5 || ch.type === 15) {
           const option = document.createElement('option');
           option.value = ch.id;
-          option.textContent = `# ${ch.name}`;
+          const prefix = ch.type === 15 ? '💬 [Forum] ' : '# ';
+          option.textContent = `${prefix}${ch.name}`;
           select.appendChild(option);
         }
       });
