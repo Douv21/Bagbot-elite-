@@ -554,6 +554,11 @@ client.once('ready', async () => {
     setInterval(() => checkBumpReminders(client), 30000);
     checkBumpReminders(client);
 
+    // Vérification automatique des élections Star de la Semaine (toutes les 60s)
+    const { checkStarElections } = require('./utils/starManager');
+    setInterval(() => checkStarElections(client), 60000);
+    checkStarElections(client);
+
     // Mettre en cache tous les membres de tous les serveurs au démarrage
     client.guilds.cache.forEach(guild => {
       guild.members.fetch()

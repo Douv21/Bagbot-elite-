@@ -362,6 +362,41 @@ module.exports = {
     // Incrémenter le total de messages
     db.prepare('UPDATE leveling SET total_messages = total_messages + 1 WHERE guild_id = ? AND user_id = ?').run(guildId, userId);
 
+    // --- SYSTÈME "STAR DE LA SEMAINE" (POINTS HEBDOMADAIRES) ---
+    try {
+      const { getStarConfig, addStarPoints } = require('../database/db');
+      const starConfig = getStarConfig(guildId);
+
+      if (starConfig && starConfig.is_active === 1) {
+        const selfieChannels = starConfig.selfie_channels ? starConfig.selfie_channels.split(',').map(c => c.trim()).filter(Boolean) : [];
+        const nudeChannels = starConfig.nude_channels ? starConfig.nude_channels.split(',').map(c => c.trim()).filter(Boolean) : [];
+
+        const hasMedia = message.attachments.size > 0 || message.embeds.some(emb => emb.image || emb.thumbnail || emb.video || emb.type === 'gifv' || emb.type === 'image' || emb.type === 'video');
+
+        let category = 'normal';
+        let pointsToAdd = starConfig.points_normal ?? 1;
+
+        if (nudeChannels.includes(message.channel.id)) {
+          if (hasMedia || nudeChannels.length > 0) {
+            category = 'nude';
+            pointsToAdd = starConfig.points_nude ?? 5;
+          }
+        } else if (selfieChannels.includes(message.channel.id)) {
+          if (hasMedia || selfieChannels.length > 0) {
+            category = 'selfie';
+            pointsToAdd = starConfig.points_selfie ?? 3;
+          }
+        } else if (message.channel.nsfw) {
+          category = 'nsfw';
+          pointsToAdd = starConfig.points_nsfw ?? 2;
+        }
+
+        addStarPoints(guildId, userId, pointsToAdd, category);
+      }
+    } catch (e) {
+      console.error('Erreur points Star de la Semaine:', e);
+    }
+
     // Gérer l'incrémentation NSFW et récompenses
     let nsfwRewardXp = 0;
     let nsfwRewardMoney = 0;

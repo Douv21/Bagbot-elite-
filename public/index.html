@@ -129,6 +129,7 @@
         <div class="sidebar-category">
           <div class="category-title">📈 NIVEAUX & ÉCONOMIE</div>
           <button class="tab-btn" data-tab="tab-leveling"><i class="fa-solid fa-arrow-trend-up"></i> Niveaux & Rôles</button>
+          <button class="tab-btn" data-tab="tab-star"><i class="fa-solid fa-star" style="color: #f1c40f;"></i> ⭐ Star de la Semaine</button>
           <button class="tab-btn" data-tab="tab-karma"><i class="fa-solid fa-star"></i> Configuration Karma</button>
           <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique</button>
           <button class="tab-btn" data-tab="tab-gifs"><i class="fa-solid fa-file-video"></i> GIFs d'action</button>
@@ -2019,6 +2020,188 @@
                 </button>
               </div>
             </form>
+          </div>
+
+          <!-- Tab: Star de la Semaine -->
+          <div id="tab-star" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-star" style="color: #f1c40f;"></i> Système "Star de la Semaine"</h2>
+
+            <form id="form-star-config">
+              <!-- Card 1: Activation & Paramètres Généraux -->
+              <div class="card glass mb-4">
+                <h3><i class="fa-solid fa-gear"></i> Paramètres Généraux & Élection</h3>
+                <p style="color: #b9bbbe; font-size: 0.9rem; margin-bottom: 15px;">
+                  Chaque semaine, le membre ayant accumulé le plus de points dans les salons du serveur devient la <strong>Star de la Semaine</strong> et remporte le rôle et les récompenses associées !
+                </p>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="star_is_active">Activer le Système Star :</label>
+                    <select id="star_is_active" class="custom-select">
+                      <option value="1">✅ Oui (Actif)</option>
+                      <option value="0">❌ Non (Désactivé)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="star_announce_channel_id">Salon d'Annonce de la Star :</label>
+                    <select id="star_announce_channel_id" class="channel-select custom-select">
+                      <option value="">-- Sélectionner un salon --</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="star_star_role_id">Rôle Récompense (Attribué 1 semaine) :</label>
+                    <select id="star_star_role_id" class="role-select custom-select">
+                      <option value="">-- Choisir un rôle --</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row" style="margin-top: 15px;">
+                  <div class="form-group">
+                    <label for="star_reward_coins">Récompense en Pièces (Économie) :</label>
+                    <input type="number" id="star_reward_coins" class="inner-input" value="1000" min="0" placeholder="ex: 1000">
+                  </div>
+                  <div class="form-group">
+                    <label for="star_reward_karma">Bonus de Karma :</label>
+                    <input type="number" id="star_reward_karma" class="inner-input" value="50" min="0" placeholder="ex: 50">
+                  </div>
+                  <div class="form-group">
+                    <label for="star_election_day">Jour d'élection automatique :</label>
+                    <select id="star_election_day" class="custom-select">
+                      <option value="0">Dimanche soir</option>
+                      <option value="1">Lundi</option>
+                      <option value="5">Vendredi</option>
+                      <option value="6">Samedi</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="star_election_hour">Heure d'élection :</label>
+                    <select id="star_election_hour" class="custom-select">
+                      <option value="20">20h00</option>
+                      <option value="21">21h00</option>
+                      <option value="22">22h00</option>
+                      <option value="23" selected>23h00</option>
+                      <option value="0">00h00 (Minuit)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 2: Barème des Points & Salons Spéciaux -->
+              <div class="card glass mb-4">
+                <h3><i class="fa-solid fa-award"></i> Barème des Points par Message & Media</h3>
+                <p style="color: #b9bbbe; font-size: 0.85rem; margin-bottom: 15px;">
+                  Définissez le nombre de points attribués par message selon le type de salon et de contenu (images/médias).
+                </p>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="star_points_normal">💬 Message Normal (Point) :</label>
+                    <input type="number" id="star_points_normal" class="inner-input" value="1" min="0">
+                  </div>
+                  <div class="form-group">
+                    <label for="star_points_nsfw">🔥 Message Salon NSFW (Points) :</label>
+                    <input type="number" id="star_points_nsfw" class="inner-input" value="2" min="0">
+                  </div>
+                  <div class="form-group">
+                    <label for="star_points_selfie">📸 Selfie / Outfit avec Média (Points) :</label>
+                    <input type="number" id="star_points_selfie" class="inner-input" value="3" min="0">
+                  </div>
+                  <div class="form-group">
+                    <label for="star_points_nude">🔞 Nude / Tease avec Média (Points) :</label>
+                    <input type="number" id="star_points_nude" class="inner-input" value="5" min="0">
+                  </div>
+                </div>
+
+                <div class="form-row" style="margin-top: 15px;">
+                  <div class="form-group">
+                    <label for="star_selfie_channels"><i class="fa-solid fa-camera"></i> Salons "Selfie / Outfit" (Maintenir Ctrl/Cmd pour plusieurs) :</label>
+                    <select id="star_selfie_channels" class="channel-select-multi custom-select" multiple style="height: 110px;">
+                      <!-- Remplit dynamiquement -->
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="star_nude_channels"><i class="fa-solid fa-fire-flame-curved"></i> Salons "Nude / Tease" (Maintenir Ctrl/Cmd pour plusieurs) :</label>
+                    <select id="star_nude_channels" class="channel-select-multi custom-select" multiple style="height: 110px;">
+                      <!-- Remplit dynamiquement -->
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 3: Personnalisation de l'Annonce Embed -->
+              <div class="card glass mb-4">
+                <h3><i class="fa-solid fa-bullhorn"></i> Annonce & Message Embed de la Star</h3>
+                
+                <div class="form-row">
+                  <div class="form-group" style="flex: 2;">
+                    <label for="star_announce_title">Titre de l'Embed :</label>
+                    <input type="text" id="star_announce_title" class="inner-input" value="⭐ Star de la Semaine !" placeholder="Titre de l'embed">
+                  </div>
+                  <div class="form-group" style="flex: 1;">
+                    <label for="star_announce_color">Couleur de l'Embed :</label>
+                    <input type="color" id="star_announce_color" value="#f1c40f" style="padding: 2px; height: 42px; width: 100%;">
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                  <label for="star_announce_desc">Description / Message de Félicitations :</label>
+                  <textarea id="star_announce_desc" class="inner-input" rows="4">Félicitations à {user} qui devient la **Star de la Semaine** avec **{points} points** ! 🌟
+
+Il/Elle remporte le rôle {role} et brille sur le serveur !</textarea>
+                  <small class="form-help">Variables disponibles : <code>{user}</code> (mention), <code>{username}</code>, <code>{points}</code>, <code>{role}</code> (nom du rôle), <code>{week}</code>.</small>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                  <label for="star_announce_image">Image / Bannière de l'Embed (URL ou Upload) :</label>
+                  <div style="display: flex; gap: 10px;">
+                    <input type="text" id="star_announce_image" class="inner-input" placeholder="https://..." style="flex: 1;">
+                    <button type="button" class="btn" id="btn-upload-star-image" style="background: #3498db; color: #fff;"><i class="fa-solid fa-upload"></i> Fichier</button>
+                    <input type="file" id="file-upload-star-image" style="display: none;" accept="image/*">
+                  </div>
+                </div>
+              </div>
+
+              <div class="actions-bar mb-4">
+                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer la Configuration Star</button>
+              </div>
+            </form>
+
+            <!-- Card 4: Classement Hebdomadaire Actuel & Action de Force -->
+            <div class="card glass">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+                <div>
+                  <h3 style="margin: 0;"><i class="fa-solid fa-trophy" style="color: #f1c40f;"></i> Classement Actuel de la Semaine</h3>
+                  <p style="color: #b9bbbe; font-size: 0.85rem; margin: 5px 0 0 0;">Points accumulés cette semaine par les membres du serveur.</p>
+                </div>
+                <button type="button" id="btn-force-star-election" class="btn" style="background: linear-gradient(135deg, #f1c40f, #e67e22); color: #fff; font-weight: bold;">
+                  <i class="fa-solid fa-bolt"></i> Forcer l'Élection Maintenant
+                </button>
+              </div>
+
+              <div id="star-current-winner-banner" style="margin-bottom: 20px; background: rgba(241,196,15,0.15); border: 1px solid rgba(241,196,15,0.4); padding: 15px; border-radius: 8px; display: none; align-items: center; gap: 15px;">
+                <!-- Rempli dynamiquement -->
+              </div>
+
+              <div style="overflow-x: auto;">
+                <table class="premium-table">
+                  <thead>
+                    <tr>
+                      <th>Rang</th>
+                      <th>Membre</th>
+                      <th>Points Totaux</th>
+                      <th>Messages Normaux</th>
+                      <th>NSFW</th>
+                      <th>Selfie / Outfit</th>
+                      <th>Nude / Tease</th>
+                    </tr>
+                  </thead>
+                  <tbody id="star-leaderboard-tbody">
+                    <!-- Rempli dynamiquement en JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <!-- Tab: Configuration IA Multi-Clés -->

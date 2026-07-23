@@ -2031,6 +2031,101 @@ app.post('/api/config/bump', (req, res) => {
   }
 });
 
+// --- ENDPOINTS STAR DE LA SEMAINE ---
+app.get('/api/star/config', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { getStarConfig } = require('./database/db');
+    const config = getStarConfig(guildId);
+    res.json(config);
+  } catch (error) {
+    console.error('Error getting star config:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/star/config', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { updateStarConfig } = require('./database/db');
+    const updated = updateStarConfig(guildId, req.body);
+    res.json({ success: true, config: updated });
+  } catch (error) {
+    console.error('Error updating star config:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/star/leaderboard', async (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { getStarConfig, getStarWeeklyLeaderboard, getCurrentWeekIdentifier } = require('./database/db');
+    const config = getStarConfig(guildId);
+    const weekId = getCurrentWeekIdentifier();
+    const rawLeaderboard = getStarWeeklyLeaderboard(guildId, weekId, 15);
+
+    const botApiPort = process.env.BOT_API_PORT || 49602;
+    const response = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/members`).catch(() => null);
+    const members = response && response.ok ? await response.json() : [];
+    const membersMap = new Map(members.map(m => [m.id, m]));
+
+    const leaderboard = rawLeaderboard.map(r => {
+      const m = membersMap.get(r.user_id);
+      return {
+        ...r,
+        displayName: m ? m.displayName : `Membre (${r.user_id.substring(0, 6)}...)`,
+        name: m ? m.name : r.user_id
+      };
+    });
+
+    let currentStarMember = null;
+    if (config.current_star_user_id) {
+      const m = membersMap.get(config.current_star_user_id);
+      currentStarMember = {
+        userId: config.current_star_user_id,
+        displayName: m ? m.displayName : config.current_star_user_id
+      };
+    }
+
+    res.json({
+      weekId,
+      currentStar: currentStarMember,
+      leaderboard
+    });
+  } catch (error) {
+    console.error('Error getting star leaderboard:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/star/force-election', async (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Guild not found' });
+
+    const { runStarElection } = require('./utils/starManager');
+    const result = await runStarElection(guild, true);
+
+    if (!result) {
+      return res.status(400).json({ error: 'Aucun membre n\'a encore accumulé de points cette semaine.' });
+    }
+
+    res.json({ success: true, result });
+  } catch (error) {
+    console.error('Error forcing star election:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ Dashboard premium running on port ${PORT}`);
   

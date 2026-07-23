@@ -733,6 +733,57 @@ function initDatabase() {
       gemini_model TEXT DEFAULT 'gemini-2.0-flash'
     )
   `).run();
+
+  // 30. Système Star de la Semaine
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS star_config (
+      guild_id TEXT PRIMARY KEY,
+      is_active INTEGER DEFAULT 1,
+      announce_channel_id TEXT DEFAULT '',
+      star_role_id TEXT DEFAULT '',
+      reward_coins INTEGER DEFAULT 1000,
+      reward_karma INTEGER DEFAULT 50,
+      points_normal INTEGER DEFAULT 1,
+      points_nsfw INTEGER DEFAULT 2,
+      points_selfie INTEGER DEFAULT 3,
+      points_nude INTEGER DEFAULT 5,
+      selfie_channels TEXT DEFAULT '',
+      nude_channels TEXT DEFAULT '',
+      election_day INTEGER DEFAULT 0,
+      election_hour INTEGER DEFAULT 23,
+      announce_title TEXT DEFAULT '⭐ Star de la Semaine !',
+      announce_desc TEXT DEFAULT 'Félicitations à {user} qui devient la **Star de la Semaine** avec **{points} points** ! 🌟\n\nIl/Elle remporte le rôle {role} et brille sur le serveur !',
+      announce_color TEXT DEFAULT '#F1C40F',
+      announce_image TEXT DEFAULT '',
+      last_election_time INTEGER DEFAULT 0,
+      current_star_user_id TEXT DEFAULT ''
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS star_weekly_points (
+      guild_id TEXT,
+      user_id TEXT,
+      points INTEGER DEFAULT 0,
+      normal_count INTEGER DEFAULT 0,
+      nsfw_count INTEGER DEFAULT 0,
+      selfie_count INTEGER DEFAULT 0,
+      nude_count INTEGER DEFAULT 0,
+      week_identifier TEXT,
+      PRIMARY KEY (guild_id, user_id, week_identifier)
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS star_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT,
+      user_id TEXT,
+      points INTEGER,
+      week_identifier TEXT,
+      elected_at INTEGER
+    )
+  `).run();
 }
 
 // --- Fonctions utilitaires de base de données ---
@@ -1412,6 +1463,121 @@ const updateBumpConfig = (guildId, reminderChannel, reminderRole) => {
   `).run(reminderChannel || null, reminderRole || null, guildId);
 };
 
+// --- STAR DE LA SEMAINE ---
+
+function getStarConfig(guildId) {
+  let row = db.prepare('SELECT * FROM star_config WHERE guild_id = ?').get(guildId);
+  if (!row) {
+    db.prepare(`
+      INSERT INTO star_config (guild_id) VALUES (?)
+    `).run(guildId);
+    row = db.prepare('SELECT * FROM star_config WHERE guild_id = ?').get(guildId);
+  }
+  return row;
+}
+
+function updateStarConfig(guildId, config) {
+  const current = getStarConfig(guildId);
+  const updated = { ...current, ...config };
+
+  db.prepare(`
+    INSERT OR REPLACE INTO star_config (
+      guild_id, is_active, announce_channel_id, star_role_id, reward_coins, reward_karma,
+      points_normal, points_nsfw, points_selfie, points_nude, selfie_channels, nude_channels,
+      election_day, election_hour, announce_title, announce_desc, announce_color, announce_image,
+      last_election_time, current_star_user_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    guildId,
+    updated.is_active !== undefined ? Number(updated.is_active) : 1,
+    updated.announce_channel_id || '',
+    updated.star_role_id || '',
+    updated.reward_coins !== undefined ? Number(updated.reward_coins) : 1000,
+    updated.reward_karma !== undefined ? Number(updated.reward_karma) : 50,
+    updated.points_normal !== undefined ? Number(updated.points_normal) : 1,
+    updated.points_nsfw !== undefined ? Number(updated.points_nsfw) : 2,
+    updated.points_selfie !== undefined ? Number(updated.points_selfie) : 3,
+    updated.points_nude !== undefined ? Number(updated.points_nude) : 5,
+    Array.isArray(updated.selfie_channels) ? updated.selfie_channels.join(',') : (updated.selfie_channels || ''),
+    Array.isArray(updated.nude_channels) ? updated.nude_channels.join(',') : (updated.nude_channels || ''),
+    updated.election_day !== undefined ? Number(updated.election_day) : 0,
+    updated.election_hour !== undefined ? Number(updated.election_hour) : 23,
+    updated.announce_title || '⭐ Star de la Semaine !',
+    updated.announce_desc || 'Félicitations à {user} qui devient la **Star de la Semaine** avec **{points} points** ! 🌟\n\nIl/Elle remporte le rôle {role} et brille sur le serveur !',
+    updated.announce_color || '#F1C40F',
+    updated.announce_image || '',
+    updated.last_election_time !== undefined ? Number(updated.last_election_time) : 0,
+    updated.current_star_user_id || ''
+  );
+  return getStarConfig(guildId);
+}
+
+function getCurrentWeekIdentifier(date = new Date()) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
+function addStarPoints(guildId, userId, points, category = 'normal') {
+  const weekId = getCurrentWeekIdentifier();
+  const existing = db.prepare('SELECT * FROM star_weekly_points WHERE guild_id = ? AND user_id = ? AND week_identifier = ?')
+    .get(guildId, userId, weekId);
+
+  if (!existing) {
+    const normal = category === 'normal' ? 1 : 0;
+    const nsfw = category === 'nsfw' ? 1 : 0;
+    const selfie = category === 'selfie' ? 1 : 0;
+    const nude = category === 'nude' ? 1 : 0;
+
+    db.prepare(`
+      INSERT INTO star_weekly_points (guild_id, user_id, points, normal_count, nsfw_count, selfie_count, nude_count, week_identifier)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(guildId, userId, points, normal, nsfw, selfie, nude, weekId);
+  } else {
+    let col = 'normal_count';
+    if (category === 'nsfw') col = 'nsfw_count';
+    else if (category === 'selfie') col = 'selfie_count';
+    else if (category === 'nude') col = 'nude_count';
+
+    db.prepare(`
+      UPDATE star_weekly_points
+      SET points = points + ?, ${col} = ${col} + 1
+      WHERE guild_id = ? AND user_id = ? AND week_identifier = ?
+    `).run(points, guildId, userId, weekId);
+  }
+}
+
+function getStarWeeklyLeaderboard(guildId, weekIdentifier = null, limit = 10) {
+  const weekId = weekIdentifier || getCurrentWeekIdentifier();
+  return db.prepare(`
+    SELECT * FROM star_weekly_points
+    WHERE guild_id = ? AND week_identifier = ?
+    ORDER BY points DESC
+    LIMIT ?
+  `).all(guildId, weekId, limit);
+}
+
+function getUserStarWeeklyPoints(guildId, userId, weekIdentifier = null) {
+  const weekId = weekIdentifier || getCurrentWeekIdentifier();
+  return db.prepare('SELECT * FROM star_weekly_points WHERE guild_id = ? AND user_id = ? AND week_identifier = ?')
+    .get(guildId, userId, weekId);
+}
+
+function recordStarElection(guildId, userId, points, weekIdentifier) {
+  db.prepare(`
+    INSERT INTO star_history (guild_id, user_id, points, week_identifier, elected_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(guildId, userId, points, weekIdentifier, Math.floor(Date.now() / 1000));
+}
+
+function getStarHistory(guildId, limit = 10) {
+  return db.prepare('SELECT * FROM star_history WHERE guild_id = ? ORDER BY elected_at DESC LIMIT ?')
+    .all(guildId, limit);
+}
+
 module.exports = {
   db,
   initDatabase,
@@ -1504,5 +1670,13 @@ module.exports = {
   updateAiKey,
   deleteAiKey,
   getAiConfig,
-  updateAiConfig
+  updateAiConfig,
+  getStarConfig,
+  updateStarConfig,
+  getCurrentWeekIdentifier,
+  addStarPoints,
+  getStarWeeklyLeaderboard,
+  getUserStarWeeklyPoints,
+  recordStarElection,
+  getStarHistory
 };

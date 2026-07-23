@@ -325,6 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Load guild config
     loadGuildConfiguration();
+    loadStarConfigAndLeaderboard();
   }
 
   function populateDropdowns() {
@@ -380,6 +381,19 @@ document.addEventListener('DOMContentLoaded', () => {
           const option = document.createElement('option');
           option.value = ch.id;
           option.textContent = `📁 ${ch.name}`;
+          select.appendChild(option);
+      });
+    });
+
+    // Populate Multi-Select Channels (Selfie / Nude)
+    const multiChannelSelects = document.querySelectorAll('.channel-select-multi');
+    multiChannelSelects.forEach(select => {
+      select.innerHTML = '';
+      channelsList.forEach(ch => {
+        if (ch.type === 0 || ch.type === 5) {
+          const option = document.createElement('option');
+          option.value = ch.id;
+          option.textContent = `# ${ch.name}`;
           select.appendChild(option);
         }
       });
@@ -4410,6 +4424,205 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })
       .catch(err => showToast(err.message, true));
+    });
+  }
+
+  // --- STAR DE LA SEMAINE (DASHBOARD) ---
+  function loadStarConfigAndLeaderboard() {
+    fetch('/api/star/config')
+      .then(res => res.json())
+      .then(config => {
+        if (!config) return;
+        document.getElementById('star_is_active').value = config.is_active !== undefined ? config.is_active : 1;
+        document.getElementById('star_announce_channel_id').value = config.announce_channel_id || '';
+        document.getElementById('star_star_role_id').value = config.star_role_id || '';
+        document.getElementById('star_reward_coins').value = config.reward_coins !== undefined ? config.reward_coins : 1000;
+        document.getElementById('star_reward_karma').value = config.reward_karma !== undefined ? config.reward_karma : 50;
+        document.getElementById('star_election_day').value = config.election_day !== undefined ? config.election_day : 0;
+        document.getElementById('star_election_hour').value = config.election_hour !== undefined ? config.election_hour : 23;
+
+        document.getElementById('star_points_normal').value = config.points_normal !== undefined ? config.points_normal : 1;
+        document.getElementById('star_points_nsfw').value = config.points_nsfw !== undefined ? config.points_nsfw : 2;
+        document.getElementById('star_points_selfie').value = config.points_selfie !== undefined ? config.points_selfie : 3;
+        document.getElementById('star_points_nude').value = config.points_nude !== undefined ? config.points_nude : 5;
+
+        // Populate Multi-Select Selfie Channels
+        const selfieSelect = document.getElementById('star_selfie_channels');
+        if (selfieSelect) {
+          const selectedSelfies = config.selfie_channels ? config.selfie_channels.split(',') : [];
+          Array.from(selfieSelect.options).forEach(opt => {
+            opt.selected = selectedSelfies.includes(opt.value);
+          });
+        }
+
+        // Populate Multi-Select Nude Channels
+        const nudeSelect = document.getElementById('star_nude_channels');
+        if (nudeSelect) {
+          const selectedNudes = config.nude_channels ? config.nude_channels.split(',') : [];
+          Array.from(nudeSelect.options).forEach(opt => {
+            opt.selected = selectedNudes.includes(opt.value);
+          });
+        }
+
+        document.getElementById('star_announce_title').value = config.announce_title || '⭐ Star de la Semaine !';
+        document.getElementById('star_announce_color').value = config.announce_color || '#f1c40f';
+        document.getElementById('star_announce_desc').value = config.announce_desc || 'Félicitations à {user} qui devient la **Star de la Semaine** avec **{points} points** ! 🌟\n\nIl/Elle remporte le rôle {role} et brille sur le serveur !';
+        document.getElementById('star_announce_image').value = config.announce_image || '';
+      })
+      .catch(console.error);
+
+    fetch('/api/star/leaderboard')
+      .then(res => res.json())
+      .then(data => {
+        const winnerBanner = document.getElementById('star-current-winner-banner');
+        if (winnerBanner) {
+          if (data.currentStar) {
+            winnerBanner.style.display = 'flex';
+            winnerBanner.innerHTML = `
+              <div style="font-size: 2rem;">👑</div>
+              <div>
+                <h4 style="margin: 0; color: #f1c40f;">Star Actuelle du Serveur</h4>
+                <p style="margin: 3px 0 0 0; color: #e1e1e1; font-weight: 600;">${data.currentStar.displayName} (${data.currentStar.userId})</p>
+              </div>
+            `;
+          } else {
+            winnerBanner.style.display = 'none';
+          }
+        }
+
+        const tbody = document.getElementById('star-leaderboard-tbody');
+        if (tbody) {
+          tbody.innerHTML = '';
+          if (!data.leaderboard || data.leaderboard.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #8e9297; padding: 20px;">Aucun point accumulé cette semaine. Envoyez des messages sur Discord pour apparaître dans le classement !</td></tr>';
+          } else {
+            const medals = ['🥇', '🥈', '🥉'];
+            data.leaderboard.forEach((r, i) => {
+              const tr = document.createElement('tr');
+              const rankStr = medals[i] || `#${i + 1}`;
+              tr.innerHTML = `
+                <td><strong style="font-size: 1.1rem;">${rankStr}</strong></td>
+                <td><strong>${r.displayName}</strong></td>
+                <td><span style="background: rgba(241,196,15,0.2); color: #f1c40f; padding: 4px 10px; border-radius: 12px; font-weight: bold;">${r.points} pts</span></td>
+                <td>${r.normal_count || 0}</td>
+                <td>${r.nsfw_count || 0}</td>
+                <td>${r.selfie_count || 0}</td>
+                <td>${r.nude_count || 0}</td>
+              `;
+              tbody.appendChild(tr);
+            });
+          }
+        }
+      })
+      .catch(console.error);
+  }
+
+  const formStarConfig = document.getElementById('form-star-config');
+  if (formStarConfig) {
+    formStarConfig.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const selfieSelect = document.getElementById('star_selfie_channels');
+      const selectedSelfieChannels = selfieSelect ? Array.from(selfieSelect.selectedOptions).map(o => o.value) : [];
+
+      const nudeSelect = document.getElementById('star_nude_channels');
+      const selectedNudeChannels = nudeSelect ? Array.from(nudeSelect.selectedOptions).map(o => o.value) : [];
+
+      const payload = {
+        is_active: document.getElementById('star_is_active').value,
+        announce_channel_id: document.getElementById('star_announce_channel_id').value,
+        star_role_id: document.getElementById('star_star_role_id').value,
+        reward_coins: document.getElementById('star_reward_coins').value,
+        reward_karma: document.getElementById('star_reward_karma').value,
+        election_day: document.getElementById('star_election_day').value,
+        election_hour: document.getElementById('star_election_hour').value,
+        points_normal: document.getElementById('star_points_normal').value,
+        points_nsfw: document.getElementById('star_points_nsfw').value,
+        points_selfie: document.getElementById('star_points_selfie').value,
+        points_nude: document.getElementById('star_points_nude').value,
+        selfie_channels: selectedSelfieChannels,
+        nude_channels: selectedNudeChannels,
+        announce_title: document.getElementById('star_announce_title').value,
+        announce_color: document.getElementById('star_announce_color').value,
+        announce_desc: document.getElementById('star_announce_desc').value,
+        announce_image: document.getElementById('star_announce_image').value
+      };
+
+      fetch('/api/star/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            showToast('✅ Configuration Star de la Semaine enregistrée avec succès !');
+          } else {
+            showToast(`❌ Erreur : ${data.error}`, true);
+          }
+        })
+        .catch(err => {
+          showToast(`❌ Erreur réseau : ${err.message}`, true);
+        });
+    });
+  }
+
+  const btnUploadStarImage = document.getElementById('btn-upload-star-image');
+  const fileUploadStarImage = document.getElementById('file-upload-star-image');
+  if (btnUploadStarImage && fileUploadStarImage) {
+    btnUploadStarImage.addEventListener('click', () => fileUploadStarImage.click());
+    fileUploadStarImage.addEventListener('change', () => {
+      const file = fileUploadStarImage.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('file', file);
+
+      fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            document.getElementById('star_announce_image').value = data.url;
+            showToast('✅ Image téléversée avec succès !');
+          } else {
+            showToast(`❌ Erreur d'upload : ${data.error}`, true);
+          }
+        })
+        .catch(err => showToast(`❌ Erreur réseau : ${err.message}`, true));
+    });
+  }
+
+  const btnForceStarElection = document.getElementById('btn-force-star-election');
+  if (btnForceStarElection) {
+    btnForceStarElection.addEventListener('click', () => {
+      if (!confirm('Êtes-vous sûr de vouloir forcer l\'élection de la Star de la Semaine maintenant ? L\'annonce sera envoyée sur Discord et le rôle sera réattribué.')) return;
+
+      btnForceStarElection.disabled = true;
+      btnForceStarElection.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Élection en cours...';
+
+      fetch('/api/star/force-election', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+        .then(res => res.json())
+        .then(data => {
+          btnForceStarElection.disabled = false;
+          btnForceStarElection.innerHTML = '<i class="fa-solid fa-bolt"></i> Forcer l\'Élection Maintenant';
+
+          if (data.success) {
+            showToast(`🎉 Élection réussie ! La nouvelle Star est élue avec ${data.result.points} points.`);
+            loadStarConfigAndLeaderboard();
+          } else {
+            showToast(`❌ ${data.error}`, true);
+          }
+        })
+        .catch(err => {
+          btnForceStarElection.disabled = false;
+          btnForceStarElection.innerHTML = '<i class="fa-solid fa-bolt"></i> Forcer l\'Élection Maintenant';
+          showToast(`❌ Erreur réseau : ${err.message}`, true);
+        });
     });
   }
 
