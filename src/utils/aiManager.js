@@ -9,14 +9,18 @@ const keyRotationIndex = {
 /**
  * Appelle l'API Groq (OpenAI Compatible)
  */
-async function callGroqApi(apiKey, model, systemPrompt, userPrompt, temperature = 0.7, maxTokens = 1000) {
+async function callGroqApi(apiKey, model, systemPrompt, userPrompt, temperature = 0.7, maxTokens = 1000, messagesHistory = null) {
   const url = 'https://api.groq.com/openai/v1/chat/completions';
   
   const messages = [];
   if (systemPrompt) {
     messages.push({ role: 'system', content: systemPrompt });
   }
-  messages.push({ role: 'user', content: userPrompt });
+  if (messagesHistory && Array.isArray(messagesHistory) && messagesHistory.length > 0) {
+    messages.push(...messagesHistory);
+  } else if (userPrompt) {
+    messages.push({ role: 'user', content: userPrompt });
+  }
 
   const modelsToTry = [
     model || 'llama-3.1-8b-instant',
@@ -116,17 +120,22 @@ async function callGroqVisionApi(apiKey, model, prompt, imageUrl, temperature = 
 /**
  * Appelle l'API Google AI Studio Gemini
  */
-async function callGeminiApi(apiKey, model, systemPrompt, userPrompt, temperature = 0.7, maxTokens = 1000) {
+async function callGeminiApi(apiKey, model, systemPrompt, userPrompt, temperature = 0.7, maxTokens = 1000, messagesHistory = null) {
   const targetModel = model || 'gemini-2.0-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`;
 
+  let contents = [];
+  if (messagesHistory && Array.isArray(messagesHistory) && messagesHistory.length > 0) {
+    contents = messagesHistory.map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }]
+    }));
+  } else {
+    contents = [{ role: 'user', parts: [{ text: userPrompt }] }];
+  }
+
   const payload = {
-    contents: [
-      {
-        role: 'user',
-        parts: [{ text: userPrompt }]
-      }
-    ],
+    contents,
     generationConfig: {
       temperature,
       maxOutputTokens: maxTokens
@@ -163,7 +172,7 @@ async function callGeminiApi(apiKey, model, systemPrompt, userPrompt, temperatur
 /**
  * Appelle une instance locale Ollama (ex: Freebox / Serveur Debian local)
  */
-async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperature = 0.7, maxTokens = 1000) {
+async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperature = 0.7, maxTokens = 1000, messagesHistory = null) {
   const baseUrl = (hostUrl || 'http://127.0.0.1:11434').replace(/\/+$/, '');
   const url = `${baseUrl}/api/chat`;
 
@@ -171,7 +180,11 @@ async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperatu
   if (systemPrompt) {
     messages.push({ role: 'system', content: systemPrompt });
   }
-  messages.push({ role: 'user', content: userPrompt });
+  if (messagesHistory && Array.isArray(messagesHistory) && messagesHistory.length > 0) {
+    messages.push(...messagesHistory);
+  } else if (userPrompt) {
+    messages.push({ role: 'user', content: userPrompt });
+  }
 
   const response = await fetch(url, {
     method: 'POST',
@@ -203,17 +216,23 @@ async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperatu
 /**
  * Appelle Pollinations AI (Fallback sans clé)
  */
-async function callPollinationsFallback(systemPrompt, userPrompt) {
+async function callPollinationsFallback(systemPrompt, userPrompt, messagesHistory = null) {
   try {
-    const promptFull = systemPrompt ? `${systemPrompt}\n\n${userPrompt}` : userPrompt;
+    const messages = [];
+    if (systemPrompt) {
+      messages.push({ role: 'system', content: systemPrompt });
+    }
+    if (messagesHistory && Array.isArray(messagesHistory) && messagesHistory.length > 0) {
+      messages.push(...messagesHistory);
+    } else {
+      messages.push({ role: 'user', content: userPrompt });
+    }
+
     const response = await fetch('https://text.pollinations.ai/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        messages: [
-          { role: 'system', content: systemPrompt || '' },
-          { role: 'user', content: userPrompt }
-        ],
+        messages,
         model: 'mistral'
       }),
       signal: AbortSignal.timeout(10000)
@@ -224,6 +243,7 @@ async function callPollinationsFallback(systemPrompt, userPrompt) {
       if (text && text.trim().length > 0) return text.trim();
     }
 
+    const promptFull = systemPrompt ? `${systemPrompt}\n\n${userPrompt}` : userPrompt;
     const getRes = await fetch(`https://text.pollinations.ai/${encodeURIComponent(promptFull.substring(0, 500))}`, {
       signal: AbortSignal.timeout(10000)
     });
@@ -240,7 +260,7 @@ async function callPollinationsFallback(systemPrompt, userPrompt) {
 /**
  * Moteur principal de génération d'IA avec Pool Multi-Clés et Basculement Automatique (Ollama -> Groq -> Gemini -> Fallback)
  */
-async function generateAiCompletion({ guildId = null, category = 'text', systemPrompt = '', userPrompt = '', imageUrl = null, temperature = 0.7, maxTokens = 1000 }) {
+async function generateAiCompletion({ guildId = null, category = 'text', systemPrompt = '', userPrompt = '', imageUrl = null, temperature = 0.7, maxTokens = 1000, messagesHistory = null }) {
   const config = guildId ? getAiConfig(guildId) : {
     preferred_provider: 'auto',
     groq_text_model: 'llama-3.3-70b-versatile',
@@ -267,7 +287,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
       try {
         const hostUrl = keyObj.api_key || 'http://127.0.0.1:11434';
         const model = keyObj.label || 'qwen2.5:7b';
-        const result = await callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperature, maxTokens);
+        const result = await callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
         return result;
       } catch (err) {
         console.warn(`[AI Manager] Ollama local (${keyObj.api_key}) échoué : ${err.message}`);
@@ -287,7 +307,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
         if (imageUrl && category === 'vision') {
           result = await callGroqVisionApi(keyObj.api_key, groqModel, userPrompt, imageUrl, temperature, maxTokens);
         } else {
-          result = await callGroqApi(keyObj.api_key, groqModel, systemPrompt, userPrompt, temperature, maxTokens);
+          result = await callGroqApi(keyObj.api_key, groqModel, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
         }
         keyRotationIndex.groq = (idx + 1) % groqKeys.length;
         return result;
@@ -311,7 +331,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
       const idx = (startIndex + i) % geminiKeys.length;
       const keyObj = geminiKeys[idx];
       try {
-        const result = await callGeminiApi(keyObj.api_key, geminiModel, systemPrompt, userPrompt, temperature, maxTokens);
+        const result = await callGeminiApi(keyObj.api_key, geminiModel, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
         keyRotationIndex.gemini = (idx + 1) % geminiKeys.length;
         return result;
       } catch (err) {
@@ -339,7 +359,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
     const resGemini = await tryGeminiPool();
     if (resGemini) return resGemini;
   } else if (pref === 'pollinations') {
-    const resPol = await callPollinationsFallback(systemPrompt, userPrompt);
+    const resPol = await callPollinationsFallback(systemPrompt, userPrompt, messagesHistory);
     if (resPol) return resPol;
   } else {
     // Mode Auto : Ollama (si configuré) -> Groq -> Gemini -> Pollinations
@@ -351,10 +371,13 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
 
     const resGemini = await tryGeminiPool();
     if (resGemini) return resGemini;
+
+    const resPol = await callPollinationsFallback(systemPrompt, userPrompt, messagesHistory);
+    if (resPol) return resPol;
   }
 
   // Ultime secours si le fournisseur préféré échoue
-  const fallbackRes = await callPollinationsFallback(systemPrompt, userPrompt);
+  const fallbackRes = await callPollinationsFallback(systemPrompt, userPrompt, messagesHistory);
   if (fallbackRes) return fallbackRes;
 
   throw new Error("Toutes les clés d'API IA (Ollama, Groq, Gemini) et le service de secours ont échoué.");

@@ -3945,6 +3945,59 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Bouton de réinitialisation de la mémoire IA
+  const btnResetAiChat = document.getElementById('btn-reset-ai-chat');
+  if (btnResetAiChat) {
+    btnResetAiChat.addEventListener('click', () => {
+      fetch('/api/ai/reset', { method: 'POST' })
+        .then(res => res.json())
+        .then(() => {
+          showToast('🧠 Mémoire de l\'assistant IA réinitialisée !');
+          if (aiChatMessages) {
+            aiChatMessages.innerHTML = `
+              <div class="ai-message-bubble ai-bot" style="display: flex; gap: 12px; align-self: flex-start; max-width: 80%;">
+                <div style="width: 36px; height: 36px; background: #9b59b6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">🤖</div>
+                <div style="background: rgba(255,255,255,0.06); padding: 12px 16px; border-radius: 0 16px 16px 16px; font-size: 0.92rem; line-height: 1.5; color: #e1e1e1;">
+                  Conversation réinitialisée ! 🔄<br><br>
+                  <em>Je suis prêt pour de nouvelles instructions d'administration. Que souhaitez-vous faire ?</em>
+                </div>
+              </div>
+            `;
+          }
+        })
+        .catch(err => showToast(`Erreur : ${err.message}`, true));
+    });
+  }
+
+  // Recherche dynamique dans le menu latéral
+  const sidebarTabSearch = document.getElementById('sidebar-tab-search');
+  if (sidebarTabSearch) {
+    sidebarTabSearch.addEventListener('input', (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      const categories = document.querySelectorAll('.sidebar-category');
+
+      categories.forEach(cat => {
+        let hasVisibleBtn = false;
+        const btns = cat.querySelectorAll('.tab-btn');
+
+        btns.forEach(btn => {
+          const text = btn.textContent.toLowerCase();
+          if (!q || text.includes(q)) {
+            btn.style.display = 'flex';
+            hasVisibleBtn = true;
+          } else {
+            btn.style.display = 'none';
+          }
+        });
+
+        const title = cat.querySelector('.category-title');
+        if (title) {
+          title.style.display = hasVisibleBtn ? 'flex' : 'none';
+        }
+      });
+    });
+  }
+
   // --- Role Themes Configuration ---
   function loadRoleThemes() {
     fetch('/api/config/role-themes')

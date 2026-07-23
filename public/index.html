@@ -89,56 +89,64 @@
         <!-- Close button for mobile sidebar -->
         <button id="mobile-sidebar-close" class="mobile-sidebar-close-btn"><i class="fa-solid fa-xmark"></i></button>
 
-        <div class="sidebar-category">
-          <div class="category-title">🤖 ASSISTANT INTELLIGENT</div>
-          <button class="tab-btn" data-tab="tab-assistant"><i class="fa-solid fa-robot"></i> Assistant IA Admin</button>
+        <!-- Recherche rapide d'onglet -->
+        <div style="padding: 0 5px 15px 5px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 15px;">
+          <div style="position: relative;">
+            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #8e9297; font-size: 0.85rem;"></i>
+            <input type="text" id="sidebar-tab-search" placeholder="🔍 Rechercher une fonction..." style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 8px 10px 8px 32px; color: #fff; font-size: 0.85rem; outline: none;">
+          </div>
         </div>
 
         <div class="sidebar-category">
-          <div class="category-title">⚙️ CONFIGURATION</div>
-          <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées / Départs</button>
-          <button class="tab-btn" data-tab="tab-autoroles"><i class="fa-solid fa-user-plus"></i> Auto-Rôles</button>
+          <div class="category-title"><i class="fa-solid fa-robot" style="color: #9b59b6;"></i> ASSISTANT & STAR</div>
+          <button class="tab-btn" data-tab="tab-assistant"><i class="fa-solid fa-robot"></i> Assistant IA Admin <span class="nav-badge badge-purple">IA VIP</span></button>
+          <button class="tab-btn" data-tab="tab-star"><i class="fa-solid fa-star" style="color: #f1c40f;"></i> Star de la Semaine <span class="nav-badge badge-gold">TOP</span></button>
+        </div>
+
+        <div class="sidebar-category">
+          <div class="category-title"><i class="fa-solid fa-sliders" style="color: #5865F2;"></i> GESTION DU SERVEUR</div>
+          <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées & Départs</button>
+          <button class="tab-btn" data-tab="tab-autoroles"><i class="fa-solid fa-user-plus"></i> Auto-Rôles à l'Arrivée</button>
           <button class="tab-btn" data-tab="tab-reactionroles"><i class="fa-solid fa-rectangle-list"></i> Rôles Réaction</button>
-          <button class="tab-btn" data-tab="tab-logs"><i class="fa-solid fa-list-check"></i> Logs d'activité</button>
+          <button class="tab-btn" data-tab="tab-autothread"><i class="fa-solid fa-hashtag"></i> Auto-Thread</button>
+          <button class="tab-btn" data-tab="tab-logs"><i class="fa-solid fa-list-check"></i> Logs d'Activité</button>
         </div>
 
         <div class="sidebar-category">
-          <div class="category-title">🛡️ SÉCURITÉ & MODÉRATION</div>
-          <button class="tab-btn" data-tab="tab-quarantine"><i class="fa-solid fa-shield-halved"></i> Quarantaine</button>
+          <div class="category-title"><i class="fa-solid fa-shield-halved" style="color: #e74c3c;"></i> SÉCURITÉ & MODÉRATION</div>
+          <button class="tab-btn" data-tab="tab-quarantine"><i class="fa-solid fa-shield-halved"></i> Quarantaine Anti-Raid</button>
           <button class="tab-btn" data-tab="tab-automod"><i class="fa-solid fa-user-shield"></i> Auto-Modération</button>
           <button class="tab-btn" data-tab="tab-forums"><i class="fa-solid fa-comments"></i> Forums Illimités</button>
-          <button class="tab-btn" data-tab="tab-permissions"><i class="fa-solid fa-lock"></i> Permissions</button>
-          <button class="tab-btn" data-tab="tab-tribunal"><i class="fa-solid fa-gavel"></i> Tribunal</button>
+          <button class="tab-btn" data-tab="tab-permissions"><i class="fa-solid fa-lock"></i> Permissions Rôles</button>
+          <button class="tab-btn" data-tab="tab-tribunal"><i class="fa-solid fa-gavel"></i> Tribunal Discord</button>
         </div>
 
         <div class="sidebar-category">
-          <div class="category-title">🎮 DIVERTISSEMENT</div>
-          <button class="tab-btn" data-tab="tab-confessions"><i class="fa-solid fa-mask"></i> Confessions</button>
-          <button class="tab-btn" data-tab="tab-counting"><i class="fa-solid fa-calculator"></i> Counting</button>
+          <div class="category-title"><i class="fa-solid fa-gamepad" style="color: #2ecc71;"></i> DIVERTISSEMENT & JEUX</div>
+          <button class="tab-btn" data-tab="tab-confessions"><i class="fa-solid fa-mask"></i> Confessions Anonymes</button>
+          <button class="tab-btn" data-tab="tab-counting"><i class="fa-solid fa-calculator"></i> Salons de Comptage</button>
           <button class="tab-btn" data-tab="tab-game"><i class="fa-solid fa-gamepad"></i> Jeu Mot Caché</button>
-          <button class="tab-btn" data-tab="tab-action-verite"><i class="fa-solid fa-dice"></i> Action / Vérité</button>
-          <button class="tab-btn" data-tab="tab-bump"><i class="fa-solid fa-bell"></i> Rappel de Bumps</button>
-          <button class="tab-btn" data-tab="tab-autothread"><i class="fa-solid fa-comments"></i> Auto-Thread</button>
-        </div>
-
-        <div class="sidebar-category">
-          <div class="category-title">⚡ INTELLIGENCE ARTIFICIELLE</div>
-          <button class="tab-btn" data-tab="tab-ai"><i class="fa-solid fa-brain"></i> Clés & Modèles IA</button>
-        </div>
-
-        <div class="sidebar-category">
-          <div class="category-title">📈 NIVEAUX & ÉCONOMIE</div>
-          <button class="tab-btn" data-tab="tab-leveling"><i class="fa-solid fa-arrow-trend-up"></i> Niveaux & Rôles</button>
-          <button class="tab-btn" data-tab="tab-star"><i class="fa-solid fa-star" style="color: #f1c40f;"></i> ⭐ Star de la Semaine</button>
-          <button class="tab-btn" data-tab="tab-karma"><i class="fa-solid fa-star"></i> Configuration Karma</button>
-          <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique</button>
+          <button class="tab-btn" data-tab="tab-action-verite"><i class="fa-solid fa-dice"></i> Action ou Vérité</button>
+          <button class="tab-btn" data-tab="tab-bump"><i class="fa-solid fa-bell"></i> Rappels de Bump</button>
           <button class="tab-btn" data-tab="tab-gifs"><i class="fa-solid fa-file-video"></i> GIFs d'action</button>
         </div>
 
         <div class="sidebar-category">
-          <div class="category-title">🎫 ASSISTANCE & MAPPING</div>
+          <div class="category-title"><i class="fa-solid fa-chart-line" style="color: #e67e22;"></i> NIVEAUX & ÉCONOMIE</div>
+          <button class="tab-btn" data-tab="tab-leveling"><i class="fa-solid fa-arrow-trend-up"></i> Niveaux & XP</button>
+          <button class="tab-btn" data-tab="tab-karma"><i class="fa-solid fa-star"></i> Configuration Karma</button>
+          <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique & Suites</button>
+        </div>
+
+        <div class="sidebar-category">
+          <div class="category-title"><i class="fa-solid fa-headset" style="color: #3498db;"></i> SUPPORT & MAPPING</div>
           <button class="tab-btn" data-tab="tab-tickets"><i class="fa-solid fa-ticket"></i> Support & Tickets</button>
           <button class="tab-btn" data-tab="tab-map"><i class="fa-solid fa-map-location-dot"></i> Carte des Membres</button>
+        </div>
+
+        <div class="sidebar-category">
+          <div class="category-title"><i class="fa-solid fa-brain" style="color: #1abc9c;"></i> CLÉS & PARAMÈTRES IA</div>
+          <button class="tab-btn" data-tab="tab-ai"><i class="fa-solid fa-brain"></i> Clés & Modèles IA</button>
         </div>
       </aside>
 
@@ -156,7 +164,12 @@
         <div id="config-forms" style="display: none;">
           <!-- Tab: AI Assistant -->
           <div id="tab-assistant" class="tab-content">
-            <h2 class="section-title"><i class="fa-solid fa-robot"></i> Assistant IA Admin Premium</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+              <h2 class="section-title" style="margin: 0;"><i class="fa-solid fa-robot" style="color: #9b59b6;"></i> Assistant IA Admin Premium</h2>
+              <button type="button" id="btn-reset-ai-chat" class="btn" style="background: rgba(155, 89, 182, 0.2); border: 1px solid rgba(155, 89, 182, 0.4); color: #e1e1e1; font-size: 0.85rem; font-weight: 600;">
+                <i class="fa-solid fa-rotate-left"></i> Réinitialiser la mémoire
+              </button>
+            </div>
             <div class="card glass mb-4" style="padding: 20px;">
               <p style="color: #b9bbbe; font-size: 0.9rem; margin-bottom: 20px;">
                 Discutez avec l'IA d'administration pour configurer automatiquement votre serveur Discord. 
@@ -2377,6 +2390,6 @@ Il/Elle remporte le rôle {role} et brille sur le serveur !</textarea>
 
   <div id="toast" class="toast glass">Configuration enregistrée !</div>
 
-  <script src="script.js?v=1.0.8"></script>
+  <script src="script.js?v=1.0.9"></script>
 </body>
 </html>

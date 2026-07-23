@@ -208,7 +208,7 @@ function buildRichEmbed(embedData, guild, client) {
   return embed;
 }
 
-async function processAiCommand(guildId, userId, message, client) {
+async function processAiCommand(guildId, userId, message, client, messagesHistory = null) {
   const guild = client.guilds.cache.get(guildId);
   if (!guild) {
     return { reply: "❌ Erreur : Serveur introuvable." };
@@ -355,6 +355,7 @@ Pour que le script puisse les parser automatiquement.`;
       category: 'server',
       systemPrompt,
       userPrompt: message,
+      messagesHistory,
       temperature: 0.2,
       maxTokens: 2000
     });

@@ -430,18 +430,57 @@ body::after {
   transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
+.sidebar-category {
+  margin-bottom: 12px;
+}
+
+.category-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.85;
+}
+
+.nav-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  margin-left: auto;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.badge-purple {
+  background: rgba(155, 89, 182, 0.25);
+  color: #e082b2;
+  border: 1px solid rgba(155, 89, 182, 0.4);
+}
+
+.badge-gold {
+  background: rgba(241, 196, 15, 0.2);
+  color: #f1c40f;
+  border: 1px solid rgba(241, 196, 15, 0.4);
+}
+
 .tab-btn:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text-color);
-  transform: translateX(5px);
+  transform: translateX(4px);
 }
 
 .tab-btn.active {
-  background: linear-gradient(90deg, rgba(88, 101, 242, 0.15) 0%, rgba(88, 101, 242, 0.02) 100%);
+  background: linear-gradient(90deg, rgba(88, 101, 242, 0.2) 0%, rgba(88, 101, 242, 0.03) 100%);
   color: #fff;
   font-weight: 600;
   border-left: 3px solid var(--primary-color);
-  box-shadow: inset 4px 0 0 -1px var(--primary-color);
+  box-shadow: 0 4px 15px rgba(88, 101, 242, 0.15), inset 4px 0 0 -1px var(--primary-color);
 }
 
 .tab-btn.active i {

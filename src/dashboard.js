@@ -1972,7 +1972,7 @@ app.post('/api/config/role-themes/delete', (req, res) => {
   }
 });
 
-// Assistant IA d'Administration (Owner unique)
+// Assistant IA d'Administration (avec suivi de conversation par session)
 app.post('/api/ai/chat', async (req, res) => {
   try {
     const guildId = req.session.selectedGuild;
@@ -1990,14 +1990,34 @@ app.post('/api/ai/chat', async (req, res) => {
     const { message } = req.body;
     if (!message) return res.status(400).json({ error: 'Message requis' });
 
+    // Initialiser et mettre à jour l'historique de conversation de l'IA pour cette session
+    req.session.aiChatHistory = req.session.aiChatHistory || [];
+    req.session.aiChatHistory.push({ role: 'user', content: message });
+
+    // Limiter aux 12 derniers messages (6 échanges) pour ne pas encombrer le contexte
+    if (req.session.aiChatHistory.length > 12) {
+      req.session.aiChatHistory = req.session.aiChatHistory.slice(-12);
+    }
+
     const { processAiCommand } = require('./utils/aiAssistant');
-    const result = await processAiCommand(guildId, req.session.user.id, message, client);
+    const result = await processAiCommand(guildId, req.session.user.id, message, client, req.session.aiChatHistory);
+
+    if (result && result.reply) {
+      const cleanReplyForHistory = result.reply.replace(/\[ACTIONS_START\][\s\S]*?\[ACTIONS_END\]/g, '').trim();
+      req.session.aiChatHistory.push({ role: 'assistant', content: cleanReplyForHistory });
+    }
 
     res.json(result);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// Endpoint pour réinitialiser la mémoire de conversation de l'IA
+app.post('/api/ai/reset', (req, res) => {
+  req.session.aiChatHistory = [];
+  res.json({ success: true });
 });
 
 // Configuration des rappels de Bump
