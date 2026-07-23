@@ -382,6 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
           option.value = ch.id;
           option.textContent = `📁 ${ch.name}`;
           select.appendChild(option);
+        }
       });
     });
 
