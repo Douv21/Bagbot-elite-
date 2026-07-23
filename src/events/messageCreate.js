@@ -379,6 +379,9 @@ module.exports = {
         const isNudeMatch = nudeChannels.includes(currentChanId) || (parentChanId && nudeChannels.includes(parentChanId));
         const isSelfieMatch = selfieChannels.includes(currentChanId) || (parentChanId && selfieChannels.includes(parentChanId));
 
+        let category = 'normal';
+        let pointsToAdd = starConfig.points_normal ?? 1;
+
         if (isNudeMatch) {
           if (hasMedia || nudeChannels.length > 0) {
             category = 'nude';
