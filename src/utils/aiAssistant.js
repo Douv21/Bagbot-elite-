@@ -214,6 +214,16 @@ async function processAiCommand(guildId, userId, message, client, messagesHistor
     return { reply: "❌ Erreur : Serveur introuvable." };
   }
 
+  // Helper pour identifier les rôles séparateurs / décoratifs (ex: "------", "── RÔLES ──", "===")
+  const isSeparatorRole = (name) => {
+    if (!name) return false;
+    const s = name.trim();
+    if (s === '@everyone') return true;
+    if (s.includes('---') || s.includes('──') || s.includes('===') || s.includes('___') || s.includes('───')) return true;
+    if (/^[─\-=_~|*•\s\u{2500}-\u{257F}]+$/u.test(s)) return true;
+    return false;
+  };
+
   // Helper puissant de nettoyage des caractères décoratifs et émojis
   const cleanEntityName = (str) => {
     if (!str) return '';
@@ -224,34 +234,44 @@ async function processAiCommand(guildId, userId, message, client, messagesHistor
       .toLowerCase();
   };
 
-  // Helper de recherche d'un RÔLE avec tolérance maximale aux émojis et décorations
+  // Helper de recherche d'un RÔLE (exclut les séparateurs)
   const findRole = async (name) => {
     if (!name) return null;
     const rawClean = name.trim().toLowerCase().replace(/^["']|["']$/g, '').replace(/^@/, '');
 
-    let allRoles = Array.from((await guild.roles.fetch().catch(() => null) || guild.roles.cache).values());
+    const fetched = await guild.roles.fetch().catch(() => null);
+    const rawRoles = Array.from((fetched || guild.roles.cache).values());
 
-    // 1. Recherche exacte par ID ou nom brut (case-insensitive)
-    let role = allRoles.find(r => r.id === rawClean || r.name.toLowerCase() === rawClean);
+    // 1. Si c'est un ID direct, on cherche parmi TOUS les rôles
+    if (/^\d+$/.test(rawClean)) {
+      const byId = rawRoles.find(r => r.id === rawClean);
+      if (byId) return byId;
+    }
+
+    // Sinon, on exclut les rôles séparateurs pour éviter toute confusion
+    const assignableRoles = rawRoles.filter(r => r.name !== '@everyone' && !isSeparatorRole(r.name));
+
+    // 2. Recherche exacte par nom brut (case-insensitive)
+    let role = assignableRoles.find(r => r.name.toLowerCase() === rawClean);
     if (role) return role;
 
-    // 2. Recherche par nom nettoyé (sans émojis, symboles, tirets de séparation)
+    // 3. Recherche par nom nettoyé (sans émojis ni symboles)
     const normSearch = cleanEntityName(rawClean);
     if (normSearch.length > 0) {
-      role = allRoles.find(r => cleanEntityName(r.name) === normSearch);
+      role = assignableRoles.find(r => cleanEntityName(r.name) === normSearch);
       if (role) return role;
     }
 
-    // 3. Recherche par inclusion de sous-chaîne (ex: "VIP" matche "👑 VIP 👑")
-    role = allRoles.find(r => {
+    // 4. Recherche par inclusion de sous-chaîne (ex: "VIP" matche "👑 VIP 👑")
+    role = assignableRoles.find(r => {
       const rNameLower = r.name.toLowerCase();
       return rNameLower.includes(rawClean) || rawClean.includes(rNameLower);
     });
     if (role) return role;
 
-    // 4. Recherche par inclusion sur version nettoyée
+    // 5. Recherche par inclusion sur version nettoyée
     if (normSearch.length > 0) {
-      role = allRoles.find(r => {
+      role = assignableRoles.find(r => {
         const rNorm = cleanEntityName(r.name);
         return rNorm.length > 0 && (rNorm.includes(normSearch) || normSearch.includes(rNorm));
       });
@@ -336,7 +356,7 @@ async function processAiCommand(guildId, userId, message, client, messagesHistor
   ].map(key => `"${key}"`).join(', ');
 
   const rolesList = Array.from((fetchedRoles || guild.roles.cache).values())
-    .filter(r => r.name !== '@everyone')
+    .filter(r => r.name !== '@everyone' && !isSeparatorRole(r.name))
     .sort((a, b) => b.position - a.position)
     .slice(0, 100)
     .map(r => `- "${r.name}" (ID: ${r.id})`)
