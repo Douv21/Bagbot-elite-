@@ -174,56 +174,69 @@ async function callGeminiApi(apiKey, model, systemPrompt, userPrompt, temperatur
 async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperature = 0.7, maxTokens = 1000, messagesHistory = null) {
   const hostsToTry = [
     hostUrl,
+    'http://192.168.1.145:11434',
     process.env.OLLAMA_HOST,
     process.env.PUBLIC_IP ? `http://${process.env.PUBLIC_IP}:11434` : null,
     'http://127.0.0.1:11434',
     'http://localhost:11434'
   ].filter(Boolean);
 
+  const modelsToTry = [
+    model,
+    'qwen2.5:1.5b',
+    'qwen2.5:0.5b',
+    'qwen2.5:7b',
+    'qwen2.5'
+  ].filter(Boolean);
+
   const uniqueHosts = [...new Set(hostsToTry)];
+  const uniqueModels = [...new Set(modelsToTry)];
+
   let lastError = null;
 
   for (const h of uniqueHosts) {
-    try {
-      const baseUrl = h.replace(/\/+$/, '');
-      const url = `${baseUrl}/api/chat`;
+    const baseUrl = h.replace(/\/+$/, '');
+    const url = `${baseUrl}/api/chat`;
 
-      const messages = [];
-      if (systemPrompt) {
-        messages.push({ role: 'system', content: systemPrompt });
-      }
-      if (messagesHistory && Array.isArray(messagesHistory) && messagesHistory.length > 0) {
-        messages.push(...messagesHistory);
-      } else if (userPrompt) {
-        messages.push({ role: 'user', content: userPrompt });
-      }
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: model || 'qwen2.5:7b',
-          messages,
-          stream: false,
-          options: {
-            temperature,
-            num_predict: maxTokens
-          }
-        }),
-        signal: AbortSignal.timeout(15000)
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.message && data.message.content) {
-          return data.message.content.trim();
+    for (const m of uniqueModels) {
+      try {
+        const messages = [];
+        if (systemPrompt) {
+          messages.push({ role: 'system', content: systemPrompt });
         }
-      } else {
-        const errorText = await response.text().catch(() => '');
-        lastError = new Error(`Ollama API (${baseUrl}) HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+        if (messagesHistory && Array.isArray(messagesHistory) && messagesHistory.length > 0) {
+          messages.push(...messagesHistory);
+        } else if (userPrompt) {
+          messages.push({ role: 'user', content: userPrompt });
+        }
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: m,
+            messages,
+            stream: false,
+            options: {
+              temperature,
+              num_predict: maxTokens
+            }
+          }),
+          signal: AbortSignal.timeout(20000)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.message && data.message.content) {
+            return data.message.content.trim();
+          }
+        } else {
+          const errorText = await response.text().catch(() => '');
+          lastError = new Error(`Ollama API (${baseUrl} - ${m}) HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+        }
+      } catch (err) {
+        lastError = err;
       }
-    } catch (err) {
-      lastError = err;
     }
   }
 
@@ -288,7 +301,7 @@ async function callPollinationsFallback(systemPrompt, userPrompt, messagesHistor
 }
 
 /**
- * Moteur principal de génération d'IA avec Pool Multi-Clés et Basculement Automatique (Ollama -> Groq -> Gemini -> Fallback)
+ * Moteur principal de génération d'IA avec Pool Multi-Clés et Basculement Automatique (Ollama Freebox -> Groq -> Gemini -> Fallback)
  */
 async function generateAiCompletion({ guildId = null, category = 'text', systemPrompt = '', userPrompt = '', imageUrl = null, temperature = 0.7, maxTokens = 1000, messagesHistory = null }) {
   const config = guildId ? getAiConfig(guildId) : {
@@ -312,15 +325,21 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
   const geminiModel = config.gemini_model || 'gemini-2.0-flash';
 
   const tryOllamaPool = async () => {
+    // Tenter en priorité l'instance Ollama de la Freebox Delta 192.168.1.145
+    try {
+      const resFreebox = await callOllamaApi('http://192.168.1.145:11434', 'qwen2.5:1.5b', systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
+      if (resFreebox) return resFreebox;
+    } catch (e) {}
+
     if (ollamaKeys.length === 0) return null;
     for (const keyObj of ollamaKeys) {
       try {
-        const hostUrl = keyObj.api_key || 'http://127.0.0.1:11434';
-        const model = keyObj.label || 'qwen2.5:7b';
+        const hostUrl = keyObj.api_key || 'http://192.168.1.145:11434';
+        const model = keyObj.label || 'qwen2.5:1.5b';
         const result = await callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
         return result;
       } catch (err) {
-        console.warn(`[AI Manager] Ollama local (${keyObj.api_key}) échoué : ${err.message}`);
+        console.warn(`[AI Manager] Ollama (${keyObj.api_key}) échoué : ${err.message}`);
       }
     }
     return null;
@@ -343,12 +362,6 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
         return result;
       } catch (err) {
         console.warn(`[AI Manager] Clé Groq ID ${keyObj.id} (${keyObj.label}) échouée : ${err.message}. Essai de la clé suivante...`);
-        if (err.message.includes('organization_restricted') || err.message.includes('invalid_api_key') || err.message.includes('HTTP 401') || err.message.includes('HTTP 403')) {
-          try {
-            updateAiKey(keyObj.id, { is_active: 0 });
-            console.warn(`[AI Manager] Clé Groq ID ${keyObj.id} (${keyObj.label}) désactivée automatiquement car restreinte par Groq.`);
-          } catch (e) {}
-        }
       }
     }
     return null;
@@ -366,51 +379,28 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
         return result;
       } catch (err) {
         console.warn(`[AI Manager] Clé Gemini ID ${keyObj.id} (${keyObj.label}) échouée : ${err.message}. Essai de la clé suivante...`);
-        if (err.message.includes('API key not valid') || err.message.includes('HTTP 400') || err.message.includes('HTTP 401')) {
-          try {
-            updateAiKey(keyObj.id, { is_active: 0 });
-            console.warn(`[AI Manager] Clé Gemini ID ${keyObj.id} (${keyObj.label}) désactivée automatiquement car invalide.`);
-          } catch (e) {}
-        }
       }
     }
     return null;
   };
 
-  const pref = config.preferred_provider || 'auto';
+  // 1. Tenter TOUJOURS en priorité absolue Ollama local sur la Freebox (Illimité)
+  const resOllama = await tryOllamaPool();
+  if (resOllama) return resOllama;
 
-  if (pref === 'ollama') {
-    const resOllama = await tryOllamaPool();
-    if (resOllama) return resOllama;
-  } else if (pref === 'groq') {
-    const resGroq = await tryGroqPool();
-    if (resGroq) return resGroq;
-  } else if (pref === 'gemini') {
-    const resGemini = await tryGeminiPool();
-    if (resGemini) return resGemini;
-  } else if (pref === 'pollinations') {
-    const resPol = await callPollinationsFallback(systemPrompt, userPrompt, messagesHistory);
-    if (resPol) return resPol;
-  } else {
-    // Mode Auto : Ollama (si configuré) -> Groq -> Gemini -> Pollinations
-    const resOllama = await tryOllamaPool();
-    if (resOllama) return resOllama;
+  // 2. Si Ollama Freebox est indisponible, basculer sur Groq
+  const resGroq = await tryGroqPool();
+  if (resGroq) return resGroq;
 
-    const resGroq = await tryGroqPool();
-    if (resGroq) return resGroq;
+  // 3. Basculer sur Gemini
+  const resGemini = await tryGeminiPool();
+  if (resGemini) return resGemini;
 
-    const resGemini = await tryGeminiPool();
-    if (resGemini) return resGemini;
+  // 4. Ultime secours illimité : Pollinations AI
+  const resPol = await callPollinationsFallback(systemPrompt, userPrompt, messagesHistory);
+  if (resPol) return resPol;
 
-    const resPol = await callPollinationsFallback(systemPrompt, userPrompt, messagesHistory);
-    if (resPol) return resPol;
-  }
-
-  // Ultime secours si le fournisseur préféré échoue
-  const fallbackRes = await callPollinationsFallback(systemPrompt, userPrompt, messagesHistory);
-  if (fallbackRes) return fallbackRes;
-
-  throw new Error("Toutes les clés d'API IA (Ollama, Groq, Gemini) et le service de secours ont échoué.");
+  throw new Error("Impossible de joindre Ollama Freebox ou les API distantes.");
 }
 
 /**
