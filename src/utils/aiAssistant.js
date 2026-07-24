@@ -358,12 +358,12 @@ async function processAiCommand(guildId, userId, message, client, messagesHistor
   const rolesList = Array.from((fetchedRoles || guild.roles.cache).values())
     .filter(r => r.name !== '@everyone' && !isSeparatorRole(r.name))
     .sort((a, b) => b.position - a.position)
-    .slice(0, 100)
+    .slice(0, 30)
     .map(r => `- "${r.name}" (ID: ${r.id})`)
     .join('\n');
 
   const channelsList = Array.from((fetchedChannels || guild.channels.cache).values())
-    .slice(0, 100)
+    .slice(0, 30)
     .map(c => {
       let typeStr = 'Texte';
       if (c.type === 4) typeStr = 'Catégorie';

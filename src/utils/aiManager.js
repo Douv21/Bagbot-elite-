@@ -235,43 +235,56 @@ async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperatu
  * Appelle Pollinations AI (Fallback sans clé)
  */
 async function callPollinationsFallback(systemPrompt, userPrompt, messagesHistory = null) {
+  const models = ['openai', 'mistral', 'qwen', 'llama'];
+  
+  const messages = [];
+  if (systemPrompt) {
+    messages.push({ role: 'system', content: systemPrompt });
+  }
+  if (messagesHistory && Array.isArray(messagesHistory) && messagesHistory.length > 0) {
+    messages.push(...messagesHistory);
+  } else {
+    messages.push({ role: 'user', content: userPrompt });
+  }
+
+  for (const m of models) {
+    try {
+      const response = await fetch('https://text.pollinations.ai/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages,
+          model: m,
+          seed: Math.floor(Math.random() * 1000000)
+        }),
+        signal: AbortSignal.timeout(20000)
+      });
+
+      if (response.ok) {
+        const text = await response.text();
+        if (text && text.trim().length > 0 && !text.toLowerCase().includes('error')) {
+          return text.trim();
+        }
+      }
+    } catch (e) {
+      console.warn(`[AI Manager] Pollinations fallback (${m}) error:`, e.message);
+    }
+  }
+
+  // Fallback GET en dernier recours
   try {
-    const messages = [];
-    if (systemPrompt) {
-      messages.push({ role: 'system', content: systemPrompt });
-    }
-    if (messagesHistory && Array.isArray(messagesHistory) && messagesHistory.length > 0) {
-      messages.push(...messagesHistory);
-    } else {
-      messages.push({ role: 'user', content: userPrompt });
-    }
-
-    const response = await fetch('https://text.pollinations.ai/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages,
-        model: 'mistral'
-      }),
-      signal: AbortSignal.timeout(10000)
-    });
-
-    if (response.ok) {
-      const text = await response.text();
-      if (text && text.trim().length > 0) return text.trim();
-    }
-
     const promptFull = systemPrompt ? `${systemPrompt}\n\n${userPrompt}` : userPrompt;
-    const getRes = await fetch(`https://text.pollinations.ai/${encodeURIComponent(promptFull.substring(0, 500))}`, {
-      signal: AbortSignal.timeout(10000)
+    const getRes = await fetch(`https://text.pollinations.ai/${encodeURIComponent(promptFull.substring(0, 800))}?model=openai`, {
+      signal: AbortSignal.timeout(20000)
     });
     if (getRes.ok) {
       const text = await getRes.text();
-      if (text && text.trim().length > 0) return text.trim();
+      if (text && text.trim().length > 0 && !text.toLowerCase().includes('error')) {
+        return text.trim();
+      }
     }
-  } catch (e) {
-    console.warn('[AI Manager] Pollinations fallback error:', e.message);
-  }
+  } catch (e) {}
+
   return null;
 }
 
