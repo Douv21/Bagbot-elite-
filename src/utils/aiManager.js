@@ -25,7 +25,7 @@ async function callGroqApi(apiKey, model, systemPrompt, userPrompt, temperature 
   const modelsToTry = [
     model || 'llama-3.1-8b-instant',
     'llama-3.1-8b-instant',
-    'gemma2-9b-it',
+    'llama3-8b-8192',
     'llama-3.3-70b-versatile'
   ];
 
