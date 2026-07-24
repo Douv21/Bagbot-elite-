@@ -171,12 +171,12 @@ module.exports = {
         }
       }
 
-      const suitePrefix = shopCfg?.suiteChannelPrefix || '👑┆suite-';
-      const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9-]/g, '');
+      const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const chanName = `👑・suite-privée-${cleanUsername}`.slice(0, 90);
 
       try {
         const textChannel = await interaction.guild.channels.create({
-          name: `${suitePrefix}${cleanUsername}`.slice(0, 90),
+          name: chanName,
           type: ChannelType.GuildText,
           parent: category ? category.id : null,
           permissionOverwrites: [
@@ -210,17 +210,24 @@ module.exports = {
         const expiresAt = Date.now() + durationMs;
         addPrivateSuite(guildId, userId, textChannel.id, null, expiresAt);
 
-        await textChannel.send({
-          content: `🎉 **Félicitations <@${userId}> ! Bienvenue dans votre Suite Privée !**\n\n` +
-                   `Ce salon est strictement privé et réservé à vous seul.\n` +
-                   `Il sera automatiquement supprimé le <t:${Math.floor(expiresAt / 1000)}:F> (<t:${Math.floor(expiresAt / 1000)}:R>).`
-        }).catch(console.error);
+        const welcomeEmbed = new EmbedBuilder()
+          .setTitle('👑 🛋️ ✨ BIENVENUE DANS VOTRE SUITE PRIVÉE VIP ✨ 🛋️ 👑')
+          .setDescription(
+            `🔥 **Félicitations <@${userId}> !** Vous prenez possession de votre Suite Privée d'Exception !\n\n` +
+            `*Cet espace haut de gamme et entièrement sécurisé est votre havre d'intimité d'exception. Vous et vos invités triés sur le volet pouvez échanger en toute discrétion, sérénité et volupté...* 🥂💋\n\n` +
+            `>>> **"Un havre d'intimité, de luxe et de volupté réservé à l'élite..."** ✨\n\n` +
+            `⏳ **Durée de réservation :** Expire le <t:${Math.floor(expiresAt / 1000)}:F> (<t:${Math.floor(expiresAt / 1000)}:R>).\n` +
+            `*Pour prolonger la durée de votre suite, rendez-vous à tout moment dans la `/boutique` !*`
+          )
+          .setColor('#F1C40F')
+          .setFooter({ text: 'B&G Elite • Suite Privée VIP & Privative' })
+          .setTimestamp();
 
         // Envoyer le panel interactif de gestion
         const panelEmbed = new EmbedBuilder()
-          .setTitle('🔑 Gestion de votre Suite Privée')
-          .setDescription('Utilisez les boutons ci-dessous pour gérer les accès à votre salon.\n\n*Les menus d\'invitation et d\'exclusion s\'afficheront sous forme de messages privés (embeds) visibles uniquement par vous.*')
-          .setColor('#5865F2');
+          .setTitle('🔑 🛋️ Panneau de Contrôle & Gestion de la Suite')
+          .setDescription('Utilisez les boutons ci-dessous pour accorder ou retirer l\'accès à vos invités privilégiés.\n\n*Les menus d\'invitation et d\'exclusion s\'afficheront sous forme de messages privés (embeds) confidentiels.*')
+          .setColor('#9B59B6');
 
         const panelRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
@@ -235,7 +242,7 @@ module.exports = {
             .setEmoji('➖')
         );
 
-        await textChannel.send({ embeds: [panelEmbed], components: [panelRow] }).catch(console.error);
+        await textChannel.send({ embeds: [welcomeEmbed, panelEmbed], components: [panelRow] }).catch(console.error);
 
         return interaction.editReply({ content: `🎉 Vous avez acheté une **${item.item_name}** pour **${finalPrice}** pièces ! Votre salon privatif <#${textChannel.id}> a été créé.` });
       } catch (err) {

@@ -39,7 +39,7 @@ module.exports = {
       const userRecord = db.prepare('SELECT unlocked_letters FROM user_letters WHERE guild_id = ? AND user_id = ?').get(guildId, userId);
       const unlocked = userRecord ? userRecord.unlocked_letters.split('') : [];
 
-      // Construire la phrase avec les lettres masquées
+      // Construire la phrase avec les lettres masquées (sans astérisques)
       let display = '';
       let totalLettersToFind = [...new Set(phrase.replace(/[^A-Z]/g, ''))].length;
 
@@ -47,9 +47,9 @@ module.exports = {
         const char = phrase[i];
         if (/[A-Z]/.test(char)) {
           if (unlocked.includes(char)) {
-            display += `**${char}** `;
+            display += `${char} `;
           } else {
-            display += '\\_ ';
+            display += '_ ';
           }
         } else {
           // Afficher directement les symboles (?, !, ;, etc.) et espaces
@@ -59,12 +59,12 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setTitle('😈 Votre progression - Jeu du Mot Caché')
-        .setDescription(`Voici votre grille personnalisée en fonction des lettres que vous avez trouvées :\n\n\`${display.trim()}\``)
+        .setDescription(`Voici votre grille personnalisée en fonction des lettres que vous avez trouvées :\n\n\`\`\`\n${display.trim()}\n\`\`\``)
         .setColor('#E74C3C')
         .addFields(
           {
             name: '🍒 Statistiques',
-            value: `Lettres débloquées : **${unlocked.length} / ${totalLettersToFind}** uniques.\nLettres trouvées : ${unlocked.map(l => `\`${l}\``).join(', ') || 'Aucune pour le moment'}`
+            value: `Lettres débloquées : **${unlocked.length} / ${totalLettersToFind}** uniques.\nLettres trouvées : ${unlocked.join(', ') || 'Aucune pour le moment'}`
           }
         )
         .setFooter({ text: 'Parlez dans les salons pour trouver d\'autres lettres !' })
@@ -116,7 +116,7 @@ module.exports = {
         }
 
         const { generateSensualText } = require('../../utils/aiActionHelper');
-        const aiWinDesc = await generateSensualText(`Annonce la grande victoire torride de l'utilisateur <@${userId}> qui a résolu le jeu du Mot Caché en découvrant la phrase secrète entière : "${game.secret_phrase}". Rends ce message extrêmement brûlant, triomphant et charnel.`);
+        const aiWinDesc = await generateSensualText(`Annonce la grande victoire torride de l'utilisateur <@${userId}> qui a résolu le jeu du Mot Caché en découvrant la phrase secrète entière : "${game.secret_phrase}". Rends ce message extrêmement brûlant, triomphant et charnel.`, 350, guildId, member);
 
         const winEmbed = new EmbedBuilder()
           .setTitle('💋 JEU DEVINÉ ! Victoire Torride !')
