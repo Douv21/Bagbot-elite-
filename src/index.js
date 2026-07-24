@@ -194,6 +194,29 @@ client.on('interactionCreate', async interaction => {
         console.error('Erreur showModal confession:', err);
       }
       return;
+    } else if (customId.startsWith('suite_revoke_access_')) {
+      const targetId = customId.replace('suite_revoke_access_', '');
+      try {
+        await interaction.deferUpdate().catch(() => null);
+        await interaction.channel.permissionOverwrites.delete(targetId).catch(async () => {
+          await interaction.channel.permissionOverwrites.create(targetId, { ViewChannel: false }).catch(() => null);
+        });
+
+        const targetRole = interaction.guild.roles.cache.get(targetId);
+        const targetMember = interaction.guild.members.cache.get(targetId);
+        const targetName = targetRole ? `<@&${targetRole.id}>` : (targetMember ? `<@${targetMember.id}>` : 'la cible');
+
+        const successEmbed = new EmbedBuilder()
+          .setTitle('🔒 Accès Retiré — Confidentialité Restaurée')
+          .setDescription(`✅ L'accès de ${targetName} à ce salon a été retiré avec succès par <@${interaction.user.id}>. Le problème est classé comme résolu !`)
+          .setColor('#2ECC71')
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [successEmbed], components: [] }).catch(console.error);
+      } catch (err) {
+        console.error('Erreur lors du retrait d\'accès:', err);
+      }
+      return;
     } else if (customId === 'suite_invite_btn' || customId === 'suite_exclude_btn') {
       const { getPrivateSuiteByChannel } = require('./database/db');
       const suite = getPrivateSuiteByChannel(interaction.channelId);

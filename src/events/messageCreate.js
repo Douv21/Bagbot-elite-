@@ -58,6 +58,53 @@ module.exports = {
     const guildId = message.guild.id;
     const userId = message.author.id;
 
+    // --- ACCÈS DYNAMIQUE AUX SUITES PRIVÉES / TICKETS SUR MENTION (PING) ---
+    try {
+      const chanName = message.channel.name ? message.channel.name.toLowerCase() : '';
+      const parentName = message.channel.parent ? message.channel.parent.name.toLowerCase() : '';
+      const isSuiteOrTicket = chanName.includes('suite') || chanName.includes('ticket') || chanName.startsWith('👑') || chanName.startsWith('🛋️') || chanName.startsWith('🎫') || parentName.includes('suite') || parentName.includes('ticket');
+
+      if (isSuiteOrTicket && (message.mentions.roles.size > 0 || message.mentions.members.size > 0)) {
+        const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+        const rolesToGrant = Array.from(message.mentions.roles.values()).filter(r => !r.managed);
+        const membersToGrant = Array.from(message.mentions.members.values()).filter(m => !m.user.bot && m.id !== userId);
+        const targets = [...rolesToGrant, ...membersToGrant];
+
+        for (const target of targets) {
+          await message.channel.permissionOverwrites.create(target.id, {
+            ViewChannel: true,
+            SendMessages: true,
+            ReadMessageHistory: true,
+            EmbedLinks: true,
+            AttachFiles: true
+          }).catch(() => null);
+
+          const targetMention = target.name ? `<@&${target.id}>` : `<@${target.id}>`;
+          const targetName = target.name || target.displayName;
+
+          const accessEmbed = new EmbedBuilder()
+            .setTitle(`🔔 Accès Temporaire Accordé — ${targetName}`)
+            .setDescription(
+              `✨ ${targetMention} a reçu l'accès à ce salon suite à une mention par <@${userId}>.\n\n` +
+              `*Une fois l'intervention ou le problème réglé, cliquez sur le bouton ci-dessous pour lui **retirer l'accès** et restaurer la confidentialité du salon.*`
+            )
+            .setColor('#3498DB')
+            .setTimestamp();
+
+          const revokeBtn = new ButtonBuilder()
+            .setCustomId(`suite_revoke_access_${target.id}`)
+            .setLabel(`🔒 Retirer l'accès à ${targetName.substring(0, 20)} (Problème Réglé)`)
+            .setStyle(ButtonStyle.Danger);
+
+          const row = new ActionRowBuilder().addComponents(revokeBtn);
+
+          await message.channel.send({ embeds: [accessEmbed], components: [row] }).catch(console.error);
+        }
+      }
+    } catch (err) {
+      console.error('Erreur ping access suite/ticket:', err);
+    }
+
     // --- SUIVI DES CONVERSATIONS (LOVE-CALC ÉVOLUTIF) ---
     try {
       const messages = await message.channel.messages.fetch({ limit: 2 }).catch(() => null);
