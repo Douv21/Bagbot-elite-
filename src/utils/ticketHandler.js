@@ -442,7 +442,7 @@ async function handleTicketInteraction(interaction, client) {
     await interaction.reply({ content: `👤 Le ticket a été assigné à <@${targetUserId}>.` });
   }
 
-  else if (customId === 'ticket_manage_member') {
+  else if (customId === 'ticket_manage_member' || customId === 'ticket_member') {
     const isStaff = await checkIsTicketStaff(interaction);
     if (!isStaff) {
       return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
@@ -460,6 +460,31 @@ async function handleTicketInteraction(interaction, client) {
     );
 
     await interaction.reply({ content: '👥 **Que souhaitez-vous faire ?**', components: [manageRow], ephemeral: true });
+  }
+
+  else if (customId === 'ticket_certify') {
+    const isStaff = await checkIsTicketStaff(interaction);
+    if (!isStaff) {
+      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+    }
+
+    const messages = await interaction.channel.messages.fetch({ limit: 25 }).catch(() => null);
+    const welcomeMsg = messages ? messages.find(m => m.embeds.length > 0 && m.embeds[0].title && m.embeds[0].title.includes("TICKET D'ASSISTANCE")) : null;
+
+    if (welcomeMsg) {
+      const embed = EmbedBuilder.from(welcomeMsg.embeds[0]);
+      const currentFields = embed.data.fields || [];
+      const hasCertify = currentFields.some(f => f.name === '✅ Certification');
+
+      if (hasCertify) {
+        return interaction.reply({ content: '❌ Ce ticket a déjà été certifié.', ephemeral: true });
+      }
+
+      embed.addFields({ name: '✅ Certification', value: `Certifié par <@${interaction.user.id}>`, inline: true });
+      await welcomeMsg.edit({ embeds: [embed] }).catch(console.error);
+    }
+
+    await interaction.reply({ content: `✅ **Ce ticket a été certifié avec succès par <@${interaction.user.id}> !**` });
   }
 
   else if (customId === 'ticket_add_member_btn') {
