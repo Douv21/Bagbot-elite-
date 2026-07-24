@@ -169,13 +169,13 @@ async function callGeminiApi(apiKey, model, systemPrompt, userPrompt, temperatur
 }
 
 /**
- * Appelle une instance locale ou distante Ollama (avec fallback IP publique / localhost)
+ * Appelle une instance locale ou distante Ollama (avec timeout rapide de 3s et fallback LAN/Public)
  */
 async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperature = 0.7, maxTokens = 1000, messagesHistory = null) {
   const hostsToTry = [
-    hostUrl,
-    'http://82.65.75.176:11434',
     'http://192.168.1.145:11434',
+    'http://82.65.75.176:11434',
+    hostUrl,
     process.env.OLLAMA_HOST,
     process.env.PUBLIC_IP ? `http://${process.env.PUBLIC_IP}:11434` : null,
     'http://127.0.0.1:11434',
@@ -186,7 +186,6 @@ async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperatu
     model,
     'qwen2.5:1.5b',
     'qwen2.5:0.5b',
-    'qwen2.5:7b',
     'qwen2.5'
   ].filter(Boolean);
 
@@ -223,7 +222,7 @@ async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperatu
               num_predict: maxTokens
             }
           }),
-          signal: AbortSignal.timeout(20000)
+          signal: AbortSignal.timeout(3000) // Timeout strict de 3 secondes pour ne jamais bloquer l'application
         });
 
         if (response.ok) {
@@ -241,7 +240,7 @@ async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperatu
     }
   }
 
-  throw lastError || new Error('Ollama inaccessible sur toutes les adresses IP testées.');
+  throw lastError || new Error('Ollama inaccessible sur toutes les adresses testées.');
 }
 
 /**
@@ -326,15 +325,15 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
   const geminiModel = config.gemini_model || 'gemini-2.0-flash';
 
   const tryOllamaPool = async () => {
-    // Tenter en priorité l'instance Ollama via IP Publique (82.65.75.176:11434) ou IP Locale (192.168.1.145:11434)
-    try {
-      const resPublic = await callOllamaApi('http://82.65.75.176:11434', 'qwen2.5:1.5b', systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
-      if (resPublic) return resPublic;
-    } catch (e) {}
-
+    // Tenter en priorité le serveur local 192.168.1.145 (20ms) puis l'IP publique 82.65.75.176
     try {
       const resLocal = await callOllamaApi('http://192.168.1.145:11434', 'qwen2.5:1.5b', systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
       if (resLocal) return resLocal;
+    } catch (e) {}
+
+    try {
+      const resPublic = await callOllamaApi('http://82.65.75.176:11434', 'qwen2.5:1.5b', systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
+      if (resPublic) return resPublic;
     } catch (e) {}
 
     if (ollamaKeys.length === 0) return null;
