@@ -226,14 +226,7 @@ async function getOrCreateTribunalCategory(guild, storage) {
 }
 
 function canActAsJudge(member) {
-  try {
-    if (!member) return false;
-    return member.permissions?.has(PermissionFlagsBits.Administrator)
-      || member.permissions?.has(PermissionFlagsBits.ModerateMembers)
-      || member.permissions?.has(PermissionFlagsBits.ManageGuild);
-  } catch (_) {
-    return false;
-  }
+  return Boolean(member); // Accessible à tous les membres du serveur
 }
 
 function isAdmin(member) {
@@ -492,6 +485,16 @@ module.exports = {
           const chanName = `${prefix}${slugifyChannelName(accusedName)}`.slice(0, 90);
 
           const overwrites = [
+            {
+              id: guild.roles.everyone.id,
+              allow: [
+                PermissionFlagsBits.ViewChannel,
+                PermissionFlagsBits.SendMessages,
+                PermissionFlagsBits.ReadMessageHistory,
+                PermissionFlagsBits.EmbedLinks,
+                PermissionFlagsBits.AttachFiles,
+              ],
+            },
             {
               id: guild.members.me.id,
               allow: [
