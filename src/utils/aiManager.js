@@ -184,9 +184,12 @@ async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperatu
 
   const modelsToTry = [
     model,
+    'smollm2:1.7b',
+    'smollm:1.7b',
     'qwen2.5:0.5b',
-    'tinyllama',
+    'smollm:360m',
     'llama3.2:1b',
+    'tinyllama',
     'qwen2.5:1.5b'
   ].filter(Boolean);
 
