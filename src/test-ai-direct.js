@@ -1,23 +1,14 @@
-const { generateAiCompletion } = require('./utils/aiManager');
-const { getAiKeys } = require('./database/db');
+const { callOllamaApi } = require('./utils/aiManager');
 
-async function test() {
-  console.log("--- TESTING AI SPEED ---");
-  const keys = getAiKeys(null, 'text').filter(k => k.is_active === 1);
-  console.log("Active keys in DB:", keys.map(k => ({ provider: k.provider, label: k.label })));
-
+async function testFastModel() {
+  console.log("--> Testing Ollama llama3.2:1b & qwen2.5:0.5b...");
   const start = Date.now();
   try {
-    const res = await generateAiCompletion({
-      systemPrompt: "Tu es un assistant.",
-      userPrompt: "Bonjour, réponds en 3 mots.",
-      temperature: 0.7,
-      maxTokens: 50
-    });
-    console.log(`✅ Réponse reçue en ${Date.now() - start}ms : "${res}"`);
+    const res = await callOllamaApi('http://192.168.1.145:11434', 'llama3.2:1b', 'Tu es un assistant ultra-rapide.', 'Bonjour, dis-moi bonjour rapidement.', 0.7, 40);
+    console.log(`⚡ Réponse Ollama reçue en ${Date.now() - start}ms : "${res}"`);
   } catch (e) {
-    console.error(`❌ Erreur (${Date.now() - start}ms) :`, e.message);
+    console.error(`❌ Erreur Ollama (${Date.now() - start}ms) :`, e.message);
   }
 }
 
-test();
+testFastModel();
