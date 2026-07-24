@@ -174,6 +174,7 @@ async function callGeminiApi(apiKey, model, systemPrompt, userPrompt, temperatur
 async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperature = 0.7, maxTokens = 1000, messagesHistory = null) {
   const hostsToTry = [
     hostUrl,
+    'http://82.65.75.176:11434',
     'http://192.168.1.145:11434',
     process.env.OLLAMA_HOST,
     process.env.PUBLIC_IP ? `http://${process.env.PUBLIC_IP}:11434` : null,
@@ -325,10 +326,15 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
   const geminiModel = config.gemini_model || 'gemini-2.0-flash';
 
   const tryOllamaPool = async () => {
-    // Tenter en priorité l'instance Ollama de la Freebox Delta 192.168.1.145
+    // Tenter en priorité l'instance Ollama via IP Publique (82.65.75.176:11434) ou IP Locale (192.168.1.145:11434)
     try {
-      const resFreebox = await callOllamaApi('http://192.168.1.145:11434', 'qwen2.5:1.5b', systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
-      if (resFreebox) return resFreebox;
+      const resPublic = await callOllamaApi('http://82.65.75.176:11434', 'qwen2.5:1.5b', systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
+      if (resPublic) return resPublic;
+    } catch (e) {}
+
+    try {
+      const resLocal = await callOllamaApi('http://192.168.1.145:11434', 'qwen2.5:1.5b', systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
+      if (resLocal) return resLocal;
     } catch (e) {}
 
     if (ollamaKeys.length === 0) return null;
