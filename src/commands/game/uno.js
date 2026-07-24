@@ -112,7 +112,7 @@ function createGameMessage(game) {
     new ButtonBuilder()
       .setCustomId(`uno_play_counteruno_${game.channelId}`)
       .setLabel('CONTRER UNO !')
-      .setStyle(ButtonStyle.Warning)
+      .setStyle(ButtonStyle.Primary)
       .setEmoji('📢'),
     new ButtonBuilder()
       .setCustomId(`uno_play_quit_${game.channelId}`)
@@ -461,7 +461,7 @@ module.exports = {
             new ButtonBuilder().setCustomId(`uno_color_red_${cardIndex}`).setLabel('Rouge').setStyle(ButtonStyle.Danger).setEmoji('🔴'),
             new ButtonBuilder().setCustomId(`uno_color_blue_${cardIndex}`).setLabel('Bleu').setStyle(ButtonStyle.Primary).setEmoji('💙'),
             new ButtonBuilder().setCustomId(`uno_color_green_${cardIndex}`).setLabel('Vert').setStyle(ButtonStyle.Success).setEmoji('🟢'),
-            new ButtonBuilder().setCustomId(`uno_color_yellow_${cardIndex}`).setLabel('Jaune').setStyle(ButtonStyle.Warning).setEmoji('🟡')
+            new ButtonBuilder().setCustomId(`uno_color_yellow_${cardIndex}`).setLabel('Jaune').setStyle(ButtonStyle.Secondary).setEmoji('🟡')
           );
 
           return interaction.update({
