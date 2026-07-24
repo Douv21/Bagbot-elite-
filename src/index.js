@@ -928,10 +928,11 @@ async function checkExpiredSuites(client) {
 
 async function syncExistingChannels(client) {
   try {
-    const { getAllPrivateSuites, getShopConfig } = require('./database/db');
+    const { getAllPrivateSuites, getShopConfig, db } = require('./database/db');
     const { getAllTribunalCases, getTribunalConfig } = require('./utils/tribunal_db');
+    const { sendOrUpdateTicketPanel } = require('./utils/tickets');
 
-    // 1. Resynchronisation des Suites Privées existantes depuis la BDD
+    // 1. Resynchronisation des Suites Privées actives en base de données (ex: Jormungand)
     const suites = getAllPrivateSuites();
     const processedChannelIds = new Set();
 
@@ -940,7 +941,7 @@ async function syncExistingChannels(client) {
       if (!guild) continue;
 
       const shopCfg = getShopConfig(suite.guild_id);
-      const prefix = shopCfg.suiteChannelPrefix || '👑┆suite-';
+      const prefix = shopCfg.suiteChannelPrefix || '👑・suite-privée-';
       
       const member = await guild.members.fetch(suite.user_id).catch(() => null);
       const rawName = member ? (member.user.username || member.displayName) : suite.user_id;
@@ -971,57 +972,34 @@ async function syncExistingChannels(client) {
       }
     }
 
-    // Balayage des catégories et salons de Suites Privées sur les serveurs
+    // 2. Restauration des anciens salons normaux (Secret Nest, Maxou, Miss/Mister) s'ils ont été renommés par erreur
     for (const [guildId, guild] of client.guilds.cache) {
-      const shopCfg = getShopConfig(guildId);
-      const prefix = shopCfg.suiteChannelPrefix || '👑┆suite-';
-      const categoryId = shopCfg.privateSuiteCategoryId;
-
       const channels = await guild.channels.fetch().catch(() => null);
       if (!channels) continue;
 
       for (const [chanId, chan] of channels.entries()) {
-        if (!chan || processedChannelIds.has(chanId) || chan.type === 4) continue;
+        if (!chan || !chan.name) continue;
+        const nameLower = chan.name.toLowerCase();
 
-        const parentName = chan.parent ? chan.parent.name.toLowerCase() : '';
-        const isSuiteCategory = (categoryId && chan.parentId === categoryId) ||
-                                parentName.includes('suite') ||
-                                parentName.includes('vip') ||
-                                parentName.includes('prive');
-
-        const chanNameLower = chan.name.toLowerCase();
-        const isSuiteName = chanNameLower.includes('suite') || 
-                            chanNameLower.includes('jormungand') ||
-                            chanNameLower.startsWith('👑') ||
-                            chanNameLower.startsWith('🛋️') ||
-                            chanNameLower.startsWith('🏰') ||
-                            chanNameLower.startsWith('✨');
-
-        if ((isSuiteCategory || isSuiteName) && chan.isTextBased()) {
-          if (!chan.name.startsWith(prefix)) {
-            let baseUser = chan.name
-              .replace(/^[^a-zA-Z0-9]+/, '')
-              .replace(/^suite[-_]?/i, '')
-              .replace(/^prive[-_]?/i, '')
-              .toLowerCase()
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '')
-              .replace(/[^a-z0-9]+/g, '-')
-              .replace(/^-+|-+$/g, '');
-
-            if (!baseUser) baseUser = 'privee';
-
-            const newName = `${prefix}${baseUser}`.slice(0, 90);
-            if (chan.name !== newName) {
-              console.log(`[Sync] Renommage du salon suite ${chan.name} (ID: ${chanId}) -> ${newName}`);
-              await chan.setName(newName).catch(err => console.error(`Erreur rename suite category chan ${chanId}:`, err.message));
-            }
-          }
+        if (nameLower.includes('secret-nest') && (chan.name.startsWith('👑') || chan.name.startsWith('🛋️'))) {
+          await chan.setName('suite-the-secret-nest').catch(() => {});
+        } else if (nameLower.includes('maxou') && (chan.name.startsWith('👑') || chan.name.startsWith('🛋️'))) {
+          await chan.setName('suite-de-maxou').catch(() => {});
+        } else if ((nameLower.includes('miss') || nameLower.includes('mister')) && (chan.name.startsWith('👑') || chan.name.startsWith('🛋️'))) {
+          await chan.setName('suite-miss-et-mister').catch(() => {});
         }
       }
     }
 
-    // 2. Resynchronisation des Procès du Tribunal existants
+    // 3. Mettre à jour et renvoyer/rafraîchir les panels d'embeds principaux (Tickets / Support)
+    try {
+      const panels = db.prepare('SELECT id FROM ticket_panels').all();
+      for (const p of panels) {
+        await sendOrUpdateTicketPanel(p.id, client).catch(() => {});
+      }
+    } catch (e) {}
+
+    // 4. Resynchronisation des Procès du Tribunal existants
     const cases = getAllTribunalCases();
     for (const c of cases) {
       if (c.status === 'closed' || !c.channelId) continue;
@@ -1030,7 +1008,7 @@ async function syncExistingChannels(client) {
       if (!guild) continue;
 
       const tribCfg = getTribunalConfig(c.guildId);
-      const prefix = tribCfg.channelPrefix || '⚖️┆procès-';
+      const prefix = (tribCfg && tribCfg.channelPrefix) ? tribCfg.channelPrefix : '⚖️・procès-';
 
       const ch = guild.channels.cache.get(c.channelId) || await guild.channels.fetch(c.channelId).catch(() => null);
       if (ch) {
