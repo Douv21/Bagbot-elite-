@@ -23,10 +23,9 @@ async function callGroqApi(apiKey, model, systemPrompt, userPrompt, temperature 
   }
 
   const modelsToTry = [
-    model || 'llama-3.1-8b-instant',
-    'llama-3.1-8b-instant',
-    'llama3-8b-8192',
-    'llama-3.3-70b-versatile'
+    model || 'llama-3.3-70b-versatile',
+    'llama-3.3-70b-versatile',
+    'llama-3.1-8b-instant'
   ];
 
   const uniqueModels = [...new Set(modelsToTry)];
