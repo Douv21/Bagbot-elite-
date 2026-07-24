@@ -1944,11 +1944,13 @@ app.post('/api/config/tickets/options/add', async (req, res) => {
       addTicketOption(guildId, optionData);
     }
 
-    // Mettre à jour le panel existant s'il est déjà envoyé
-    const panelConfig = getTicketPanel(guildId);
-    if (panelConfig.channel_id && panelConfig.message_id) {
-      const { sendOrUpdateTicketPanel } = require('./utils/tickets');
-      await sendOrUpdateTicketPanel(guildId, client).catch(console.error);
+    // Mettre à jour les panels existants s'ils sont déjà envoyés
+    const panels = getTicketPanels(guildId);
+    for (const p of panels) {
+      if (p.channel_id) {
+        const { sendOrUpdateTicketPanel } = require('./utils/tickets');
+        await sendOrUpdateTicketPanel(p.id, client, true).catch(console.error);
+      }
     }
 
     res.json({ success: true });
@@ -1968,11 +1970,13 @@ app.post('/api/config/tickets/options/delete', async (req, res) => {
 
     deleteTicketOption(guildId, id);
 
-    // Mettre à jour le panel existant
-    const panelConfig = getTicketPanel(guildId);
-    if (panelConfig.channel_id && panelConfig.message_id) {
-      const { sendOrUpdateTicketPanel } = require('./utils/tickets');
-      await sendOrUpdateTicketPanel(guildId, client).catch(console.error);
+    // Mettre à jour les panels existants
+    const panels = getTicketPanels(guildId);
+    for (const p of panels) {
+      if (p.channel_id) {
+        const { sendOrUpdateTicketPanel } = require('./utils/tickets');
+        await sendOrUpdateTicketPanel(p.id, client, true).catch(console.error);
+      }
     }
 
     res.json({ success: true });
