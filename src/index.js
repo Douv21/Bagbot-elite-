@@ -146,6 +146,19 @@ client.on('interactionCreate', async interaction => {
     }
   }
 
+  // Prise en charge directe des boutons, sélecteurs et modaux du Jeu UNO
+  if (interaction.customId && (interaction.customId.startsWith('uno:') || interaction.customId.startsWith('uno_'))) {
+    const unoCmd = client.commands.get('uno');
+    if (unoCmd && typeof unoCmd.handleInteraction === 'function') {
+      try {
+        const handled = await unoCmd.handleInteraction(interaction);
+        if (handled) return;
+      } catch (err) {
+        console.error('Erreur interaction UNO:', err);
+      }
+    }
+  }
+
   if (interaction.isButton()) {
     const customId = interaction.customId;
     if (customId.startsWith('autorole_')) {
@@ -464,7 +477,7 @@ client.on('interactionCreate', async interaction => {
 
     const isAllowedForEveryone = 
       command.category === 'actions' ||
-      ['action-verite', 'niveau', 'solde', 'karma', 'mapville', 'proche', 'boutique', 'leaderboard', 'confess', 'confesser', 'deposit', 'withdraw', 'lovecalc', 'mot-cache', 'tribunal'].includes(interaction.commandName);
+      ['action-verite', 'niveau', 'solde', 'karma', 'mapville', 'proche', 'boutique', 'leaderboard', 'confess', 'confesser', 'deposit', 'withdraw', 'lovecalc', 'mot-cache', 'tribunal', 'uno'].includes(interaction.commandName);
       
     if (!isAllowedForEveryone) {
       const { PermissionsBitField } = require('discord.js');
