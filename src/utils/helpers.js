@@ -149,15 +149,25 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
 
       if (targetChannel) {
         const { generateSensualText } = require('./aiActionHelper');
+        const { getMemberGender, formatGenderMessage } = require('./genderHelper');
+        
+        // Récupérer les rôles les plus récents du membre
+        const updatedMember = await guild.members.fetch(userId).catch(() => member);
+        const genderInfo = getMemberGender(updatedMember);
         
         let desc = '';
         try {
-          const defaultPrompt = `Félicite l'utilisateur <@${userId}> pour son passage au niveau ${newLevel}. Le message doit être très coquin, torride, sensuel et flatteur.`;
+          const genderDesc = genderInfo.gender === 'femme'
+            ? `C'est une FEMME (pronom elle, félicite-la en tant que reine/déesse sensuelle). Fais TOUS les accords de adjectifs/participes au FÉMININ.`
+            : `C'est un HOMME (pronom il, félicite-le en tant que roi/prince séducteur). Fais TOUS les accords au MASCULIN.`;
+
+          const defaultPrompt = `Félicite chaleureusement le membre <@${userId}> (${updatedMember.displayName}) pour son passage au niveau ${newLevel}. ${genderDesc} Le message doit être très coquin, torride, sensuel, élégant et flatteur.`;
+          
           const customPrompt = rewardThisLevel
-            ? `${defaultPrompt} Mentionne également avec enthousiasme qu'il/elle a débloqué le rôle <@&${rewardThisLevel.role_id}> en récompense de ses désirs.`
+            ? `${defaultPrompt} Mentionne également avec enthousiasme qu'${genderInfo.pronoun} a débloqué le rôle <@&${rewardThisLevel.role_id}> en récompense de ses désirs.`
             : defaultPrompt;
 
-          desc = await generateSensualText(customPrompt);
+          desc = await generateSensualText(customPrompt, 350, guildId, updatedMember);
         } catch (e) {
           console.error("Erreur appel IA annonce level up:", e.message);
         }
@@ -167,6 +177,8 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
           desc = msgTemplate
             .replace(/{user}/g, `<@${userId}>`)
             .replace(/{level}/g, newLevel);
+
+          desc = formatGenderMessage(desc, updatedMember);
 
           if (rewardThisLevel) {
             desc += `\n\n🏆 **Récompense débloquée :** Tu as obtenu le rôle <@&${rewardThisLevel.role_id}> !`;

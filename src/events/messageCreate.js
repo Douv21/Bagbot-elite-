@@ -527,7 +527,7 @@ module.exports = {
               }
               
               const { generateSensualText } = require('../utils/aiActionHelper');
-              const aiDescription = await generateSensualText(`Félicite chaleureusement l'utilisateur <@${userId}> d'avoir découvert la lettre "${newLetter}" dans le jeu du Mot Caché. Fais une phrase très sensuelle, complice et torride, adaptée à un serveur adulte.`);
+              const aiDescription = await generateSensualText(`Félicite chaleureusement le membre <@${userId}> d'avoir découvert la lettre "${newLetter}" dans le jeu du Mot Caché. Fais une phrase très sensuelle, complice et torride, adaptée à un serveur adulte.`, 300, guildId, message.member);
 
               const gameEmbed = new EmbedBuilder()
                 .setTitle('🍑 Lettre Trouvée !')
