@@ -15,15 +15,71 @@ const { UnoGame } = require('../../utils/unoGame');
 const activeGames = new Map();
 
 /**
+ * Crée l'embed sensuel et sexy de victoire
+ */
+function createSensualVictoryEmbed(game, guildId = null) {
+  const winner = game.winner;
+  if (!winner) return null;
+
+  let rewardText = '';
+  if (guildId && !winner.isBot) {
+    try {
+      const { getEconomy, updateEconomy } = require('../../database/db');
+      const eco = getEconomy(guildId, winner.id);
+      updateEconomy(guildId, winner.id, { wallet: eco.wallet + 150, karma: eco.karma + 10 });
+      rewardText = `\n\n🎁 **Récompense de Victoire :** +150 💸 Pièces & +10 ⭐ Karma versés dans votre portefeuille !`;
+    } catch (_) {}
+  }
+
+  const losers = game.players.filter(p => p.id !== winner.id);
+
+  const embed = new EmbedBuilder()
+    .setTitle('👑 💋 VICTOIRE IRRÉSISTIBLE ET SULFUREUSE AU UNO ! 💋 👑')
+    .setDescription(
+      `🔥 **<@${winner.id}> a fait plier tous ses adversaires !** 🔥\n\n` +
+      `*Avec une grâce envoûtante et une stratégie démoniaque, <@${winner.id}> s'empare de la victoire ultime et laisse ses rivaux sous le charme...* 💋✨\n\n` +
+      `>>> **"Certaines tentations ne se refusent pas... surtout quand la dernière carte est posée !"** 😈${rewardText}`
+    )
+    .addFields(
+      {
+        name: '👑 Champion Impérial',
+        value: `🏆 **<@${winner.id}>** — **0 carte restante** (Victoire Éclatante !)`,
+        inline: false
+      },
+      {
+        name: '💋 Tableau d\'Honneur des Vaincus & Soumis',
+        value: losers.map((p, i) => {
+          const medal = i === 0 ? '🥈' : i === 1 ? '🥉' : '🥀';
+          return `${medal} **${p.username}** — ${p.hand.length} carte${p.hand.length > 1 ? 's' : ''} restée${p.hand.length > 1 ? 's' : ''} en main`;
+        }).join('\n') || 'Aucun autre participant',
+        inline: false
+      }
+    )
+    .setColor('#E91E63')
+    .setFooter({ text: 'B&G Elite • UNO Sensuel & Passionné' })
+    .setTimestamp();
+
+  return embed;
+}
+
+/**
  * Crée l'embed et les boutons de la salle d'attente (Lobby)
  */
 function createLobbyMessage(game) {
+  const variantNames = {
+    stack: '⚡ Cumulatif (+2 / +4)',
+    classic: '🎲 Classique (Standard)',
+    reverse: '🔄 Reverse Extreme (Inversion avec pénalité)',
+    '7-0': '🌀 Mode 7-0 (Échange & Rotation)',
+    spicy: '🔥 Nuit Sulfureuse (Spicy & Pioches Doublées)'
+  };
+
   const embed = new EmbedBuilder()
     .setTitle('🎮 UNO — Salle d\'attente')
     .setDescription(
       `Bienvenue dans la salle d'attente du UNO !\n\n` +
       `**Mode :** ${game.mode === 'solo' ? '🤖 Mode Solo (VS Bot)' : '👥 Multi-Joueurs'}\n` +
-      `**Variante :** ${game.variant === 'stack' ? '⚡ Cumulatif (+2 / +4)' : game.variant === '7-0' ? '🔄 Mode 7-0' : '🎲 Classique'}\n\n` +
+      `**Variante :** ${variantNames[game.variant] || game.variant}\n\n` +
       `**Joueurs prêts (${game.players.length}/10) :**\n` +
       game.players.map((p, i) => `${i + 1}. <@${p.id}> ${p.isBot ? '🤖 (Bot)' : ''}`).join('\n')
     )
@@ -65,7 +121,7 @@ function createLobbyMessage(game) {
 /**
  * Génère le message public principal de la partie en cours
  */
-function createGameMessage(game) {
+function createGameMessage(game, guildId = null) {
   const buffer = renderGameBoardCanvas(game);
   const attachment = new AttachmentBuilder(buffer, { name: 'uno-board.png' });
 
@@ -90,7 +146,8 @@ function createGameMessage(game) {
     .setTimestamp();
 
   if (game.status === 'finished') {
-    return { embeds: [embed], files: [attachment], components: [] };
+    const victoryEmbed = createSensualVictoryEmbed(game, guildId);
+    return { embeds: victoryEmbed ? [embed, victoryEmbed] : [embed], files: [attachment], components: [] };
   }
 
   const buttons = new ActionRowBuilder().addComponents(
@@ -241,12 +298,14 @@ module.exports = {
     )
     .addStringOption(option =>
       option.setName('variante')
-        .setDescription('Variante de jeu (Cumulatif +2/+4, Classique)')
+        .setDescription('Variante et règles de jeu UNO')
         .setRequired(false)
         .addChoices(
-          { name: '⚡ Cumulatif (+2 / +4)', value: 'stack' },
-          { name: '🎲 Classique (Standard)', value: 'classic' },
-          { name: '🔄 Mode 7-0 (Échange de main sur 7 / 0)', value: '7-0' }
+          { name: '⚡ Cumulatif (+2 / +4 Stack)', value: 'stack' },
+          { name: '🎲 Classique (Règles Standard)', value: 'classic' },
+          { name: '🔄 Reverse Extreme (Inversion avec pénalité)', value: 'reverse' },
+          { name: '🌀 Mode 7-0 (Échange sur 7 & Rotation sur 0)', value: '7-0' },
+          { name: '🔥 Nuit Sulfureuse (Spicy & Pioches Doublées)', value: 'spicy' }
         )
     ),
 
@@ -285,7 +344,7 @@ module.exports = {
     // Si mode Solo, lancer directement la partie !
     if (mode === 'solo') {
       game.start();
-      const payload = createGameMessage(game);
+      const payload = createGameMessage(game, interaction.guildId);
       await interaction.reply(payload);
       triggerBotTurnIfNeeded(game, interaction.channel);
       return;
@@ -484,7 +543,7 @@ module.exports = {
           activeGames.delete(channelId);
         }
 
-        const publicPayload = createGameMessage(game);
+        const publicPayload = createGameMessage(game, interaction.guildId);
         await interaction.channel.send(publicPayload).catch(() => {});
         triggerBotTurnIfNeeded(game, interaction.channel);
         return true;
@@ -508,7 +567,7 @@ module.exports = {
         activeGames.delete(channelId);
       }
 
-      const publicPayload = createGameMessage(game);
+      const publicPayload = createGameMessage(game, interaction.guildId);
       await interaction.channel.send(publicPayload).catch(() => {});
       triggerBotTurnIfNeeded(game, interaction.channel);
       return true;

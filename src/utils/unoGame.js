@@ -253,16 +253,25 @@ class UnoGame {
       this.nextTurn(); // Saute le prochain joueur
       actionNotice += ` 🚫 Tour passé !`;
     } else if (card.type === 'reverse') {
-      if (this.players.length === 2) {
+      if (this.variant === 'reverse') {
+        this.direction *= -1;
+        this.nextTurn();
+        const victim = this.getCurrentPlayer();
+        const c = this.popCard();
+        if (c) victim.hand.push(c);
+        actionNotice += ` 🔄 **Reverse Extreme !** Sens inversé et <@${victim.id}> pioche 1 carte !`;
+      } else if (this.players.length === 2) {
         this.nextTurn(); // À 2 joueurs, Inversion agit comme un Passe
+        actionNotice += ` ⇄ Sens du jeu inversé !`;
       } else {
         this.direction *= -1;
+        actionNotice += ` ⇄ Sens du jeu inversé !`;
       }
-      actionNotice += ` ⇄ Sens du jeu inversé !`;
     } else if (card.type === 'draw2') {
-      if (this.variant === 'stack') {
-        this.penaltyStack += 2;
-        actionNotice += ` ⚡ Cumul de +2 (Total : +${this.penaltyStack}) !`;
+      if (this.variant === 'stack' || this.variant === 'spicy') {
+        const drawAdd = this.variant === 'spicy' ? 3 : 2;
+        this.penaltyStack += drawAdd;
+        actionNotice += ` ⚡ Cumul de +${drawAdd} (Total : +${this.penaltyStack}) !`;
       } else {
         this.nextTurn();
         const victim = this.getCurrentPlayer();
@@ -273,9 +282,10 @@ class UnoGame {
         actionNotice += ` ⚡ <@${victim.id}> pioche 2 cartes et passe son tour !`;
       }
     } else if (card.type === 'wild_draw4') {
-      if (this.variant === 'stack') {
-        this.penaltyStack += 4;
-        actionNotice += ` 💣 Cumul de +4 (Total : +${this.penaltyStack}) ! Couleur : **${COLOR_NAMES[chosenColor]}**`;
+      if (this.variant === 'stack' || this.variant === 'spicy') {
+        const drawAdd = this.variant === 'spicy' ? 6 : 4;
+        this.penaltyStack += drawAdd;
+        actionNotice += ` 💣 Cumul de +${drawAdd} (Total : +${this.penaltyStack}) ! Couleur : **${COLOR_NAMES[chosenColor]}**`;
       } else {
         this.nextTurn();
         const victim = this.getCurrentPlayer();
@@ -346,14 +356,19 @@ class UnoGame {
       return { success: true, passed: true };
     }
 
-    const c = this.popCard();
-    if (c) {
-      player.hand.push(c);
-      this.drawnThisTurn = true;
-      this.lastActionMessage = `📥 **${player.username}** a pioché une carte.`;
+    const drawCount = this.variant === 'spicy' ? 2 : 1;
+    const drawnCards = [];
+    for (let i = 0; i < drawCount; i++) {
+      const c = this.popCard();
+      if (c) {
+        player.hand.push(c);
+        drawnCards.push(c);
+      }
     }
+    this.drawnThisTurn = true;
+    this.lastActionMessage = `📥 **${player.username}** a pioché ${drawCount > 1 ? `**${drawCount} cartes** (Nuit Sulfureuse)` : 'une carte'}.`;
 
-    return { success: true, card: c };
+    return { success: true, card: drawnCards[0] };
   }
 
   /**
