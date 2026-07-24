@@ -184,9 +184,10 @@ async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperatu
 
   const modelsToTry = [
     model,
-    'qwen2.5:1.5b',
     'qwen2.5:0.5b',
-    'qwen2.5'
+    'tinyllama',
+    'llama3.2:1b',
+    'qwen2.5:1.5b'
   ].filter(Boolean);
 
   const uniqueHosts = [...new Set(hostsToTry)];
