@@ -204,14 +204,20 @@ async function handleTicketInteraction(interaction, client) {
       }
     }
 
+    // Déterminer s'il s'agit d'une Suite Privée / VIP
+    const isSuite = /suite|privat|prive|vip/i.test(option.value) || /suite|privat|prive|vip/i.test(option.label);
+    const prefix = isSuite ? '👑┆suite-' : '🎫┆ticket-';
+
     // Créer le salon
-    const channelName = `ticket-${option.value}-${interaction.user.username}`.substring(0, 100);
+    const channelName = `${prefix}${option.value}-${interaction.user.username}`.toLowerCase().replace(/[^a-z0-9\-_]/g, '-').substring(0, 100);
     const ticketChannel = await interaction.guild.channels.create({
       name: channelName,
       type: ChannelType.GuildText,
       parent: parentId,
       permissionOverwrites: permissionOverwrites,
-      topic: `Ticket ouvert par ${interaction.user.tag} dans la catégorie ${option.label}.`
+      topic: isSuite 
+        ? `👑 Suite Privée VIP appartenant à ${interaction.user.tag}. Espace sécurisé et confidentiel.`
+        : `🎫 Ticket ouvert par ${interaction.user.tag} dans la catégorie ${option.label}.`
     }).catch(async (err) => {
       console.error(err);
       await interaction.followUp({ content: '❌ Impossible de créer le salon du ticket. Vérifiez mes permissions.', ephemeral: true });
@@ -223,11 +229,17 @@ async function handleTicketInteraction(interaction, client) {
     // Enregistrer le ticket en base de données
     addActiveTicket(ticketChannel.id, guildId, member.id, option.id);
 
-    // Embed de bienvenue dans le ticket
+    // Embed de bienvenue dans le ticket / Suite Privée
     const welcomeEmbed = new EmbedBuilder()
-      .setTitle(`🎫 Ticket d'Assistance — ${option.label}`)
-      .setDescription(option.description ? option.description.replace(/{user}/g, `<@${interaction.user.id}>`) : `Bonjour <@${interaction.user.id}> !\nLe personnel a été notifié et prendra en charge votre demande rapidement. N'hésitez pas à décrire votre problème en détail.\n\nPour fermer ce ticket, cliquez sur le bouton 🔒 ci-dessous.`)
-      .setColor('#5865F2')
+      .setTitle(isSuite ? `👑 🛋️ ✨ SUITE PRIVÉE VIP & PRIVATIVE ✨ 🛋️ 👑` : `🎫 ✨ TICKET D'ASSISTANCE — ${option.label}`)
+      .setDescription(
+        option.description 
+          ? option.description.replace(/{user}/g, `<@${interaction.user.id}>`) 
+          : isSuite
+            ? `Bonjour <@${interaction.user.id}> et bienvenue dans votre **Suite Privée VIP** !\n\n*Cet espace haut de gamme et entièrement sécurisé est votre havre d'intimité d'exception. Vous et vos invités triés sur le volet pouvez échanger en toute discrétion et confidentialité.*\n\n>>> **"Un havre d'intimité, de luxe et de volupté réservé à l'élite..."** 🥂💋\n\nPour gérer ou clôturer cette suite, utilisez les boutons ci-dessous.`
+            : `Bonjour <@${interaction.user.id}> !\nLe personnel a été notifié et prendra en charge votre demande rapidement. N'hésitez pas à décrire votre problème en détail.\n\nPour fermer ce ticket, cliquez sur le bouton 🔒 ci-dessous.`
+      )
+      .setColor(isSuite ? '#F1C40F' : '#5865F2')
       .setTimestamp();
 
     if (option.image_url) {
