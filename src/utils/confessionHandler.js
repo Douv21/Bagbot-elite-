@@ -68,12 +68,17 @@ async function handleConfessionSubmission({ guild, channel, user, text, confessi
       updatePendingConfessionMessageId(pendingId, valMsg.id);
     }
 
-    const replyText = '⏳ **Votre confession a été transmise aux modérateurs.** Elle sera publiée de manière totalement anonyme dès sa validation par le staff.';
+    const replyText = `🤫 *Chuuut... Votre aveu le plus sulfureux a bien été murmuré dans l'ombre...* 💋\n\n**Rassurez-vous, votre identité reste 100% anonyme et secrète.** 🔒\nVotre confession sera révélée dès que l'équipe l'aura savourée et validée ! ✨`;
     if (interaction) {
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp({ content: replyText, ephemeral: true });
       } else {
         await interaction.reply({ content: replyText, ephemeral: true });
+      }
+    } else if (targetChan) {
+      const notify = await targetChan.send(`<@${user.id}> ${replyText}`).catch(() => null);
+      if (notify) {
+        setTimeout(() => notify.delete().catch(() => {}), 6000);
       }
     }
     return;
@@ -122,12 +127,17 @@ async function handleConfessionSubmission({ guild, channel, user, text, confessi
   
   sendLog(guild, 'confession', logEmbed);
 
-  const replyText = '🤫 Votre confession a été envoyée avec succès et de manière anonyme !';
+  const replyText = `💋 *Votre doux secret a été dévoilé dans la nuit...* 🤫\n\n**Votre confession est désormais publiée en restant 100% anonyme et intouchable !** ✨`;
   if (interaction) {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp({ content: replyText, ephemeral: true });
     } else {
       await interaction.reply({ content: replyText, ephemeral: true });
+    }
+  } else if (targetChan) {
+    const notify = await targetChan.send(`<@${user.id}> ${replyText}`).catch(() => null);
+    if (notify) {
+      setTimeout(() => notify.delete().catch(() => {}), 6000);
     }
   }
 }
