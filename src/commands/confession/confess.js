@@ -41,53 +41,14 @@ module.exports = {
       return interaction.reply({ content: '❌ Le salon de confession cible n\'a pas pu être trouvé sur le serveur.', ephemeral: true });
     }
 
-    // Créer l'embed de la confession
-    const embedTitle = configRow.confession_name || '💬 Confession Anonyme';
-    const embed = new EmbedBuilder()
-      .setTitle(embedTitle)
-      .setDescription(messageContent)
-      .setColor('#9B59B6')
-      .setFooter({ text: 'Pour avouer quelque chose de secret, utilisez /confesser' })
-      .setTimestamp();
-
-    try {
-      const confessionMessage = await channel.send({ embeds: [embed] });
-
-      // Si l'ouverture de thread est activée
-      if (configRow.use_thread === 1) {
-        const thread = await confessionMessage.startThread({
-          name: `Commentaires - ${embedTitle.replace(/[^\w\s-]/g, '').trim().slice(0, 15)} #${confessionMessage.id.slice(-4)}`,
-          autoArchiveDuration: 1440
-        });
-
-        const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-        const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId('reply_confession_anon')
-            .setLabel('Répondre anonymement')
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('🤫')
-        );
-
-        await thread.send({
-          content: '💡 Vous pouvez réagir à cette confession publiquement en écrivant un message, ou de manière anonyme en utilisant le bouton ci-dessous :',
-          components: [row]
-        }).catch(console.error);
-      }
-
-      // Envoyer le log de la confession (non anonyme pour le staff)
-      const logEmbed = new EmbedBuilder()
-        .setTitle('🤫 Nouvelle Confession Logguée')
-        .setDescription(`**Auteur :** <@${interaction.user.id}> (${interaction.user.tag})\n**ID de l'auteur :** ${interaction.user.id}\n**Salon public :** <#${targetChannelId}>\n\n**Confession :**\n${messageContent}`)
-        .setColor('#9B59B6')
-        .setTimestamp();
-      
-      sendLog(interaction.guild, 'confession', logEmbed);
-
-      await interaction.reply({ content: '🤫 Votre confession a été envoyée avec succès et de manière anonyme !', ephemeral: true });
-    } catch (error) {
-      console.error(error);
-      await interaction.reply({ content: '❌ Impossible d\'envoyer le message dans le salon de confession. Vérifiez mes permissions d\'écriture et de création de fil (thread).', ephemeral: true });
-    }
+    const { handleConfessionSubmission } = require('../../utils/confessionHandler');
+    await handleConfessionSubmission({
+      guild: interaction.guild,
+      channel,
+      user: interaction.user,
+      text: messageContent,
+      confessionConfig: configRow,
+      interaction
+    });
   }
 };

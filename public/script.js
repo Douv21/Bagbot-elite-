@@ -1113,7 +1113,10 @@ document.addEventListener('DOMContentLoaded', () => {
     confessionsListState.push({
       channel_id: '',
       confession_name: '💬 Confession Anonyme',
-      use_thread: 0
+      use_thread: 0,
+      require_validation: 0,
+      validation_channel_id: '',
+      ping_role_id: ''
     });
     renderConfessions(confessionsListState);
   });
@@ -1124,7 +1127,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (channels.length === 0) {
       confessionsList.innerHTML = `
         <tr>
-          <td colspan="4" class="text-center" style="color: #8e9297;">Aucun salon de confession configuré. Cliquez sur le bouton ci-dessous pour en ajouter un.</td>
+          <td colspan="7" class="text-center" style="color: #8e9297; padding: 20px;">Aucun salon de confession configuré. Cliquez sur le bouton ci-dessous pour en ajouter un.</td>
         </tr>
       `;
       return;
@@ -1133,10 +1136,10 @@ document.addEventListener('DOMContentLoaded', () => {
     channels.forEach((ch, idx) => {
       const row = document.createElement('tr');
       
-      // Target channel select
+      // 1. Target channel select
       const tdChannel = document.createElement('td');
       const select = document.createElement('select');
-      select.className = 'inner-select';
+      select.className = 'inner-select channel-select';
       select.required = true;
       select.innerHTML = '<option value="">Sélectionner un salon</option>';
       channelsList.forEach(c => {
@@ -1153,7 +1156,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       tdChannel.appendChild(select);
       
-      // Custom title input
+      // 2. Custom title input
       const tdTitle = document.createElement('td');
       const inputTitle = document.createElement('input');
       inputTitle.type = 'text';
@@ -1165,8 +1168,9 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       tdTitle.appendChild(inputTitle);
       
-      // Thread checkbox
+      // 3. Thread checkbox
       const tdThread = document.createElement('td');
+      tdThread.style.textAlign = 'center';
       const labelSwitch = document.createElement('label');
       labelSwitch.className = 'switch-label';
       const checkbox = document.createElement('input');
@@ -1180,9 +1184,70 @@ document.addEventListener('DOMContentLoaded', () => {
       labelSwitch.appendChild(checkbox);
       labelSwitch.appendChild(spanSlider);
       tdThread.appendChild(labelSwitch);
+
+      // 4. Require Validation checkbox
+      const tdValCheck = document.createElement('td');
+      tdValCheck.style.textAlign = 'center';
+      const labelValSwitch = document.createElement('label');
+      labelValSwitch.className = 'switch-label';
+      const cbVal = document.createElement('input');
+      cbVal.type = 'checkbox';
+      cbVal.checked = ch.require_validation === 1;
+      const spanValSlider = document.createElement('span');
+      spanValSlider.className = 'slider';
+      labelValSwitch.appendChild(cbVal);
+      labelValSwitch.appendChild(spanValSlider);
+      tdValCheck.appendChild(labelValSwitch);
+
+      // 5. Validation Channel Select
+      const tdValChan = document.createElement('td');
+      const selectValChan = document.createElement('select');
+      selectValChan.className = 'inner-select channel-select';
+      selectValChan.disabled = ch.require_validation !== 1;
+      selectValChan.innerHTML = '<option value="">Salon par défaut (ou public)</option>';
+      channelsList.forEach(c => {
+        if (c.type === 0 || c.type === 5) {
+          const option = document.createElement('option');
+          option.value = c.id;
+          option.textContent = `# ${c.name}`;
+          if (c.id === ch.validation_channel_id) option.selected = true;
+          selectValChan.appendChild(option);
+        }
+      });
+      selectValChan.addEventListener('change', (e) => {
+        ch.validation_channel_id = e.target.value;
+      });
+      tdValChan.appendChild(selectValChan);
+
+      // 6. Ping Staff Role Select
+      const tdPingRole = document.createElement('td');
+      const selectPingRole = document.createElement('select');
+      selectPingRole.className = 'inner-select role-select';
+      selectPingRole.disabled = ch.require_validation !== 1;
+      selectPingRole.innerHTML = '<option value="">Aucun ping rôle</option>';
+      rolesList.forEach(r => {
+        if (r.name !== '@everyone') {
+          const option = document.createElement('option');
+          option.value = r.id;
+          option.textContent = `@ ${r.name}`;
+          if (r.id === ch.ping_role_id) option.selected = true;
+          selectPingRole.appendChild(option);
+        }
+      });
+      selectPingRole.addEventListener('change', (e) => {
+        ch.ping_role_id = e.target.value;
+      });
+      tdPingRole.appendChild(selectPingRole);
+
+      cbVal.addEventListener('change', (e) => {
+        ch.require_validation = e.target.checked ? 1 : 0;
+        selectValChan.disabled = !e.target.checked;
+        selectPingRole.disabled = !e.target.checked;
+      });
       
-      // Actions delete button
+      // 7. Actions delete button
       const tdActions = document.createElement('td');
+      tdActions.style.textAlign = 'center';
       const btnDel = document.createElement('button');
       btnDel.type = 'button';
       btnDel.className = 'btn-delete-gif';
@@ -1196,6 +1261,9 @@ document.addEventListener('DOMContentLoaded', () => {
       row.appendChild(tdChannel);
       row.appendChild(tdTitle);
       row.appendChild(tdThread);
+      row.appendChild(tdValCheck);
+      row.appendChild(tdValChan);
+      row.appendChild(tdPingRole);
       row.appendChild(tdActions);
       
       confessionsList.appendChild(row);

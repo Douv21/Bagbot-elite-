@@ -83,6 +83,9 @@ function initDatabase() {
       channel_id TEXT,
       confession_name TEXT,
       use_thread INTEGER DEFAULT 0,
+      require_validation INTEGER DEFAULT 0,
+      validation_channel_id TEXT,
+      ping_role_id TEXT,
       PRIMARY KEY (guild_id, channel_id)
     )
   `).run();
@@ -93,6 +96,33 @@ function initDatabase() {
   try {
     db.prepare('ALTER TABLE confessions ADD COLUMN use_thread INTEGER DEFAULT 0').run();
   } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE confessions ADD COLUMN require_validation INTEGER DEFAULT 0').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE confessions ADD COLUMN validation_channel_id TEXT').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE confessions ADD COLUMN ping_role_id TEXT').run();
+  } catch (e) {}
+
+  // 5b. Table des confessions en attente de validation staff
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS pending_confessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT,
+      target_channel_id TEXT,
+      user_id TEXT,
+      user_tag TEXT,
+      confession_text TEXT,
+      confession_name TEXT,
+      use_thread INTEGER DEFAULT 0,
+      validation_channel_id TEXT,
+      validation_message_id TEXT,
+      status TEXT DEFAULT 'pending',
+      created_at INTEGER
+    )
+  `).run();
 
   // 6. Configuration de Bienvenue & Départ
   db.prepare(`
@@ -1578,6 +1608,42 @@ function getStarHistory(guildId, limit = 10) {
     .all(guildId, limit);
 }
 
+// --- PENDING CONFESSIONS HELPERS ---
+
+function getPendingConfession(id) {
+  return db.prepare('SELECT * FROM pending_confessions WHERE id = ?').get(id);
+}
+
+function createPendingConfession(data) {
+  const info = db.prepare(`
+    INSERT INTO pending_confessions (
+      guild_id, target_channel_id, user_id, user_tag, confession_text, 
+      confession_name, use_thread, validation_channel_id, validation_message_id, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    data.guild_id,
+    data.target_channel_id,
+    data.user_id,
+    data.user_tag || null,
+    data.confession_text,
+    data.confession_name || '💬 Confession Anonyme',
+    data.use_thread ? 1 : 0,
+    data.validation_channel_id || null,
+    data.validation_message_id || null,
+    data.status || 'pending',
+    data.created_at || Date.now()
+  );
+  return info.lastInsertRowid;
+}
+
+function updatePendingConfessionMessageId(id, messageId) {
+  db.prepare('UPDATE pending_confessions SET validation_message_id = ? WHERE id = ?').run(messageId, id);
+}
+
+function updatePendingConfessionStatus(id, status) {
+  db.prepare('UPDATE pending_confessions SET status = ? WHERE id = ?').run(status, id);
+}
+
 module.exports = {
   db,
   initDatabase,
@@ -1678,5 +1744,9 @@ module.exports = {
   getStarWeeklyLeaderboard,
   getUserStarWeeklyPoints,
   recordStarElection,
-  getStarHistory
+  getStarHistory,
+  getPendingConfession,
+  createPendingConfession,
+  updatePendingConfessionMessageId,
+  updatePendingConfessionStatus
 };

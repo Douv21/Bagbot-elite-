@@ -653,12 +653,20 @@ app.post('/api/config/confessions', (req, res) => {
     db.transaction(() => {
       db.prepare('DELETE FROM confessions WHERE guild_id = ?').run(guildId);
       const stmt = db.prepare(`
-        INSERT INTO confessions (guild_id, channel_id, confession_name, use_thread)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO confessions (guild_id, channel_id, confession_name, use_thread, require_validation, validation_channel_id, ping_role_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `);
       for (const ch of channels) {
         if (ch.channel_id) {
-          stmt.run(guildId, ch.channel_id, ch.confession_name || 'Confession Anonyme', ch.use_thread ? 1 : 0);
+          stmt.run(
+            guildId,
+            ch.channel_id,
+            ch.confession_name || 'Confession Anonyme',
+            ch.use_thread ? 1 : 0,
+            ch.require_validation ? 1 : 0,
+            ch.validation_channel_id || null,
+            ch.ping_role_id || null
+          );
         }
       }
     })();

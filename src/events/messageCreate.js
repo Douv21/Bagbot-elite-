@@ -215,6 +215,23 @@ module.exports = {
       }
     }
 
+    // --- CONFESSIONS POSTÉES DIRECTEMENT DANS LE SALON PRINCIPAL DE CONFESSION ---
+    if (!message.channel.isThread()) {
+      const confessionChan = db.prepare('SELECT * FROM confessions WHERE guild_id = ? AND channel_id = ?').get(guildId, message.channel.id);
+      if (confessionChan && message.content && message.content.trim().length > 0) {
+        await message.delete().catch(() => null);
+        const { handleConfessionSubmission } = require('../utils/confessionHandler');
+        await handleConfessionSubmission({
+          guild: message.guild,
+          channel: message.channel,
+          user: message.author,
+          text: message.content,
+          confessionConfig: confessionChan
+        });
+        return;
+      }
+    }
+
     // --- SYSTÈME D'AUTO-THREAD ---
     try {
       const autothread = db.prepare('SELECT * FROM autothread_channels WHERE guild_id = ? AND channel_id = ?').get(guildId, message.channel.id);

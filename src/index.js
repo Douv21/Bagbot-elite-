@@ -283,6 +283,14 @@ client.on('interactionCreate', async interaction => {
 
       await interaction.showModal(modal);
       return;
+    } else if (customId.startsWith('conf_approve_')) {
+      const pendingId = parseInt(customId.replace('conf_approve_', ''));
+      const { handleConfessionApproval } = require('./utils/confessionHandler');
+      return handleConfessionApproval(interaction, pendingId);
+    } else if (customId.startsWith('conf_reject_')) {
+      const pendingId = parseInt(customId.replace('conf_reject_', ''));
+      const { handleConfessionRejection } = require('./utils/confessionHandler');
+      return handleConfessionRejection(interaction, pendingId);
     }
     return;
   }
