@@ -217,7 +217,7 @@ module.exports = {
             `*Cet espace haut de gamme et entièrement sécurisé est votre havre d'intimité d'exception. Vous et vos invités triés sur le volet pouvez échanger en toute discrétion, sérénité et volupté...* 🥂💋\n\n` +
             `>>> **"Un havre d'intimité, de luxe et de volupté réservé à l'élite..."** ✨\n\n` +
             `⏳ **Durée de réservation :** Expire le <t:${Math.floor(expiresAt / 1000)}:F> (<t:${Math.floor(expiresAt / 1000)}:R>).\n` +
-            `*Pour prolonger la durée de votre suite, rendez-vous à tout moment dans la `/boutique` !*`
+            `*Pour prolonger la durée de votre suite, rendez-vous à tout moment dans la boutique (\`/boutique\`) !*`
           )
           .setColor('#F1C40F')
           .setFooter({ text: 'B&G Elite • Suite Privée VIP & Privative' })
