@@ -448,24 +448,110 @@ async function handleTicketInteraction(interaction, client) {
       return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
     }
 
+    const active = getActiveTicket(interaction.channelId);
+    let roleMsg = '';
+
+    if (active) {
+      const option = db.prepare('SELECT * FROM ticket_options WHERE guild_id = ? AND id = ?').get(guildId, active.option_id);
+      if (option) {
+        const ticketCreator = await interaction.guild.members.fetch(active.user_id).catch(() => null);
+        if (ticketCreator) {
+          let rolesToAdd = [];
+          let rolesToRemove = [];
+          try { rolesToAdd = JSON.parse(option.member_roles_add || '[]'); } catch (e) {}
+          try { rolesToRemove = JSON.parse(option.member_roles_remove || '[]'); } catch (e) {}
+
+          let addedList = [];
+          let removedList = [];
+
+          for (const rId of rolesToAdd) {
+            const role = interaction.guild.roles.cache.get(rId);
+            if (role && !ticketCreator.roles.cache.has(rId)) {
+              await ticketCreator.roles.add(role).catch(console.error);
+              addedList.push(`<@&${rId}>`);
+            }
+          }
+
+          for (const rId of rolesToRemove) {
+            const role = interaction.guild.roles.cache.get(rId);
+            if (role && ticketCreator.roles.cache.has(rId)) {
+              await ticketCreator.roles.remove(role).catch(console.error);
+              removedList.push(`<@&${rId}>`);
+            }
+          }
+
+          if (addedList.length > 0 || removedList.length > 0) {
+            roleMsg = `\n\n👥 **Mise à jour du statut Membre pour <@${active.user_id}> :**`;
+            if (addedList.length > 0) roleMsg += `\n➕ Rôles ajoutés : ${addedList.join(', ')}`;
+            if (removedList.length > 0) roleMsg += `\n➖ Rôles retirés : ${removedList.join(', ')}`;
+          }
+        }
+      }
+    }
+
     const manageRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId('ticket_add_member_btn')
-        .setLabel('Ajouter un membre ➕')
+        .setLabel('Ajouter un membre au salon ➕')
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId('ticket_remove_member_btn')
-        .setLabel('Retirer un membre ➖')
+        .setLabel('Retirer un membre du salon ➖')
         .setStyle(ButtonStyle.Danger)
     );
 
-    await interaction.reply({ content: '👥 **Que souhaitez-vous faire ?**', components: [manageRow], ephemeral: true });
+    await interaction.reply({ 
+      content: `👥 **Gestion des membres du ticket**${roleMsg}\n\nQue souhaitez-vous faire d'autre ?`, 
+      components: [manageRow], 
+      ephemeral: true 
+    });
   }
 
   else if (customId === 'ticket_certify') {
     const isStaff = await checkIsTicketStaff(interaction);
     if (!isStaff) {
       return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+    }
+
+    const active = getActiveTicket(interaction.channelId);
+    let roleMsg = '';
+
+    if (active) {
+      const option = db.prepare('SELECT * FROM ticket_options WHERE guild_id = ? AND id = ?').get(guildId, active.option_id);
+      if (option) {
+        const ticketCreator = await interaction.guild.members.fetch(active.user_id).catch(() => null);
+        if (ticketCreator) {
+          let rolesToAdd = [];
+          let rolesToRemove = [];
+          try { rolesToAdd = JSON.parse(option.certify_roles_add || '[]'); } catch (e) {}
+          try { rolesToRemove = JSON.parse(option.certify_roles_remove || '[]'); } catch (e) {}
+
+          let addedList = [];
+          let removedList = [];
+
+          for (const rId of rolesToAdd) {
+            const role = interaction.guild.roles.cache.get(rId);
+            if (role && !ticketCreator.roles.cache.has(rId)) {
+              await ticketCreator.roles.add(role).catch(console.error);
+              addedList.push(`<@&${rId}>`);
+            }
+          }
+
+          for (const rId of rolesToRemove) {
+            const role = interaction.guild.roles.cache.get(rId);
+            if (role && ticketCreator.roles.cache.has(rId)) {
+              await ticketCreator.roles.remove(role).catch(console.error);
+              removedList.push(`<@&${rId}>`);
+            }
+          }
+
+          if (addedList.length > 0 || removedList.length > 0) {
+            roleMsg = `\n\n🎖️ **Mise à jour du statut Certifié pour <@${active.user_id}> :**`;
+            if (addedList.length > 0) roleMsg += `\n➕ Rôles attribués : ${addedList.join(', ')}`;
+            if (removedList.length > 0) roleMsg += `\n➖ Rôles retirés : ${removedList.join(', ')}`;
+          }
+        }
+      }
     }
 
     const messages = await interaction.channel.messages.fetch({ limit: 25 }).catch(() => null);
@@ -476,15 +562,13 @@ async function handleTicketInteraction(interaction, client) {
       const currentFields = embed.data.fields || [];
       const hasCertify = currentFields.some(f => f.name === '✅ Certification');
 
-      if (hasCertify) {
-        return interaction.reply({ content: '❌ Ce ticket a déjà été certifié.', ephemeral: true });
+      if (!hasCertify) {
+        embed.addFields({ name: '✅ Certification', value: `Certifié par <@${interaction.user.id}>`, inline: true });
+        await welcomeMsg.edit({ embeds: [embed] }).catch(console.error);
       }
-
-      embed.addFields({ name: '✅ Certification', value: `Certifié par <@${interaction.user.id}>`, inline: true });
-      await welcomeMsg.edit({ embeds: [embed] }).catch(console.error);
     }
 
-    await interaction.reply({ content: `✅ **Ce ticket a été certifié avec succès par <@${interaction.user.id}> !**` });
+    await interaction.reply({ content: `✅ **Ce ticket a été certifié avec succès par <@${interaction.user.id}> !**${roleMsg}` });
   }
 
   else if (customId === 'ticket_add_member_btn') {
