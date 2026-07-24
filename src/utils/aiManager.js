@@ -389,17 +389,17 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
     return null;
   };
 
-  // 1. Tenter TOUJOURS en priorité absolue Ollama local sur la Freebox (Illimité)
-  const resOllama = await tryOllamaPool();
-  if (resOllama) return resOllama;
-
-  // 2. Si Ollama Freebox est indisponible, basculer sur Groq
+  // 1. Tenter en priorité absolue Groq (Ultra-rapide, réponse instantanée en 0.4s)
   const resGroq = await tryGroqPool();
   if (resGroq) return resGroq;
 
-  // 3. Basculer sur Gemini
+  // 2. Tenter Gemini
   const resGemini = await tryGeminiPool();
   if (resGemini) return resGemini;
+
+  // 3. Basculer sur Ollama Freebox (Secours local illimité)
+  const resOllama = await tryOllamaPool();
+  if (resOllama) return resOllama;
 
   // 4. Ultime secours illimité : Pollinations AI
   const resPol = await callPollinationsFallback(systemPrompt, userPrompt, messagesHistory);
