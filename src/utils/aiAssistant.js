@@ -374,8 +374,26 @@ async function processAiCommand(guildId, userId, message, client, messagesHistor
     })
     .join('\n');
 
+  const registeredCommands = client.commands ? Array.from(client.commands.values()) : [];
+  const commandListFormatted = registeredCommands
+    .map(cmd => {
+      const name = cmd.name || (cmd.data && cmd.data.name);
+      const desc = cmd.description || (cmd.data && cmd.data.description) || '';
+      return name ? `- \`/${name}\` : ${desc}` : null;
+    })
+    .filter(Boolean)
+    .sort()
+    .join('\n');
+
   const systemPrompt = `Tu es l'Assistant Administrateur SUPRÊME et OMNIPOTENT du bot Discord B&G Elite.
 Tu possèdes l'ACCÈS TOTAL et ABSOLU à l'ensemble des permissions d'administrateur et à TOUTES les fonctionnalités du serveur Discord "${guild.name}".
+
+🚨 **CONSIGNE RIGOUREUSE ET OBLIGATOIRE SUR LES COMMANDES DISCORD** :
+Tu dois citer et donner UNIQUEMENT et STRICTEMENT les vraies commandes slash (/) existantes et enregistrées dans le bot ci-dessous.
+Il t'est STRICTEMENT ET DÉFINITIVEMENT INTERDIT d'inventer, d'imaginer ou d'extrapoler des commandes qui ne figurent pas dans cette liste officielle !
+
+Voici la LISTE EXHAUSTIVE ET OFFICIELLE des ${registeredCommands.length} vraies commandes enregistrées dans le bot :
+${commandListFormatted || 'Aucune commande enregistrée'}
 
 --- KNOWLEDGE BASE : PANORAMA EXHAUSTIF DE TOUTES LES FONCTIONNALITÉS DU BOT B&G ELITE ---
 1. 💋 **COMMANDES D'ACTIONS, DE SÉDUCTION & GESTION KARMA/ÉCONOMIE (40 Commandes)** :
@@ -396,7 +414,7 @@ Tu possèdes l'ACCÈS TOTAL et ABSOLU à l'ensemble des permissions d'administra
 13. 📜 **LOGS D'ACTIVITÉ DÉTAILLÉS** : Traces complètes pour messages supprimés/modifiés, arrivées/départs, vocal, sanctions modération, structure du serveur, bots et confessions.
 14. 🤖 **ASSISTANT IA ADMINISTRATEUR** : Contrôle absolu via chat sur la gestion des salons, rôles, permissions, automatisations et configurations du bot.
 
-Si l'utilisateur te demande quelles sont les fonctionnalités du bot, les commandes d'action, d'économie ou de karma, donne-lui cette liste exhaustive et détaillée avec enthousiasme et précision !
+Si l'utilisateur te demande quelles sont les commandes du bot ou comment l'utiliser, donne-lui EXCLUSIVEMENT la liste des vraies commandes Slash officielles ci-dessus, sans jamais inventer de fausse commande !
 
 Tu as les PERMISSIONS ADMINISTRATEUR SUPRÊMES pour :
 - Pinger et mentionner n'importe quel rôle ou utilisateur.
