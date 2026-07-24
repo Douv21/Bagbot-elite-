@@ -379,7 +379,7 @@ async function processAiCommand(guildId, userId, message, client, messagesHistor
     .map(cmd => {
       const name = cmd.name || (cmd.data && cmd.data.name);
       const desc = cmd.description || (cmd.data && cmd.data.description) || '';
-      return name ? `- \`/${name}\` : ${desc}` : null;
+      return name ? `- /${name} : ${desc}` : null;
     })
     .filter(Boolean)
     .sort()
@@ -398,18 +398,18 @@ ${commandListFormatted || 'Aucune commande enregistrée'}
 --- KNOWLEDGE BASE : PANORAMA EXHAUSTIF DE TOUTES LES FONCTIONNALITÉS DU BOT B&G ELITE ---
 1. 💋 **COMMANDES D'ACTIONS, DE SÉDUCTION & GESTION KARMA/ÉCONOMIE (40 Commandes)** :
    Chaque action génère un GIF animé, une phrase sensuelle adaptée au genre de la cible (Homme/Femme) et rapporte des **pièces d'économie** et des **points de karma** (configurables dans le Dashboard) :
-   - *Tendresse & Romance* : `/calin`, `/flirter`, `/embrasser`, `/caresser`, `/seduire`, `/masser`, `/rose`, `/reconforter`, `/danser`, `/batailleoreiller`, `/cuisiner`, `/vin`, `/dormir`, `/reveiller`, `/douche`, `/chatouiller`, `/mordre`, `/attrape`, `/reanimer`, `/oups`.
-   - *Passion, Érotisme & BDSM* : `/deshabiller`, `/doigter`, `/lecher`, `/sodo`, `/sucer`, `/branler`, `/fuck`, `/69`, `/collier`, `/laisse`, `/agenouiller`, `/ordonner`, `/punir`, `/orgasme`, `/orgie`, `/mouiller`, `/lit`, `/tirercheveux`, `/touche`, `/tromper`.
-2. 💰 **ÉCONOMIE ET KARMA** : Portefeuille, banque, karma évolutif avec bonus d'XP et réductions en boutique, mini-jeux d'économie (`/work`, `/crime`, `/rob`, `/pecher`, `/daily`, `/deposit`, `/withdraw`, `/economie`, `/pay`, `/leaderboard-eco`).
-3. 👑 **BOUTIQUE & SUITES PRIVÉES VIP** : Achat (`/boutique`) et création automatique de salons de suites privées VIP (avec durée d'expiration configurable, invitation/exclusion de membres, et attribution d'accès temporaire par mention de rôle avec bouton de révocation 🔒).
-4. ⚖️ **TRIBUNAL DISCORD & COUR DE JUSTICE** : Système judiciaire complet (`/tribunal`) pour ouvrir des procès, désigner/récuser un avocat/juge, attribuer automatiquement les rôles Juge, Avocat et Accusé pendant l'audience, et les retirer lors de la clôture.
-5. 📈 **NIVEAUX & XP** : Niveaux d'expérience texte et vocal (`/rank`, `/top`), cartes de rang graphiques (Canvas), récompenses de rôles par palier d'XP, bonus XP dans les salons NSFW.
-6. ⭐ **STAR DE LA SEMAINE** : Élections hebdomadaires automatiques du membre Star avec gains de points sur selfies, photos nudes ou messages texte, et attribution du rôle Star exclusif (`/star`).
-7. 💬 **CONFESSIONS ANONYMES** : Envoi de confessions anonymes sécurisées (`/confession`), logs staff confidentiels, système de threads de commentaires anonymisés.
+   - *Tendresse & Romance* : /calin, /flirter, /embrasser, /caresser, /seduire, /masser, /rose, /reconforter, /danser, /batailleoreiller, /cuisiner, /vin, /dormir, /reveiller, /douche, /chatouiller, /mordre, /attrape, /reanimer, /oups.
+   - *Passion, Érotisme & BDSM* : /deshabiller, /doigter, /lecher, /sodo, /sucer, /branler, /fuck, /69, /collier, /laisse, /agenouiller, /ordonner, /punir, /orgasme, /orgie, /mouiller, /lit, /tirercheveux, /touche, /tromper.
+2. 💰 **ÉCONOMIE ET KARMA** : Portefeuille, banque, karma évolutif avec bonus d'XP et réductions en boutique, mini-jeux d'économie (/work, /crime, /rob, /pecher, /daily, /deposit, /withdraw, /economie, /pay, /leaderboard-eco).
+3. 👑 **BOUTIQUE & SUITES PRIVÉES VIP** : Achat (/boutique) et création automatique de salons de suites privées VIP (avec durée d'expiration configurable, invitation/exclusion de membres, et attribution d'accès temporaire par mention de rôle avec bouton de révocation 🔒).
+4. ⚖️ **TRIBUNAL DISCORD & COUR DE JUSTICE** : Système judiciaire complet (/tribunal) pour ouvrir des procès, désigner/récuser un avocat/juge, attribuer automatiquement les rôles Juge, Avocat et Accusé pendant l'audience, et les retirer lors de la clôture.
+5. 📈 **NIVEAUX & XP** : Niveaux d'expérience texte et vocal (/rank, /top), cartes de rang graphiques (Canvas), récompenses de rôles par palier d'XP, bonus XP dans les salons NSFW.
+6. ⭐ **STAR DE LA SEMAINE** : Élections hebdomadaires automatiques du membre Star avec gains de points sur selfies, photos nudes ou messages texte, et attribution du rôle Star exclusif (/star).
+7. 💬 **CONFESSIONS ANONYMES** : Envoi de confessions anonymes sécurisées (/confession), logs staff confidentiels, système de threads de commentaires anonymisés.
 8. 🧮 **SALONS DE COMPTAGE (COUNTING)** : Compteurs de salon en mode Normal, Inversé ou Équations Mathématiques avec classements et détection des erreurs.
-9. 🎲 **DIVERTISSEMENT & JEUX** : Jeu du Mot Caché (`/mot-cache`) avec autodestruction des lettres, cartes Action ou Vérité SFW/NSFW (`/actionverite`), Jeu de cartes UNO multijoueur interactif en Canvas (`/uno`).
+9. 🎲 **DIVERTISSEMENT & JEUX** : Jeu du Mot Caché (/mot-cache) avec autodestruction des lettres, cartes Action ou Vérité SFW/NSFW (/actionverite), Jeu de cartes UNO multijoueur interactif en Canvas (/uno).
 10. 🎫 **SUPPORT & TICKETS** : Panneaux de création de tickets personnalisables avec boutons ou sélecteurs déroulants et salons privés temporaires.
-11. 🗺️ **CARTE DES MEMBRES & LOCALISATION** : Commandes `/mapville` et `/proche` pour géolocaliser les membres du serveur sur une carte interactive.
+11. 🗺️ **CARTE DES MEMBRES & LOCALISATION** : Commandes /mapville et /proche pour géolocaliser les membres du serveur sur une carte interactive.
 12. 🔔 **RAPPELS DE BUMP MULTI-BOTS** : Détection automatique des bumps (Disboard et autres) et rappels programmés.
 13. 📜 **LOGS D'ACTIVITÉ DÉTAILLÉS** : Traces complètes pour messages supprimés/modifiés, arrivées/départs, vocal, sanctions modération, structure du serveur, bots et confessions.
 14. 🤖 **ASSISTANT IA ADMINISTRATEUR** : Contrôle absolu via chat sur la gestion des salons, rôles, permissions, automatisations et configurations du bot.
