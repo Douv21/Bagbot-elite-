@@ -1662,7 +1662,7 @@ app.post('/api/config/tickets/panel/update', async (req, res) => {
 
     if (channel_id) {
       const { sendOrUpdateTicketPanel } = require('./utils/tickets');
-      const sendRes = await sendOrUpdateTicketPanel(id, client);
+      const sendRes = await sendOrUpdateTicketPanel(id, client, true);
       if (!sendRes.success) {
         return res.json({ success: true, warning: sendRes.error });
       }
@@ -1671,6 +1671,54 @@ app.post('/api/config/tickets/panel/update', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint pour forcer le renvoi de l'embed principal d'un panel de tickets dans le salon
+app.post('/api/config/tickets/panel/resend', async (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: 'ID de panel requis' });
+
+    const { sendOrUpdateTicketPanel } = require('./utils/tickets');
+    const sendRes = await sendOrUpdateTicketPanel(id, client, true);
+
+    if (!sendRes.success) {
+      return res.status(400).json({ error: sendRes.error });
+    }
+
+    res.json({ success: true, message: 'Embed principal renvoyé avec succès dans le salon !' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint de réactualisation & resynchronisation globale des salons et panels d'embeds
+app.post('/api/config/sync-channels', async (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { sendOrUpdateTicketPanel } = require('./utils/tickets');
+    const { getTicketPanels } = require('./database/db');
+    const panels = getTicketPanels(guildId);
+
+    let resendCount = 0;
+    for (const p of panels) {
+      if (p.channel_id) {
+        const result = await sendOrUpdateTicketPanel(p.id, client, true);
+        if (result.success) resendCount++;
+      }
+    }
+
+    res.json({ success: true, message: `Resynchronisation effectuée ! ${resendCount} panel(s) d'embeds renvoyé(s) à neuf dans vos salons.` });
+  } catch (error) {
+    console.error('Erreur /api/config/sync-channels:', error);
     res.status(500).json({ error: error.message });
   }
 });

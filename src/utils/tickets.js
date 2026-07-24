@@ -1,7 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 const { getTicketPanelById, getTicketOptions, updateTicketPanelById } = require('../database/db');
 
-async function sendOrUpdateTicketPanel(panelId, client) {
+async function sendOrUpdateTicketPanel(panelId, client, forceResend = false) {
   const panelConfig = getTicketPanelById(panelId);
   if (!panelConfig) return { success: false, error: "Configuration du panel introuvable." };
   
@@ -76,14 +76,12 @@ async function sendOrUpdateTicketPanel(panelId, client) {
       }
       components = rows;
     } else if (panelConfig.selector_type === 'single_button') {
-      // Bouton unique
       const button = new ButtonBuilder()
         .setCustomId('ticket_open_button')
         .setLabel('🎫 Ouvrir un ticket')
         .setStyle(ButtonStyle.Primary);
       components = [new ActionRowBuilder().addComponents(button)];
     } else {
-      // Menu déroulant
       const selectMenu = new StringSelectMenuBuilder()
         .setCustomId('ticket_select')
         .setPlaceholder('Sélectionnez une catégorie pour ouvrir un ticket...');
@@ -110,13 +108,21 @@ async function sendOrUpdateTicketPanel(panelId, client) {
     message = await channel.messages.fetch(panelConfig.message_id).catch(() => null);
   }
 
+  // Si forceResend est true, supprimer l'ancien message s'il existe pour renvoyer un tout nouvel embed
+  if (forceResend && message) {
+    await message.delete().catch(() => null);
+    message = null;
+  }
+
   if (message) {
     // Modifier le message existant
-    await message.edit({ embeds: [embed], components: components }).catch((err) => {
-      console.error('Erreur lors de la modification du panel ticket:', err);
+    await message.edit({ embeds: [embed], components: components }).catch(async (err) => {
+      console.error('Erreur lors de la modification du panel ticket, envoi d\'un nouveau :', err);
+      const newMsg = await channel.send({ embeds: [embed], components: components }).catch(console.error);
+      if (newMsg) updateTicketPanelById(panelId, { message_id: newMsg.id });
     });
   } else {
-    // Envoyer un nouveau message
+    // Envoyer un TOUT NOUVEAU message dans le salon
     const newMsg = await channel.send({ embeds: [embed], components: components }).catch((err) => {
       console.error("Erreur lors de l'envoi du panel ticket:", err);
     });
