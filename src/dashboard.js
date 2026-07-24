@@ -112,6 +112,17 @@ app.use(session({
 
 // Middlewares
 app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+app.use((req, res, next) => {
   console.log(`[HTTP] ${req.method} ${req.url}`);
   next();
 });
@@ -704,9 +715,17 @@ app.post('/api/config/tribunal', (req, res) => {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { category_id } = req.body;
+    const { category_id, judge_role_id, lawyer_role_id, accused_role_id, channel_prefix } = req.body;
     const tribunalDb = require('./utils/tribunal_db');
-    tribunalDb.updateTribunalConfig(guildId, { categoryId: category_id || '' });
+    tribunalDb.updateTribunalConfig(guildId, {
+      categoryId: category_id || '',
+      judgeRoleId: judge_role_id || '',
+      lawyerRoleId: lawyer_role_id || '',
+      accusedRoleId: accused_role_id || '',
+      channelPrefix: channel_prefix || '⚖️┆procès-'
+    });
+
+    if (client.syncExistingChannels) client.syncExistingChannels();
 
     res.json({ success: true });
   } catch (error) {
@@ -715,19 +734,34 @@ app.post('/api/config/tribunal', (req, res) => {
   }
 });
 
-// Sauvegarder la configuration de la Boutique (catégorie suites privées)
+// Sauvegarder la configuration de la Boutique (catégorie et préfixe suites privées)
 app.post('/api/config/shop-settings', (req, res) => {
   try {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { private_suite_category_id } = req.body;
+    const { private_suite_category_id, suite_channel_prefix } = req.body;
     const { updateShopConfig } = require('./database/db');
-    updateShopConfig(guildId, private_suite_category_id || null);
+    updateShopConfig(guildId, private_suite_category_id || null, suite_channel_prefix || '👑┆suite-');
+
+    if (client.syncExistingChannels) client.syncExistingChannels();
 
     res.json({ success: true });
   } catch (error) {
     console.error('Erreur sauvegarde config boutique:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Resynchroniser manuellement tous les salons des suites privées et du tribunal
+app.post('/api/config/sync-channels', async (req, res) => {
+  try {
+    if (client.syncExistingChannels) {
+      await client.syncExistingChannels();
+    }
+    res.json({ success: true, message: 'Resynchronisation des salons effectuée !' });
+  } catch (error) {
+    console.error('Erreur resynchronisation manuelle:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1983,15 +2017,38 @@ app.post('/api/config/role-themes/delete', (req, res) => {
 // Assistant IA d'Administration (avec suivi de conversation par session)
 app.post('/api/ai/chat', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
-    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    if (!req.session || !req.session.user || !req.session.user.id) {
+      return res.status(401).json({ error: "Vous devez être connecté à Discord pour utiliser l'assistant IA." });
+    }
+
+    // Récupérer le guildId soit depuis la requête, soit depuis la session, soit le 1er serveur géré
+    let guildId = req.body.guildId || req.session.selectedGuild;
+    if (!guildId && req.session.user.guilds && req.session.user.guilds.length > 0) {
+      guildId = req.session.user.guilds[0].id;
+    }
+
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné.' });
 
     const guild = client.guilds.cache.get(guildId);
-    if (!guild) return res.status(404).json({ error: 'Guild not found' });
+    if (!guild) return res.status(404).json({ error: 'Serveur Discord non trouvé.' });
 
-    // Sécurité : réservé aux administrateurs ou au propriétaire du serveur
-    const member = guild.members.cache.get(req.session.user.id) || await guild.members.fetch(req.session.user.id).catch(() => null);
-    if (!member || (!member.permissions.has(PermissionFlagsBits.Administrator) && guild.ownerId !== req.session.user.id)) {
+    // Sécurité : Vérification souple Administrateur / Propriétaire (compatibilité IP Publique & OAuth2)
+    let isAuthorized = (guild.ownerId === req.session.user.id);
+    if (!isAuthorized && req.session.user.guilds) {
+      const gObj = req.session.user.guilds.find(g => g.id === guildId);
+      if (gObj && (gObj.owner || (gObj.permissions & 0x8) === 0x8 || (gObj.permissions & 0x20) === 0x20)) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      const member = guild.members.cache.get(req.session.user.id) || await guild.members.fetch(req.session.user.id).catch(() => null);
+      if (member && (member.permissions.has(PermissionFlagsBits.Administrator) || member.permissions.has(PermissionFlagsBits.ManageGuild))) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
       return res.status(403).json({ error: "L'assistant IA est accessible uniquement aux Administrateurs et au Propriétaire du serveur." });
     }
 
@@ -2002,7 +2059,7 @@ app.post('/api/ai/chat', async (req, res) => {
     req.session.aiChatHistory = req.session.aiChatHistory || [];
     req.session.aiChatHistory.push({ role: 'user', content: message });
 
-    // Limiter aux 12 derniers messages (6 échanges) pour ne pas encombrer le contexte
+    // Limiter aux 12 derniers messages (6 échanges)
     if (req.session.aiChatHistory.length > 12) {
       req.session.aiChatHistory = req.session.aiChatHistory.slice(-12);
     }
@@ -2017,7 +2074,7 @@ app.post('/api/ai/chat', async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error(error);
+    console.error('Erreur /api/ai/chat:', error);
     res.status(500).json({ error: error.message });
   }
 });

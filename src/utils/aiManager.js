@@ -170,47 +170,65 @@ async function callGeminiApi(apiKey, model, systemPrompt, userPrompt, temperatur
 }
 
 /**
- * Appelle une instance locale Ollama (ex: Freebox / Serveur Debian local)
+ * Appelle une instance locale ou distante Ollama (avec fallback IP publique / localhost)
  */
 async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperature = 0.7, maxTokens = 1000, messagesHistory = null) {
-  const baseUrl = (hostUrl || 'http://127.0.0.1:11434').replace(/\/+$/, '');
-  const url = `${baseUrl}/api/chat`;
+  const hostsToTry = [
+    hostUrl,
+    process.env.OLLAMA_HOST,
+    process.env.PUBLIC_IP ? `http://${process.env.PUBLIC_IP}:11434` : null,
+    'http://127.0.0.1:11434',
+    'http://localhost:11434'
+  ].filter(Boolean);
 
-  const messages = [];
-  if (systemPrompt) {
-    messages.push({ role: 'system', content: systemPrompt });
-  }
-  if (messagesHistory && Array.isArray(messagesHistory) && messagesHistory.length > 0) {
-    messages.push(...messagesHistory);
-  } else if (userPrompt) {
-    messages.push({ role: 'user', content: userPrompt });
-  }
+  const uniqueHosts = [...new Set(hostsToTry)];
+  let lastError = null;
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: model || 'qwen2.5:7b',
-      messages,
-      stream: false,
-      options: {
-        temperature,
-        num_predict: maxTokens
+  for (const h of uniqueHosts) {
+    try {
+      const baseUrl = h.replace(/\/+$/, '');
+      const url = `${baseUrl}/api/chat`;
+
+      const messages = [];
+      if (systemPrompt) {
+        messages.push({ role: 'system', content: systemPrompt });
       }
-    }),
-    signal: AbortSignal.timeout(60000)
-  });
+      if (messagesHistory && Array.isArray(messagesHistory) && messagesHistory.length > 0) {
+        messages.push(...messagesHistory);
+      } else if (userPrompt) {
+        messages.push({ role: 'user', content: userPrompt });
+      }
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => '');
-    throw new Error(`Ollama API HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: model || 'qwen2.5:7b',
+          messages,
+          stream: false,
+          options: {
+            temperature,
+            num_predict: maxTokens
+          }
+        }),
+        signal: AbortSignal.timeout(15000)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.message && data.message.content) {
+          return data.message.content.trim();
+        }
+      } else {
+        const errorText = await response.text().catch(() => '');
+        lastError = new Error(`Ollama API (${baseUrl}) HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+      }
+    } catch (err) {
+      lastError = err;
+    }
   }
 
-  const data = await response.json();
-  if (data.message && data.message.content) {
-    return data.message.content.trim();
-  }
-  throw new Error('Format de réponse Ollama invalide');
+  throw lastError || new Error('Ollama inaccessible sur toutes les adresses IP testées.');
 }
 
 /**

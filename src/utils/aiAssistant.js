@@ -374,12 +374,32 @@ async function processAiCommand(guildId, userId, message, client, messagesHistor
     })
     .join('\n');
 
-  const systemPrompt = `Tu es l'Assistant Administrateur SUPRÊME du bot Discord B&G Elite.
-Tu possèdes l'ACCÈS TOTAL et ABSOLU à l'ensemble des permissions et fonctionnalités du serveur Discord "${guild.name}".
-Tu as un contrôle total pour :
-- Mentionner et pinger n'importe quel membre ou n'importe quel rôle (ex: via l'action "send_message" avec "pings": ["ID_OU_NOM"] ou directement dans le texte).
-- Attribuer ou modifier absolument TOUTES les permissions (y compris "MentionEveryone", "Administrator", "ManageRoles", "ManageChannels", "ModerateMembers", etc.).
-- Ne prétexte JAMAIS que tu n'as pas la permission d'effectuer une action ou de mentionner un membre/rôle. Tu possèdes l'accès administrateur complet et absolu.
+  const systemPrompt = `Tu es l'Assistant Administrateur SUPRÊME et OMNIPOTENT du bot Discord B&G Elite.
+Tu possèdes l'ACCÈS TOTAL et ABSOLU à l'ensemble des permissions d'administrateur et à TOUTES les fonctionnalités du serveur Discord "${guild.name}".
+
+--- KNOWLEDGE BASE : PANORAMA DE TOUTES LES FONCTIONNALITÉS DU BOT B&G ELITE ---
+1. 🛡️ **MODÉRATION ET AUTOMODÉRATION** : Anti-liens, anti-spam, anti-insultes/mots bannis, anti-massmentions, exclusions temporaires (timeout), kicks, bans, avertissements (warns) et système de quarantaine.
+2. 👑 **BOUTIQUE & SUITES PRIVÉES VIP** : Achat et création automatique de salons de suites privées VIP (avec durée d'expiration configurable, invitation/exclusion de membres, et attribution d'accès temporaire par mention de rôle avec bouton de révocation).
+3. ⚖️ **TRIBUNAL DISCORD & COUR DE JUSTICE** : Système judiciaire complet pour ouvrir des procès, désigner ou récuser un avocat/juge, attribuer automatiquement les rôles Juge, Avocat et Accusé pendant l'audience, et les retirer automatiquement lors de la clôture du dossier.
+4. 💰 **ÉCONOMIE ET KARMA** : Portefeuille, banque, karma évolutif avec bonus d'XP et réductions en boutique, mini-jeux d'économie (/work, /crime, /rob, /pecher, /daily, /deposit, /withdraw).
+5. 📈 **NIVEAUX & XP** : Niveaux d'expérience texte et vocal, cartes de rang graphiques (Canvas), récompenses de rôles par palier d'XP, bonus XP dans les salons NSFW.
+6. ⭐ **STAR DE LA SEMAINE** : Élections hebdomadaires automatiques du membre Star avec gains de points sur selfies, photos nudes ou messages texte, et attribution du rôle Star exclusif.
+7. 💬 **CONFESSIONS ANONYMES** : Envoi de confessions anonymes sécurisées, logs staff confidentiels, système de threads de commentaires anonymisés.
+8. 🧮 **SALONS DE COMPTAGE (COUNTING)** : Compteurs de salon en mode Normal, Inversé ou Équations Mathématiques avec classements et détection des erreurs.
+9. 🎲 **DIVERTISSEMENT & JEUX** : Jeu du Mot Caché avec autodestruction des lettres, cartes Action ou Vérité (SFW/NSFW), Jeu de cartes UNO multijoueur interactif, GIFs d'actions animées (câlin, caresser, embrasser, sodo, etc.).
+10. 🎫 **SUPPORT & TICKETS** : Panneaux de création de tickets personnalisables avec boutons ou sélecteurs déroulants et salons privés temporaires.
+11. 🗺️ **CARTE DES MEMBRES & LOCALISATION** : Commandes /mapville et /proche pour géolocaliser les membres du serveur sur une carte interactive.
+12. 🔔 **RAPPELS DE BUMP MULTI-BOTS** : Détection automatique des bumps (Disboard et autres) et rappels programmés.
+13. 📜 **LOGS D'ACTIVITÉ DÉTAILLÉS** : Traces complètes pour messages supprimés/modifiés, arrivées/départs de membres, vocal, sanctions modération, structure du serveur, bots et confessions.
+14. 🤖 **ASSISTANT IA ADMINISTRATEUR** : Contrôle absolu via chat sur la gestion des salons, rôles, permissions, automatisations et configurations du bot.
+
+Si l'utilisateur te demande quelles sont les fonctionnalités du bot ou comment l'utiliser, donne-lui ce panorama complet, clair, dynamique et parfaitement structuré avec des émojis !
+
+Tu as les PERMISSIONS ADMINISTRATEUR SUPRÊMES pour :
+- Pinger et mentionner n'importe quel rôle ou utilisateur.
+- Accorder ou révoquer dynamiquement des accès aux salons (y compris l'accès à un rôle lors d'un ping dans une Suite Privée ou un Ticket).
+- Attribuer, créer, modifier ou supprimer des rôles et des salons.
+- Ne prétexte JAMAIS un manque de permission. Tu as l'accès Administrateur absolu.
 
 Voici la liste exacte de TOUS LES RÔLES EXISTANTS sur ce serveur (du plus haut au plus bas) :
 ${rolesList || 'Aucun rôle personnalisé'}
@@ -387,30 +407,32 @@ ${rolesList || 'Aucun rôle personnalisé'}
 Voici la liste de TOUS LES SALONS EXISTANTS sur ce serveur :
 ${channelsList || 'Aucun salon'}
 
-Règles de décision et d'identification des RÔLES CRITIQUES :
-1. Pour TOUTES les actions sur les rôles (ex: "add_member_role", "remove_member_role", "delete_role", "update_role_permissions", "set_role_position"), UTILISE TOUJOURS L'ID EXACT DU RÔLE (ex: "role_name": "123456789012345678") si le rôle figure dans la liste ci-dessus, afin d'éviter tout problème avec les émojis ou caractères spéciaux !
-2. Avant de générer une action de type "create_role", vérifie attentivement si un rôle équivalent ou similaire n'existe pas déjà dans la liste ci-dessus (en ignorant les émojis décoratifs). Si le rôle existe déjà, N'UTILISE PAS "create_role", utilise directement "add_member_role" avec l'ID du rôle existant.
-3. Pour les salons, préfère également l'ID ou le nom exact du salon.
+Règles pour les actions JSON :
+1. Pour TOUTES les actions sur les rôles (ex: "add_member_role", "remove_member_role", "delete_role", "update_role_permissions", "set_role_position", "grant_channel_access"), UTILISE TOUJOURS L'ID EXACT DU RÔLE si le rôle figure ci-dessus !
+2. Pour les salons, préfère également l'ID ou le nom exact du salon.
 
-Liste des permissions valides utilisables pour les actions :
-"all" (pour attribuer toutes les permissions d'un coup), ${mainPermissionsList}
+Liste des permissions valides utilisables : "all", ${mainPermissionsList}
 
-Actions d'administration possibles (tu devez les formuler sous forme d'un tableau JSON d'objets, exemple: [{"type": "create_role", "name": "VIP"}]):
+Actions d'administration possibles (à formuler sous forme d'un tableau JSON d'objets) :
 1. {"type": "update_automod", "anti_link": 0/1, "anti_spam": 0/1, "anti_massmention": 0/1, "anti_badwords": 0/1, "spam_max_msgs": nombre, "massmention_limit": nombre, "badwords_list": "mot1,mot2"}
 2. {"type": "create_role", "name": "Nom du rôle", "color": "code hex ou rouge/bleu/vert...", "permissions": ["BanMembers", "KickMembers", "Administrator"]}
 3. {"type": "delete_role", "role_name": "ID ou Nom du rôle"}
 4. {"type": "add_member_role", "member_name": "Nom/pseudo/tag ou ID du membre", "role_name": "ID ou Nom du rôle"}
 5. {"type": "remove_member_role", "member_name": "Nom/pseudo/tag ou ID du membre", "role_name": "ID ou Nom du rôle"}
-6. {"type": "timeout_member", "member_name": "Nom/pseudo/tag ou ID du membre", "duration": minutes}
-7. {"type": "kick_member", "member_name": "Nom/pseudo/tag ou ID du membre"}
-8. {"type": "ban_member", "member_name": "Nom/pseudo/tag ou ID du membre"}
-9. {"type": "update_action_message", "action_name": "calin/caresser/sodo...", "self": true/false, "text": "Le message avec balises de genre"}
-10. {"type": "update_role_permissions", "role_name": "ID ou Nom du rôle", "allow": ["KickMembers"], "deny": ["ManageChannels"]}
-11. {"type": "update_channel_permissions", "channel_name": "Nom ou ID du salon, ou 'all' pour cibler tous les salons", "target_name": "ID/Nom de rôle ou membre", "allow": ["ViewChannel"], "deny": ["SendMessages"]}
-12. {"type": "set_role_position", "role_name": "ID ou Nom du rôle à déplacer", "target_role_name": "ID ou Nom du rôle repère", "direction": "above" ou "below"}
-13. {"type": "create_channel", "name": "nom-du-salon", "channel_type": "text" ou "voice" ou "category", "category_name": "Nom de la catégorie (optionnel)"}
-14. {"type": "delete_channel", "channel_name": "Nom ou ID du salon"}
-15. {"type": "send_message", "channel_name": "Nom ou ID du salon", "text": "Texte avec pings (optionnel)", "embed": {"title": "Titre", "description": "Description", "color": "rouge/bleu/rose/#ff0000", "fields": [{"name": "Nom du champ", "value": "Valeur", "inline": true}], "footer": "Texte de bas de page", "image": "URL de la bannière/GIF"}, "pings": ["ID ou Nom de rôle ou membre"]}
+6. {"type": "grant_role_to_all", "role_name": "ID ou Nom du rôle"}
+7. {"type": "timeout_member", "member_name": "Nom/pseudo/tag ou ID du membre", "duration": minutes}
+8. {"type": "kick_member", "member_name": "Nom/pseudo/tag ou ID du membre"}
+9. {"type": "ban_member", "member_name": "Nom/pseudo/tag ou ID du membre"}
+10. {"type": "update_action_message", "action_name": "calin/caresser/sodo...", "self": true/false, "text": "Le message avec balises de genre"}
+11. {"type": "update_role_permissions", "role_name": "ID ou Nom du rôle", "allow": ["KickMembers"], "deny": ["ManageChannels"]}
+12. {"type": "grant_channel_access", "channel_name": "Nom ou ID du salon", "target_name": "ID ou Nom de rôle/membre"}
+13. {"type": "revoke_channel_access", "channel_name": "Nom ou ID du salon", "target_name": "ID ou Nom de rôle/membre"}
+14. {"type": "update_channel_permissions", "channel_name": "Nom ou ID du salon ou 'all'", "target_name": "ID/Nom rôle ou membre", "allow": ["ViewChannel"], "deny": ["SendMessages"]}
+15. {"type": "set_role_position", "role_name": "ID ou Nom du rôle à déplacer", "target_role_name": "ID ou Nom du rôle repère", "direction": "above" ou "below"}
+16. {"type": "create_channel", "name": "nom-du-salon", "channel_type": "text" ou "voice" ou "category", "category_name": "Nom de la catégorie (optionnel)"}
+17. {"type": "delete_channel", "channel_name": "Nom ou ID du salon"}
+18. {"type": "clear_messages", "channel_name": "Nom ou ID du salon", "amount": 10}
+19. {"type": "send_message", "channel_name": "Nom ou ID du salon", "text": "Texte avec pings (optionnel)", "embed": {"title": "Titre", "description": "Description", "color": "rouge/bleu/rose/#ff0000", "fields": [{"name": "Nom du champ", "value": "Valeur", "inline": true}], "footer": "Texte de bas de page", "image": "URL de la bannière/GIF"}, "pings": ["ID ou Nom de rôle ou membre"]}
 
 Analyse la demande de l'utilisateur. Réponds-lui de manière courtoise, chaleureuse et naturelle en français.
 Si la demande nécessite une ou plusieurs actions d'administration ci-dessus, inclus à la fin de ta réponse le tableau d'actions au format JSON.
@@ -775,6 +797,66 @@ Pour que le script puisse les parser automatiquement.`;
           }
           updateCustomActionMessage(guildId, action.action_name, customMsg.self_message, customMsg.target_message);
           executedActions.push({ type: 'update_action_message', action: action.action_name });
+        }
+
+        else if (action.type === 'grant_channel_access') {
+          const target = (await findRole(action.target_name)) || (await findMember(action.target_name));
+          const channel = await findChannel(action.channel_name);
+          if (target && channel) {
+            await channel.permissionOverwrites.create(target.id, {
+              ViewChannel: true,
+              SendMessages: true,
+              ReadMessageHistory: true,
+              EmbedLinks: true,
+              AttachFiles: true
+            });
+            executedActions.push({ type: 'grant_channel_access', channel: channel.name, target: target.name || target.displayName });
+          } else {
+            if (!target) reply += `\n❓ Cible "${action.target_name}" introuvable.`;
+            if (!channel) reply += `\n❓ Salon "${action.channel_name}" introuvable.`;
+          }
+        }
+
+        else if (action.type === 'revoke_channel_access') {
+          const target = (await findRole(action.target_name)) || (await findMember(action.target_name));
+          const channel = await findChannel(action.channel_name);
+          if (target && channel) {
+            await channel.permissionOverwrites.delete(target.id).catch(async () => {
+              await channel.permissionOverwrites.create(target.id, { ViewChannel: false });
+            });
+            executedActions.push({ type: 'revoke_channel_access', channel: channel.name, target: target.name || target.displayName });
+          } else {
+            if (!target) reply += `\n❓ Cible "${action.target_name}" introuvable.`;
+            if (!channel) reply += `\n❓ Salon "${action.channel_name}" introuvable.`;
+          }
+        }
+
+        else if (action.type === 'grant_role_to_all') {
+          const role = await findRole(action.role_name);
+          if (role) {
+            const members = await guild.members.fetch();
+            let count = 0;
+            for (const [id, m] of members) {
+              if (!m.user.bot && !m.roles.cache.has(role.id)) {
+                await m.roles.add(role).catch(() => {});
+                count++;
+              }
+            }
+            executedActions.push({ type: 'grant_role_to_all', role: role.name, count });
+          } else {
+            reply += `\n❓ Rôle "${action.role_name}" introuvable.`;
+          }
+        }
+
+        else if (action.type === 'clear_messages') {
+          const channel = await findChannel(action.channel_name);
+          if (channel && channel.isTextBased()) {
+            const amount = Math.min(Math.max(parseInt(action.amount) || 10, 1), 100);
+            const deleted = await channel.bulkDelete(amount, true).catch(() => null);
+            executedActions.push({ type: 'clear_messages', channel: channel.name, amount: deleted ? deleted.size : amount });
+          } else {
+            reply += `\n❓ Salon textuel "${action.channel_name}" introuvable.`;
+          }
         }
       } catch (err) {
         console.error('Erreur execution action IA:', action, err);

@@ -728,16 +728,47 @@
  
           <!-- Tab: Tribunal -->
           <div id="tab-tribunal" class="tab-content">
-            <h2 class="section-title"><i class="fa-solid fa-gavel"></i> Système de Tribunal</h2>
+            <h2 class="section-title"><i class="fa-solid fa-gavel"></i> Système de Tribunal & Justice</h2>
             <form id="form-tribunal" class="glass-form">
               <div class="card glass">
                 <p>Gérez et configurez le système de justice de votre serveur Discord pour ouvrir des procès, désigner des avocats et des juges dans des salons dédiés.</p>
-                <div class="form-group">
+                
+                <div class="form-group mb-3">
                   <label for="tribunal_category">Catégorie pour les procès (Suites privées de jugement) :</label>
                   <select id="tribunal_category" class="category-select">
                     <option value="">-- Créer automatiquement une catégorie --</option>
                   </select>
                   <small class="form-help">Sélectionnez la catégorie Discord dans laquelle les salons textuels temporaires des procès seront créés.</small>
+                </div>
+
+                <div class="form-group mb-3">
+                  <label for="tribunal_channel_prefix">Préfixe & Émoji du nom des salons de procès :</label>
+                  <input type="text" id="tribunal_channel_prefix" class="inner-input" placeholder="ex: ⚖️┆procès-" value="⚖️┆procès-">
+                  <small class="form-help">Exemples populaires : <code>⚖️┆procès-</code>, <code>🏛️┆tribunal-</code>, <code>👨‍⚖️┆audience-</code>, <code>📜┆justice-</code></small>
+                </div>
+
+                <h4 style="color: #fff; margin-top: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;"><i class="fa-solid fa-user-shield" style="color: #9b59b6;"></i> Rôles Automatiques du Tribunal</h4>
+                <p style="font-size: 0.82rem; color: #b9bbbe; margin-bottom: 15px;">Ces rôles seront <strong>attribués automatiquement</strong> lors de l'ouverture d'un procès et <strong>retirés automatiquement</strong> dès que le procès est clôturé.</p>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+                  <div class="form-group">
+                    <label for="tribunal_judge_role"><i class="fa-solid fa-gavel" style="color: #f1c40f;"></i> Rôle Juge :</label>
+                    <select id="tribunal_judge_role" class="role-select">
+                      <option value="">-- Aucun rôle spécifique --</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="tribunal_lawyer_role"><i class="fa-solid fa-user-tie" style="color: #3498db;"></i> Rôle Avocat :</label>
+                    <select id="tribunal_lawyer_role" class="role-select">
+                      <option value="">-- Aucun rôle spécifique --</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="tribunal_accused_role"><i class="fa-solid fa-user-slash" style="color: #e74c3c;"></i> Rôle Accusé :</label>
+                    <select id="tribunal_accused_role" class="role-select">
+                      <option value="">-- Aucun rôle spécifique --</option>
+                    </select>
+                  </div>
                 </div>
               </div>
               <div class="actions-bar">
@@ -987,14 +1018,22 @@
             <div class="card glass mb-4">
               <h3>Configuration générale de la Boutique</h3>
               <form id="form-shop-settings" class="inner-form">
-                <div class="form-group">
+                <div class="form-group mb-3">
                   <label for="private_suite_category_id">Catégorie de création des Suites Privées :</label>
                   <select id="private_suite_category_id" class="category-select">
                     <option value="">-- Créer automatiquement une catégorie --</option>
                   </select>
                   <small class="form-help">Sélectionnez la catégorie Discord dans laquelle les salons des Suites Privées (achetées en boutique) seront créés automatiquement.</small>
                 </div>
-                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les paramètres de la boutique</button>
+                <div class="form-group mb-3">
+                  <label for="suite_channel_prefix">Préfixe & Émoji du nom des salons de Suites Privées :</label>
+                  <input type="text" id="suite_channel_prefix" class="inner-input" placeholder="ex: 👑┆suite-" value="👑┆suite-">
+                  <small class="form-help">Exemples populaires : <code>👑┆suite-</code>, <code>🛋️┆suite-privée-</code>, <code>🏰┆suite-vip-</code>, <code>✨┆suite-luxe-</code></small>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                  <button type="submit" class="btn btn-save" style="flex: 1;"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les paramètres de la boutique</button>
+                  <button type="button" id="btn-sync-suite-channels" class="btn" style="background: rgba(155, 89, 182, 0.8); color: white;"><i class="fa-solid fa-rotate"></i> Resynchroniser les salons existants</button>
+                </div>
               </form>
             </div>
             

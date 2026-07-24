@@ -174,6 +174,32 @@ function slugifyChannelName(s) {
     .slice(0, 40) || 'proces';
 }
 
+async function assignTribunalRole(guild, userId, roleId) {
+  if (!guild || !userId || !roleId) return;
+  try {
+    const member = await guild.members.fetch(userId).catch(() => null);
+    const role = guild.roles.cache.get(roleId) || await guild.roles.fetch(roleId).catch(() => null);
+    if (member && role && !member.roles.cache.has(role.id)) {
+      await member.roles.add(role).catch(console.error);
+    }
+  } catch (err) {
+    console.error('Erreur assignation rôle tribunal:', err);
+  }
+}
+
+async function removeTribunalRole(guild, userId, roleId) {
+  if (!guild || !userId || !roleId) return;
+  try {
+    const member = await guild.members.fetch(userId).catch(() => null);
+    const role = guild.roles.cache.get(roleId) || await guild.roles.fetch(roleId).catch(() => null);
+    if (member && role && member.roles.cache.has(role.id)) {
+      await member.roles.remove(role).catch(console.error);
+    }
+  } catch (err) {
+    console.error('Erreur retrait rôle tribunal:', err);
+  }
+}
+
 async function getOrCreateTribunalCategory(guild, storage) {
   const gid = guild.id;
   const cfg = await storage.getTribunalConfig(gid);
@@ -285,6 +311,21 @@ module.exports = {
           await storage.upsertTribunalCase(interaction.guildId, caseId, { status: 'closed' });
           const updated = await storage.getTribunalCase(interaction.guildId, caseId);
 
+          // Retrait automatique des rôles de tribunal aux membres du procès
+          const cfg = await storage.getTribunalConfig(interaction.guildId);
+          if (cfg.accusedRoleId && record.accusedId) {
+            await removeTribunalRole(interaction.guild, record.accusedId, cfg.accusedRoleId);
+          }
+          if (cfg.lawyerRoleId && record.plaintiffLawyerId) {
+            await removeTribunalRole(interaction.guild, record.plaintiffLawyerId, cfg.lawyerRoleId);
+          }
+          if (cfg.lawyerRoleId && record.accusedLawyerId) {
+            await removeTribunalRole(interaction.guild, record.accusedLawyerId, cfg.lawyerRoleId);
+          }
+          if (cfg.judgeRoleId && record.judgeId) {
+            await removeTribunalRole(interaction.guild, record.judgeId, cfg.judgeRoleId);
+          }
+
           try { await interaction.deferUpdate(); } catch (_) {}
           const embed = caseEmbedFromRecord(updated);
 
@@ -293,7 +334,7 @@ module.exports = {
           } catch (_) {}
 
           try {
-            await interaction.channel.send({ content: `🔴 **PROCÈS CLÔTURÉ** par <@${interaction.user.id}>. Le salon sera archivé.` });
+            await interaction.channel.send({ content: `🔴 **PROCÈS CLÔTURÉ** par <@${interaction.user.id}>. Tous les rôles temporaires attribués ont été retirés et le salon est désormais clos.` });
           } catch (_) {}
 
           return true;
@@ -312,6 +353,12 @@ module.exports = {
 
           await storage.upsertTribunalCase(interaction.guildId, caseId, { judgeId: interaction.user.id });
           const updated = await storage.getTribunalCase(interaction.guildId, caseId);
+
+          // Attribuer automatiquement le rôle de Juge si configuré
+          const cfg = await storage.getTribunalConfig(interaction.guildId);
+          if (cfg.judgeRoleId) {
+            await assignTribunalRole(interaction.guild, interaction.user.id, cfg.judgeRoleId);
+          }
 
           try { await interaction.deferUpdate(); } catch (_) {}
           const embed = caseEmbedFromRecord(updated);
@@ -345,6 +392,12 @@ module.exports = {
         if (caseId && picked) {
           await storage.upsertTribunalCase(interaction.guildId, caseId, { accusedLawyerId: String(picked) });
           const updated = await storage.getTribunalCase(interaction.guildId, caseId);
+
+          // Attribuer automatiquement le rôle d'Avocat
+          const cfg = await storage.getTribunalConfig(interaction.guildId);
+          if (cfg.lawyerRoleId) {
+            await assignTribunalRole(interaction.guild, String(picked), cfg.lawyerRoleId);
+          }
 
           try { await interaction.deferUpdate(); } catch (_) {}
 
@@ -433,7 +486,10 @@ module.exports = {
           const category = await getOrCreateTribunalCategory(guild, storage);
           const accusedMember = await guild.members.fetch(record.accusedId).catch(() => null);
           const accusedName = accusedMember?.displayName || accusedMember?.user?.username || 'accuse';
-          const chanName = `⚖️┆procès-${slugifyChannelName(accusedName)}`.slice(0, 90);
+          
+          const cfg = await storage.getTribunalConfig(guild.id);
+          const prefix = (cfg && cfg.channelPrefix) ? cfg.channelPrefix : '⚖️・procès-';
+          const chanName = `${prefix}${slugifyChannelName(accusedName)}`.slice(0, 90);
 
           const overwrites = [
             {
@@ -464,6 +520,14 @@ module.exports = {
           const panelMsg = await caseChannel.send({ content, embeds: [panelEmbed], components: caseButtons(caseId) }).catch(() => null);
           if (panelMsg?.id) {
             await storage.upsertTribunalCase(guild.id, caseId, { panelMessageId: panelMsg.id });
+          }
+
+          // Attribution automatique des rôles Accusé et Avocat si configurés
+          if (cfg.accusedRoleId && record.accusedId) {
+            await assignTribunalRole(guild, record.accusedId, cfg.accusedRoleId);
+          }
+          if (cfg.lawyerRoleId && record.plaintiffLawyerId) {
+            await assignTribunalRole(guild, record.plaintiffLawyerId, cfg.lawyerRoleId);
           }
 
           sessions.delete(ownerId);

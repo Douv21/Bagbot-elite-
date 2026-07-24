@@ -223,6 +223,37 @@ client.on('interactionCreate', async interaction => {
         .setColor(isInvite ? '#43B581' : '#F04747');
 
       return interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+    } else if (customId.startsWith('suite_revoke_role_')) {
+      const roleId = customId.replace('suite_revoke_role_', '');
+      const { getPrivateSuiteByChannel, getActiveTicket } = require('./database/db');
+      const suite = getPrivateSuiteByChannel(interaction.channelId);
+      const ticket = getActiveTicket(interaction.channelId);
+
+      const isStaff = interaction.member.permissions.has(PermissionFlagsBits.Administrator) ||
+                      interaction.member.permissions.has(PermissionFlagsBits.ManageChannels) ||
+                      (suite && interaction.user.id === suite.user_id) ||
+                      (ticket && interaction.user.id === ticket.user_id);
+
+      if (!isStaff) {
+        return interaction.reply({ content: '❌ Seul le propriétaire du salon ou un administrateur peut retirer l\'accès.', ephemeral: true });
+      }
+
+      try {
+        await interaction.channel.permissionOverwrites.delete(roleId).catch(async () => {
+          await interaction.channel.permissionOverwrites.create(roleId, { ViewChannel: false });
+        });
+
+        const embed = new EmbedBuilder()
+          .setTitle('🔒 Accès Révoqué')
+          .setDescription(`L'accès au salon pour le rôle <@&${roleId}> a été révoqué avec succès.\nLe problème a été marqué comme résolu.`)
+          .setColor('#E74C3C')
+          .setTimestamp();
+
+        return interaction.reply({ embeds: [embed] });
+      } catch (err) {
+        console.error('Erreur révocation rôle:', err);
+        return interaction.reply({ content: '❌ Impossible de retirer les permissions de ce rôle.', ephemeral: true });
+      }
     } else if (customId.startsWith('av_')) {
       const choix = customId.split('_')[1]; // 'action' ou 'verite'
       const guildId = interaction.guild ? interaction.guild.id : 'DM';
@@ -576,9 +607,10 @@ client.once('ready', async () => {
 
     console.log('Commandes d\'application (/) enregistrées avec succès.');
     
-    // Nettoyage automatique des suites privées toutes les 60 secondes
+    // Nettoyage et resynchronisation automatique des suites privées et salons tribunal
     setInterval(() => checkExpiredSuites(client), 60000);
     checkExpiredSuites(client);
+    syncExistingChannels(client);
 
     // Nettoyage automatique des rôles temporaires toutes les 60 secondes
     setInterval(() => checkExpiredTemporaryRoles(client), 60000);
@@ -603,6 +635,8 @@ client.once('ready', async () => {
     // Scan et réouverture des forums illimités au démarrage
     const { scanAndReopenAllUnlimitedForums } = require('./utils/forums');
     scanAndReopenAllUnlimitedForums(client).catch(console.error);
+
+    client.syncExistingChannels = () => syncExistingChannels(client);
   } catch (error) {
     console.error('Erreur lors de l\'enregistrement des commandes slash :', error);
   }
@@ -862,26 +896,26 @@ async function checkExpiredSuites(client) {
     const suites = getAllPrivateSuites();
     
     for (const suite of suites) {
+      const guild = client.guilds.cache.get(suite.guild_id) || await client.guilds.fetch(suite.guild_id).catch(() => null);
+      if (!guild) continue;
+
+      let txtChan = suite.text_channel_id ? (guild.channels.cache.get(suite.text_channel_id) || await guild.channels.fetch(suite.text_channel_id).catch(() => null)) : null;
+      let vcChan = suite.voice_channel_id ? (guild.channels.cache.get(suite.voice_channel_id) || await guild.channels.fetch(suite.voice_channel_id).catch(() => null)) : null;
+
       if (suite.expires_at <= now) {
-        const guild = client.guilds.cache.get(suite.guild_id);
-        if (guild) {
-          const txtChan = guild.channels.cache.get(suite.text_channel_id);
-          const vcChan = guild.channels.cache.get(suite.voice_channel_id);
+        if (txtChan) {
+          await txtChan.send('⏳ **Cette suite privée a expiré et va être supprimée...**').catch(() => {});
+          setTimeout(async () => {
+            await txtChan.delete().catch(() => {});
+          }, 5000);
+        }
+        if (vcChan) {
+          await vcChan.delete().catch(() => {});
+        }
 
-          if (txtChan) {
-            await txtChan.send('⏳ **Cette suite privée a expiré et va être supprimée...**').catch(() => {});
-            setTimeout(async () => {
-              await txtChan.delete().catch(() => {});
-            }, 5000);
-          }
-          if (vcChan) {
-            await vcChan.delete().catch(() => {});
-          }
-
-          const user = await client.users.fetch(suite.user_id).catch(() => null);
-          if (user) {
-            await user.send(`⏳ Votre suite privée sur le serveur **${guild.name}** a expiré et ses salons ont été supprimés.`).catch(() => {});
-          }
+        const user = await client.users.fetch(suite.user_id).catch(() => null);
+        if (user) {
+          await user.send(`⏳ Votre suite privée sur le serveur **${guild.name}** a expiré et ses salons ont été supprimés.`).catch(() => {});
         }
 
         deletePrivateSuite(suite.guild_id, suite.user_id);
@@ -889,6 +923,129 @@ async function checkExpiredSuites(client) {
     }
   } catch (err) {
     console.error('Erreur nettoyage suites privées:', err);
+  }
+}
+
+async function syncExistingChannels(client) {
+  try {
+    const { getAllPrivateSuites, getShopConfig } = require('./database/db');
+    const { getAllTribunalCases, getTribunalConfig } = require('./utils/tribunal_db');
+
+    // 1. Resynchronisation des Suites Privées existantes depuis la BDD
+    const suites = getAllPrivateSuites();
+    const processedChannelIds = new Set();
+
+    for (const suite of suites) {
+      const guild = client.guilds.cache.get(suite.guild_id) || await client.guilds.fetch(suite.guild_id).catch(() => null);
+      if (!guild) continue;
+
+      const shopCfg = getShopConfig(suite.guild_id);
+      const prefix = shopCfg.suiteChannelPrefix || '👑┆suite-';
+      
+      const member = await guild.members.fetch(suite.user_id).catch(() => null);
+      const rawName = member ? (member.user.username || member.displayName) : suite.user_id;
+      const cleanName = rawName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'suite';
+
+      // Salon Textuel
+      if (suite.text_channel_id) {
+        processedChannelIds.add(suite.text_channel_id);
+        const txtChan = guild.channels.cache.get(suite.text_channel_id) || await guild.channels.fetch(suite.text_channel_id).catch(() => null);
+        if (txtChan) {
+          const targetName = `${prefix}${cleanName}`.slice(0, 90);
+          if (txtChan.name !== targetName) {
+            await txtChan.setName(targetName).catch(err => console.error(`Erreur renommer text channel ${txtChan.id}:`, err.message));
+          }
+        }
+      }
+
+      // Salon Vocal (si présent)
+      if (suite.voice_channel_id) {
+        processedChannelIds.add(suite.voice_channel_id);
+        const vcChan = guild.channels.cache.get(suite.voice_channel_id) || await guild.channels.fetch(suite.voice_channel_id).catch(() => null);
+        if (vcChan) {
+          const targetVcName = `👑 🔊 │ Suite de ${rawName.slice(0, 30)}`;
+          if (vcChan.name !== targetVcName) {
+            await vcChan.setName(targetVcName).catch(err => console.error(`Erreur renommer voice channel ${vcChan.id}:`, err.message));
+          }
+        }
+      }
+    }
+
+    // Balayage des catégories et salons de Suites Privées sur les serveurs
+    for (const [guildId, guild] of client.guilds.cache) {
+      const shopCfg = getShopConfig(guildId);
+      const prefix = shopCfg.suiteChannelPrefix || '👑┆suite-';
+      const categoryId = shopCfg.privateSuiteCategoryId;
+
+      const channels = await guild.channels.fetch().catch(() => null);
+      if (!channels) continue;
+
+      for (const [chanId, chan] of channels.entries()) {
+        if (!chan || processedChannelIds.has(chanId) || chan.type === 4) continue;
+
+        const parentName = chan.parent ? chan.parent.name.toLowerCase() : '';
+        const isSuiteCategory = (categoryId && chan.parentId === categoryId) ||
+                                parentName.includes('suite') ||
+                                parentName.includes('vip') ||
+                                parentName.includes('prive');
+
+        const chanNameLower = chan.name.toLowerCase();
+        const isSuiteName = chanNameLower.includes('suite') || 
+                            chanNameLower.includes('jormungand') ||
+                            chanNameLower.startsWith('👑') ||
+                            chanNameLower.startsWith('🛋️') ||
+                            chanNameLower.startsWith('🏰') ||
+                            chanNameLower.startsWith('✨');
+
+        if ((isSuiteCategory || isSuiteName) && chan.isTextBased()) {
+          if (!chan.name.startsWith(prefix)) {
+            let baseUser = chan.name
+              .replace(/^[^a-zA-Z0-9]+/, '')
+              .replace(/^suite[-_]?/i, '')
+              .replace(/^prive[-_]?/i, '')
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-+|-+$/g, '');
+
+            if (!baseUser) baseUser = 'privee';
+
+            const newName = `${prefix}${baseUser}`.slice(0, 90);
+            if (chan.name !== newName) {
+              console.log(`[Sync] Renommage du salon suite ${chan.name} (ID: ${chanId}) -> ${newName}`);
+              await chan.setName(newName).catch(err => console.error(`Erreur rename suite category chan ${chanId}:`, err.message));
+            }
+          }
+        }
+      }
+    }
+
+    // 2. Resynchronisation des Procès du Tribunal existants
+    const cases = getAllTribunalCases();
+    for (const c of cases) {
+      if (c.status === 'closed' || !c.channelId) continue;
+
+      const guild = client.guilds.cache.get(c.guildId) || await client.guilds.fetch(c.guildId).catch(() => null);
+      if (!guild) continue;
+
+      const tribCfg = getTribunalConfig(c.guildId);
+      const prefix = tribCfg.channelPrefix || '⚖️┆procès-';
+
+      const ch = guild.channels.cache.get(c.channelId) || await guild.channels.fetch(c.channelId).catch(() => null);
+      if (ch) {
+        const accusedMember = await guild.members.fetch(c.accusedId).catch(() => null);
+        const accusedName = accusedMember?.displayName || accusedMember?.user?.username || 'accuse';
+        const cleanName = accusedName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        const targetName = `${prefix}${cleanName}`.slice(0, 90);
+
+        if (ch.name !== targetName) {
+          await ch.setName(targetName).catch(() => {});
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Erreur resynchronisation des salons:', err);
   }
 }
 

@@ -444,9 +444,14 @@ function initDatabase() {
   db.prepare(`
     CREATE TABLE IF NOT EXISTS shop_config (
       guild_id TEXT PRIMARY KEY,
-      private_suite_category_id TEXT
+      private_suite_category_id TEXT,
+      suite_channel_prefix TEXT DEFAULT '👑┆suite-'
     )
   `).run();
+
+  try {
+    db.prepare("ALTER TABLE shop_config ADD COLUMN suite_channel_prefix TEXT DEFAULT '👑┆suite-'").run();
+  } catch (e) {}
 
   db.prepare(`
     CREATE TABLE IF NOT EXISTS unlimited_forums (
@@ -1037,20 +1042,23 @@ const updatePrivateSuiteExpiry = (guildId, userId, expiresAt) => {
 const getShopConfig = (guildId) => {
   let row = db.prepare('SELECT * FROM shop_config WHERE guild_id = ?').get(guildId);
   if (!row) {
-    db.prepare('INSERT OR IGNORE INTO shop_config (guild_id, private_suite_category_id) VALUES (?, ?)').run(guildId, null);
-    row = { guild_id: guildId, private_suite_category_id: null };
+    db.prepare('INSERT OR IGNORE INTO shop_config (guild_id, private_suite_category_id, suite_channel_prefix) VALUES (?, ?, ?)').run(guildId, null, '👑┆suite-');
+    row = { guild_id: guildId, private_suite_category_id: null, suite_channel_prefix: '👑┆suite-' };
   }
   return {
-    privateSuiteCategoryId: row.private_suite_category_id || ''
+    privateSuiteCategoryId: row.private_suite_category_id || '',
+    suiteChannelPrefix: row.suite_channel_prefix || '👑┆suite-'
   };
 };
 
-const updateShopConfig = (guildId, privateSuiteCategoryId) => {
+const updateShopConfig = (guildId, privateSuiteCategoryId, suiteChannelPrefix) => {
   db.prepare(`
-    INSERT INTO shop_config (guild_id, private_suite_category_id)
-    VALUES (?, ?)
-    ON CONFLICT(guild_id) DO UPDATE SET private_suite_category_id = EXCLUDED.private_suite_category_id
-  `).run(guildId, privateSuiteCategoryId || null);
+    INSERT INTO shop_config (guild_id, private_suite_category_id, suite_channel_prefix)
+    VALUES (?, ?, ?)
+    ON CONFLICT(guild_id) DO UPDATE SET
+      private_suite_category_id = EXCLUDED.private_suite_category_id,
+      suite_channel_prefix = EXCLUDED.suite_channel_prefix
+  `).run(guildId, privateSuiteCategoryId || null, suiteChannelPrefix || '👑┆suite-');
 };
 
 const addTemporaryRole = (guildId, userId, roleId, expiresAt) => {

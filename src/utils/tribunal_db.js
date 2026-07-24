@@ -7,9 +7,18 @@ const db = new Database(dbPath);
 db.prepare(`
   CREATE TABLE IF NOT EXISTS tribunal_config (
     guild_id TEXT PRIMARY KEY,
-    category_id TEXT
+    category_id TEXT,
+    judge_role_id TEXT,
+    lawyer_role_id TEXT,
+    accused_role_id TEXT,
+    channel_prefix TEXT DEFAULT '⚖️┆procès-'
   )
 `).run();
+
+try { db.prepare("ALTER TABLE tribunal_config ADD COLUMN judge_role_id TEXT").run(); } catch (_) {}
+try { db.prepare("ALTER TABLE tribunal_config ADD COLUMN lawyer_role_id TEXT").run(); } catch (_) {}
+try { db.prepare("ALTER TABLE tribunal_config ADD COLUMN accused_role_id TEXT").run(); } catch (_) {}
+try { db.prepare("ALTER TABLE tribunal_config ADD COLUMN channel_prefix TEXT DEFAULT '⚖️┆procès-'").run(); } catch (_) {}
 
 db.prepare(`
   CREATE TABLE IF NOT EXISTS tribunal_cases (
@@ -33,7 +42,11 @@ db.prepare(`
 function getTribunalConfig(guildId) {
   const row = db.prepare('SELECT * FROM tribunal_config WHERE guild_id = ?').get(guildId);
   return {
-    categoryId: row ? row.category_id : ''
+    categoryId: row ? (row.category_id || '') : '',
+    judgeRoleId: row ? (row.judge_role_id || '') : '',
+    lawyerRoleId: row ? (row.lawyer_role_id || '') : '',
+    accusedRoleId: row ? (row.accused_role_id || '') : '',
+    channelPrefix: row ? (row.channel_prefix || '⚖️┆procès-') : '⚖️┆procès-'
   };
 }
 
@@ -41,9 +54,15 @@ function updateTribunalConfig(guildId, data) {
   const current = getTribunalConfig(guildId);
   const next = { ...current, ...data };
   db.prepare(`
-    INSERT INTO tribunal_config (guild_id, category_id) VALUES (?, ?)
-    ON CONFLICT(guild_id) DO UPDATE SET category_id = excluded.category_id
-  `).run(guildId, next.categoryId);
+    INSERT INTO tribunal_config (guild_id, category_id, judge_role_id, lawyer_role_id, accused_role_id, channel_prefix)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(guild_id) DO UPDATE SET
+      category_id = excluded.category_id,
+      judge_role_id = excluded.judge_role_id,
+      lawyer_role_id = excluded.lawyer_role_id,
+      accused_role_id = excluded.accused_role_id,
+      channel_prefix = excluded.channel_prefix
+  `).run(guildId, next.categoryId, next.judgeRoleId, next.lawyerRoleId, next.accusedRoleId, next.channelPrefix);
   return next;
 }
 
@@ -52,6 +71,7 @@ function getTribunalCase(guildId, caseId) {
   if (!row) return null;
   return {
     id: row.case_id,
+    guildId: row.guild_id,
     createdAt: row.created_at,
     status: row.status,
     plaintiffId: row.plaintiff_id,
@@ -66,9 +86,31 @@ function getTribunalCase(guildId, caseId) {
   };
 }
 
+function getAllTribunalCases(guildId) {
+  const rows = guildId 
+    ? db.prepare('SELECT * FROM tribunal_cases WHERE guild_id = ?').all(guildId)
+    : db.prepare('SELECT * FROM tribunal_cases').all();
+  return rows.map(row => ({
+    id: row.case_id,
+    guildId: row.guild_id,
+    createdAt: row.created_at,
+    status: row.status,
+    plaintiffId: row.plaintiff_id,
+    accusedId: row.accused_id,
+    plaintiffLawyerId: row.plaintiff_lawyer_id,
+    accusedLawyerId: row.accused_lawyer_id,
+    judgeId: row.judge_id,
+    charge: row.charge,
+    channelId: row.channel_id,
+    panelMessageId: row.panel_message_id,
+    closedAt: row.closed_at
+  }));
+}
+
 function upsertTribunalCase(guildId, caseId, data) {
   const current = getTribunalCase(guildId, caseId) || {
     id: caseId,
+    guildId,
     createdAt: Date.now(),
     status: 'open',
     plaintiffId: '',
@@ -110,5 +152,6 @@ module.exports = {
   getTribunalConfig,
   updateTribunalConfig,
   getTribunalCase,
+  getAllTribunalCases,
   upsertTribunalCase
 };

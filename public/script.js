@@ -617,21 +617,41 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('announce_channel').value = lvl.announce_channel || 'current';
         document.getElementById('announce_msg').value = lvl.announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !';
         
-        // Tribunal Category
+        // Tribunal Category & Roles & Prefix
         const trib = config.tribunal_config || {};
         const tribCategoryEl = document.getElementById('tribunal_category');
         if (tribCategoryEl) {
           tribCategoryEl.value = trib.categoryId || '';
           if (tribCategoryEl.syncCustomSelect) tribCategoryEl.syncCustomSelect();
         }
+        const tribPrefixEl = document.getElementById('tribunal_channel_prefix');
+        if (tribPrefixEl) tribPrefixEl.value = trib.channelPrefix || '⚖️┆procès-';
 
-        // Shop Config (Suites privées category)
+        const judgeRoleEl = document.getElementById('tribunal_judge_role');
+        if (judgeRoleEl) {
+          judgeRoleEl.value = trib.judgeRoleId || '';
+          if (judgeRoleEl.syncCustomSelect) judgeRoleEl.syncCustomSelect();
+        }
+        const lawyerRoleEl = document.getElementById('tribunal_lawyer_role');
+        if (lawyerRoleEl) {
+          lawyerRoleEl.value = trib.lawyerRoleId || '';
+          if (lawyerRoleEl.syncCustomSelect) lawyerRoleEl.syncCustomSelect();
+        }
+        const accusedRoleEl = document.getElementById('tribunal_accused_role');
+        if (accusedRoleEl) {
+          accusedRoleEl.value = trib.accusedRoleId || '';
+          if (accusedRoleEl.syncCustomSelect) accusedRoleEl.syncCustomSelect();
+        }
+
+        // Shop Config (Suites privées category & prefix)
         const shopCfg = config.shop_config || {};
         const privateSuiteCategoryEl = document.getElementById('private_suite_category_id');
         if (privateSuiteCategoryEl) {
           privateSuiteCategoryEl.value = shopCfg.privateSuiteCategoryId || '';
           if (privateSuiteCategoryEl.syncCustomSelect) privateSuiteCategoryEl.syncCustomSelect();
         }
+        const suitePrefixEl = document.getElementById('suite_channel_prefix');
+        if (suitePrefixEl) suitePrefixEl.value = shopCfg.suiteChannelPrefix || '👑┆suite-';
         
         if (typeof updateXpCurvePreview === 'function') {
           updateXpCurvePreview();
@@ -2237,17 +2257,53 @@ document.addEventListener('DOMContentLoaded', () => {
     formTribunal.addEventListener('submit', (e) => {
       e.preventDefault();
       const category_id = document.getElementById('tribunal_category').value;
-      saveConfig('/api/config/tribunal', { category_id });
+      const channel_prefix = document.getElementById('tribunal_channel_prefix').value;
+      const judge_role_id = document.getElementById('tribunal_judge_role').value;
+      const lawyer_role_id = document.getElementById('tribunal_lawyer_role').value;
+      const accused_role_id = document.getElementById('tribunal_accused_role').value;
+      saveConfig('/api/config/tribunal', {
+        category_id,
+        channel_prefix,
+        judge_role_id,
+        lawyer_role_id,
+        accused_role_id
+      });
     });
   }
 
-  // Shop Settings Form Submit (Suites privées category)
+  // Shop Settings Form Submit (Suites privées category & prefix)
   const formShopSettings = document.getElementById('form-shop-settings');
   if (formShopSettings) {
     formShopSettings.addEventListener('submit', (e) => {
       e.preventDefault();
       const private_suite_category_id = document.getElementById('private_suite_category_id').value;
-      saveConfig('/api/config/shop-settings', { private_suite_category_id });
+      const suite_channel_prefix = document.getElementById('suite_channel_prefix').value;
+      saveConfig('/api/config/shop-settings', { private_suite_category_id, suite_channel_prefix });
+    });
+  }
+
+  // Bouton de resynchronisation manuelle des salons
+  const btnSyncSuite = document.getElementById('btn-sync-suite-channels');
+  if (btnSyncSuite) {
+    btnSyncSuite.addEventListener('click', () => {
+      btnSyncSuite.disabled = true;
+      btnSyncSuite.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Resynchronisation...';
+      fetch('/api/config/sync-channels', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          btnSyncSuite.disabled = false;
+          btnSyncSuite.innerHTML = '<i class="fa-solid fa-rotate"></i> Resynchroniser les salons existants';
+          if (data.success) {
+            showToast('Noms des salons suites et tribunal resynchronisés avec succès !');
+          } else {
+            showToast('Erreur: ' + data.error, true);
+          }
+        })
+        .catch(err => {
+          btnSyncSuite.disabled = false;
+          btnSyncSuite.innerHTML = '<i class="fa-solid fa-rotate"></i> Resynchroniser les salons existants';
+          showToast('Erreur: ' + err.message, true);
+        });
     });
   }
 

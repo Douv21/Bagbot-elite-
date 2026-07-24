@@ -156,10 +156,10 @@ module.exports = {
 
       // Si aucune catégorie n'est configurée ou trouvée, on cherche la catégorie par défaut ou on la crée
       if (!category) {
-        category = interaction.guild.channels.cache.find(c => c.name === '🔑 Suites Privées' && c.type === ChannelType.GuildCategory);
+        category = interaction.guild.channels.cache.find(c => /suites/i.test(c.name || '') && c.type === ChannelType.GuildCategory);
         if (!category) {
           category = await interaction.guild.channels.create({
-            name: '🔑 Suites Privées',
+            name: '👑 🛋️ │ SUITES PRIVÉES VIP',
             type: ChannelType.GuildCategory,
             permissionOverwrites: [
               {
@@ -171,9 +171,12 @@ module.exports = {
         }
       }
 
+      const suitePrefix = shopCfg?.suiteChannelPrefix || '👑┆suite-';
+      const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9-]/g, '');
+
       try {
         const textChannel = await interaction.guild.channels.create({
-          name: `suite-de-${interaction.user.username}`.toLowerCase().replace(/[^a-z0-9-]/g, ''),
+          name: `${suitePrefix}${cleanUsername}`.slice(0, 90),
           type: ChannelType.GuildText,
           parent: category ? category.id : null,
           permissionOverwrites: [

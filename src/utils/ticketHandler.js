@@ -204,12 +204,32 @@ async function handleTicketInteraction(interaction, client) {
       }
     }
 
-    // Déterminer s'il s'agit d'une Suite Privée / VIP
+    // Déterminer l'émoji et le préfixe selon la catégorie / option
     const isSuite = /suite|privat|prive|vip/i.test(option.value) || /suite|privat|prive|vip/i.test(option.label);
-    const prefix = isSuite ? '👑┆suite-' : '🎫┆ticket-';
+    
+    let emoji = '🎫';
+    let catSlug = 'ticket';
 
-    // Créer le salon
-    const channelName = `${prefix}${option.value}-${interaction.user.username}`.toLowerCase().replace(/[^a-z0-9\-_]/g, '-').substring(0, 100);
+    if (isSuite) {
+      emoji = '👑';
+      catSlug = 'suite-privée';
+    } else if (/recrutement|staff|mod/i.test(option.value) || /recrutement|staff|mod/i.test(option.label)) {
+      emoji = '🛡️';
+      catSlug = 'staff';
+    } else if (/plainte|report|signalement/i.test(option.value) || /plainte|report|signalement/i.test(option.label)) {
+      emoji = '⚠️';
+      catSlug = 'plainte';
+    } else if (/partenariat|collab/i.test(option.value) || /partenariat|collab/i.test(option.label)) {
+      emoji = '🤝';
+      catSlug = 'partenariat';
+    } else if (/boutique|achat|shop/i.test(option.value) || /boutique|achat|shop/i.test(option.label)) {
+      emoji = '💎';
+      catSlug = 'boutique';
+    }
+
+    const cleanUser = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanOpt = option.value.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const channelName = `${emoji}・${catSlug}-${cleanOpt}-${cleanUser}`.substring(0, 95);
     const ticketChannel = await interaction.guild.channels.create({
       name: channelName,
       type: ChannelType.GuildText,
