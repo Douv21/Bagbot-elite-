@@ -1014,11 +1014,11 @@ async function syncExistingChannels(client) {
       }
     }
 
-    // 3. Mettre à jour et renvoyer à neuf les panels d'embeds principaux (Tickets / Support)
+    // 3. Mettre à jour les panels d'embeds principaux (Tickets / Support) sans les renvoyer à neuf
     try {
       const panels = db.prepare('SELECT id FROM ticket_panels').all();
       for (const p of panels) {
-        await sendOrUpdateTicketPanel(p.id, client, true).catch(() => {});
+        await sendOrUpdateTicketPanel(p.id, client, false).catch(() => {});
       }
     } catch (e) {}
 
