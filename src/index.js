@@ -133,6 +133,19 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId) => {
 
 // Événement d'interaction (Slash Commands)
 client.on('interactionCreate', async interaction => {
+  // Prise en charge directe des boutons, sélecteurs et modaux du Tribunal
+  if (interaction.customId && (interaction.customId.startsWith('tribunal:') || interaction.customId.startsWith('tribunal_case:'))) {
+    const tribunalCmd = client.commands.get('tribunal');
+    if (tribunalCmd && typeof tribunalCmd.handleInteraction === 'function') {
+      try {
+        const handled = await tribunalCmd.handleInteraction(interaction);
+        if (handled) return;
+      } catch (err) {
+        console.error('Erreur interaction tribunal:', err);
+      }
+    }
+  }
+
   if (interaction.isButton()) {
     const customId = interaction.customId;
     if (customId.startsWith('autorole_')) {
@@ -451,7 +464,7 @@ client.on('interactionCreate', async interaction => {
 
     const isAllowedForEveryone = 
       command.category === 'actions' ||
-      ['action-verite', 'niveau', 'solde', 'karma', 'mapville', 'proche', 'boutique', 'leaderboard', 'confess', 'confesser', 'deposit', 'withdraw', 'lovecalc', 'mot-cache'].includes(interaction.commandName);
+      ['action-verite', 'niveau', 'solde', 'karma', 'mapville', 'proche', 'boutique', 'leaderboard', 'confess', 'confesser', 'deposit', 'withdraw', 'lovecalc', 'mot-cache', 'tribunal'].includes(interaction.commandName);
       
     if (!isAllowedForEveryone) {
       const { PermissionsBitField } = require('discord.js');
