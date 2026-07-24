@@ -6,7 +6,7 @@ module.exports = {
   
   data: new SlashCommandBuilder()
     .setName("dropargent")
-    .setDescription("Créer un drop d'argent pour le premier membre qui réagit")
+    .setDescription("Créer un drop d'argent pour le premier membre qui réagit (Admin uniquement)")
     .addIntegerOption(option =>
       option.setName("montant")
         .setDescription("Montant d'argent à gagner")
@@ -16,15 +16,16 @@ module.exports = {
       option.setName("message")
         .setDescription("Message personnalisé (optionnel)")
         .setRequired(false))
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
     .setDMPermission(false),
   
-  description: "Drop d'argent pour le premier qui réagit",
+  description: "Drop d'argent pour le premier qui réagit (Admin uniquement)",
   
   async execute(interaction) {
-    const hasManageGuild = interaction.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild);
-    if (!hasManageGuild) {
+    const isAdmin = interaction.memberPermissions?.has(PermissionsBitField.Flags.Administrator);
+    if (!isAdmin) {
       return interaction.reply({ 
-        content: "❌ Vous devez avoir la permission de gérer le serveur pour utiliser cette commande.", 
+        content: "❌ Vous devez être Administrateur du serveur pour créer un drop d'argent.", 
         ephemeral: true 
       });
     }
