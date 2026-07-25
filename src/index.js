@@ -515,6 +515,7 @@ client.on('interactionCreate', async interaction => {
     return;
   }
 
+  const guildId = interaction.guildId;
   if (guildId) {
     const { getCommandPermission } = require('./database/db');
     const customPerm = getCommandPermission(guildId, interaction.commandName);
