@@ -2409,27 +2409,6 @@ document.addEventListener('DOMContentLoaded', () => {
     saveConfig('/api/config/quarantine', { role_id, channel_id });
   });
 
-  // Tribunal Form Submit
-  const formTribunal = document.getElementById('form-tribunal');
-  if (formTribunal) {
-    formTribunal.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const category_id = document.getElementById('tribunal_category').value;
-      const channel_prefix = document.getElementById('tribunal_channel_prefix').value;
-      const judge_role_id = document.getElementById('tribunal_judge_role').value;
-      const lawyer_role_id = document.getElementById('tribunal_lawyer_role').value;
-      const accused_role_id = document.getElementById('tribunal_accused_role').value;
-      const plaintiff_role_id = document.getElementById('tribunal_plaintiff_role').value;
-      saveConfig('/api/config/tribunal', {
-        category_id,
-        channel_prefix,
-        judge_role_id,
-        lawyer_role_id,
-        accused_role_id,
-        plaintiff_role_id
-      });
-    });
-  }
 
   // Shop Settings Form Submit (Suites privées category & prefix)
   const formShopSettings = document.getElementById('form-shop-settings');
