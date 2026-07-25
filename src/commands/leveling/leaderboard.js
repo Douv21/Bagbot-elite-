@@ -28,8 +28,9 @@ module.exports = {
     let desc = '';
     for (let i = 0; i < topPlayers.length; i++) {
       const p = topPlayers[i];
-      const user = await interaction.client.users.fetch(p.user_id).catch(() => null);
-      const username = user ? user.username : `Utilisateur inconnu (${p.user_id})`;
+      const member = await interaction.guild.members.fetch(p.user_id).catch(() => null);
+      const user = member ? member.user : await interaction.client.users.fetch(p.user_id).catch(() => null);
+      const username = member ? member.displayName : (user ? user.username : `Membre (${p.user_id})`);
       const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `**#${i + 1}**`;
       
       desc += `${medal} **${username}** — Niveau ${p.level} (${p.xp} XP)\n`;

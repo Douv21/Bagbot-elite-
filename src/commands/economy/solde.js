@@ -88,11 +88,13 @@ module.exports = {
       }
     }
 
+    const targetName = member ? member.displayName : targetUser.username;
+
     // Fallback embed si la génération de la carte échoue
     const remaining = rank.next === Infinity ? 0 : rank.next - balance;
     const embed = new EmbedBuilder()
       .setColor('#3498DB')
-      .setTitle(`💰 Solde de ${targetUser.username}`)
+      .setTitle(`💰 Solde de ${targetName}`)
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
       .addFields(
         { name: '💵 En poche', value: `${economy.wallet.toLocaleString('fr-FR')} pièces`, inline: true },

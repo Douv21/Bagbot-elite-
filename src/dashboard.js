@@ -1487,7 +1487,7 @@ app.get('/api/config/map-locations', async (req, res) => {
       const member = guild ? guild.members.cache.get(loc.user_id) : null;
       return {
         ...loc,
-        username: member ? member.user.username : `Utilisateur (${loc.user_id})`,
+        username: member ? (member.displayName || member.user.username) : `Utilisateur (${loc.user_id})`,
         avatar: member ? member.user.displayAvatarURL({ dynamic: true }) : 'https://cdn.discordapp.com/embed/avatars/0.png'
       };
     });

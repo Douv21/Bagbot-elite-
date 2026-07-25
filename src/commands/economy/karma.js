@@ -100,9 +100,11 @@ module.exports = {
       benefits = '🎁 Multiplicateur XP : **x1.2**\n🛒 Réduction Boutique : **-5%** 🛍️';
     }
 
+    const targetName = member ? member.displayName : targetUser.username;
+
     const embed = new EmbedBuilder()
       .setColor('#9B59B6')
-      .setTitle(`⭐ Karma de ${targetUser.username}`)
+      .setTitle(`⭐ Karma de ${targetName}`)
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
       .addFields(
         { name: '✨ Karma', value: `${karma.toLocaleString('fr-FR')} points`, inline: true },

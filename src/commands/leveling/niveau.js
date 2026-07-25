@@ -70,10 +70,12 @@ module.exports = {
       }
     }
 
+    const targetName = member ? member.displayName : targetUser.username;
+
     // Fallback embed si la génération de la carte échoue
     const embed = new EmbedBuilder()
       .setColor('#2ECC71')
-      .setTitle(`✨ Niveau de ${targetUser.username}`)
+      .setTitle(`✨ Niveau de ${targetName}`)
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
       .addFields(
         { name: '📈 Niveau', value: `**${leveling.level}**`, inline: true },
