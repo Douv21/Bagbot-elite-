@@ -445,9 +445,9 @@ Voici son statut de permissions et dérogations configuré dans le Dashboard :
 - Accès Dérogation Commandes Administrateur : ${hasAdminCmdsAccess ? 'OUI' : 'NON'}
 - Accès Dérogation Commandes Modération : ${hasModoCmdsAccess ? 'OUI' : 'NON'}
 
-🚨 **DIRECTIVE ABSOLUE & STRICTE SUR LES COMMANDES DISCORD** :
-1. Tu dois citer et lister EXCLUSIVEMENT et STRICTEMENT les vraies commandes slash (/) enregistrées dans le bot ci-dessous.
-2. Il t'est STRICTEMENT ET DÉFINITIVEMENT INTERDIT d'inventer, d'imaginer ou d'extrapoler des commandes qui ne figurent pas dans la liste ci-dessous !
+🚨 **DIRECTIVE ABSOLUE & STRICTE SUR LES COMMANDES DISCORD vs ACTIONS INTERNES** :
+1. Tu dois citer et lister EXCLUSIVEMENT et STRICTEMENT les vraies commandes slash (/) enregistrées dans le bot ci-dessous (qui commencent TOUJOURS par '/').
+2. ⛔ **INTERDICTION STRICTE DE CONFUSION** : Les mots comme \`send_message\`, \`create_role\`, \`delete_role\`, \`delete_channel\`, \`grant_channel_access\`, \`update_automod\` sont des NOMS D'ACTIONS JSON INTERNES pour le bot. CE NE SONT EN AUCUN CAS DES COMMANDES DISCORD ! Il t'est STRICTEMENT ET FORMELLEMENT INTERDIT de mentionner, de lister ou d'écrire ces noms d'actions JSON dans tes explications ou dans les embeds !
 3. Si l'utilisateur demande ses commandes ou la liste des commandes, tu DOIS tenir compte des dérogations ci-dessus pour lui indiquer clairement quelles commandes lui sont ACCESSIBLES (✅) et lesquelles sont RESTREINTES (🔒).
 4. **LIMITE DE TAILLE D'EMBED DISCORD** : Si tu réponds avec une action JSON "send_message" contenant un Embed :
    - Ne mets JAMAIS l'intégralité des 80 commandes dans un seul champ (Field) ni dans la description !
@@ -483,7 +483,7 @@ ${adminCmdsFormatted.join('\n') || 'Aucune'}
 13. 📜 **LOGS D'ACTIVITÉ DÉTAILLÉS** : Traces complètes pour messages supprimés/modifiés, arrivées/départs, vocal, sanctions modération, structure du serveur, bots et confessions.
 14. 🤖 **ASSISTANT IA ADMINISTRATEUR** : Contrôle absolu via chat sur la gestion des salons, rôles, permissions, automatisations et configurations du bot.
 
-Si l'utilisateur te demande quelles sont les commandes du bot ou comment l'utiliser, donne-lui EXCLUSIVEMENT la liste des vraies commandes Slash officielles ci-dessus, sans jamais inventer de fausse commande !
+Si l'utilisateur te demande quelles sont les commandes du bot ou comment l'utiliser, donne-lui EXCLUSIVEMENT la liste des vraies commandes Slash officielles ci-dessus, sans jamais inventer de fausse commande et en ne citant AUCUNE action JSON comme send_message ou create_role !
 
 Tu as les PERMISSIONS ADMINISTRATEUR SUPRÊMES pour :
 - Pinger et mentionner n'importe quel rôle ou utilisateur.
@@ -497,13 +497,13 @@ ${rolesList || 'Aucun rôle personnalisé'}
 Voici la liste de TOUS LES SALONS EXISTANTS sur ce serveur :
 ${channelsList || 'Aucun salon'}
 
-Règles pour les actions JSON :
+Règles pour les actions JSON d'exécution :
 1. Pour TOUTES les actions sur les rôles (ex: "add_member_role", "remove_member_role", "delete_role", "update_role_permissions", "set_role_position", "grant_channel_access"), UTILISE TOUJOURS L'ID EXACT DU RÔLE si le rôle figure ci-dessus !
 2. Pour les salons, préfère également l'ID ou le nom exact du salon.
 
 Liste des permissions valides utilisables : "all", ${mainPermissionsList}
 
-Actions d'administration possibles (à formuler sous forme d'un tableau JSON d'objets) :
+Format du Tableau JSON d'Actions d'administration (N'AFFICHE JAMAIS CES NOMS DANS LE TEXTE D'EXPLICATION, ILS SERVENT UNIQUEMENT EN BLOC DE CODE JSON À LA FIN) :
 1. {"type": "update_automod", "anti_link": 0/1, "anti_spam": 0/1, "anti_massmention": 0/1, "anti_badwords": 0/1, "spam_max_msgs": nombre, "massmention_limit": nombre, "badwords_list": "mot1,mot2"}
 2. {"type": "create_role", "name": "Nom du rôle", "color": "code hex ou rouge/bleu/vert...", "permissions": ["BanMembers", "KickMembers", "Administrator"]}
 3. {"type": "delete_role", "role_name": "ID ou Nom du rôle"}
@@ -586,6 +586,18 @@ Pour que le script puisse les parser automatiquement.`;
         }
       }
     }
+
+    // Filtrage post-traitement de sécurité : Éliminer toute fuite de noms d'actions JSON internes présentés comme des commandes
+    const internalActionNames = [
+      'send_message', 'create_role', 'delete_role', 'add_member_role', 'remove_member_role',
+      'grant_role_to_all', 'timeout_member', 'kick_member', 'ban_member', 'update_action_message',
+      'update_role_permissions', 'grant_channel_access', 'revoke_channel_access', 'update_channel_permissions',
+      'set_role_position', 'create_channel', 'delete_channel', 'clear_messages', 'update_automod'
+    ];
+    internalActionNames.forEach(actName => {
+      const reg = new RegExp(`(?:- |\\* )?\\/?\`?${actName}\`?(?::[^\\n]*)?\\n?`, 'gi');
+      reply = reply.replace(reg, '');
+    });
 
     if (jsonStr) {
       try {
