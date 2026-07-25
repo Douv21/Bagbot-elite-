@@ -4917,10 +4917,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!container) return;
 
     let filtered = allCommandPermissions.filter(cmd => {
-      const matchSearch = cmd.name.toLowerCase().includes(searchVal) || 
-                          cmd.description.toLowerCase().includes(searchVal) ||
-                          cmd.category.toLowerCase().includes(searchVal);
-      const matchCat = catVal === 'ALL' || cmd.category === catCatVal(cmd, catVal);
+      if (!cmd) return false;
+      const cName = String(cmd.name || '').toLowerCase();
+      const cDesc = String(cmd.description || '').toLowerCase();
+      const cCat = String(cmd.category || '').toLowerCase();
+
+      const matchSearch = cName.includes(searchVal) || cDesc.includes(searchVal) || cCat.includes(searchVal);
+      const matchCat = catVal === 'ALL' || cmd.category === catVal;
       return matchSearch && matchCat;
     });
 
