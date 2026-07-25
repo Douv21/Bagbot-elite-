@@ -1559,31 +1559,36 @@ app.post('/api/config/announce-commands', async (req, res) => {
 
     const embed = new EmbedBuilder()
       .setTitle(`📜 🤖 CATALOGUE OFFICIEL DES COMMANDES SLASH 🤖 📜`)
-      .setDescription(`Retrouvez ci-dessous la liste de toutes les commandes disponibles sur le serveur **${guild.name}** :`)
+      .setDescription(`Retrouvez ci-dessous la liste intégrale et exhaustive de toutes les commandes slash et actions interactives disponibles sur **${guild.name}** :`)
       .addFields(
         { 
           name: '💰 Économie, Boutique & Inventaire', 
-          value: '`/solde` — Consulter votre portefeuille et banque\n`/boutique` — Ouvrir le catalogue & louer des suites\n`/inventaire` — Gérer vos objets, utiliser ou offrir\n`/pay` — Transférer des pièces à un membre\n`/work` — Travailler pour gagner des pièces\n`/crime` — Tenter un crime osé\n`/rob` — Voler un membre\n`/daily` — Récompense quotidienne',
+          value: '`/solde` — Portefeuille & Banque\n`/boutique` — Catalogue VIP & Louer des Suites\n`/inventaire` — Objets, Utiliser avec un membre ou Offrir\n`/pay` — Transférer des pièces\n`/work` — Travailler\n`/crime` — Tenter un crime\n`/rob` — Voler des pièces\n`/daily` — Prime quotidienne',
           inline: false 
         },
         { 
-          name: '❤️ Interactivité & Jeu de Rôle (NSFW)', 
-          value: '`/action-verite` — Défi Action ou Vérité personnalisé\n`/calin` — Faire un câlin sensuel\n`/embrasser` — Offrir un baiser passionné\n`/caresser` — Une caresse délicate\n`/fesser` — Donner une fessée coquine\n`/giffler` — Donner une gifle d\'autorité\n`/mordre` — Mordre avec désir',
+          name: '🍷 Actions & Interactivité Tendres (RP)', 
+          value: '`/calin` • `/embrasser` • `/caresser` • `/chatouiller` • `/danser` • `/reconforter` • `/rose` • `/flirter` • `/seduire` • `/attrape` • `/batailleoreiller` • `/cuisiner` • `/dormir` • `/douche` • `/lit` • `/reanimer` • `/reveiller` • `/vin` • `/action-verite`',
+          inline: false 
+        },
+        { 
+          name: '🔥 Actions Torrides, Sensuelles & BDSM (NSFW)', 
+          value: '`/branler` • `/doigter` • `/fuck` • `/sodo` • `/sucer` • `/orgasme` • `/orgie` • `/deshabiller` • `/lecher` • `/masser` • `/mordre` • `/mouiller` • `/touche` • `/69` • `/collier` • `/laisse` • `/ordonner` • `/punir` • `/tirercheveux` • `/tromper` • `/oups` • `/agenouiller`',
           inline: false 
         },
         { 
           name: '⚖️ Tribunal & Modération', 
-          value: '`/tribunal` — Créer ou clore une session de jugement\n`/quarantaine` — Placer/Retirer un membre de quarantaine\n`/clear` — Supprimer un nombre de messages\n`/warn` / `/unwarn` — Gérer les avertissements\n`/mute` / `/unmute` — Rendre muet temporairement\n`/ban` / `/unban` — Ban d\'utilisateur',
+          value: '`/tribunal` — Procès & Jugement auto\n`/quarantaine` — Quarantaine anti-raid\n`/clear` — Purge de messages\n`/warn` / `/unwarn` — Avertissements\n`/mute` / `/unmute` — Mutes\n`/ban` / `/unban` — Ban d\'utilisateur\n`/massban` / `/masskick` — Modération de masse',
           inline: false 
         },
         { 
-          name: '🎮 Mini-Jeux & Animations', 
-          value: '`/motcache` — Tenter de deviner la phrase cachée\n`/star-semaine` — Voir le classement de la star du serveur\n`/pileouface` — Parier sur un lancer de pièce\n`/des` — Lancer les dés',
+          name: '🎮 Mini-Jeux, Fun & Confessions', 
+          value: '`/confesser` — Confessions anonymes\n`/motcache` — Jeu de mot mystère\n`/star-semaine` — Élection de la star\n`/pileouface` — Pari lancer de pièce\n`/des` — Lancer de dés\n`/combats` — Défis entre membres',
           inline: false 
         },
         { 
-          name: '⚙️ Profil, Niveaux & Personnalisation', 
-          value: '`/level` — Voir votre carte de niveau et classement XP\n`/rank` — Classement général du serveur\n`/couleur` — Personnaliser la couleur de votre pseudo\n`/dashboard` — Obtenir le lien de configuration VIP',
+          name: '⚙️ Profil, Niveaux & Configuration', 
+          value: '`/level` — Carte XP & Niveau\n`/rank` — Classement du serveur\n`/couleur` — Couleur de pseudo sur-mesure\n`/dashboard` — Panneau d\'administration Web',
           inline: false 
         }
       )
