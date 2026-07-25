@@ -517,7 +517,24 @@ client.on('interactionCreate', async interaction => {
 
   const guildId = interaction.guildId;
   if (guildId) {
-    const { getCommandPermission } = require('./database/db');
+    const { getCommandPermission, getQuarantineConfig } = require('./database/db');
+
+    // Bloquer TOUTES les commandes pour le rôle Quarantaine (si configuré)
+    try {
+      const qConfig = getQuarantineConfig(guildId);
+      if (qConfig && qConfig.role_id) {
+        const userRoleIds = interaction.member?.roles?.cache ? Array.from(interaction.member.roles.cache.keys()) : [];
+        if (userRoleIds.includes(qConfig.role_id)) {
+          return interaction.reply({
+            content: '❌ Vous êtes actuellement en **quarantaine** et ne pouvez utiliser aucune commande sur ce serveur.',
+            ephemeral: true
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Erreur lors du contrôle du rôle quarantaine:', e);
+    }
+
     const customPerm = getCommandPermission(guildId, interaction.commandName);
     if (customPerm) {
       if (customPerm.enabled === 0) {

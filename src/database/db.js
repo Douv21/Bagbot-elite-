@@ -1809,8 +1809,24 @@ module.exports = {
   updateQuest,
   deleteQuest,
   getUserQuests,
-  incrementQuestProgress
+  incrementQuestProgress,
+  getQuarantineConfig,
+  updateQuarantineConfig
 };
+
+function getQuarantineConfig(guildId) {
+  return db.prepare('SELECT * FROM quarantine_config WHERE guild_id = ?').get(guildId);
+}
+
+function updateQuarantineConfig(guildId, roleId, channelId) {
+  return db.prepare(`
+    INSERT INTO quarantine_config (guild_id, role_id, channel_id)
+    VALUES (?, ?, ?)
+    ON CONFLICT(guild_id) DO UPDATE SET
+      role_id = excluded.role_id,
+      channel_id = excluded.channel_id
+  `).run(guildId, roleId || null, channelId || null);
+}
 
 function getCommandPermission(guildId, commandName) {
   return db.prepare('SELECT * FROM command_permissions WHERE guild_id = ? AND command_name = ?').get(guildId, commandName);
