@@ -115,6 +115,17 @@ module.exports = {
           }
         }
 
+        // 4. Chances de comptage
+        if (game.reward_chance > 0) {
+          const invItem = db.prepare("SELECT quantity FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = '🍀 Chance de Comptage'").get(guildId, userId);
+          if (invItem) {
+            db.prepare("UPDATE inventory SET quantity = quantity + ? WHERE guild_id = ? AND user_id = ? AND item_name = '🍀 Chance de Comptage'").run(game.reward_chance, guildId, userId);
+          } else {
+            db.prepare("INSERT INTO inventory (guild_id, user_id, item_name, quantity) VALUES (?, ?, '🍀 Chance de Comptage', ?)").run(guildId, userId, game.reward_chance);
+          }
+          rewardMessages.push(`🍀 **${game.reward_chance} Chance(s) de Comptage**`);
+        }
+
         const { generateSensualText } = require('../../utils/aiActionHelper');
         const aiWinDesc = await generateSensualText(`Annonce la grande victoire torride de l'utilisateur <@${userId}> qui a résolu le jeu du Mot Caché en découvrant la phrase secrète entière : "${game.secret_phrase}". Rends ce message extrêmement brûlant, triomphant et charnel.`, 350, guildId, member);
 

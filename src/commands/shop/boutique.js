@@ -46,8 +46,17 @@ module.exports = {
           .run(guildId, 'Suite Privée 7 Jours', 2000, 'Votre suite privée personnelle et intimiste pendant toute une semaine.', null);
         db.prepare('INSERT OR REPLACE INTO shop (guild_id, item_name, price, description, role_id) VALUES (?, ?, ?, ?, ?)')
           .run(guildId, 'Suite Privée 1 Mois', 7000, 'Votre suite privée personnelle et intimiste pendant un mois entier.', null);
+        db.prepare('INSERT OR REPLACE INTO shop (guild_id, item_name, price, description, role_id) VALUES (?, ?, ?, ?, ?)')
+          .run(guildId, '🍀 Chance de Comptage', 300, 'Sauve une erreur dans le salon de comptage ! S\'utilise automatiquement.', null);
         
         items = db.prepare('SELECT * FROM shop WHERE guild_id = ?').all(guildId);
+      } else {
+        const hasChanceItem = items.some(it => it.item_name === '🍀 Chance de Comptage');
+        if (!hasChanceItem) {
+          db.prepare('INSERT OR REPLACE INTO shop (guild_id, item_name, price, description, role_id) VALUES (?, ?, ?, ?, ?)')
+            .run(guildId, '🍀 Chance de Comptage', 300, 'Sauve une erreur dans le salon de comptage ! S\'utilise automatiquement.', null);
+          items = db.prepare('SELECT * FROM shop WHERE guild_id = ?').all(guildId);
+        }
       }
 
       const discount = getKarmaDiscount(guildId, userId);

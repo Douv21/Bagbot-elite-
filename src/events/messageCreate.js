@@ -147,6 +147,29 @@ module.exports = {
           const { incrementCountingStat, getCountingStats, resetCountingStats } = require('../database/db');
 
           const sendCountingErrorEmbed = async (reason) => {
+            // Vérifier si l'utilisateur possède une Chance de Comptage dans son inventaire
+            const userChance = db.prepare("SELECT quantity, item_name FROM inventory WHERE guild_id = ? AND user_id = ? AND (item_name LIKE '%chance%comptage%' OR item_name LIKE '%joker%comptage%') AND quantity > 0").get(guildId, userId);
+
+            if (userChance && userChance.quantity > 0) {
+              if (userChance.quantity > 1) {
+                db.prepare("UPDATE inventory SET quantity = quantity - 1 WHERE guild_id = ? AND user_id = ? AND item_name = ?").run(guildId, userId, userChance.item_name);
+              } else {
+                db.prepare("DELETE FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?").run(guildId, userId, userChance.item_name);
+              }
+
+              const remaining = userChance.quantity - 1;
+              const chanceEmbed = new EmbedBuilder()
+                .setTitle('🍀 CHANCE DE COMPTAGE UTILISÉE !')
+                .setDescription(`${reason}\n\n<@${userId}> a utilisé **1x 🍀 Chance de Comptage** de son inventaire pour sauver la session !\nLe compte est préservé à **${countingChan.current_number}**. Vous pouvez continuer à compter à partir du nombre suivant !`)
+                .setColor('#2ECC71')
+                .setFooter({ text: `Chances restantes pour ${message.author.username} : ${remaining}` })
+                .setTimestamp();
+
+              await message.react('🍀').catch(() => {});
+              await message.reply({ embeds: [chanceEmbed] }).catch(() => {});
+              return true; // Sauvé !
+            }
+
             const stats = getCountingStats(message.channel.id);
             const medals = ['🥇', '🥈', '🥉'];
             let leaderboardText = '*(Aucun chiffre validé dans cette session)*';
@@ -169,6 +192,7 @@ module.exports = {
 
             await message.react('❌').catch(() => {});
             await message.reply({ embeds: [errorEmbed] }).catch(() => {});
+            return false;
           };
 
           if (proposedNumber === null || isNaN(proposedNumber)) {

@@ -663,6 +663,12 @@ function initDatabase() {
   try {
     db.prepare("ALTER TABLE game_config ADD COLUMN ephemeral_letters INTEGER DEFAULT 1").run();
   } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE game_config ADD COLUMN reward_chance INTEGER DEFAULT 0").run();
+  } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE quests ADD COLUMN reward_chance INTEGER DEFAULT 0").run();
+  } catch (e) {}
 
   // Recréer role_themes pour supporter plusieurs thèmes par rôle (clé composite)
   try {
@@ -1894,10 +1900,10 @@ function getQuestById(id) {
 }
 
 function addQuest(guildId, data) {
-  const { title, description, quest_type, target_count, channel_ids, reward_xp, reward_money, reward_karma, reward_role_id, is_daily, enabled } = data;
+  const { title, description, quest_type, target_count, channel_ids, reward_xp, reward_money, reward_karma, reward_role_id, reward_chance, is_daily, enabled } = data;
   return db.prepare(`
-    INSERT INTO quests (guild_id, title, description, quest_type, target_count, channel_ids, reward_xp, reward_money, reward_karma, reward_role_id, is_daily, enabled)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO quests (guild_id, title, description, quest_type, target_count, channel_ids, reward_xp, reward_money, reward_karma, reward_role_id, reward_chance, is_daily, enabled)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     guildId,
     title,
@@ -1909,13 +1915,14 @@ function addQuest(guildId, data) {
     parseInt(reward_money) || 0,
     parseInt(reward_karma) || 0,
     reward_role_id || null,
+    parseInt(reward_chance) || 0,
     is_daily ? 1 : 0,
     enabled !== undefined ? (enabled ? 1 : 0) : 1
   );
 }
 
 function updateQuest(id, data) {
-  const { title, description, quest_type, target_count, channel_ids, reward_xp, reward_money, reward_karma, reward_role_id, is_daily, enabled } = data;
+  const { title, description, quest_type, target_count, channel_ids, reward_xp, reward_money, reward_karma, reward_role_id, reward_chance, is_daily, enabled } = data;
   return db.prepare(`
     UPDATE quests SET
       title = ?,
@@ -1927,6 +1934,7 @@ function updateQuest(id, data) {
       reward_money = ?,
       reward_karma = ?,
       reward_role_id = ?,
+      reward_chance = ?,
       is_daily = ?,
       enabled = ?
     WHERE id = ?
@@ -1940,6 +1948,7 @@ function updateQuest(id, data) {
     parseInt(reward_money) || 0,
     parseInt(reward_karma) || 0,
     reward_role_id || null,
+    parseInt(reward_chance) || 0,
     is_daily ? 1 : 0,
     enabled !== undefined ? (enabled ? 1 : 0) : 1,
     id
@@ -2014,6 +2023,14 @@ function incrementQuestProgress(guildId, userId, questType, channelId, amount = 
           const eco = getEconomy(guildId, userId);
           updateEconomy(guildId, userId, { karma: eco.karma + q.reward_karma });
         }
+        if (q.reward_chance > 0) {
+          const invItem = db.prepare("SELECT quantity FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = '🍀 Chance de Comptage'").get(guildId, userId);
+          if (invItem) {
+            db.prepare("UPDATE inventory SET quantity = quantity + ? WHERE guild_id = ? AND user_id = ? AND item_name = '🍀 Chance de Comptage'").run(q.reward_chance, guildId, userId);
+          } else {
+            db.prepare("INSERT INTO inventory (guild_id, user_id, item_name, quantity) VALUES (?, ?, '🍀 Chance de Comptage', ?)").run(guildId, userId, q.reward_chance);
+          }
+        }
 
         if (client) {
           try {
@@ -2025,12 +2042,14 @@ function incrementQuestProgress(guildId, userId, questType, channelId, amount = 
                   member.roles.add(q.reward_role_id).catch(() => null);
                 }
                 const { EmbedBuilder } = require('discord.js');
+                let rewardText = `💰 **${q.reward_money} pièces**\n⚡ **${q.reward_xp} XP**\n⭐ **${q.reward_karma} Karma**`;
+                if (q.reward_chance > 0) rewardText += `\n🍀 **${q.reward_chance} Chance(s) de Comptage**`;
+                if (q.reward_role_id) rewardText += `\n🎭 <@&${q.reward_role_id}>`;
+
                 const embed = new EmbedBuilder()
                   .setTitle('🎉 QUÊTE ACCOMPLIE !')
                   .setDescription(`Bravo <@${userId}> ! Vous avez accompli la quête **"${q.title}"** !`)
-                  .addFields(
-                    { name: '🏆 Récompenses obtenues', value: `💰 **${q.reward_money} pièces**\n⚡ **${q.reward_xp} XP**\n⭐ **${q.reward_karma} Karma**${q.reward_role_id ? `\n🎭 <@&${q.reward_role_id}>` : ''}` }
-                  )
+                  .addFields({ name: '🏆 Récompenses obtenues', value: rewardText })
                   .setColor('#F1C40F')
                   .setTimestamp();
 

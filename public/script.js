@@ -556,6 +556,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('game_secret_phrase').value = game.secret_phrase || '';
         document.getElementById('game_reward_money').value = game.reward_money ?? 0;
         document.getElementById('game_reward_xp').value = game.reward_xp ?? 0;
+        const gameRewardChanceEl = document.getElementById('game_reward_chance');
+        if (gameRewardChanceEl) gameRewardChanceEl.value = game.reward_chance ?? 0;
         document.getElementById('game_reward_role_id').value = game.reward_role_id || '';
         document.getElementById('game_appearance_chance').value = game.appearance_chance ?? 15;
         document.getElementById('game_letter_emoji').value = game.letter_emoji || '🔍';
@@ -1721,6 +1723,7 @@ document.addEventListener('DOMContentLoaded', () => {
       secret_phrase: document.getElementById('game_secret_phrase').value,
       reward_money: parseInt(document.getElementById('game_reward_money').value) || 0,
       reward_xp: parseInt(document.getElementById('game_reward_xp').value) || 0,
+      reward_chance: parseInt(document.getElementById('game_reward_chance')?.value || '0') || 0,
       reward_role_id: document.getElementById('game_reward_role_id').value || null,
       appearance_chance: parseFloat(document.getElementById('game_appearance_chance').value) ?? 15,
       letter_emoji: document.getElementById('game_letter_emoji').value || '🔍',
@@ -5236,6 +5239,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (q.reward_money > 0) rewards.push(`💰 +${q.reward_money} pièces`);
           if (q.reward_xp > 0) rewards.push(`⚡ +${q.reward_xp} XP`);
           if (q.reward_karma > 0) rewards.push(`⭐ +${q.reward_karma} Karma`);
+          if (q.reward_chance > 0) rewards.push(`🍀 +${q.reward_chance} Chance(s)`);
 
           html += `
             <div class="card glass" style="padding: 18px 22px; margin-bottom: 12px; border-left: 4px solid ${q.enabled ? '#f1c40f' : '#8e9297'};">
@@ -5309,7 +5313,8 @@ document.addEventListener('DOMContentLoaded', () => {
         reward_role_id: document.getElementById('quest_reward_role_id').value || null,
         reward_money: parseInt(document.getElementById('quest_reward_money').value) || 0,
         reward_xp: parseInt(document.getElementById('quest_reward_xp').value) || 0,
-        reward_karma: parseInt(document.getElementById('quest_reward_karma').value) || 0
+        reward_karma: parseInt(document.getElementById('quest_reward_karma').value) || 0,
+        reward_chance: parseInt(document.getElementById('quest_reward_chance')?.value || '0') || 0
       };
 
       fetch('/api/config/quests/add', {
