@@ -85,6 +85,8 @@ module.exports = {
       }
     } catch (err) {
       console.error('Erreur ping access silencieux suite/ticket:', err);
+    }
+
     // --- SUIVI ET PROGRESSION DES QUÊTES (MESSAGES & PHOTOS) ---
     try {
       const { incrementQuestProgress } = require('../database/db');
