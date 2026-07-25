@@ -1117,6 +1117,41 @@ const updatePrivateSuiteExpiry = (guildId, userId, expiresAt) => {
   return db.prepare('UPDATE private_suites SET expires_at = ? WHERE guild_id = ? AND user_id = ?').run(expiresAt, guildId, userId);
 };
 
+const ensureDefaultShopItems = (guildId) => {
+  const defaultThematicItems = [
+    { item_name: 'Suite Privée 1 Jour', price: 500, description: 'Votre suite privée personnelle et intimiste pendant 24h.' },
+    { item_name: 'Suite Privée 7 Jours', price: 2000, description: 'Votre suite privée personnelle et intimiste pendant toute une semaine.' },
+    { item_name: 'Suite Privée 1 Mois', price: 7000, description: 'Votre suite privée personnelle et intimiste pendant un mois entier.' },
+    { item_name: '🍀 Chance de Comptage', price: 300, description: 'Sauve une erreur dans le salon de comptage si vous décidez de l\'utiliser !' },
+    // Sensualité & Séduction
+    { item_name: '💋 Parfum d\'Ambre & d\'Érotisme', price: 150, description: 'Un effluve enivrant d\'ambre et de musc qui captive les sens.', reward_xp: 30, reward_karma: 10 },
+    { item_name: '🍷 Coupe de Champagne & Fraises', price: 100, description: 'Deux coupes pétillantes servies avec des fraises juteuses pour une soirée en tête-à-tête.', reward_xp: 50, reward_karma: 5 },
+    { item_name: '💄 Baiser Rouge Passionnel', price: 200, description: 'L\'empreinte indélébile d\'un baiser voluptueux sur la peau...', reward_xp: 80, reward_karma: 15 },
+    { item_name: '🌹 Pluie de Pétales de Rose', price: 250, description: 'Un tapis de pétales parfumés pour éveiller le désir et le romantisme.', reward_xp: 100, reward_karma: 20 },
+    // BDSM & Passion Intenses
+    { item_name: '⛓️ Menottes en Velours Noir', price: 350, description: 'Menottes molletonnées pour soumettre ou se laisser soumettre avec complicité.', reward_xp: 120, reward_karma: 25 },
+    { item_name: '🪶 Plume d\'Oie & Caresse Sensuelle', price: 180, description: 'Une caresse de frissons le long de la colonne vertébrale.', reward_xp: 75, reward_karma: 10 },
+    { item_name: '🙈 Bandeau de Soie Obscure', price: 220, description: 'Un masque de soie pour priver de la vue et décupler la sensibilité du toucher.', reward_xp: 90, reward_karma: 15 },
+    { item_name: '🪢 Corde de Soie Shibari', price: 400, description: 'Une corde de soie tressée pour l\'art délicat des liens charnels.', reward_xp: 150, reward_karma: 30 },
+    // Sexy & Coquin
+    { item_name: '👠 Lingerie de Dentelle Fine', price: 500, description: 'Une parure affriolante et sensuelle qui attire tous les désirs.', reward_xp: 180, reward_karma: 35 },
+    { item_name: '🕯️ Huile de Massage Chauffante', price: 300, description: 'Une huile délicatement parfumée qui chauffe au doux contact de la peau.', reward_xp: 110, reward_karma: 20 },
+    // Réconfort & Tendresse
+    { item_name: '🧸 Gros Nounours Réconfortant', price: 120, description: 'Un câlin géant et moelleux pour apporter douceur et chaleur réconfortante.', reward_xp: 60, reward_karma: 10 },
+    { item_name: '☕ Chocolat Chaud & Guimauves', price: 80, description: 'Une tasse gourmande parfumée à la cannelle, bien enveloppante.', reward_xp: 40, reward_karma: 5 },
+    { item_name: '💆 Massage Attentionné', price: 280, description: 'Un massage délicat des épaules et de la nuque pour dénouer le stress.', reward_xp: 100, reward_karma: 20 }
+  ];
+
+  const stmt = db.prepare(`
+    INSERT OR IGNORE INTO shop (guild_id, item_name, price, description, role_id, reward_xp, reward_karma)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  for (const it of defaultThematicItems) {
+    stmt.run(guildId, it.item_name, it.price, it.description, it.role_id || null, it.reward_xp || 0, it.reward_karma || 0);
+  }
+};
+
 const getShopConfig = (guildId) => {
   let row = db.prepare('SELECT * FROM shop_config WHERE guild_id = ?').get(guildId);
   if (!row) {
@@ -1790,6 +1825,7 @@ module.exports = {
   updatePrivateSuiteExpiry,
   getShopConfig,
   updateShopConfig,
+  ensureDefaultShopItems,
   addTemporaryRole,
   getTemporaryRoles,
   deleteTemporaryRole,
