@@ -475,6 +475,13 @@ client.on('interactionCreate', async interaction => {
       const pendingId = parseInt(customId.replace('conf_reject_', ''));
       const { handleConfessionRejection } = require('./utils/confessionHandler');
       return handleConfessionRejection(interaction, pendingId);
+    } else if (customId.startsWith('boutique_cat:')) {
+      const cat = customId.replace('boutique_cat:', '');
+      const boutiqueCmd = client.commands.get('boutique');
+      if (boutiqueCmd && boutiqueCmd.renderBoutiqueCatalog) {
+        return boutiqueCmd.renderBoutiqueCatalog(interaction, cat, true);
+      }
+      return;
     } else if (customId.startsWith('inv_btn_use:')) {
       const itemName = customId.replace('inv_btn_use:', '');
       const selectMenu = new UserSelectMenuBuilder()

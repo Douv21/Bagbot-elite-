@@ -106,6 +106,7 @@
         <div class="sidebar-category">
           <div class="category-title"><i class="fa-solid fa-sliders" style="color: #5865F2;"></i> GESTION DU SERVEUR</div>
           <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées & Départs</button>
+          <button class="tab-btn" data-tab="tab-announcements"><i class="fa-solid fa-bullhorn" style="color: #e74c3c;"></i> Annonces & Guides <span class="nav-badge badge-gold">VIP</span></button>
           <button class="tab-btn" data-tab="tab-autoroles"><i class="fa-solid fa-user-plus"></i> Auto-Rôles à l'Arrivée</button>
           <button class="tab-btn" data-tab="tab-reactionroles"><i class="fa-solid fa-rectangle-list"></i> Rôles Réaction</button>
           <button class="tab-btn" data-tab="tab-autothread"><i class="fa-solid fa-hashtag"></i> Auto-Thread</button>
@@ -325,6 +326,35 @@
                 <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer cette configuration</button>
               </div>
             </form>
+          </div>
+
+          <!-- Tab: Annonces & Guides -->
+          <div id="tab-announcements" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-bullhorn" style="color: #e74c3c;"></i> Annonces & Guides Officiels</h2>
+            <div class="card glass">
+              <p class="description-text">Envoyez en 1 clic des messages de présentation élégants et complets décrivant les fonctionnalités du bot ou le catalogue complet des commandes dans le salon de votre choix.</p>
+              
+              <div class="form-group" style="margin-top: 15px;">
+                <label for="announce_channel_select"><i class="fa-solid fa-hashtag"></i> Salon de destination :</label>
+                <select id="announce_channel_select" class="channel-select" style="max-width: 400px;">
+                  <option value="">Chargement des salons...</option>
+                </select>
+              </div>
+
+              <div class="form-row" style="margin-top: 20px; display: flex; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 280px; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 8px; border-left: 4px solid #e74c3c;">
+                  <h4 style="color: #e74c3c; margin-bottom: 10px;"><i class="fa-solid fa-crown"></i> Embed Présentation des Fonctionnalités</h4>
+                  <p style="font-size: 0.9rem; color: #bbb; margin-bottom: 15px;">Présente un guide complet des piliers du bot (Économie, Suites Privées, Boutique IA, Action ou Vérité, Tribunal, Comptage, Quêtes, Forums) pour informer tous les membres du serveur.</p>
+                  <button id="btn-send-features-embed" class="btn btn-save" style="width: 100%; background: #e74c3c;"><i class="fa-solid fa-paper-plane"></i> Envoyer la Présentation des Fonctionnalités</button>
+                </div>
+
+                <div style="flex: 1; min-width: 280px; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 8px; border-left: 4px solid #5865F2;">
+                  <h4 style="color: #5865F2; margin-bottom: 10px;"><i class="fa-solid fa-list-check"></i> Embed Liste des Commandes Slash</h4>
+                  <p style="font-size: 0.9rem; color: #bbb; margin-bottom: 15px;">Publie une liste structurée et claire de toutes les commandes disponibles regroupées par catégories (Économie, Actions NSFW, Modération, Jeux, Profil).</p>
+                  <button id="btn-send-commands-embed" class="btn btn-save" style="width: 100%; background: #5865F2;"><i class="fa-solid fa-paper-plane"></i> Envoyer la Liste des Commandes</button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Tab: Auto-Rôles -->

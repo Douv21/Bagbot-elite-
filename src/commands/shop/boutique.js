@@ -25,65 +25,123 @@ function getKarmaDiscount(guildId, userId) {
   return 0;
 }
 
+function getItemCategory(itemName) {
+  const name = itemName.toLowerCase();
+  if (name.includes('suite') || name.includes('chance') || name.includes('comptage') || name.includes('joker')) return 'suites';
+  if (name.includes('parfum') || name.includes('champagne') || name.includes('baiser') || name.includes('pétale') || name.includes('rose')) return 'sensualite';
+  if (name.includes('menotte') || name.includes('plume') || name.includes('bandeau') || name.includes('corde') || name.includes('shibari')) return 'bdsm';
+  if (name.includes('lingerie') || name.includes('dentelle') || name.includes('huile') || name.includes('massage')) return 'sexy';
+  if (name.includes('nounours') || name.includes('chocolat') || name.includes('caresse') || name.includes('tendresse')) return 'reconfort';
+  return 'autres';
+}
+
+const categoryInfo = {
+  all: { name: '🌐 Catalogue Complet', emoji: '🛍️' },
+  suites: { name: '👑 Suites Privées & Jokers', emoji: '👑' },
+  sensualite: { name: '💋 Sensualité & Séduction', emoji: '💋' },
+  bdsm: { name: '⛓️ BDSM & Intimité', emoji: '⛓️' },
+  sexy: { name: '👠 Sexy & Coquin', emoji: '👠' },
+  reconfort: { name: '🧸 Réconfort & Tendresse', emoji: '🧸' },
+  autres: { name: '🎁 Autres & Privilèges', emoji: '🎁' }
+};
+
+async function renderBoutiqueCatalog(interaction, activeCategory = 'all', isUpdate = false) {
+  const guildId = interaction.guild.id;
+  const userId = interaction.user.id;
+
+  const { ensureDefaultShopItems } = require('../../database/db');
+  ensureDefaultShopItems(guildId);
+  let allItems = db.prepare('SELECT * FROM shop WHERE guild_id = ?').all(guildId);
+
+  let filteredItems = allItems;
+  if (activeCategory !== 'all') {
+    filteredItems = allItems.filter(it => getItemCategory(it.item_name) === activeCategory);
+    if (filteredItems.length === 0) filteredItems = allItems;
+  }
+
+  const discount = getKarmaDiscount(guildId, userId);
+  const karmaText = discount > 0 
+    ? `🔥 **Privilège Karma Séducteur :** Réduction exclusive de **-${Math.round(discount * 100)}%** sur tout le catalogue !`
+    : `✨ *Augmentez votre Karma pour débloquer jusqu'à **-20%** de réduction sur vos achats passionnés.*`;
+
+  const catMeta = categoryInfo[activeCategory] || categoryInfo.all;
+
+  const embed = new EmbedBuilder()
+    .setTitle(`🍷 🛍️ 𝔅𝔬𝔲𝔱𝔦𝔦𝔲𝔢 𝔓𝔯𝔢𝔪𝔦𝔲𝔪 & 𝔖𝔢𝔫𝔰𝔲𝔢𝔩𝔩𝔢 💋 👑`)
+    .setDescription(
+      `💋 **Bienvenue dans le Boudoir Exclusif de ${interaction.guild.name}**\n\n` +
+      `📌 **Catégorie active :** ${catMeta.emoji} **${catMeta.name}** (${filteredItems.length} article${filteredItems.length > 1 ? 's' : ''})\n\n` +
+      `${karmaText}\n\n` +
+      `👇 *Naviguez dans les catégories ci-dessous ou choisissez un plaisir dans le menu déroulant :*`
+    )
+    .setColor('#E74C3C')
+    .setThumbnail(interaction.guild.iconURL({ dynamic: true }) || 'https://cdn.discordapp.com/embed/avatars/0.png')
+    .setFooter({ text: '💋 Désirs Exclusifs, Ambiances Sensuelles & Passion • Boutique VIP', iconURL: interaction.guild.iconURL({ dynamic: true }) })
+    .setTimestamp();
+
+  filteredItems.slice(0, 15).forEach(item => {
+    const finalPrice = Math.round(item.price * (1 - discount));
+    let details = `💎 **Tarif :** \`${finalPrice} pièces\`${discount > 0 ? ` ~~(~~${item.price}~~ -${Math.round(discount * 100)}%)~~` : ''}\n👠 *${item.description || 'Aucune description.'}*`;
+    if (item.role_id) {
+      details += `\n✨ **Rôle attribué :** <@&${item.role_id}>`;
+    }
+    if (item.reward_xp > 0 || item.reward_karma > 0) {
+      details += `\n⚡ **Bonus :** ${item.reward_xp > 0 ? `+${item.reward_xp} XP ` : ''}${item.reward_karma > 0 ? `+${item.reward_karma} Karma` : ''}`;
+    }
+    embed.addFields({ name: `🔥 ─── 『 ${item.item_name} 』`, value: details, inline: false });
+  });
+
+  const btnRow1 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('boutique_cat:all').setLabel('Tous').setStyle(activeCategory === 'all' ? ButtonStyle.Success : ButtonStyle.Secondary).setEmoji('🛍️'),
+    new ButtonBuilder().setCustomId('boutique_cat:suites').setLabel('Suites').setStyle(activeCategory === 'suites' ? ButtonStyle.Success : ButtonStyle.Secondary).setEmoji('👑'),
+    new ButtonBuilder().setCustomId('boutique_cat:sensualite').setLabel('Sensualité').setStyle(activeCategory === 'sensualite' ? ButtonStyle.Success : ButtonStyle.Secondary).setEmoji('💋'),
+    new ButtonBuilder().setCustomId('boutique_cat:bdsm').setLabel('BDSM').setStyle(activeCategory === 'bdsm' ? ButtonStyle.Success : ButtonStyle.Secondary).setEmoji('⛓️')
+  );
+
+  const btnRow2 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('boutique_cat:sexy').setLabel('Sexy').setStyle(activeCategory === 'sexy' ? ButtonStyle.Success : ButtonStyle.Secondary).setEmoji('👠'),
+    new ButtonBuilder().setCustomId('boutique_cat:reconfort').setLabel('Tendresse').setStyle(activeCategory === 'reconfort' ? ButtonStyle.Success : ButtonStyle.Secondary).setEmoji('🧸')
+  );
+
+  const selectOptions = filteredItems.slice(0, 25).map(item => {
+    const finalPrice = Math.round(item.price * (1 - discount));
+    return {
+      label: item.item_name.substring(0, 25),
+      description: `${finalPrice} pièces${discount > 0 ? ` (-${Math.round(discount * 100)}%)` : ''} • Commander`,
+      value: item.item_name,
+      emoji: '💋'
+    };
+  });
+
+  const selectRow = new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId('boutique_acheter')
+      .setPlaceholder('💋 Choisissez votre plaisir et passez commande...')
+      .addOptions(selectOptions)
+  );
+
+  const components = [btnRow1, btnRow2, selectRow];
+
+  if (isUpdate || interaction.isButton()) {
+    return interaction.update({ embeds: [embed], components });
+  } else {
+    return interaction.reply({ embeds: [embed], components });
+  }
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('boutique')
     .setDescription('Accéder au boudoir & catalogue VIP exclusif')
     .setDMPermission(false),
+  renderBoutiqueCatalog,
   async execute(interaction, selectedItemName = null) {
     const guildId = interaction.guild.id;
     const userId = interaction.user.id;
     const itemName = selectedItemName || null;
 
     if (!itemName) {
-      // Afficher la boutique (le catalogue)
-      const { ensureDefaultShopItems } = require('../../database/db');
-      ensureDefaultShopItems(guildId);
-      let items = db.prepare('SELECT * FROM shop WHERE guild_id = ?').all(guildId);
-
-      const discount = getKarmaDiscount(guildId, userId);
-      const karmaText = discount > 0 
-        ? `🔥 **Privilège Karma Séducteur :** Réduction exclusive de **-${Math.round(discount * 100)}%** sur tout le catalogue !`
-        : `✨ *Augmentez votre Karma pour débloquer jusqu'à **-20%** de privilège sur vos achats passionnés.*`;
-
-      const embed = new EmbedBuilder()
-        .setTitle(`🍷 🛍️ 𝔅𝔬𝔲𝔱𝔦𝔦𝔲𝔢 𝔓𝔯𝔢𝔪𝔦𝔲𝔪 & 𝔖𝔢𝔫𝔰𝔲𝔢𝔩𝔩𝔢 💋 👑`)
-        .setDescription(`💋 **Bienvenue dans le Boudoir Exclusif & Torride de ${interaction.guild.name}**\n\n*Laissez-vous séduire par vos désirs les plus secrets... Offrez-vous des suites privées sensuelles, des rôles prestigieux et des avantages d'exception.* ✨\n\n${karmaText}\n\n👇 *Sélectionnez un plaisir ci-dessous dans le menu déroulant pour l'acquérir instantanément :*`)
-        .setColor('#E74C3C')
-        .setThumbnail(interaction.guild.iconURL({ dynamic: true }) || 'https://cdn.discordapp.com/embed/avatars/0.png')
-        .setFooter({ text: '💋 Désirs Exclusifs, Ambiances Sensuelles & Passion • Boutique VIP', iconURL: interaction.guild.iconURL({ dynamic: true }) })
-        .setTimestamp();
-
-      items.forEach(item => {
-        const finalPrice = Math.round(item.price * (1 - discount));
-        let details = `💎 **Tarif :** \`${finalPrice} pièces\`${discount > 0 ? ` ~~(~~${item.price}~~ -${Math.round(discount * 100)}%)~~` : ''}\n👠 *${item.description || 'Aucune description.'}*`;
-        if (item.role_id) {
-          details += `\n✨ **Rôle attribué :** <@&${item.role_id}>`;
-        }
-        if (item.reward_xp > 0 || item.reward_karma > 0) {
-          details += `\n⚡ **Bonus d'acquisition :** ${item.reward_xp > 0 ? `+${item.reward_xp} XP ` : ''}${item.reward_karma > 0 ? `+${item.reward_karma} Karma` : ''}`;
-        }
-        embed.addFields({ name: `🔥 ─── 『 ${item.item_name} 』`, value: details, inline: false });
-      });
-
-      const selectOptions = items.slice(0, 25).map(item => {
-        const finalPrice = Math.round(item.price * (1 - discount));
-        return {
-          label: item.item_name.substring(0, 25),
-          description: `${finalPrice} pièces${discount > 0 ? ` (-${Math.round(discount * 100)}%)` : ''} • Offrir / Acheter`,
-          value: item.item_name,
-          emoji: '💋'
-        };
-      });
-
-      const selectMenu = new StringSelectMenuBuilder()
-        .setCustomId('boutique_acheter')
-        .setPlaceholder('💋 Choisissez votre plaisir et passez commande...')
-        .addOptions(selectOptions);
-
-      const row = new ActionRowBuilder().addComponents(selectMenu);
-
-      return interaction.reply({ embeds: [embed], components: [row] });
+      return renderBoutiqueCatalog(interaction, 'all', false);
     }
 
     // Afficher les options Acheter / Offrir pour l'article sélectionné

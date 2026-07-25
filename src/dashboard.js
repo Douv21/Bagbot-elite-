@@ -518,6 +518,8 @@ app.get('/api/config', (req, res) => {
     });
 
     // Boutique (Shop)
+    const { ensureDefaultShopItems } = require('./database/db');
+    ensureDefaultShopItems(guildId);
     const shopItems = db.prepare('SELECT * FROM shop WHERE guild_id = ?').all(guildId);
 
     // Récompenses de niveaux
@@ -1478,6 +1480,116 @@ app.post('/api/config/counting/delete', (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- ENDPOINTS ANNONCES & PRÉSENTATIONS DANS LES SALONS ---
+
+app.post('/api/config/announce-features', async (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const { channel_id } = req.body;
+    if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
+
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
+
+    const channel = guild.channels.cache.get(channel_id);
+    if (!channel) return res.status(404).json({ error: 'Salon introuvable' });
+
+    const embed = new EmbedBuilder()
+      .setTitle(`✨ 👑 ${guild.name.toUpperCase()} — PRÉSENTATION DES FONCTIONNALITÉS EXCLUSIVES 👑 ✨`)
+      .setDescription(
+        `Bienvenue sur le serveur **${guild.name}** ! Voici un guide complet des fonctionnalités et systèmes exclusifs mis à votre disposition par notre bot :\n\n` +
+        `🍷 **1. Économie, Banque & Karma Séducteur**\n` +
+        `• Gagnez des pièces et du Karma en écrivant dans les salons et avec \`/work\`, \`/crime\`, \`/daily\`.\n` +
+        `• Économisez à la \`/banque\` et débloquez jusqu'à **-20% de réduction** automatique en boutique grâce à votre Karma.\n\n` +
+        `<ctrl42> **2. Suites Privées VIP Temporaires**\n` +
+        `• Louez votre propre havre de paix personnalisé pendant 24h, 7 jours ou 1 mois via \`/boutique\`.\n` +
+        `• Un salon textuel et un salon vocal privés sont créés automatiquement avec un panneau de contrôle pour inviter ou exclure des membres.\n\n` +
+        `💋 **3. Boutique & Cadeaux d'Intimité (IA)**\n` +
+        `• Catalogue d'objets sensuels, BDSM, sexy et réconfortants dans \`/boutique\`.\n` +
+        `• Offrez des cadeaux à d'autres membres : l'IA génère un **message d'offrande torride et unique** dans le salon !\n` +
+        `• Gerez et utilisez vos objets depuis votre \`/inventaire\` privé.\n\n` +
+        `🎲 **4. Action ou Vérité Adultes (NSFW)**\n` +
+        `• Lancez \`/action-verite\` (Niveaux Soft, Hard, Extrême, Couple) avec des questions et défis osés inédits.\n` +
+        `• Utilisez des commandes d'action (\`/calin\`, \`/embrasser\`, \`/fesser\`, \`/caresser\`, etc.) générées par l'IA et accompagnées de GIFs.\n\n` +
+        `⚖️ **5. Tribunal & Système de Jugement**\n` +
+        `• Ouvrez des procès avec \`/tribunal create\` : rôles attribués (Juge, Avocat, Accusé) et salon fermé après délibération.\n\n` +
+        `🔢 **6. Salons de Comptage & Jokers de Sauvegarde**\n` +
+        `• Participez aux salons de comptage (modes Normal, Inversé, Mathématique) et utilisez la \`🍀 Chance de Comptage\` pour sauver les erreurs !\n\n` +
+        `📜 **7. Système de Quêtes & Missions**\n` +
+        `• Accomplissez des missions hebdomadaires et montez en niveau pour débloquer des rôles et bonus d'XP.`
+      )
+      .setColor('#E74C3C')
+      .setThumbnail(guild.iconURL({ dynamic: true }) || null)
+      .setFooter({ text: '💋 B&G Elite • Système d\'Animation & Privilèges VIP', iconURL: guild.iconURL({ dynamic: true }) })
+      .setTimestamp();
+
+    await channel.send({ embeds: [embed] });
+    res.json({ success: true, message: 'Embed de présentation des fonctionnalités envoyé avec succès !' });
+  } catch (error) {
+    console.error('Erreur announce-features:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/announce-commands', async (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const { channel_id } = req.body;
+    if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
+
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
+
+    const channel = guild.channels.cache.get(channel_id);
+    if (!channel) return res.status(404).json({ error: 'Salon introuvable' });
+
+    const embed = new EmbedBuilder()
+      .setTitle(`📜 🤖 CATALOGUE OFFICIEL DES COMMANDES SLASH 🤖 📜`)
+      .setDescription(`Retrouvez ci-dessous la liste de toutes les commandes disponibles sur le serveur **${guild.name}** :`)
+      .addFields(
+        { 
+          name: '💰 Économie, Boutique & Inventaire', 
+          value: '`/solde` — Consulter votre portefeuille et banque\n`/boutique` — Ouvrir le catalogue & louer des suites\n`/inventaire` — Gérer vos objets, utiliser ou offrir\n`/pay` — Transférer des pièces à un membre\n`/work` — Travailler pour gagner des pièces\n`/crime` — Tenter un crime osé\n`/rob` — Voler un membre\n`/daily` — Récompense quotidienne',
+          inline: false 
+        },
+        { 
+          name: '❤️ Interactivité & Jeu de Rôle (NSFW)', 
+          value: '`/action-verite` — Défi Action ou Vérité personnalisé\n`/calin` — Faire un câlin sensuel\n`/embrasser` — Offrir un baiser passionné\n`/caresser` — Une caresse délicate\n`/fesser` — Donner une fessée coquine\n`/giffler` — Donner une gifle d\'autorité\n`/mordre` — Mordre avec désir',
+          inline: false 
+        },
+        { 
+          name: '⚖️ Tribunal & Modération', 
+          value: '`/tribunal` — Créer ou clore une session de jugement\n`/quarantaine` — Placer/Retirer un membre de quarantaine\n`/clear` — Supprimer un nombre de messages\n`/warn` / `/unwarn` — Gérer les avertissements\n`/mute` / `/unmute` — Rendre muet temporairement\n`/ban` / `/unban` — Ban d\'utilisateur',
+          inline: false 
+        },
+        { 
+          name: '🎮 Mini-Jeux & Animations', 
+          value: '`/motcache` — Tenter de deviner la phrase cachée\n`/star-semaine` — Voir le classement de la star du serveur\n`/pileouface` — Parier sur un lancer de pièce\n`/des` — Lancer les dés',
+          inline: false 
+        },
+        { 
+          name: '⚙️ Profil, Niveaux & Personnalisation', 
+          value: '`/level` — Voir votre carte de niveau et classement XP\n`/rank` — Classement général du serveur\n`/couleur` — Personnaliser la couleur de votre pseudo\n`/dashboard` — Obtenir le lien de configuration VIP',
+          inline: false 
+        }
+      )
+      .setColor('#5865F2')
+      .setThumbnail(guild.iconURL({ dynamic: true }) || null)
+      .setFooter({ text: '🤖 Liste des commandes slash • B&G Elite', iconURL: guild.iconURL({ dynamic: true }) })
+      .setTimestamp();
+
+    await channel.send({ embeds: [embed] });
+    res.json({ success: true, message: 'Embed des commandes envoyé avec succès !' });
+  } catch (error) {
+    console.error('Erreur announce-commands:', error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -5431,5 +5431,59 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   initializeSearchableSelects();
+
+  const btnSendFeatures = document.getElementById('btn-send-features-embed');
+  if (btnSendFeatures) {
+    btnSendFeatures.addEventListener('click', () => {
+      const channelSelect = document.getElementById('announce_channel_select');
+      const channelId = channelSelect ? channelSelect.value : null;
+      if (!channelId) {
+        showToast('⚠️ Veuillez choisir un salon de destination.', true);
+        return;
+      }
+
+      fetch('/api/config/announce-features', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel_id: channelId })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          showToast('✅ Embed de présentation des fonctionnalités envoyé !');
+        } else {
+          showToast(`❌ Erreur : ${data.error}`, true);
+        }
+      })
+      .catch(err => showToast(`❌ Erreur réseau : ${err.message}`, true));
+    });
+  }
+
+  const btnSendCommands = document.getElementById('btn-send-commands-embed');
+  if (btnSendCommands) {
+    btnSendCommands.addEventListener('click', () => {
+      const channelSelect = document.getElementById('announce_channel_select');
+      const channelId = channelSelect ? channelSelect.value : null;
+      if (!channelId) {
+        showToast('⚠️ Veuillez choisir un salon de destination.', true);
+        return;
+      }
+
+      fetch('/api/config/announce-commands', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel_id: channelId })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          showToast('✅ Embed du catalogue des commandes envoyé !');
+        } else {
+          showToast(`❌ Erreur : ${data.error}`, true);
+        }
+      })
+      .catch(err => showToast(`❌ Erreur réseau : ${err.message}`, true));
+    });
+  }
 });
 
