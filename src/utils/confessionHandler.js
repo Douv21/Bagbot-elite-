@@ -16,6 +16,12 @@ async function handleConfessionSubmission({ guild, channel, user, text, confessi
     return;
   }
 
+  // Incrémentation de la quête de confession
+  try {
+    const { incrementQuestProgress } = require('../database/db');
+    incrementQuestProgress(guildId, user.id, 'confession', targetChannelId, 1, guild.client);
+  } catch (e) {}
+
   // --- SI VALIDATION STAFF REQUISE ---
   if (confessionConfig.require_validation === 1) {
     const valChanId = confessionConfig.validation_channel_id || targetChannelId;

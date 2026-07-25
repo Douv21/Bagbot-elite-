@@ -135,6 +135,7 @@
         <div class="sidebar-category">
           <div class="category-title"><i class="fa-solid fa-chart-line" style="color: #e67e22;"></i> NIVEAUX & ÉCONOMIE</div>
           <button class="tab-btn" data-tab="tab-leveling"><i class="fa-solid fa-arrow-trend-up"></i> Niveaux & XP</button>
+          <button class="tab-btn" data-tab="tab-quests"><i class="fa-solid fa-scroll" style="color: #f1c40f;"></i> Système de Quêtes <span class="nav-badge badge-gold">NEW</span></button>
           <button class="tab-btn" data-tab="tab-karma"><i class="fa-solid fa-star"></i> Configuration Karma</button>
           <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique & Suites</button>
         </div>
@@ -724,6 +725,85 @@
                   <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 10px;"></i>
                   <p>Chargement des commandes du serveur...</p>
                 </div>
+              </div>
+          </div>
+
+          <!-- Tab: Système de Quêtes -->
+          <div id="tab-quests" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-scroll" style="color: #f1c40f;"></i> Gestion des Quêtes & Missions</h2>
+            
+            <div class="card glass">
+              <p>Créez des quêtes personnalisées basées sur le nombre de <strong>messages</strong>, de <strong>réactions</strong>, d'envoi de <strong>confessions anonymes</strong>, ou de publication de <strong>photos (selfies, nudes/NSFW, outfits/tenues)</strong> dans des salons spécifiques !</p>
+              
+              <form id="form-add-quest" style="margin-top: 20px;">
+                <div class="form-row">
+                  <div class="form-group flex-2">
+                    <label for="quest_title"><i class="fa-solid fa-heading"></i> Titre de la Quête :</label>
+                    <input type="text" id="quest_title" placeholder="ex: Poster un Selfie d'Été 🤳" required>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label for="quest_type"><i class="fa-solid fa-list-check"></i> Type de Quête :</label>
+                    <select id="quest_type" required>
+                      <option value="messages">💬 Nombre de Messages</option>
+                      <option value="reactions">⭐ Nombre de Réactions</option>
+                      <option value="confession">🤫 Confessions Anonymes</option>
+                      <option value="photo_selfie">🤳 Photo Selfie</option>
+                      <option value="photo_nude">🔞 Photo NSFW / Nude</option>
+                      <option value="photo_outfit">👗 Photo Outfit / Tenue</option>
+                      <option value="custom">🎯 Action Spéciale</option>
+                    </select>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label for="quest_target_count"><i class="fa-solid fa-bullseye"></i> Objectif (Quantité) :</label>
+                    <input type="number" id="quest_target_count" value="1" min="1" required>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                  <label for="quest_description"><i class="fa-solid fa-align-left"></i> Description / Instructions :</label>
+                  <input type="text" id="quest_description" placeholder="ex: Postez une photo de votre meilleure tenue dans le salon #outfits pour valider !">
+                </div>
+
+                <div class="form-row" style="margin-top: 15px;">
+                  <div class="form-group flex-2">
+                    <label><i class="fa-solid fa-hashtag"></i> Salons autorisés (Vide = Tous les salons) :</label>
+                    <select id="quest_channel_ids" class="channel-select" multiple style="height: 90px;">
+                      <!-- Options dynamiques -->
+                    </select>
+                  </div>
+                  <div class="form-group flex-2">
+                    <label><i class="fa-solid fa-user-tag"></i> Rôle offert en Récompense (Optionnel) :</label>
+                    <select id="quest_reward_role_id" class="role-select">
+                      <option value="">Aucun rôle</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row" style="margin-top: 15px;">
+                  <div class="form-group flex-1">
+                    <label for="quest_reward_money">💰 Gain en Pièces :</label>
+                    <input type="number" id="quest_reward_money" value="50" min="0">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label for="quest_reward_xp">⚡ Gain en XP :</label>
+                    <input type="number" id="quest_reward_xp" value="100" min="0">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label for="quest_reward_karma">⭐ Gain en Karma :</label>
+                    <input type="number" id="quest_reward_karma" value="5" min="0">
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px;">
+                  <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fa-solid fa-plus"></i> Créer la Quête</button>
+                </div>
+              </form>
+
+              <hr style="margin: 30px 0; border: 0; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+
+              <h3 class="subsection-title">Quêtes Actives sur le Serveur</h3>
+              <div id="quests-list-container" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+                <!-- Inséré dynamiquement -->
               </div>
             </div>
           </div>

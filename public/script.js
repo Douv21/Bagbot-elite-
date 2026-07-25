@@ -4988,5 +4988,132 @@ document.addEventListener('DOMContentLoaded', () => {
     tabCmdBtn.addEventListener('click', loadCommandPermissions);
   }
 
+  // --- SYSTEME DE QUETES & MISSIONS ---
+  function loadQuestsConfig() {
+    const container = document.getElementById('quests-list-container');
+    if (!container) return;
+
+    fetch('/api/config/quests')
+      .then(res => res.json())
+      .then(quests => {
+        if (!Array.isArray(quests) || quests.length === 0) {
+          container.innerHTML = '<div style="text-align:center; padding:30px; color:#8e9297;">Aucune quête créée pour le moment. Remplissez le formulaire ci-dessus pour ajouter votre première quête !</div>';
+          return;
+        }
+
+        let html = '';
+        quests.forEach(q => {
+          let typeLabel = '💬 Messages';
+          if (q.quest_type === 'reactions') typeLabel = '⭐ Réactions';
+          else if (q.quest_type === 'confession') typeLabel = '🤫 Confessions Anonymes';
+          else if (q.quest_type === 'photo_selfie') typeLabel = '🤳 Photo Selfie';
+          else if (q.quest_type === 'photo_nude') typeLabel = '🔞 Photo NSFW / Nude';
+          else if (q.quest_type === 'photo_outfit') typeLabel = '👗 Photo Outfit / Tenue';
+          else if (q.quest_type === 'custom') typeLabel = '🎯 Action Spéciale';
+
+          let rewards = [];
+          if (q.reward_money > 0) rewards.push(`💰 +${q.reward_money} pièces`);
+          if (q.reward_xp > 0) rewards.push(`⚡ +${q.reward_xp} XP`);
+          if (q.reward_karma > 0) rewards.push(`⭐ +${q.reward_karma} Karma`);
+
+          html += `
+            <div class="card glass" style="padding: 18px 22px; margin-bottom: 12px; border-left: 4px solid ${q.enabled ? '#f1c40f' : '#8e9297'};">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                  <span style="font-size: 1.1rem; font-weight: 700; color: #fff;">${q.title}</span>
+                  <span style="background: rgba(241,196,15,0.2); color: #f1c40f; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 600; margin-left: 8px;">${typeLabel}</span>
+                  <p style="margin: 4px 0 0 0; color: #b9bbbe; font-size: 0.88rem;">${q.description || 'Aucune description'}</p>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <button class="btn btn-danger btn-sm btn-delete-quest" data-id="${q.id}">
+                    <i class="fa-solid fa-trash"></i> Supprimer
+                  </button>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 0.85rem; color: #dcddde;">
+                <div>🎯 <strong>Objectif :</strong> ${q.target_count} action(s)</div>
+                <div>🏆 <strong>Récompenses :</strong> ${rewards.length > 0 ? rewards.join(' • ') : 'Aucune'}</div>
+                <div>📌 <strong>Salons :</strong> ${q.channel_ids && q.channel_ids.length > 0 ? q.channel_ids.map(id => `<#${id}>`).join(', ') : 'Tous les salons'}</div>
+              </div>
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+
+        container.querySelectorAll('.btn-delete-quest').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const qId = btn.getAttribute('data-id');
+            if (!confirm('Voulez-vous vraiment supprimer cette quête ?')) return;
+
+            fetch('/api/config/quests/delete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: qId })
+            })
+              .then(res => res.json())
+              .then(data => {
+                if (data.success) {
+                  showToast('✅ Quête supprimée avec succès !');
+                  loadQuestsConfig();
+                } else {
+                  showToast(`❌ Erreur : ${data.error}`, true);
+                }
+              })
+              .catch(err => showToast(`❌ Erreur réseau : ${err.message}`, true));
+          });
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        container.innerHTML = '<p class="error-msg">Erreur lors de la récupération des quêtes.</p>';
+      });
+  }
+
+  const formAddQuest = document.getElementById('form-add-quest');
+  if (formAddQuest) {
+    formAddQuest.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const selectedChannels = Array.from(document.getElementById('quest_channel_ids').selectedOptions).map(o => o.value);
+
+      const data = {
+        title: document.getElementById('quest_title').value,
+        quest_type: document.getElementById('quest_type').value,
+        target_count: parseInt(document.getElementById('quest_target_count').value) || 1,
+        description: document.getElementById('quest_description').value,
+        channel_ids: selectedChannels,
+        reward_role_id: document.getElementById('quest_reward_role_id').value || null,
+        reward_money: parseInt(document.getElementById('quest_reward_money').value) || 0,
+        reward_xp: parseInt(document.getElementById('quest_reward_xp').value) || 0,
+        reward_karma: parseInt(document.getElementById('quest_reward_karma').value) || 0
+      };
+
+      fetch('/api/config/quests/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+        .then(res => res.json())
+        .then(resData => {
+          if (resData.success) {
+            showToast('✅ Quête ajoutée avec succès !');
+            formAddQuest.reset();
+            loadQuestsConfig();
+          } else {
+            showToast(`❌ Erreur : ${resData.error}`, true);
+          }
+        })
+        .catch(err => showToast(`❌ Erreur réseau : ${err.message}`, true));
+    });
+  }
+
+  const tabQuestsBtn = document.querySelector('[data-tab="tab-quests"]');
+  if (tabQuestsBtn) {
+    tabQuestsBtn.addEventListener('click', loadQuestsConfig);
+  }
+
   initializeSearchableSelects();
 });

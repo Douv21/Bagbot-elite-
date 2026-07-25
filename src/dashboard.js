@@ -1299,6 +1299,77 @@ app.post('/api/config/command-permissions', (req, res) => {
   }
 });
 
+// API SYSTÈME DE QUÊTES & MISSIONS
+app.get('/api/config/quests', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const { getQuests } = require('./database/db');
+    const quests = getQuests(guildId);
+    const parsedQuests = quests.map(q => {
+      let channels = [];
+      try { channels = JSON.parse(q.channel_ids || '[]'); } catch (e) {}
+      return {
+        ...q,
+        channel_ids: channels
+      };
+    });
+    res.json(parsedQuests);
+  } catch (err) {
+    console.error('Erreur GET /api/config/quests:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/config/quests/add', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const { addQuest } = require('./database/db');
+    addQuest(guildId, req.body);
+    res.json({ success: true, message: 'Quête ajoutée avec succès !' });
+  } catch (err) {
+    console.error('Erreur POST /api/config/quests/add:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/config/quests/update', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const { id, ...data } = req.body;
+    if (!id) return res.status(400).json({ error: 'ID de quête manquant' });
+
+    const { updateQuest } = require('./database/db');
+    updateQuest(id, data);
+    res.json({ success: true, message: 'Quête mise à jour avec succès !' });
+  } catch (err) {
+    console.error('Erreur POST /api/config/quests/update:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/config/quests/delete', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: 'ID de quête manquant' });
+
+    const { deleteQuest } = require('./database/db');
+    deleteQuest(id);
+    res.json({ success: true, message: 'Quête supprimée avec succès !' });
+  } catch (err) {
+    console.error('Erreur POST /api/config/quests/delete:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/config/autoroles-on-role/sync', async (req, res) => {
   try {
     const guildId = req.session.selectedGuild;

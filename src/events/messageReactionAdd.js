@@ -19,6 +19,12 @@ module.exports = {
     const guildId = reaction.message.guildId;
     if (!guildId) return;
 
+    // Progression des quêtes de réaction
+    try {
+      const { incrementQuestProgress } = require('../database/db');
+      incrementQuestProgress(guildId, user.id, 'reactions', reaction.message.channelId, 1, client);
+    } catch (e) {}
+
     // (Système de copie d'émoji par réaction retiré à la demande de l'utilisateur)
 
     // Vérifier si ce message est enregistré comme un rôle réaction

@@ -607,6 +607,36 @@ function initDatabase() {
     )
   `).run();
 
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS quests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      quest_type TEXT DEFAULT 'messages',
+      target_count INTEGER DEFAULT 1,
+      channel_ids TEXT DEFAULT '[]',
+      reward_xp INTEGER DEFAULT 0,
+      reward_money INTEGER DEFAULT 0,
+      reward_karma INTEGER DEFAULT 0,
+      reward_role_id TEXT DEFAULT NULL,
+      is_daily INTEGER DEFAULT 0,
+      enabled INTEGER DEFAULT 1
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS user_quests (
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      quest_id INTEGER NOT NULL,
+      current_count INTEGER DEFAULT 0,
+      completed INTEGER DEFAULT 0,
+      completed_at INTEGER DEFAULT NULL,
+      PRIMARY KEY (guild_id, user_id, quest_id)
+    )
+  `).run();
+
   // Migrations pour les auto-rôles embeds (type et mode)
   try {
     db.prepare("ALTER TABLE autorole_embeds ADD COLUMN type TEXT DEFAULT 'buttons'").run();
@@ -1772,8 +1802,209 @@ module.exports = {
   updatePendingConfessionStatus,
   getCommandPermission,
   getAllCommandPermissions,
-  setCommandPermission
+  setCommandPermission,
+  getQuests,
+  getQuestById,
+  addQuest,
+  updateQuest,
+  deleteQuest,
+  getUserQuests,
+  incrementQuestProgress
 };
+
+function getCommandPermission(guildId, commandName) {
+  return db.prepare('SELECT * FROM command_permissions WHERE guild_id = ? AND command_name = ?').get(guildId, commandName);
+}
+
+function getAllCommandPermissions(guildId) {
+  return db.prepare('SELECT * FROM command_permissions WHERE guild_id = ?').all(guildId);
+}
+
+function setCommandPermission(guildId, commandName, data) {
+  const { enabled, allowed_roles, allowed_users, denied_roles } = data;
+  return db.prepare(`
+    INSERT INTO command_permissions (guild_id, command_name, enabled, allowed_roles, allowed_users, denied_roles)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(guild_id, command_name) DO UPDATE SET
+      enabled = excluded.enabled,
+      allowed_roles = excluded.allowed_roles,
+      allowed_users = excluded.allowed_users,
+      denied_roles = excluded.denied_roles
+  `).run(
+    guildId,
+    commandName,
+    enabled !== undefined ? (enabled ? 1 : 0) : 1,
+    typeof allowed_roles === 'string' ? allowed_roles : JSON.stringify(allowed_roles || []),
+    typeof allowed_users === 'string' ? allowed_users : JSON.stringify(allowed_users || []),
+    typeof denied_roles === 'string' ? denied_roles : JSON.stringify(denied_roles || [])
+  );
+}
+
+function getQuests(guildId) {
+  return db.prepare('SELECT * FROM quests WHERE guild_id = ? ORDER BY id DESC').all(guildId);
+}
+
+function getQuestById(id) {
+  return db.prepare('SELECT * FROM quests WHERE id = ?').get(id);
+}
+
+function addQuest(guildId, data) {
+  const { title, description, quest_type, target_count, channel_ids, reward_xp, reward_money, reward_karma, reward_role_id, is_daily, enabled } = data;
+  return db.prepare(`
+    INSERT INTO quests (guild_id, title, description, quest_type, target_count, channel_ids, reward_xp, reward_money, reward_karma, reward_role_id, is_daily, enabled)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    guildId,
+    title,
+    description || '',
+    quest_type || 'messages',
+    parseInt(target_count) || 1,
+    typeof channel_ids === 'string' ? channel_ids : JSON.stringify(channel_ids || []),
+    parseInt(reward_xp) || 0,
+    parseInt(reward_money) || 0,
+    parseInt(reward_karma) || 0,
+    reward_role_id || null,
+    is_daily ? 1 : 0,
+    enabled !== undefined ? (enabled ? 1 : 0) : 1
+  );
+}
+
+function updateQuest(id, data) {
+  const { title, description, quest_type, target_count, channel_ids, reward_xp, reward_money, reward_karma, reward_role_id, is_daily, enabled } = data;
+  return db.prepare(`
+    UPDATE quests SET
+      title = ?,
+      description = ?,
+      quest_type = ?,
+      target_count = ?,
+      channel_ids = ?,
+      reward_xp = ?,
+      reward_money = ?,
+      reward_karma = ?,
+      reward_role_id = ?,
+      is_daily = ?,
+      enabled = ?
+    WHERE id = ?
+  `).run(
+    title,
+    description || '',
+    quest_type || 'messages',
+    parseInt(target_count) || 1,
+    typeof channel_ids === 'string' ? channel_ids : JSON.stringify(channel_ids || []),
+    parseInt(reward_xp) || 0,
+    parseInt(reward_money) || 0,
+    parseInt(reward_karma) || 0,
+    reward_role_id || null,
+    is_daily ? 1 : 0,
+    enabled !== undefined ? (enabled ? 1 : 0) : 1,
+    id
+  );
+}
+
+function deleteQuest(id) {
+  db.prepare('DELETE FROM user_quests WHERE quest_id = ?').run(id);
+  return db.prepare('DELETE FROM quests WHERE id = ?').run(id);
+}
+
+function getUserQuests(guildId, userId) {
+  const quests = db.prepare('SELECT * FROM quests WHERE guild_id = ? AND enabled = 1').all(guildId);
+  const userProgress = db.prepare('SELECT * FROM user_quests WHERE guild_id = ? AND user_id = ?').all(guildId, userId);
+  const progressMap = new Map(userProgress.map(p => [p.quest_id, p]));
+
+  return quests.map(q => {
+    const p = progressMap.get(q.id) || { current_count: 0, completed: 0, completed_at: null };
+    let channelIds = [];
+    try { channelIds = JSON.parse(q.channel_ids || '[]'); } catch (e) {}
+    return {
+      ...q,
+      channel_ids: channelIds,
+      current_count: p.current_count,
+      completed: Boolean(p.completed),
+      completed_at: p.completed_at
+    };
+  });
+}
+
+function incrementQuestProgress(guildId, userId, questType, channelId, amount = 1, client = null) {
+  try {
+    const activeQuests = db.prepare('SELECT * FROM quests WHERE guild_id = ? AND quest_type = ? AND enabled = 1').all(guildId, questType);
+    if (activeQuests.length === 0) return;
+
+    for (const q of activeQuests) {
+      let allowedChannels = [];
+      try { allowedChannels = JSON.parse(q.channel_ids || '[]'); } catch (e) {}
+
+      if (allowedChannels.length > 0 && channelId && !allowedChannels.includes(channelId)) {
+        continue;
+      }
+
+      let userP = db.prepare('SELECT * FROM user_quests WHERE guild_id = ? AND user_id = ? AND quest_id = ?').get(guildId, userId, q.id);
+      if (userP && userP.completed === 1) {
+        continue;
+      }
+
+      const newCount = (userP ? userP.current_count : 0) + amount;
+      const isCompleted = newCount >= q.target_count ? 1 : 0;
+      const now = isCompleted ? Date.now() : null;
+
+      db.prepare(`
+        INSERT INTO user_quests (guild_id, user_id, quest_id, current_count, completed, completed_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(guild_id, user_id, quest_id) DO UPDATE SET
+          current_count = excluded.current_count,
+          completed = excluded.completed,
+          completed_at = COALESCE(user_quests.completed_at, excluded.completed_at)
+      `).run(guildId, userId, q.id, newCount, isCompleted, now);
+
+      if (isCompleted && (!userP || userP.completed === 0)) {
+        if (q.reward_money > 0) {
+          const eco = getEconomy(guildId, userId);
+          updateEconomy(guildId, userId, { bank: eco.bank + q.reward_money });
+        }
+        if (q.reward_xp > 0) {
+          const lev = getLeveling(guildId, userId);
+          updateLeveling(guildId, userId, { xp: lev.xp + q.reward_xp });
+        }
+        if (q.reward_karma > 0) {
+          const eco = getEconomy(guildId, userId);
+          updateEconomy(guildId, userId, { karma: eco.karma + q.reward_karma });
+        }
+
+        if (client) {
+          try {
+            const guild = client.guilds.cache.get(guildId);
+            if (guild) {
+              const member = guild.members.cache.get(userId);
+              if (member) {
+                if (q.reward_role_id) {
+                  member.roles.add(q.reward_role_id).catch(() => null);
+                }
+                const { EmbedBuilder } = require('discord.js');
+                const embed = new EmbedBuilder()
+                  .setTitle('🎉 QUÊTE ACCOMPLIE !')
+                  .setDescription(`Bravo <@${userId}> ! Vous avez accompli la quête **"${q.title}"** !`)
+                  .addFields(
+                    { name: '🏆 Récompenses obtenues', value: `💰 **${q.reward_money} pièces**\n⚡ **${q.reward_xp} XP**\n⭐ **${q.reward_karma} Karma**${q.reward_role_id ? `\n🎭 <@&${q.reward_role_id}>` : ''}` }
+                  )
+                  .setColor('#F1C40F')
+                  .setTimestamp();
+
+                const channel = guild.channels.cache.get(channelId);
+                if (channel) {
+                  channel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(() => null);
+                }
+              }
+            }
+          } catch (e) {
+            console.error('Erreur notif quête:', e);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Erreur incrementQuestProgress:', err);
+  }
+}
 
 function getCommandPermission(guildId, commandName) {
   return db.prepare('SELECT * FROM command_permissions WHERE guild_id = ? AND command_name = ?').get(guildId, commandName);

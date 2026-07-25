@@ -85,6 +85,28 @@ module.exports = {
       }
     } catch (err) {
       console.error('Erreur ping access silencieux suite/ticket:', err);
+    // --- SUIVI ET PROGRESSION DES QUÊTES (MESSAGES & PHOTOS) ---
+    try {
+      const { incrementQuestProgress } = require('../database/db');
+      incrementQuestProgress(guildId, userId, 'messages', message.channel.id, 1, client);
+
+      if (message.attachments.size > 0 || message.embeds.some(e => e.image || e.thumbnail)) {
+        const cName = message.channel.name ? message.channel.name.toLowerCase() : '';
+        const pName = message.channel.parent ? message.channel.parent.name.toLowerCase() : '';
+        const fullName = `${cName} ${pName}`;
+
+        if (fullName.includes('selfie')) {
+          incrementQuestProgress(guildId, userId, 'photo_selfie', message.channel.id, 1, client);
+        }
+        if (fullName.includes('nude') || fullName.includes('nsfw') || fullName.includes('hot')) {
+          incrementQuestProgress(guildId, userId, 'photo_nude', message.channel.id, 1, client);
+        }
+        if (fullName.includes('outfit') || fullName.includes('tenue') || fullName.includes('fit')) {
+          incrementQuestProgress(guildId, userId, 'photo_outfit', message.channel.id, 1, client);
+        }
+      }
+    } catch (e) {
+      console.error('Erreur progression quêtes messageCreate:', e);
     }
 
     // --- SUIVI DES CONVERSATIONS (LOVE-CALC ÉVOLUTIF) ---
