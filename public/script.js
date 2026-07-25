@@ -4882,6 +4882,20 @@ document.addEventListener('DOMContentLoaded', () => {
     filtered.forEach(cmd => {
       const isEnabled = cmd.enabled;
       
+      const configuredAllowedRoles = serverRolesForCmdPerms.filter(r => cmd.allowed_roles.includes(r.id));
+      const configuredDeniedRoles = serverRolesForCmdPerms.filter(r => cmd.denied_roles.includes(r.id));
+
+      let accessBadge = '<span style="background: rgba(46,204,113,0.15); border: 1px solid #2ecc71; color: #2ecc71; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 700; margin-left: 8px;">✨ Accessible à tout le monde</span>';
+      
+      if (cmd.allowed_roles.length > 0) {
+        const isAdminOnly = cmd.allowed_roles.length === 1 && (cmd.allowed_roles.includes('admin') || serverRolesForCmdPerms.find(r => r.id === cmd.allowed_roles[0])?.name.toLowerCase().includes('admin'));
+        if (isAdminOnly) {
+          accessBadge = '<span style="background: rgba(231,76,60,0.15); border: 1px solid #e74c3c; color: #e74c3c; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 700; margin-left: 8px;">🔒 Accessible uniquement aux Admins</span>';
+        } else {
+          accessBadge = `<span style="background: rgba(52,152,219,0.15); border: 1px solid #3498db; color: #3498db; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 700; margin-left: 8px;">🛡️ Restreint à ${cmd.allowed_roles.length} rôle(s)</span>`;
+        }
+      }
+
       const allowedCount = cmd.allowed_roles.length;
       const allowedLabel = allowedCount > 0 ? `🟩 ${allowedCount} rôle(s) autorisés` : '✨ Tous les rôles autorisés par défaut';
 
@@ -4894,6 +4908,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div>
               <span style="font-size: 1.15rem; font-weight: 700; color: #fff;">/${cmd.name}</span>
               <span style="background: rgba(255,255,255,0.1); padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; text-transform: uppercase; margin-left: 8px; color: #00d2d3;">${cmd.category}</span>
+              ${accessBadge}
               <p style="margin: 4px 0 0 0; color: #b9bbbe; font-size: 0.88rem;">${cmd.description || 'Aucune description'}</p>
             </div>
             
@@ -4908,6 +4923,24 @@ document.addEventListener('DOMContentLoaded', () => {
               </button>
             </div>
           </div>
+
+          ${configuredAllowedRoles.length > 0 || configuredDeniedRoles.length > 0 ? `
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.83rem;">
+              ${configuredAllowedRoles.length > 0 ? `
+                <div style="margin-bottom: 4px;">
+                  <strong style="color: #2ecc71;"><i class="fa-solid fa-user-check"></i> Rôles autorisés configurés :</strong>
+                  ${configuredAllowedRoles.map(r => `<span style="background: rgba(46,204,113,0.15); border: 1px solid #2ecc71; color: #2ecc71; padding: 2px 8px; border-radius: 8px; margin-left: 6px; font-weight: 600; display: inline-block;">${r.name}</span>`).join('')}
+                </div>
+              ` : ''}
+
+              ${configuredDeniedRoles.length > 0 ? `
+                <div>
+                  <strong style="color: #e74c3c;"><i class="fa-solid fa-user-xmark"></i> Rôles interdits configurés :</strong>
+                  ${configuredDeniedRoles.map(r => `<span style="background: rgba(231,76,60,0.15); border: 1px solid #e74c3c; color: #e74c3c; padding: 2px 8px; border-radius: 8px; margin-left: 6px; font-weight: 600; display: inline-block;">${r.name}</span>`).join('')}
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
 
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.06);">
             
