@@ -20,6 +20,8 @@ try { db.prepare("ALTER TABLE tribunal_config ADD COLUMN lawyer_role_id TEXT").r
 try { db.prepare("ALTER TABLE tribunal_config ADD COLUMN accused_role_id TEXT").run(); } catch (_) {}
 try { db.prepare("ALTER TABLE tribunal_config ADD COLUMN plaintiff_role_id TEXT").run(); } catch (_) {}
 try { db.prepare("ALTER TABLE tribunal_config ADD COLUMN channel_prefix TEXT DEFAULT '⚖️┆procès-'").run(); } catch (_) {}
+try { db.prepare("ALTER TABLE tribunal_config ADD COLUMN access_roles TEXT DEFAULT '[]'").run(); } catch (_) {}
+try { db.prepare("ALTER TABLE tribunal_config ADD COLUMN auto_delete_minutes INTEGER DEFAULT 5").run(); } catch (_) {}
 
 db.prepare(`
   CREATE TABLE IF NOT EXISTS tribunal_cases (
@@ -40,32 +42,41 @@ db.prepare(`
   )
 `).run();
 
+try { db.prepare("ALTER TABLE tribunal_cases ADD COLUMN delete_at INTEGER DEFAULT 0").run(); } catch (_) {}
+
 function getTribunalConfig(guildId) {
   const row = db.prepare('SELECT * FROM tribunal_config WHERE guild_id = ?').get(guildId);
+  let accessRoles = [];
+  try { accessRoles = JSON.parse(row ? (row.access_roles || '[]') : '[]'); } catch (e) {}
   return {
     categoryId: row ? (row.category_id || '') : '',
     judgeRoleId: row ? (row.judge_role_id || '') : '',
     lawyerRoleId: row ? (row.lawyer_role_id || '') : '',
     accusedRoleId: row ? (row.accused_role_id || '') : '',
     plaintiffRoleId: row ? (row.plaintiff_role_id || '') : '',
-    channelPrefix: row ? (row.channel_prefix || '⚖️┆procès-') : '⚖️┆procès-'
+    channelPrefix: row ? (row.channel_prefix || '⚖️┆procès-') : '⚖️┆procès-',
+    accessRoles: Array.isArray(accessRoles) ? accessRoles : [],
+    autoDeleteMinutes: row ? (row.auto_delete_minutes ?? 5) : 5
   };
 }
 
 function updateTribunalConfig(guildId, data) {
   const current = getTribunalConfig(guildId);
   const next = { ...current, ...data };
+  const accessRolesStr = typeof next.accessRoles === 'string' ? next.accessRoles : JSON.stringify(next.accessRoles || []);
   db.prepare(`
-    INSERT INTO tribunal_config (guild_id, category_id, judge_role_id, lawyer_role_id, accused_role_id, plaintiff_role_id, channel_prefix)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO tribunal_config (guild_id, category_id, judge_role_id, lawyer_role_id, accused_role_id, plaintiff_role_id, channel_prefix, access_roles, auto_delete_minutes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guild_id) DO UPDATE SET
       category_id = excluded.category_id,
       judge_role_id = excluded.judge_role_id,
       lawyer_role_id = excluded.lawyer_role_id,
       accused_role_id = excluded.accused_role_id,
       plaintiff_role_id = excluded.plaintiff_role_id,
-      channel_prefix = excluded.channel_prefix
-  `).run(guildId, next.categoryId, next.judgeRoleId, next.lawyerRoleId, next.accusedRoleId, next.plaintiffRoleId, next.channelPrefix);
+      channel_prefix = excluded.channel_prefix,
+      access_roles = excluded.access_roles,
+      auto_delete_minutes = excluded.auto_delete_minutes
+  `).run(guildId, next.categoryId, next.judgeRoleId, next.lawyerRoleId, next.accusedRoleId, next.plaintiffRoleId, next.channelPrefix, accessRolesStr, next.autoDeleteMinutes);
   return next;
 }
 
@@ -85,7 +96,8 @@ function getTribunalCase(guildId, caseId) {
     charge: row.charge,
     channelId: row.channel_id,
     panelMessageId: row.panel_message_id,
-    closedAt: row.closed_at
+    closedAt: row.closed_at,
+    deleteAt: row.delete_at || 0
   };
 }
 
@@ -106,7 +118,8 @@ function getAllTribunalCases(guildId) {
     charge: row.charge,
     channelId: row.channel_id,
     panelMessageId: row.panel_message_id,
-    closedAt: row.closed_at
+    closedAt: row.closed_at,
+    deleteAt: row.delete_at || 0
   }));
 }
 
@@ -124,14 +137,15 @@ function upsertTribunalCase(guildId, caseId, data) {
     charge: '',
     channelId: '',
     panelMessageId: '',
-    closedAt: 0
+    closedAt: 0,
+    deleteAt: 0
   };
   const next = { ...current, ...data };
   db.prepare(`
     INSERT INTO tribunal_cases (
       guild_id, case_id, channel_id, panel_message_id, plaintiff_id, accused_id,
-      plaintiff_lawyer_id, accused_lawyer_id, judge_id, charge, status, created_at, closed_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      plaintiff_lawyer_id, accused_lawyer_id, judge_id, charge, status, created_at, closed_at, delete_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guild_id, case_id) DO UPDATE SET
       channel_id = excluded.channel_id,
       panel_message_id = excluded.panel_message_id,
@@ -143,10 +157,11 @@ function upsertTribunalCase(guildId, caseId, data) {
       charge = excluded.charge,
       status = excluded.status,
       created_at = excluded.created_at,
-      closed_at = excluded.closed_at
+      closed_at = excluded.closed_at,
+      delete_at = excluded.delete_at
   `).run(
     guildId, caseId, next.channelId, next.panelMessageId, next.plaintiffId, next.accusedId,
-    next.plaintiffLawyerId, next.accusedLawyerId, next.judgeId, next.charge, next.status, next.createdAt, next.closedAt
+    next.plaintiffLawyerId, next.accusedLawyerId, next.judgeId, next.charge, next.status, next.createdAt, next.closedAt, next.deleteAt
   );
   return next;
 }

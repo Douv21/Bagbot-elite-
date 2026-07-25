@@ -861,6 +861,23 @@
                   <small class="form-help">Exemples populaires : <code>⚖️┆procès-</code>, <code>🏛️┆tribunal-</code>, <code>👨‍⚖️┆audience-</code>, <code>📜┆justice-</code></small>
                 </div>
 
+                <h4 style="color: #fff; margin-top: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;"><i class="fa-solid fa-lock" style="color: #3498db;"></i> Accès & Fermeture des Procès</h4>
+                <p style="font-size: 0.82rem; color: #b9bbbe; margin-bottom: 15px;">Définissez qui peut accéder aux salons de procès et la durée avant leur suppression automatique.</p>
+
+                <div class="form-group mb-3">
+                  <label for="tribunal_access_roles">Rôles autorisés à accéder au Tribunal (Sélection multiple) :</label>
+                  <select id="tribunal_access_roles" multiple class="role-select custom-select" style="height: 100px;">
+                    <!-- Rempli dynamiquement en JS -->
+                  </select>
+                  <small class="form-help">Si vous sélectionnez des rôles, seuls ces rôles (ainsi que le plaignant, l'accusé, les avocats et le juge) pourront voir le salon. Si vous ne sélectionnez aucun rôle, le salon sera accessible à tout le monde.</small>
+                </div>
+
+                <div class="form-group mb-3">
+                  <label for="tribunal_auto_delete_minutes">⏳ Délai de suppression automatique du salon après clôture (en minutes) :</label>
+                  <input type="number" id="tribunal_auto_delete_minutes" class="inner-input" min="1" max="60" value="5" placeholder="5">
+                  <small class="form-help">Lorsqu'un procès est clôturé, le salon est immédiatement verrouillé en écriture puis supprimé automatiquement après ce délai (défaut : 5 minutes).</small>
+                </div>
+
                 <h4 style="color: #fff; margin-top: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;"><i class="fa-solid fa-user-shield" style="color: #9b59b6;"></i> Rôles Automatiques du Tribunal</h4>
                 <p style="font-size: 0.82rem; color: #b9bbbe; margin-bottom: 15px;">Ces rôles seront <strong>attribués automatiquement</strong> lors de l'ouverture d'un procès et <strong>retirés automatiquement</strong> dès que le procès est clôturé.</p>
 

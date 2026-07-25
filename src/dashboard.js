@@ -734,7 +734,7 @@ app.post('/api/config/tribunal', (req, res) => {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { category_id, judge_role_id, lawyer_role_id, accused_role_id, plaintiff_role_id, channel_prefix } = req.body;
+    const { category_id, judge_role_id, lawyer_role_id, accused_role_id, plaintiff_role_id, channel_prefix, access_roles, auto_delete_minutes } = req.body;
     const tribunalDb = require('./utils/tribunal_db');
     tribunalDb.updateTribunalConfig(guildId, {
       categoryId: category_id || '',
@@ -742,7 +742,9 @@ app.post('/api/config/tribunal', (req, res) => {
       lawyerRoleId: lawyer_role_id || '',
       accusedRoleId: accused_role_id || '',
       plaintiffRoleId: plaintiff_role_id || '',
-      channelPrefix: channel_prefix || '⚖️┆procès-'
+      channelPrefix: channel_prefix || '⚖️┆procès-',
+      accessRoles: Array.isArray(access_roles) ? access_roles : (typeof access_roles === 'string' ? JSON.parse(access_roles || '[]') : []),
+      autoDeleteMinutes: parseInt(auto_delete_minutes) || 5
     });
 
     if (client.syncExistingChannels) client.syncExistingChannels();

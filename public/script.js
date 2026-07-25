@@ -632,7 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('announce_channel').value = lvl.announce_channel || 'current';
         document.getElementById('announce_msg').value = lvl.announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !';
         
-        // Tribunal Category & Roles & Prefix
+        // Tribunal Category & Roles & Prefix & Access Roles & Auto Delete
         const trib = config.tribunal_config || {};
         const tribCategoryEl = document.getElementById('tribunal_category');
         if (tribCategoryEl) {
@@ -641,6 +641,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const tribPrefixEl = document.getElementById('tribunal_channel_prefix');
         if (tribPrefixEl) tribPrefixEl.value = trib.channelPrefix || '⚖️┆procès-';
+
+        const tribAutoDeleteEl = document.getElementById('tribunal_auto_delete_minutes');
+        if (tribAutoDeleteEl) tribAutoDeleteEl.value = trib.autoDeleteMinutes ?? 5;
+
+        const tribAccessRolesEl = document.getElementById('tribunal_access_roles');
+        if (tribAccessRolesEl) {
+          const selectedAccess = trib.accessRoles || [];
+          Array.from(tribAccessRolesEl.options).forEach(opt => {
+            opt.selected = selectedAccess.includes(opt.value);
+          });
+          if (tribAccessRolesEl.syncCustomSelect) tribAccessRolesEl.syncCustomSelect();
+        }
 
         const judgeRoleEl = document.getElementById('tribunal_judge_role');
         if (judgeRoleEl) {
@@ -1800,6 +1812,50 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(resData => {
         if (resData.success) {
           showToast('Configuration des rappels de bump enregistrée !');
+          loadGuildConfiguration();
+        } else {
+          showToast('Erreur: ' + resData.error, true);
+        }
+      })
+      .catch(err => showToast('Erreur: ' + err.message, true));
+    });
+  }
+
+  // Formulaire Tribunal
+  const formTribunal = document.getElementById('form-tribunal');
+  if (formTribunal) {
+    formTribunal.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const category_id = document.getElementById('tribunal_category').value;
+      const channel_prefix = document.getElementById('tribunal_channel_prefix').value || '⚖️┆procès-';
+      const auto_delete_minutes = parseInt(document.getElementById('tribunal_auto_delete_minutes').value) || 5;
+
+      const accessSelect = document.getElementById('tribunal_access_roles');
+      const access_roles = accessSelect ? Array.from(accessSelect.selectedOptions).map(o => o.value) : [];
+
+      const judge_role_id = document.getElementById('tribunal_judge_role').value;
+      const lawyer_role_id = document.getElementById('tribunal_lawyer_role').value;
+      const accused_role_id = document.getElementById('tribunal_accused_role').value;
+      const plaintiff_role_id = document.getElementById('tribunal_plaintiff_role').value;
+
+      fetch('/api/config/tribunal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category_id,
+          channel_prefix,
+          auto_delete_minutes,
+          access_roles,
+          judge_role_id,
+          lawyer_role_id,
+          accused_role_id,
+          plaintiff_role_id
+        })
+      })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          showToast('Configuration du Tribunal enregistrée !');
           loadGuildConfiguration();
         } else {
           showToast('Erreur: ' + resData.error, true);

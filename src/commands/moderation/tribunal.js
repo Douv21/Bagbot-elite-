@@ -301,11 +301,15 @@ module.exports = {
             return true;
           }
 
-          await storage.upsertTribunalCase(interaction.guildId, caseId, { status: 'closed' });
+          const cfg = await storage.getTribunalConfig(interaction.guildId);
+          const autoDeleteMins = (cfg.autoDeleteMinutes && cfg.autoDeleteMinutes > 0) ? cfg.autoDeleteMinutes : 5;
+          const deleteDelayMs = autoDeleteMins * 60 * 1000;
+          const deleteAt = Date.now() + deleteDelayMs;
+
+          await storage.upsertTribunalCase(interaction.guildId, caseId, { status: 'closed', closedAt: Date.now(), deleteAt });
           const updated = await storage.getTribunalCase(interaction.guildId, caseId);
 
           // Retrait automatique des rôles de tribunal aux membres du procès
-          const cfg = await storage.getTribunalConfig(interaction.guildId);
           if (cfg.plaintiffRoleId && record.plaintiffId) {
             await removeTribunalRole(interaction.guild, record.plaintiffId, cfg.plaintiffRoleId);
           }
@@ -322,6 +326,21 @@ module.exports = {
             await removeTribunalRole(interaction.guild, record.judgeId, cfg.judgeRoleId);
           }
 
+          // Verrouillage en écriture du salon pour TOUT LE MONDE
+          const channel = interaction.channel;
+          if (channel) {
+            try {
+              await channel.permissionOverwrites.edit(interaction.guild.roles.everyone.id, { SendMessages: false });
+            } catch (_) {}
+            try {
+              for (const [id] of channel.permissionOverwrites.cache) {
+                if (id !== interaction.client.user.id) {
+                  await channel.permissionOverwrites.edit(id, { SendMessages: false }).catch(() => null);
+                }
+              }
+            } catch (_) {}
+          }
+
           try { await interaction.deferUpdate(); } catch (_) {}
           const embed = caseEmbedFromRecord(updated);
 
@@ -329,9 +348,23 @@ module.exports = {
             await interaction.message.edit({ embeds: [embed], components: [] });
           } catch (_) {}
 
+          const deleteUnix = Math.floor(deleteAt / 1000);
+          const closeNoticeEmbed = new EmbedBuilder()
+            .setTitle('🔒 PROCÈS CLÔTURÉ & SALON VERROUILLÉ')
+            .setDescription(`🔴 **Le procès a été clôturé par <@${interaction.user.id}>.**\n\n🔒 **Verrouillage :** Plus personne ne peut écrire dans ce salon.\n⏳ **Suppression automatique :** Ce salon sera définitivement supprimé <t:${deleteUnix}:R> (à <t:${deleteUnix}:T>).`)
+            .setColor('#E74C3C')
+            .setTimestamp();
+
           try {
-            await interaction.channel.send({ content: `🔴 **PROCÈS CLÔTURÉ** par <@${interaction.user.id}>. Tous les rôles temporaires attribués ont été retirés et le salon est désormais clos.` });
+            await interaction.channel.send({ embeds: [closeNoticeEmbed] });
           } catch (_) {}
+
+          // Suppression automatique programmée
+          setTimeout(async () => {
+            try {
+              if (channel) await channel.delete().catch(() => null);
+            } catch (_) {}
+          }, deleteDelayMs);
 
           return true;
         }
@@ -487,8 +520,30 @@ module.exports = {
           const prefix = (cfg && cfg.channelPrefix) ? cfg.channelPrefix : '⚖️・procès-';
           const chanName = `${prefix}${slugifyChannelName(accusedName)}`.slice(0, 90);
 
-          const overwrites = [
-            {
+          const overwrites = [];
+
+          if (cfg.accessRoles && cfg.accessRoles.length > 0) {
+            overwrites.push({
+              id: guild.roles.everyone.id,
+              deny: [PermissionFlagsBits.ViewChannel],
+            });
+
+            for (const rId of cfg.accessRoles) {
+              if (guild.roles.cache.has(rId)) {
+                overwrites.push({
+                  id: rId,
+                  allow: [
+                    PermissionFlagsBits.ViewChannel,
+                    PermissionFlagsBits.SendMessages,
+                    PermissionFlagsBits.ReadMessageHistory,
+                    PermissionFlagsBits.EmbedLinks,
+                    PermissionFlagsBits.AttachFiles,
+                  ],
+                });
+              }
+            }
+          } else {
+            overwrites.push({
               id: guild.roles.everyone.id,
               allow: [
                 PermissionFlagsBits.ViewChannel,
@@ -497,18 +552,41 @@ module.exports = {
                 PermissionFlagsBits.EmbedLinks,
                 PermissionFlagsBits.AttachFiles,
               ],
-            },
-            {
-              id: guild.members.me.id,
-              allow: [
-                PermissionFlagsBits.ViewChannel,
-                PermissionFlagsBits.SendMessages,
-                PermissionFlagsBits.ManageChannels,
-                PermissionFlagsBits.ReadMessageHistory,
-                PermissionFlagsBits.ManageMessages,
-              ],
-            },
-          ];
+            });
+          }
+
+          overwrites.push({
+            id: guild.members.me.id,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.ManageChannels,
+              PermissionFlagsBits.ReadMessageHistory,
+              PermissionFlagsBits.ManageMessages,
+            ],
+          });
+
+          // Accès garanti pour les parties du procès
+          const addPartyOverwrite = (id) => {
+            if (id && id !== guild.members.me.id) {
+              overwrites.push({
+                id: id,
+                allow: [
+                  PermissionFlagsBits.ViewChannel,
+                  PermissionFlagsBits.SendMessages,
+                  PermissionFlagsBits.ReadMessageHistory,
+                  PermissionFlagsBits.EmbedLinks,
+                  PermissionFlagsBits.AttachFiles,
+                ],
+              });
+            }
+          };
+
+          addPartyOverwrite(record.plaintiffId);
+          addPartyOverwrite(record.accusedId);
+          if (record.plaintiffLawyerId) addPartyOverwrite(record.plaintiffLawyerId);
+          if (record.accusedLawyerId) addPartyOverwrite(record.accusedLawyerId);
+          if (record.judgeId) addPartyOverwrite(record.judgeId);
 
           const caseChannel = await guild.channels.create({
             name: chanName,
@@ -593,5 +671,26 @@ module.exports = {
     }
 
     return false;
+  },
+
+  async checkExpiredTribunalCases(client) {
+    try {
+      const cases = storage.getAllTribunalCases();
+      const now = Date.now();
+      for (const c of cases) {
+        if (c.status === 'closed' && c.deleteAt > 0 && c.deleteAt <= now) {
+          const guild = client.guilds.cache.get(c.guildId);
+          if (guild && c.channelId) {
+            const chan = await guild.channels.fetch(c.channelId).catch(() => null);
+            if (chan) {
+              await chan.delete().catch(() => null);
+            }
+          }
+          await storage.upsertTribunalCase(c.guildId, c.id, { deleteAt: 0 });
+        }
+      }
+    } catch (err) {
+      console.error('Erreur checkExpiredTribunalCases:', err);
+    }
   }
 };

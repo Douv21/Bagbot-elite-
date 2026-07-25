@@ -1271,6 +1271,16 @@ async function applyColorRole(interaction, hexColor) {
 // Connexion du bot
 client.login(process.env.DISCORD_TOKEN);
 
+// Nettoyage automatique des salons de tribunal fermés expirés
+setInterval(() => {
+  if (client && client.isReady()) {
+    const tribunalCmd = client.commands.get('tribunal');
+    if (tribunalCmd && typeof tribunalCmd.checkExpiredTribunalCases === 'function') {
+      tribunalCmd.checkExpiredTribunalCases(client).catch(() => null);
+    }
+  }
+}, 60000);
+
 module.exports = { client };
 
 // Lancement du Dashboard Premium
