@@ -1424,6 +1424,69 @@
             </div>
           </div>
 
+          <!-- Tab: Configuration Karma -->
+          <div id="tab-karma" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-star" style="color: #f1c40f;"></i> Configuration du Karma & Récompenses d'Actions</h2>
+            
+            <div class="card glass mb-4">
+              <h3>Réglages Généraux du Karma</h3>
+              <p>Le Karma récompense les membres bienveillants et actifs du serveur. Paramétrez les gains de Karma obtenus par message et par interaction.</p>
+              
+              <form id="form-karma-settings" class="inner-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="karma_setting_min">Gain de Karma minimum par message :</label>
+                    <input type="number" id="karma_setting_min" min="0" value="1">
+                  </div>
+                  <div class="form-group">
+                    <label for="karma_setting_max">Gain de Karma maximum par message :</label>
+                    <input type="number" id="karma_setting_max" min="0" value="3">
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer le Karma</button>
+              </form>
+            </div>
+
+            <div class="card glass mb-4">
+              <h3>Gains en Pièces & Karma par Action (Câlin, Bisou, etc.)</h3>
+              <p>Configurez les récompenses attribuées aux membres lorsqu'ils exécutent des commandes d'interaction (ex: /calin, /bisou, /gif).</p>
+              
+              <form id="form-action-rewards" class="inner-form">
+                <div class="form-group mb-3">
+                  <label for="reward_action_name">Action / Commande :</label>
+                  <select id="reward_action_name" required>
+                    <option value="calin">🤗 Câlin (/calin)</option>
+                    <option value="bisou">💋 Bisou (/bisou)</option>
+                    <option value="slap">👋 Gifle (/slap)</option>
+                    <option value="pat">🫳 Tapotement (/pat)</option>
+                    <option value="poke">👉 Pique (/poke)</option>
+                  </select>
+                </div>
+                
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="reward_min_money">Pièces Min :</label>
+                    <input type="number" id="reward_min_money" min="0" value="5">
+                  </div>
+                  <div class="form-group">
+                    <label for="reward_max_money">Pièces Max :</label>
+                    <input type="number" id="reward_max_money" min="0" value="15">
+                  </div>
+                  <div class="form-group">
+                    <label for="reward_min_karma">Karma Min :</label>
+                    <input type="number" id="reward_min_karma" min="0" value="1">
+                  </div>
+                  <div class="form-group">
+                    <label for="reward_max_karma">Karma Max :</label>
+                    <input type="number" id="reward_max_karma" min="0" value="3">
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Mettre à jour l'action</button>
+              </form>
+            </div>
+          </div>
+
           <!-- Tab: Action GIFs -->
           <div id="tab-gifs" class="tab-content">
             <h2 class="section-title"><i class="fa-solid fa-file-video"></i> GIFs pour les Commandes d'Action</h2>
