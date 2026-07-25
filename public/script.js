@@ -4895,7 +4895,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const isAdminOrModCategory = ['administration', 'modération', 'sécurité', 'admin', 'moderation', 'config', 'support'].some(c => catLower.includes(c));
       const isAdminOrModCommandName = ['admin', 'ban', 'kick', 'unban', 'clear', 'quarantaine', 'automod', 'logs', 'embed', 'ticket', 'panel', 'config', 'setup', 'eval', 'reload', 'lock', 'unlock', 'mute', 'unmute', 'timeout', 'untimeout', 'warn', 'unwarn'].some(n => nameLower.includes(n));
 
-      const isDefaultAdminCmd = isAdminOrModCategory || isAdminOrModCommandName;
+      const isDefaultAdminCmd = (isAdminOrModCategory || isAdminOrModCommandName) && nameLower !== 'tribunal';
 
       let accessBadge = '';
       if (isDefaultAdminCmd) {
