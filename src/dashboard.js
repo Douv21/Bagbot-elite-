@@ -1588,7 +1588,7 @@ app.post('/api/config/announce-commands', async (req, res) => {
         },
         { 
           name: '⚙️ Profil, Niveaux & Configuration', 
-          value: '`/level` — Carte XP & Niveau\n`/rank` — Classement du serveur\n`/couleur` — Couleur de pseudo sur-mesure\n`/dashboard` — Panneau d\'administration Web',
+          value: '`/level` — Carte XP & Niveau\n`/dashboard` — Panneau d\'administration Web',
           inline: false 
         }
       )

@@ -448,25 +448,6 @@ client.on('interactionCreate', async interaction => {
     } else if (customId.startsWith('ticket_')) {
       const { handleTicketInteraction } = require('./utils/ticketHandler');
       return handleTicketInteraction(interaction, client);
-    } else if (customId === 'couleur_custom_btn') {
-      const modal = new ModalBuilder()
-        .setCustomId('couleur_custom_modal')
-        .setTitle('Couleur Personnalisée');
-
-      const hexInput = new TextInputBuilder()
-        .setCustomId('hex_code')
-        .setLabel('Code couleur HEX (ex: FF5733)')
-        .setStyle(TextInputStyle.Short)
-        .setMinLength(6)
-        .setMaxLength(7)
-        .setRequired(true)
-        .setPlaceholder('#FF5733');
-
-      const actionRow = new ActionRowBuilder().addComponents(hexInput);
-      modal.addComponents(actionRow);
-
-      await interaction.showModal(modal);
-      return;
     } else if (customId.startsWith('conf_approve_')) {
       const pendingId = parseInt(customId.replace('conf_approve_', ''));
       const { handleConfessionApproval } = require('./utils/confessionHandler');
@@ -758,11 +739,7 @@ client.on('interactionCreate', async interaction => {
   }
 
   if (interaction.isModalSubmit()) {
-    if (interaction.customId === 'couleur_custom_modal') {
-      const hex = interaction.fields.getTextInputValue('hex_code');
-      await applyColorRole(interaction, hex);
-      return;
-    } else if (interaction.customId === 'reply_confession_modal') {
+    if (interaction.customId === 'reply_confession_modal') {
       const content = interaction.fields.getTextInputValue('reply_content');
       const channel = interaction.channel; // Le thread dans lequel l'interaction a eu lieu
       
