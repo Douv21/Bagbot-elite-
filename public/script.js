@@ -4887,9 +4887,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let html = '';
     filtered.forEach(cmd => {
       const isEnabled = cmd.enabled;
-      
       const configuredAllowedRoles = serverRolesForCmdPerms.filter(r => cmd.allowed_roles.includes(r.id));
-      const configuredDeniedRoles = serverRolesForCmdPerms.filter(r => cmd.denied_roles.includes(r.id));
 
       const catLower = (cmd.category || '').toLowerCase();
       const nameLower = (cmd.name || '').toLowerCase();
@@ -4900,19 +4898,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const isDefaultAdminCmd = isAdminOrModCategory || isAdminOrModCommandName;
 
       let accessBadge = '';
-      if (cmd.allowed_roles.length === 0) {
-        if (isDefaultAdminCmd) {
-          accessBadge = '<span class="discord-perm-badge badge-admin"><i class="fa-solid fa-lock"></i> Accessible uniquement aux Admins</span>';
+      if (isDefaultAdminCmd) {
+        if (cmd.allowed_roles.length === 0) {
+          accessBadge = '<span class="discord-perm-badge badge-admin"><i class="fa-solid fa-lock"></i> Reservé aux Administrateurs</span>';
         } else {
-          accessBadge = '<span class="discord-perm-badge badge-everyone"><i class="fa-solid fa-earth-americas"></i> Accessible à tous les membres</span>';
+          accessBadge = `<span class="discord-perm-badge badge-restricted"><i class="fa-solid fa-shield-halved"></i> Admins + ${cmd.allowed_roles.length} rôle(s) en dérogation</span>`;
         }
       } else {
-        const isAdminOnly = cmd.allowed_roles.length === 1 && (cmd.allowed_roles.includes('admin') || serverRolesForCmdPerms.find(r => r.id === cmd.allowed_roles[0])?.name.toLowerCase().includes('admin'));
-        if (isAdminOnly) {
-          accessBadge = '<span class="discord-perm-badge badge-admin"><i class="fa-solid fa-lock"></i> Accessible uniquement aux Admins</span>';
-        } else {
-          accessBadge = `<span class="discord-perm-badge badge-restricted"><i class="fa-solid fa-shield-halved"></i> Restreint à ${cmd.allowed_roles.length} rôle(s)</span>`;
-        }
+        accessBadge = '<span class="discord-perm-badge badge-everyone"><i class="fa-solid fa-earth-americas"></i> Accessible à tout le monde</span>';
       }
 
       html += `
@@ -4941,102 +4934,60 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
 
-          <!-- Card Content / Permissions Grid -->
-          <div class="discord-card-body">
+          <!-- Card Content -->
+          <div class="discord-card-body" style="grid-template-columns: 1fr;">
             
-            <!-- Rôles Autorisés (Discord Style) -->
-            <div class="discord-perm-column" data-type="allowed">
-              <div class="discord-perm-header">
-                <span class="perm-title allowed"><i class="fa-solid fa-circle-check"></i> Rôles Autorisés</span>
-                <span class="perm-hint allowed-hint">${cmd.allowed_roles.length === 0 ? (isDefaultAdminCmd ? 'Admins par défaut' : 'Tous par défaut') : `${cmd.allowed_roles.length} rôle(s)`}</span>
-              </div>
+            ${isDefaultAdminCmd ? `
+              <!-- Dérogations pour Commandes Admins -->
+              <div class="discord-perm-column" data-type="allowed">
+                <div class="discord-perm-header">
+                  <span class="perm-title allowed"><i class="fa-solid fa-user-shield"></i> Rôles autorisés en dérogation (Staff / Modos)</span>
+                  <span class="perm-hint allowed-hint">${cmd.allowed_roles.length === 0 ? 'Admins uniquement' : `${cmd.allowed_roles.length} rôle(s) en dérogation`}</span>
+                </div>
 
-              <!-- Badges des rôles configurés -->
-              <div class="discord-role-badges-list allowed-badges">
-                ${configuredAllowedRoles.length > 0 ? configuredAllowedRoles.map(r => `
-                  <span class="discord-role-pill" style="border-color: ${r.color && r.color !== '#000000' ? r.color : '#5865f2'};">
-                    <span class="role-dot" style="background: ${r.color && r.color !== '#000000' ? r.color : '#99aab5'};"></span>
-                    <span class="role-name">${r.name}</span>
-                    <i class="fa-solid fa-xmark remove-role-btn" data-role-id="${r.id}" data-type="allowed" title="Retirer ce rôle"></i>
-                  </span>
-                `).join('') : `<span class="empty-roles-text">${isDefaultAdminCmd ? '🔒 Administrateurs du serveur uniquement' : '✨ Accessible à tous les membres par défaut'}</span>`}
-              </div>
+                <div class="discord-role-badges-list allowed-badges">
+                  ${configuredAllowedRoles.length > 0 ? configuredAllowedRoles.map(r => `
+                    <span class="discord-role-pill" style="border-color: ${r.color && r.color !== '#000000' ? r.color : '#5865f2'};">
+                      <span class="role-dot" style="background: ${r.color && r.color !== '#000000' ? r.color : '#99aab5'};"></span>
+                      <span class="role-name">${r.name}</span>
+                      <i class="fa-solid fa-xmark remove-role-btn" data-role-id="${r.id}" data-type="allowed" title="Retirer ce rôle"></i>
+                    </span>
+                  `).join('') : '<span class="empty-roles-text">🔒 Administrateurs du serveur uniquement (Aucune dérogation ajoutée)</span>'}
+                </div>
 
-              <!-- Selector Dropdown avec Recherche Interne -->
-              <div class="custom-string-select-container" data-cmd="${cmd.name}" data-type="allowed" style="position: relative; margin-top: 10px;">
-                <button type="button" class="cmd-select-trigger discord-add-role-btn">
-                  <span><i class="fa-solid fa-plus"></i> Ajouter un rôle autorisé</span>
-                  <i class="fa-solid fa-chevron-down arrow-icon"></i>
-                </button>
+                <div class="custom-string-select-container" data-cmd="${cmd.name}" data-type="allowed" style="position: relative; margin-top: 10px;">
+                  <button type="button" class="cmd-select-trigger discord-add-role-btn">
+                    <span><i class="fa-solid fa-plus"></i> Accorder une dérogation à un rôle (ex: Modérateur, Helper...)</span>
+                    <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                  </button>
 
-                <div class="cmd-select-dropdown discord-dropdown-panel" style="display: none;">
-                  <div class="discord-search-box">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" class="cmd-internal-search-input" placeholder="🔍 Rechercher un rôle...">
-                  </div>
+                  <div class="cmd-select-dropdown discord-dropdown-panel" style="display: none;">
+                    <div class="discord-search-box">
+                      <i class="fa-solid fa-magnifying-glass"></i>
+                      <input type="text" class="cmd-internal-search-input" placeholder="🔍 Rechercher un rôle à autoriser...">
+                    </div>
 
-                  <div class="cmd-options-scroll-list">
-                    ${serverRolesForCmdPerms.map(r => {
-                      const isChecked = cmd.allowed_roles.includes(r.id);
-                      return `
-                        <label class="cmd-option-item">
-                          <input type="checkbox" class="cmd-allowed-checkbox" value="${r.id}" ${isChecked ? 'checked' : ''}>
-                          <span class="role-dot" style="background: ${r.color && r.color !== '#000000' ? r.color : '#99aab5'};"></span>
-                          <span class="role-label" style="color: ${r.color && r.color !== '#000000' ? r.color : '#fff'}; font-weight: 600;">${r.name}</span>
-                        </label>
-                      `;
-                    }).join('')}
+                    <div class="cmd-options-scroll-list">
+                      ${serverRolesForCmdPerms.map(r => {
+                        const isChecked = cmd.allowed_roles.includes(r.id);
+                        return `
+                          <label class="cmd-option-item">
+                            <input type="checkbox" class="cmd-allowed-checkbox" value="${r.id}" ${isChecked ? 'checked' : ''}>
+                            <span class="role-dot" style="background: ${r.color && r.color !== '#000000' ? r.color : '#99aab5'};"></span>
+                            <span class="role-label" style="color: ${r.color && r.color !== '#000000' ? r.color : '#fff'}; font-weight: 600;">${r.name}</span>
+                          </label>
+                        `;
+                      }).join('')}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-
-            <!-- Rôles Interdits (Discord Style) -->
-            <div class="discord-perm-column" data-type="denied">
-              <div class="discord-perm-header">
-                <span class="perm-title denied"><i class="fa-solid fa-circle-xmark"></i> Rôles Interdits</span>
-                <span class="perm-hint denied-hint">${cmd.denied_roles.length === 0 ? 'Aucun rôle interdit' : `${cmd.denied_roles.length} rôle(s)`}</span>
+            ` : `
+              <!-- Commande Publique -->
+              <div style="background: rgba(46, 204, 113, 0.05); border: 1px solid rgba(46, 204, 113, 0.15); padding: 12px 16px; border-radius: 8px; font-size: 0.88rem; color: #2ecc71; display: flex; align-items: center; justify-content: space-between;">
+                <span><i class="fa-solid fa-globe" style="margin-right: 8px;"></i> Commande publique : Accessible par tous les membres du serveur.</span>
               </div>
-
-              <!-- Badges des rôles interdits configurés -->
-              <div class="discord-role-badges-list denied-badges">
-                ${configuredDeniedRoles.length > 0 ? configuredDeniedRoles.map(r => `
-                  <span class="discord-role-pill denied-pill" style="border-color: ${r.color && r.color !== '#000000' ? r.color : '#e74c3c'};">
-                    <span class="role-dot" style="background: ${r.color && r.color !== '#000000' ? r.color : '#e74c3c'};"></span>
-                    <span class="role-name">${r.name}</span>
-                    <i class="fa-solid fa-xmark remove-role-btn" data-role-id="${r.id}" data-type="denied" title="Retirer ce rôle"></i>
-                  </span>
-                `).join('') : '<span class="empty-roles-text">✨ Aucun rôle interdit</span>'}
-              </div>
-
-              <!-- Selector Dropdown avec Recherche Interne -->
-              <div class="custom-string-select-container" data-cmd="${cmd.name}" data-type="denied" style="position: relative; margin-top: 10px;">
-                <button type="button" class="cmd-select-trigger discord-add-role-btn denied-btn">
-                  <span><i class="fa-solid fa-plus"></i> Interdire un rôle</span>
-                  <i class="fa-solid fa-chevron-down arrow-icon"></i>
-                </button>
-
-                <div class="cmd-select-dropdown discord-dropdown-panel" style="display: none;">
-                  <div class="discord-search-box">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" class="cmd-internal-search-input" placeholder="🔍 Rechercher un rôle à interdire...">
-                  </div>
-
-                  <div class="cmd-options-scroll-list">
-                    ${serverRolesForCmdPerms.map(r => {
-                      const isChecked = cmd.denied_roles.includes(r.id);
-                      return `
-                        <label class="cmd-option-item">
-                          <input type="checkbox" class="cmd-denied-checkbox" value="${r.id}" ${isChecked ? 'checked' : ''}>
-                          <span class="role-dot" style="background: ${r.color && r.color !== '#000000' ? r.color : '#99aab5'};"></span>
-                          <span class="role-label" style="color: ${r.color && r.color !== '#000000' ? r.color : '#fff'}; font-weight: 600;">${r.name}</span>
-                        </label>
-                      `;
-                    }).join('')}
-                  </div>
-                </div>
-              </div>
-            </div>
+            `}
 
           </div>
         </div>
@@ -5047,7 +4998,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Gestion dynamique des cartes d'intégration Discord
     container.querySelectorAll('.discord-integration-card').forEach(card => {
-      const isDefaultAdminCmd = card.querySelector('.badge-admin') !== null;
+      const isDefaultAdminCmd = card.querySelector('.badge-admin') !== null || card.querySelector('.badge-restricted') !== null;
 
       const updateColumnBadges = (type) => {
         const col = card.querySelector(`.discord-perm-column[data-type="${type}"]`);
@@ -5059,52 +5010,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedRoleIds = Array.from(checkedCheckboxes).map(cb => cb.value);
         const rolesObj = serverRolesForCmdPerms.filter(r => selectedRoleIds.includes(r.id));
 
-        if (type === 'allowed') {
-          hintSpan.textContent = rolesObj.length === 0 ? (isDefaultAdminCmd ? 'Admins par défaut' : 'Tous par défaut') : `${rolesObj.length} rôle(s)`;
-          
-          if (rolesObj.length === 0) {
-            badgesContainer.innerHTML = `<span class="empty-roles-text">${isDefaultAdminCmd ? '🔒 Administrateurs du serveur uniquement' : '✨ Accessible à tous les membres par défaut'}</span>`;
-          } else {
-            badgesContainer.innerHTML = rolesObj.map(r => `
-              <span class="discord-role-pill" style="border-color: ${r.color && r.color !== '#000000' ? r.color : '#5865f2'};">
-                <span class="role-dot" style="background: ${r.color && r.color !== '#000000' ? r.color : '#99aab5'};"></span>
-                <span class="role-name">${r.name}</span>
-                <i class="fa-solid fa-xmark remove-role-btn" data-role-id="${r.id}" data-type="allowed" title="Retirer ce rôle"></i>
-              </span>
-            `).join('');
-          }
+        hintSpan.textContent = rolesObj.length === 0 ? 'Admins uniquement' : `${rolesObj.length} rôle(s) en dérogation`;
+        
+        if (rolesObj.length === 0) {
+          badgesContainer.innerHTML = '<span class="empty-roles-text">🔒 Administrateurs du serveur uniquement (Aucune dérogation ajoutée)</span>';
         } else {
-          hintSpan.textContent = rolesObj.length === 0 ? 'Aucun rôle interdit' : `${rolesObj.length} rôle(s)`;
-          
-          if (rolesObj.length === 0) {
-            badgesContainer.innerHTML = '<span class="empty-roles-text">✨ Aucun rôle interdit</span>';
-          } else {
-            badgesContainer.innerHTML = rolesObj.map(r => `
-              <span class="discord-role-pill denied-pill" style="border-color: ${r.color && r.color !== '#000000' ? r.color : '#e74c3c'};">
-                <span class="role-dot" style="background: ${r.color && r.color !== '#000000' ? r.color : '#e74c3c'};"></span>
-                <span class="role-name">${r.name}</span>
-                <i class="fa-solid fa-xmark remove-role-btn" data-role-id="${r.id}" data-type="denied" title="Retirer ce rôle"></i>
-              </span>
-            `).join('');
-          }
+          badgesContainer.innerHTML = rolesObj.map(r => `
+            <span class="discord-role-pill" style="border-color: ${r.color && r.color !== '#000000' ? r.color : '#5865f2'};">
+              <span class="role-dot" style="background: ${r.color && r.color !== '#000000' ? r.color : '#99aab5'};"></span>
+              <span class="role-name">${r.name}</span>
+              <i class="fa-solid fa-xmark remove-role-btn" data-role-id="${r.id}" data-type="allowed" title="Retirer cette dérogation"></i>
+            </span>
+          `).join('');
         }
 
         // Met à jour le badge d'accès principal en haut de carte
-        const allowedCount = card.querySelectorAll(`.discord-perm-column[data-type="allowed"] input[type="checkbox"]:checked`).length;
+        const allowedCount = rolesObj.length;
         const badgeContainer = card.querySelector('.access-badge-container');
         if (badgeContainer) {
           if (allowedCount === 0) {
-            if (isDefaultAdminCmd) {
-              badgeContainer.innerHTML = '<span class="discord-perm-badge badge-admin"><i class="fa-solid fa-lock"></i> Accessible uniquement aux Admins</span>';
-            } else {
-              badgeContainer.innerHTML = '<span class="discord-perm-badge badge-everyone"><i class="fa-solid fa-earth-americas"></i> Accessible à tous les membres</span>';
-            }
+            badgeContainer.innerHTML = '<span class="discord-perm-badge badge-admin"><i class="fa-solid fa-lock"></i> Reservé aux Administrateurs</span>';
           } else {
-            badgeContainer.innerHTML = `<span class="discord-perm-badge badge-restricted"><i class="fa-solid fa-shield-halved"></i> Restreint à ${allowedCount} rôle(s)</span>`;
+            badgeContainer.innerHTML = `<span class="discord-perm-badge badge-restricted"><i class="fa-solid fa-shield-halved"></i> Admins + ${allowedCount} rôle(s) en dérogation</span>`;
           }
         }
 
-        // Attacher le clic sur la croix des badges pour retirer le rôle
+        // Attacher le clic sur la croix des badges pour retirer la dérogation
         col.querySelectorAll('.remove-role-btn').forEach(btn => {
           btn.addEventListener('click', () => {
             const rId = btn.getAttribute('data-role-id');
