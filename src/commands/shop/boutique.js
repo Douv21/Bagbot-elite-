@@ -244,11 +244,21 @@ module.exports = {
 
         await textChannel.send({ embeds: [welcomeEmbed, panelEmbed], components: [panelRow] }).catch(console.error);
 
-        const replyMsg = isGift 
-          ? `🎁 💋 **CADEAU EXCLUSIF !** <@${buyerId}> a offert une **${item.item_name}** à <@${recipientId}> ! Le salon privatif <#${textChannel.id}> a été créé.` 
-          : `🎉 Vous avez acheté une **${item.item_name}** pour **${finalPrice}** pièces ! Votre salon privatif <#${textChannel.id}> a été créé.`;
+        const giftEmbed = new EmbedBuilder()
+          .setTitle('👑 🛋️ 🔥 SUITE PRIVÉE PASSONNÉE OFFERTE ! 💋 🛋️ 👑')
+          .setDescription(
+            `🔥 **<@${buyerId}>** a succombé au charme hypnotique de **<@${recipientId}>** et lui offre une luxueuse **${item.item_name}** !\n\n` +
+            `*Un espace d'intimité exclusive, de luxe raffiné et de pure volupté vous attend... Laissez parler vos désirs les plus intenses.* 🥂💋\n\n` +
+            `🔑 **Votre salon privatif discret :** <#${textChannel.id}>`
+          )
+          .setColor('#F1C40F')
+          .setFooter({ text: '💋 Boudoir VIP & Moments Sensuels • B&G Elite' })
+          .setTimestamp();
 
-        return interaction.editReply({ content: replyMsg });
+        return interaction.editReply({ 
+          content: `💋 **Hey <@${recipientId}> ! Reçois ce cadeau passionné et torride offert par <@${buyerId}> !** 🔥✨`,
+          embeds: [giftEmbed] 
+        });
       } catch (err) {
         console.error('Erreur création suite:', err);
         updateEconomy(guildId, buyerId, { wallet: economy.wallet });
@@ -311,17 +321,33 @@ module.exports = {
 
     let rewardText = '';
     if (rewardsGiven.length > 0) {
-      rewardText = ` (${isGift ? `<@${recipientId}> a reçu` : 'Vous avez reçu'} : ${rewardsGiven.join(', ')})`;
+      rewardText = `\n✨ **Récompense débloquée :** <@${recipientId}> a immédiatement reçu ${rewardsGiven.join(', ')} !`;
     }
 
     if (isGift) {
+      const sexyQuotes = [
+        "Un frisson de désir traverse la boutique... L'amour et le fantasme n'attendent pas. 💋",
+        "Un geste brûlant d'élégance et de séduction pur jus... 🥂🔥",
+        "Quand la tentation devient irrésistible, les plaisirs se partagent à deux... 👠✨",
+        "Une délicieuse surprise envoûtante réservée à une personne d'exception... 💄💋"
+      ];
+      const randomQuote = sexyQuotes[Math.floor(Math.random() * sexyQuotes.length)];
+
       const giftEmbed = new EmbedBuilder()
-        .setTitle('🎁 💋 CADEAU OFFERT DANS LA BOUTIQUE !')
-        .setDescription(`🎉 **<@${buyerId}>** a généreusement offert **${item.item_name}** à **<@${recipientId}>** pour **${finalPrice}** pièces !${rewardText}`)
+        .setTitle('🔥 🎁 💋 CADEAU TORRIDE & SENSUEL OFFERT ! 💋 🎁 🔥')
+        .setDescription(
+          `🔥 **Attention les yeux... Un désir secret vient d'être exaucé !** 💋\n\n` +
+          `✨ **<@${buyerId}>** fait monter la température et fait fondre **<@${recipientId}>** en lui offrant **${item.item_name}** ! 👠🥂\n\n` +
+          `>>> *"${randomQuote}"*\n${rewardText}`
+        )
         .setColor('#E74C3C')
+        .setFooter({ text: '💋 Boudoir VIP & Sensualité Exclusives • B&G Elite' })
         .setTimestamp();
 
-      return interaction.editReply({ embeds: [giftEmbed] });
+      return interaction.editReply({ 
+        content: `💋 **Hey <@${recipientId}> ! Ouvre vite tes bras... Reçois ce cadeau torride et enivrant offert par <@${buyerId}> !** 🔥✨`,
+        embeds: [giftEmbed] 
+      });
     } else {
       return interaction.editReply({ content: `🎉 **Achat réussi !** Vous avez acheté **${item.item_name}** pour **${finalPrice}** pièces${rewardText} !` });
     }
