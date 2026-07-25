@@ -109,7 +109,12 @@ document.addEventListener('DOMContentLoaded', () => {
       tabBtns.forEach(b => b.classList.remove('active'));
       tabContents.forEach(c => c.classList.remove('active'));
       btn.classList.add('active');
-      document.getElementById(tabId).classList.add('active');
+      const targetTab = document.getElementById(tabId);
+      if (targetTab) {
+        targetTab.classList.add('active');
+      } else {
+        console.warn('Tab not found:', tabId);
+      }
       
       // Fermer le menu mobile lors du clic sur un onglet
       if (sidebar && sidebar.classList.contains('open')) {
@@ -120,8 +125,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (tabId === 'tab-gifs') {
         fetchAndRenderGifs();
       } else if (tabId === 'tab-map') {
-        const guildId = guildSelect.value;
-        document.getElementById('map-iframe').src = `map.html?guild=${guildId}`;
+        const guildId = guildSelect ? guildSelect.value : '';
+        const mapIframe = document.getElementById('map-iframe');
+        if (mapIframe) mapIframe.src = `map.html?guild=${guildId}`;
       }
     });
   });
