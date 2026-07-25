@@ -655,6 +655,11 @@ document.addEventListener('DOMContentLoaded', () => {
           accusedRoleEl.value = trib.accusedRoleId || '';
           if (accusedRoleEl.syncCustomSelect) accusedRoleEl.syncCustomSelect();
         }
+        const plaintiffRoleEl = document.getElementById('tribunal_plaintiff_role');
+        if (plaintiffRoleEl) {
+          plaintiffRoleEl.value = trib.plaintiffRoleId || '';
+          if (plaintiffRoleEl.syncCustomSelect) plaintiffRoleEl.syncCustomSelect();
+        }
 
         // Shop Config (Suites privées category & prefix)
         const shopCfg = config.shop_config || {};
@@ -2316,12 +2321,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const judge_role_id = document.getElementById('tribunal_judge_role').value;
       const lawyer_role_id = document.getElementById('tribunal_lawyer_role').value;
       const accused_role_id = document.getElementById('tribunal_accused_role').value;
+      const plaintiff_role_id = document.getElementById('tribunal_plaintiff_role').value;
       saveConfig('/api/config/tribunal', {
         category_id,
         channel_prefix,
         judge_role_id,
         lawyer_role_id,
-        accused_role_id
+        accused_role_id,
+        plaintiff_role_id
       });
     });
   }

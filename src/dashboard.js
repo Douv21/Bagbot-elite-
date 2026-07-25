@@ -734,13 +734,14 @@ app.post('/api/config/tribunal', (req, res) => {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { category_id, judge_role_id, lawyer_role_id, accused_role_id, channel_prefix } = req.body;
+    const { category_id, judge_role_id, lawyer_role_id, accused_role_id, plaintiff_role_id, channel_prefix } = req.body;
     const tribunalDb = require('./utils/tribunal_db');
     tribunalDb.updateTribunalConfig(guildId, {
       categoryId: category_id || '',
       judgeRoleId: judge_role_id || '',
       lawyerRoleId: lawyer_role_id || '',
       accusedRoleId: accused_role_id || '',
+      plaintiffRoleId: plaintiff_role_id || '',
       channelPrefix: channel_prefix || '⚖️┆procès-'
     });
 

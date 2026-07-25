@@ -306,6 +306,9 @@ module.exports = {
 
           // Retrait automatique des rôles de tribunal aux membres du procès
           const cfg = await storage.getTribunalConfig(interaction.guildId);
+          if (cfg.plaintiffRoleId && record.plaintiffId) {
+            await removeTribunalRole(interaction.guild, record.plaintiffId, cfg.plaintiffRoleId);
+          }
           if (cfg.accusedRoleId && record.accusedId) {
             await removeTribunalRole(interaction.guild, record.accusedId, cfg.accusedRoleId);
           }
@@ -525,7 +528,10 @@ module.exports = {
             await storage.upsertTribunalCase(guild.id, caseId, { panelMessageId: panelMsg.id });
           }
 
-          // Attribution automatique des rôles Accusé et Avocat si configurés
+          // Attribution automatique des rôles Plaignant, Accusé et Avocat si configurés
+          if (cfg.plaintiffRoleId && record.plaintiffId) {
+            await assignTribunalRole(guild, record.plaintiffId, cfg.plaintiffRoleId);
+          }
           if (cfg.accusedRoleId && record.accusedId) {
             await assignTribunalRole(guild, record.accusedId, cfg.accusedRoleId);
           }

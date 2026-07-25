@@ -18,6 +18,7 @@ db.prepare(`
 try { db.prepare("ALTER TABLE tribunal_config ADD COLUMN judge_role_id TEXT").run(); } catch (_) {}
 try { db.prepare("ALTER TABLE tribunal_config ADD COLUMN lawyer_role_id TEXT").run(); } catch (_) {}
 try { db.prepare("ALTER TABLE tribunal_config ADD COLUMN accused_role_id TEXT").run(); } catch (_) {}
+try { db.prepare("ALTER TABLE tribunal_config ADD COLUMN plaintiff_role_id TEXT").run(); } catch (_) {}
 try { db.prepare("ALTER TABLE tribunal_config ADD COLUMN channel_prefix TEXT DEFAULT '⚖️┆procès-'").run(); } catch (_) {}
 
 db.prepare(`
@@ -46,6 +47,7 @@ function getTribunalConfig(guildId) {
     judgeRoleId: row ? (row.judge_role_id || '') : '',
     lawyerRoleId: row ? (row.lawyer_role_id || '') : '',
     accusedRoleId: row ? (row.accused_role_id || '') : '',
+    plaintiffRoleId: row ? (row.plaintiff_role_id || '') : '',
     channelPrefix: row ? (row.channel_prefix || '⚖️┆procès-') : '⚖️┆procès-'
   };
 }
@@ -54,15 +56,16 @@ function updateTribunalConfig(guildId, data) {
   const current = getTribunalConfig(guildId);
   const next = { ...current, ...data };
   db.prepare(`
-    INSERT INTO tribunal_config (guild_id, category_id, judge_role_id, lawyer_role_id, accused_role_id, channel_prefix)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO tribunal_config (guild_id, category_id, judge_role_id, lawyer_role_id, accused_role_id, plaintiff_role_id, channel_prefix)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(guild_id) DO UPDATE SET
       category_id = excluded.category_id,
       judge_role_id = excluded.judge_role_id,
       lawyer_role_id = excluded.lawyer_role_id,
       accused_role_id = excluded.accused_role_id,
+      plaintiff_role_id = excluded.plaintiff_role_id,
       channel_prefix = excluded.channel_prefix
-  `).run(guildId, next.categoryId, next.judgeRoleId, next.lawyerRoleId, next.accusedRoleId, next.channelPrefix);
+  `).run(guildId, next.categoryId, next.judgeRoleId, next.lawyerRoleId, next.accusedRoleId, next.plaintiffRoleId, next.channelPrefix);
   return next;
 }
 
