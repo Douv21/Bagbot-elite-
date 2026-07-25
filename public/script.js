@@ -5329,5 +5329,14 @@ document.addEventListener('DOMContentLoaded', () => {
     tabQuestsBtn.addEventListener('click', loadQuestsConfig);
   }
 
+  function initializeSearchableSelects() {
+    document.querySelectorAll('select.custom-select, select.channel-select, select.role-select, select.announce-channel-select, select.category-select').forEach(select => {
+      if (select.syncCustomSelect) {
+        try { select.syncCustomSelect(); } catch (e) {}
+      }
+    });
+  }
+
   initializeSearchableSelects();
 });
+

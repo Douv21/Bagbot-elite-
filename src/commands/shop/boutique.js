@@ -28,13 +28,12 @@ function getKarmaDiscount(guildId, userId) {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('boutique')
-    .setDescription('Afficher ou acheter dans la boutique')
-    .addStringOption(option => option.setName('acheter').setDescription('Nom de l\'article à acheter (laisser vide pour afficher la boutique)').setRequired(false))
+    .setDescription('Accéder au boudoir & catalogue VIP exclusif')
     .setDMPermission(false),
   async execute(interaction, selectedItemName = null) {
     const guildId = interaction.guild.id;
     const userId = interaction.user.id;
-    const itemName = selectedItemName || (interaction.options && typeof interaction.options.getString === 'function' ? interaction.options.getString('acheter') : null);
+    const itemName = selectedItemName || null;
 
     if (!itemName) {
       // Afficher la boutique (le catalogue)
@@ -42,45 +41,53 @@ module.exports = {
 
       if (items.length === 0) {
         db.prepare('INSERT OR REPLACE INTO shop (guild_id, item_name, price, description, role_id) VALUES (?, ?, ?, ?, ?)')
-          .run(guildId, 'Suite Privée 1 Jour', 500, 'Votre suite privée personnelle (salon textuel) pendant 24 heures.', null);
+          .run(guildId, 'Suite Privée 1 Jour', 500, 'Votre suite privée personnelle et intimiste pendant 24h.', null);
         db.prepare('INSERT OR REPLACE INTO shop (guild_id, item_name, price, description, role_id) VALUES (?, ?, ?, ?, ?)')
-          .run(guildId, 'Suite Privée 7 Jours', 2000, 'Votre suite privée personnelle (salon textuel) pendant une semaine.', null);
+          .run(guildId, 'Suite Privée 7 Jours', 2000, 'Votre suite privée personnelle et intimiste pendant toute une semaine.', null);
         db.prepare('INSERT OR REPLACE INTO shop (guild_id, item_name, price, description, role_id) VALUES (?, ?, ?, ?, ?)')
-          .run(guildId, 'Suite Privée 1 Mois', 7000, 'Votre suite privée personnelle (salon textuel) pendant un mois.', null);
+          .run(guildId, 'Suite Privée 1 Mois', 7000, 'Votre suite privée personnelle et intimiste pendant un mois entier.', null);
         
         items = db.prepare('SELECT * FROM shop WHERE guild_id = ?').all(guildId);
       }
 
+      const discount = getKarmaDiscount(guildId, userId);
+      const karmaText = discount > 0 
+        ? `🔥 **Privilège Karma Séducteur :** Réduction exclusive de **-${Math.round(discount * 100)}%** sur tout le catalogue !`
+        : `✨ *Augmentez votre Karma pour débloquer jusqu'à **-20%** de privilège sur vos achats passionnés.*`;
+
       const embed = new EmbedBuilder()
-        .setTitle(`🛒 Boutique - ${interaction.guild.name}`)
-        .setDescription('Voici les articles disponibles à l\'achat. Utilisez \`/boutique acheter:Nom de l\'article\` pour en acquérir un !')
-        .setColor('#5865F2')
+        .setTitle(`🍷 🛍️ 𝔅𝔬𝔲𝔱𝔦𝔦𝔲𝔢 𝔓𝔯𝔢𝔪𝔦𝔲𝔪 & 𝔖𝔢𝔫𝔰𝔲𝔢𝔩𝔩𝔢 💋 👑`)
+        .setDescription(`💋 **Bienvenue dans le Boudoir Exclusif & Torride de ${interaction.guild.name}**\n\n*Laissez-vous séduire par vos désirs les plus secrets... Offrez-vous des suites privées sensuelles, des rôles prestigieux et des avantages d'exception.* ✨\n\n${karmaText}\n\n👇 *Sélectionnez un plaisir ci-dessous dans le menu déroulant pour l'acquérir instantanément :*`)
+        .setColor('#E74C3C')
         .setThumbnail(interaction.guild.iconURL({ dynamic: true }) || 'https://cdn.discordapp.com/embed/avatars/0.png')
+        .setFooter({ text: '💋 Désirs Exclusifs, Ambiances Sensuelles & Passion • Boutique VIP', iconURL: interaction.guild.iconURL({ dynamic: true }) })
         .setTimestamp();
 
       items.forEach(item => {
-        const discount = getKarmaDiscount(guildId, userId);
         const finalPrice = Math.round(item.price * (1 - discount));
-        let details = `**Prix :** ${finalPrice} pièces${discount > 0 ? ` (~~${item.price}~~ -${Math.round(discount * 100)}%)` : ''}\n*${item.description || 'Aucune description.'}*`;
+        let details = `💎 **Tarif :** \`${finalPrice} pièces\`${discount > 0 ? ` ~~(~~${item.price}~~ -${Math.round(discount * 100)}%)~~` : ''}\n👠 *${item.description || 'Aucune description.'}*`;
         if (item.role_id) {
-          details += `\n🎁 *Attribue le rôle :* <@&${item.role_id}>`;
+          details += `\n✨ **Rôle attribué :** <@&${item.role_id}>`;
         }
-        embed.addFields({ name: `🛒 ${item.item_name}`, value: details, inline: false });
+        if (item.reward_xp > 0 || item.reward_karma > 0) {
+          details += `\n⚡ **Bonus d'acquisition :** ${item.reward_xp > 0 ? `+${item.reward_xp} XP ` : ''}${item.reward_karma > 0 ? `+${item.reward_karma} Karma` : ''}`;
+        }
+        embed.addFields({ name: `🔥 ─── 『 ${item.item_name} 』`, value: details, inline: false });
       });
 
       const selectOptions = items.slice(0, 25).map(item => {
-        const discount = getKarmaDiscount(guildId, userId);
         const finalPrice = Math.round(item.price * (1 - discount));
         return {
           label: item.item_name.substring(0, 25),
-          description: `${finalPrice} pièces${discount > 0 ? ` (-${Math.round(discount * 100)}%)` : ''}`,
-          value: item.item_name
+          description: `${finalPrice} pièces${discount > 0 ? ` (-${Math.round(discount * 100)}%)` : ''} • Offrir / Acheter`,
+          value: item.item_name,
+          emoji: '💋'
         };
       });
 
       const selectMenu = new StringSelectMenuBuilder()
         .setCustomId('boutique_acheter')
-        .setPlaceholder('Sélectionnez un article pour l\'acheter...')
+        .setPlaceholder('💋 Choisissez votre plaisir et passez commande...')
         .addOptions(selectOptions);
 
       const row = new ActionRowBuilder().addComponents(selectMenu);
