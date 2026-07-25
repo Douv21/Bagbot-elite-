@@ -1557,18 +1557,21 @@ app.post('/api/config/announce-commands', async (req, res) => {
     const channel = guild.channels.cache.get(channel_id);
     if (!channel) return res.status(404).json({ error: 'Salon introuvable' });
 
-    const embed = new EmbedBuilder()
-      .setTitle(`📜 🤖 CATALOGUE OFFICIEL DES COMMANDES SLASH 🤖 📜`)
-      .setDescription(`Retrouvez ci-dessous la liste intégrale et exhaustive de toutes les commandes slash et actions interactives disponibles sur **${guild.name}** :`)
+    const iconUrl = guild.iconURL({ dynamic: true });
+
+    // 1. EMBED COMMANDES PUBLIQUES (POUR TOUS LES MEMBRES)
+    const embedPublic = new EmbedBuilder()
+      .setTitle(`📜 🤖 CATALOGUE DES COMMANDES — ACCESSIBLES À TOUS 🤖 📜`)
+      .setDescription(`Retrouvez ci-dessous l'ensemble des commandes et actions interactives disponibles pour tous les membres sur **${guild.name}** :`)
       .addFields(
         { 
-          name: '💰 Économie, Boutique & Inventaire', 
-          value: '`/solde` — Portefeuille & Banque\n`/boutique` — Catalogue VIP & Louer des Suites\n`/inventaire` — Objets, Utiliser avec un membre ou Offrir\n`/pay` — Transférer des pièces\n`/work` — Travailler\n`/crime` — Tenter un crime\n`/rob` — Voler des pièces\n`/daily` — Prime quotidienne',
+          name: '💰 Économie, Banque, Boutique & Inventaire', 
+          value: '`/solde` — Solde portefeuille & banque\n`/banque` — Déposer / Retirer des pièces\n`/boutique` — Catalogue VIP & Louer des Suites Privées\n`/inventaire` — Sac à dos (Utiliser avec un membre, Offrir, Jeter)\n`/pay` — Transférer des pièces à un membre\n`/work` — Travailler pour gagner des pièces\n`/crime` — Tenter un crime osé\n`/rob` — Voler des pièces à un membre\n`/daily` — Prime quotidienne gratuite\n`/karma` — Consulter son Karma & réductions boutique\n`/quetes` — Missions & quêtes du serveur\n`/peche` — Partir à la pêche',
           inline: false 
         },
         { 
-          name: '🍷 Actions & Interactivité Tendres (RP)', 
-          value: '`/calin` • `/embrasser` • `/caresser` • `/chatouiller` • `/danser` • `/reconforter` • `/rose` • `/flirter` • `/seduire` • `/attrape` • `/batailleoreiller` • `/cuisiner` • `/dormir` • `/douche` • `/lit` • `/reanimer` • `/reveiller` • `/vin` • `/action-verite`',
+          name: '🍷 Actions & RP Tendres (Interactivité)', 
+          value: '`/calin` • `/embrasser` • `/caresser` • `/chatouiller` • `/danser` • `/reconforter` • `/rose` • `/flirter` • `/seduire` • `/attrape` • `/batailleoreiller` • `/cuisiner` • `/dormir` • `/douche` • `/lit` • `/reanimer` • `/reveiller` • `/vin`',
           inline: false 
         },
         { 
@@ -1577,34 +1580,59 @@ app.post('/api/config/announce-commands', async (req, res) => {
           inline: false 
         },
         { 
-          name: '⚖️ Tribunal & Modération', 
-          value: '`/tribunal` — Procès & Jugement auto\n`/quarantaine` — Quarantaine anti-raid\n`/clear` — Purge de messages\n`/warn` / `/unwarn` — Avertissements\n`/mute` / `/unmute` — Mutes\n`/ban` / `/unban` — Ban d\'utilisateur\n`/massban` / `/masskick` — Modération de masse',
-          inline: false 
-        },
-        { 
           name: '🎮 Mini-Jeux, Fun & Confessions', 
-          value: '`/confesser` — Confessions anonymes\n`/motcache` — Jeu de mot mystère\n`/star-semaine` — Élection de la star\n`/pileouface` — Pari lancer de pièce\n`/des` — Lancer de dés\n`/combats` — Défis entre membres',
+          value: '`/action-verite` — Partie Action ou Vérité (Soft, Hard, Extrême, Couple)\n`/confesser` — Envoyer une confession anonyme\n`/motcache` — Jeu du mot mystère\n`/star-semaine` — Voir la star élue du serveur\n`/lovecalc` — Calcul de compatibilité amoureuse\n`/combats` — Défis et duels entre membres\n`/proche` — Trouver le membre le plus proche',
           inline: false 
         },
         { 
-          name: '⚙️ Profil, Niveaux & Configuration', 
-          value: '`/level` — Carte XP & Niveau\n`/dashboard` — Panneau d\'administration Web',
+          name: '⚙️ Profil, Niveaux & Accès', 
+          value: '`/level` — Carte XP & Niveau actuel\n`/classement` — Classement général du serveur\n`/carte` — Voir la carte du serveur\n`/dashboard` — Panneau d\'administration Web',
           inline: false 
         }
       )
       .setColor('#5865F2');
 
-    const iconUrl = guild.iconURL({ dynamic: true });
     if (iconUrl) {
-      embed.setThumbnail(iconUrl);
-      embed.setFooter({ text: '🤖 Liste des commandes slash • B&G Elite', iconURL: iconUrl });
+      embedPublic.setThumbnail(iconUrl);
+      embedPublic.setFooter({ text: '🌐 Commandes Publiques • B&G Elite', iconURL: iconUrl });
     } else {
-      embed.setFooter({ text: '🤖 Liste des commandes slash • B&G Elite' });
+      embedPublic.setFooter({ text: '🌐 Commandes Publiques • B&G Elite' });
     }
-    embed.setTimestamp();
+    embedPublic.setTimestamp();
 
-    await channel.send({ embeds: [embed] });
-    res.json({ success: true, message: 'Embed des commandes envoyé avec succès !' });
+    // 2. EMBED COMMANDES ADMINS & MODÉRATION (STAFF)
+    const embedStaff = new EmbedBuilder()
+      .setTitle(`🛡️ ⚖️ COMMANDES D'ADMINISTRATION & MODÉRATION STAFF ⚖️ 🛡️`)
+      .setDescription(`Guide réservé à l'équipe de modération et d'administration du serveur **${guild.name}** :`)
+      .addFields(
+        { 
+          name: '⚖️ Tribunal Discord & Procès', 
+          value: '`/tribunal create` — Ouvrir un procès (Salon dédié, Rôles Juge, Avocat, Accusé)\n`/tribunal verdict` — Rendre le jugement final et appliquer la sentence\n`/tribunal close` — Clore et archiver la session de procès',
+          inline: false 
+        },
+        { 
+          name: '🛡️ Sécurité, Sanctions & Quarantaine', 
+          value: '`/quarantaine` — Placer / Retirer un membre de quarantaine anti-raid\n`/clear` — Purge rapide de messages dans un salon\n`/warn` / `/unwarn` — Ajouter / Retirer des avertissements\n`/timeout` / `/unmute` — Mettre en sourdine / Rendre la parole\n`/kick` — Expulser un membre du serveur\n`/ban` / `/unban` — Bannir / Débannir un membre\n`/massban` — Bannissement groupé d\'utilisateurs\n`/masskick` — Expulsion groupée d\'utilisateurs',
+          inline: false 
+        },
+        { 
+          name: '🛠️ Outils & Gestion du Bot', 
+          value: '`/ajoute` — Ajouter des pièces, du karma ou du contenu\n`/sync-autoroles` — Synchroniser les rôles réaction rétroactivement\n`/drop-money` — Largage de pièces dans le salon\n`/drop-karma` — Largage de karma dans le salon\n`/drop-xp` — Largage d\'XP dans le salon\n`Clic droit > Ajouter Émoji` — Ajouter directement un émoji sur le serveur',
+          inline: false 
+        }
+      )
+      .setColor('#E74C3C');
+
+    if (iconUrl) {
+      embedStaff.setThumbnail(iconUrl);
+      embedStaff.setFooter({ text: '🛡️ Commandes Modération & Staff • B&G Elite', iconURL: iconUrl });
+    } else {
+      embedStaff.setFooter({ text: '🛡️ Commandes Modération & Staff • B&G Elite' });
+    }
+    embedStaff.setTimestamp();
+
+    await channel.send({ embeds: [embedPublic, embedStaff] });
+    res.json({ success: true, message: 'Embeds des commandes publiques et modération envoyés avec succès !' });
   } catch (error) {
     console.error('Erreur announce-commands:', error);
     res.status(500).json({ error: error.message });
