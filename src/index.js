@@ -515,9 +515,33 @@ client.on('interactionCreate', async interaction => {
     return;
   }
 
-  const guildId = interaction.guild ? interaction.guild.id : null;
-
   if (guildId) {
+    const { getCommandPermission } = require('./database/db');
+    const customPerm = getCommandPermission(guildId, interaction.commandName);
+    if (customPerm) {
+      if (customPerm.enabled === 0) {
+        return interaction.reply({ content: `❌ La commande \`/${interaction.commandName}\` a été désactivée par les administrateurs sur ce serveur.`, ephemeral: true });
+      }
+
+      const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+      if (!isAdmin) {
+        let allowedRoles = [];
+        let deniedRoles = [];
+        try { allowedRoles = JSON.parse(customPerm.allowed_roles || '[]'); } catch (e) {}
+        try { deniedRoles = JSON.parse(customPerm.denied_roles || '[]'); } catch (e) {}
+
+        const userRoleIds = interaction.member?.roles?.cache ? Array.from(interaction.member.roles.cache.keys()) : [];
+
+        if (deniedRoles.length > 0 && deniedRoles.some(rId => userRoleIds.includes(rId))) {
+          return interaction.reply({ content: `❌ Votre rôle vous interdit d'utiliser la commande \`/${interaction.commandName}\`.`, ephemeral: true });
+        }
+
+        if (allowedRoles.length > 0 && !allowedRoles.some(rId => userRoleIds.includes(rId))) {
+          return interaction.reply({ content: `❌ Vous n'avez pas le rôle requis pour utiliser la commande \`/${interaction.commandName}\`.`, ephemeral: true });
+        }
+      }
+    }
+
     const { getPermissionsConfig } = require('./database/db');
     const permConfig = getPermissionsConfig(guildId);
     

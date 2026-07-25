@@ -1228,6 +1228,77 @@ app.post('/api/config/autoroles-on-role/delete', (req, res) => {
   }
 });
 
+// API Permisions & Contrôle d'accès des Commandes Slash
+app.get('/api/config/command-permissions', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const { getAllCommandPermissions } = require('./database/db');
+    const dbPerms = getAllCommandPermissions(guildId);
+    const permMap = new Map();
+    for (const p of dbPerms) {
+      permMap.set(p.command_name, p);
+    }
+
+    const commandList = [];
+    if (client && client.commands) {
+      client.commands.forEach((cmd, name) => {
+        const cmdName = cmd.data ? cmd.data.name : name;
+        const cmdDesc = cmd.data ? cmd.data.description : (cmd.description || '');
+        const cmdCat = cmd.category || 'Général';
+
+        const dbP = permMap.get(cmdName) || {};
+        let allowedRoles = [];
+        let deniedRoles = [];
+        let allowedUsers = [];
+        try { allowedRoles = JSON.parse(dbP.allowed_roles || '[]'); } catch (e) {}
+        try { deniedRoles = JSON.parse(dbP.denied_roles || '[]'); } catch (e) {}
+        try { allowedUsers = JSON.parse(dbP.allowed_users || '[]'); } catch (e) {}
+
+        commandList.push({
+          name: cmdName,
+          description: cmdDesc,
+          category: cmdCat,
+          enabled: dbP.enabled !== undefined ? Boolean(dbP.enabled) : true,
+          allowed_roles: allowedRoles,
+          denied_roles: deniedRoles,
+          allowed_users: allowedUsers
+        });
+      });
+    }
+
+    commandList.sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
+    res.json(commandList);
+  } catch (err) {
+    console.error('Erreur GET /api/config/command-permissions:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/config/command-permissions', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const { command_name, enabled, allowed_roles, denied_roles, allowed_users } = req.body;
+    if (!command_name) return res.status(400).json({ error: 'Nom de commande manquant' });
+
+    const { setCommandPermission } = require('./database/db');
+    setCommandPermission(guildId, command_name, {
+      enabled: enabled !== undefined ? enabled : true,
+      allowed_roles: allowed_roles || [],
+      allowed_users: allowed_users || [],
+      denied_roles: denied_roles || []
+    });
+
+    res.json({ success: true, message: `Permissions de la commande /${command_name} mises à jour avec succès.` });
+  } catch (err) {
+    console.error('Erreur POST /api/config/command-permissions:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/config/autoroles-on-role/sync', async (req, res) => {
   try {
     const guildId = req.session.selectedGuild;

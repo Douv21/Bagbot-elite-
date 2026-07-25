@@ -593,7 +593,18 @@ function initDatabase() {
       max_karma INTEGER DEFAULT 3,
       PRIMARY KEY (guild_id, action_name)
     )
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS command_permissions (
+      guild_id TEXT NOT NULL,
+      command_name TEXT NOT NULL,
+      enabled INTEGER DEFAULT 1,
+      allowed_roles TEXT DEFAULT '[]',
+      allowed_users TEXT DEFAULT '[]',
+      denied_roles TEXT DEFAULT '[]',
+      PRIMARY KEY (guild_id, command_name)
+    )
   `).run();
+
   // Migrations pour les auto-rôles embeds (type et mode)
   try {
     db.prepare("ALTER TABLE autorole_embeds ADD COLUMN type TEXT DEFAULT 'buttons'").run();
@@ -1756,5 +1767,36 @@ module.exports = {
   getPendingConfession,
   createPendingConfession,
   updatePendingConfessionMessageId,
-  updatePendingConfessionStatus
+  updatePendingConfessionStatus,
+  getCommandPermission,
+  getAllCommandPermissions,
+  setCommandPermission
 };
+
+function getCommandPermission(guildId, commandName) {
+  return db.prepare('SELECT * FROM command_permissions WHERE guild_id = ? AND command_name = ?').get(guildId, commandName);
+}
+
+function getAllCommandPermissions(guildId) {
+  return db.prepare('SELECT * FROM command_permissions WHERE guild_id = ?').all(guildId);
+}
+
+function setCommandPermission(guildId, commandName, data) {
+  const { enabled, allowed_roles, allowed_users, denied_roles } = data;
+  return db.prepare(`
+    INSERT INTO command_permissions (guild_id, command_name, enabled, allowed_roles, allowed_users, denied_roles)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(guild_id, command_name) DO UPDATE SET
+      enabled = excluded.enabled,
+      allowed_roles = excluded.allowed_roles,
+      allowed_users = excluded.allowed_users,
+      denied_roles = excluded.denied_roles
+  `).run(
+    guildId,
+    commandName,
+    enabled !== undefined ? (enabled ? 1 : 0) : 1,
+    typeof allowed_roles === 'string' ? allowed_roles : JSON.stringify(allowed_roles || []),
+    typeof allowed_users === 'string' ? allowed_users : JSON.stringify(allowed_users || []),
+    typeof denied_roles === 'string' ? denied_roles : JSON.stringify(denied_roles || [])
+  );
+}

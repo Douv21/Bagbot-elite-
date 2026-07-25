@@ -4806,5 +4806,187 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // --- GESTION DES COMMANDES & PERMISSIONS ---
+  let allCommandPermissions = [];
+  let serverRolesForCmdPerms = [];
+
+  function loadCommandPermissions() {
+    const container = document.getElementById('cmd-permissions-container');
+    const catSelect = document.getElementById('cmd-perm-category-filter');
+    if (!container) return;
+
+    fetch('/api/roles')
+      .then(res => res.json())
+      .then(roles => {
+        serverRolesForCmdPerms = Array.isArray(roles) ? roles : [];
+        return fetch('/api/config/command-permissions');
+      })
+      .then(res => res.json())
+      .then(commands => {
+        if (!Array.isArray(commands)) {
+          container.innerHTML = '<p class="error-msg">Impossible de charger la liste des commandes.</p>';
+          return;
+        }
+
+        allCommandPermissions = commands;
+
+        const categories = [...new Set(commands.map(c => c.category))].sort();
+        if (catSelect) {
+          catSelect.innerHTML = '<option value="ALL">Toutes les catégories</option>' + 
+            categories.map(cat => `<option value="${cat}">${cat.toUpperCase()}</option>`).join('');
+        }
+
+        renderCommandPermissionsList();
+      })
+      .catch(err => {
+        console.error(err);
+        container.innerHTML = '<p class="error-msg">Erreur lors de la récupération des commandes.</p>';
+      });
+  }
+
+  function renderCommandPermissionsList() {
+    const container = document.getElementById('cmd-permissions-container');
+    const searchVal = (document.getElementById('cmd-perm-search')?.value || '').toLowerCase().trim();
+    const catVal = document.getElementById('cmd-perm-category-filter')?.value || 'ALL';
+
+    if (!container) return;
+
+    let filtered = allCommandPermissions.filter(cmd => {
+      const matchSearch = cmd.name.toLowerCase().includes(searchVal) || 
+                          cmd.description.toLowerCase().includes(searchVal) ||
+                          cmd.category.toLowerCase().includes(searchVal);
+      const matchCat = catVal === 'ALL' || cmd.category === catCatVal(cmd, catVal);
+      return matchSearch && matchCat;
+    });
+
+    function catCatVal(cmd, catVal) {
+      return catVal === 'ALL' ? cmd.category : catVal;
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div style="text-align:center; padding:30px; color:#8e9297;">Aucune commande ne correspond à votre recherche.</div>';
+      return;
+    }
+
+    let html = '';
+    filtered.forEach(cmd => {
+      const isEnabled = cmd.enabled;
+      
+      let rolesOptions = serverRolesForCmdPerms.map(r => {
+        const isAllowed = cmd.allowed_roles.includes(r.id);
+        const isDenied = cmd.denied_roles.includes(r.id);
+        return {
+          id: r.id,
+          name: r.name,
+          color: r.color ? '#' + r.color.toString(16).padStart(6, '0') : '#99aab5',
+          isAllowed,
+          isDenied
+        };
+      });
+
+      html += `
+        <div class="card glass" style="padding: 18px 22px; margin-bottom: 12px; border-left: 4px solid ${isEnabled ? '#2ecc71' : '#e74c3c'};">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <span style="font-size: 1.1rem; font-weight: 700; color: #fff;">/${cmd.name}</span>
+              <span style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; text-transform: uppercase; margin-left: 8px; color: #00d2d3;">${cmd.category}</span>
+              <p style="margin: 4px 0 0 0; color: #b9bbbe; font-size: 0.88rem;">${cmd.description || 'Aucune description'}</p>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 15px;">
+              <label class="custom-checkbox" style="font-size: 0.9rem; color: ${isEnabled ? '#2ecc71' : '#e74c3c'}; font-weight: 600;">
+                <input type="checkbox" class="cmd-toggle-enabled" data-cmd="${cmd.name}" ${isEnabled ? 'checked' : ''}>
+                <span class="checkmark"></span>
+                ${isEnabled ? 'Activée' : 'Désactivée'}
+              </label>
+              <button class="btn btn-primary btn-sm btn-save-cmd-perm" data-cmd="${cmd.name}">
+                <i class="fa-solid fa-floppy-disk"></i> Enregistrer
+              </button>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.06);">
+            <div>
+              <label style="font-size: 0.82rem; color: #2ecc71; font-weight: 600; display: block; margin-bottom: 6px;">
+                <i class="fa-solid fa-circle-check"></i> Rôles autorisés (Vide = Tout le monde) :
+              </label>
+              <select class="cmd-allowed-roles-select" data-cmd="${cmd.name}" multiple style="width: 100%; height: 90px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; padding: 5px; outline: none;">
+                ${rolesOptions.map(r => `<option value="${r.id}" ${r.isAllowed ? 'selected' : ''}>${r.name}</option>`).join('')}
+              </select>
+            </div>
+
+            <div>
+              <label style="font-size: 0.82rem; color: #e74c3c; font-weight: 600; display: block; margin-bottom: 6px;">
+                <i class="fa-solid fa-ban"></i> Rôles interdits (Ex: Quarantaine, Muet) :
+              </label>
+              <select class="cmd-denied-roles-select" data-cmd="${cmd.name}" multiple style="width: 100%; height: 90px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; padding: 5px; outline: none;">
+                ${rolesOptions.map(r => `<option value="${r.id}" ${r.isDenied ? 'selected' : ''}>${r.name}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+
+    container.querySelectorAll('.btn-save-cmd-perm').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cmdName = btn.getAttribute('data-cmd');
+        const card = btn.closest('.card');
+        const isEnabled = card.querySelector('.cmd-toggle-enabled').checked;
+        
+        const allowedSelect = card.querySelector('.cmd-allowed-roles-select');
+        const allowedRoles = Array.from(allowedSelect.selectedOptions).map(o => o.value);
+
+        const deniedSelect = card.querySelector('.cmd-denied-roles-select');
+        const deniedRoles = Array.from(deniedSelect.selectedOptions).map(o => o.value);
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sauvegarde...';
+
+        fetch('/api/config/command-permissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            command_name: cmdName,
+            enabled: isEnabled,
+            allowed_roles: allowedRoles,
+            denied_roles: deniedRoles
+          })
+        })
+          .then(res => res.json())
+          .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Enregistrer';
+            if (data.success) {
+              showToast(`✅ Permissions de /${cmdName} enregistrées !`);
+            } else {
+              showToast(`❌ Erreur : ${data.error}`, true);
+            }
+          })
+          .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Enregistrer';
+            showToast(`❌ Erreur réseau : ${err.message}`, true);
+          });
+      });
+    });
+  }
+
+  const cmdSearchInput = document.getElementById('cmd-perm-search');
+  const cmdCatSelect = document.getElementById('cmd-perm-category-filter');
+  if (cmdSearchInput) {
+    cmdSearchInput.addEventListener('input', renderCommandPermissionsList);
+  }
+  if (cmdCatSelect) {
+    cmdCatSelect.addEventListener('change', renderCommandPermissionsList);
+  }
+
+  const tabCmdBtn = document.querySelector('[data-tab="tab-cmd-permissions"]');
+  if (tabCmdBtn) {
+    tabCmdBtn.addEventListener('click', loadCommandPermissions);
+  }
+
   initializeSearchableSelects();
 });
