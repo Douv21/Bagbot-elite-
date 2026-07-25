@@ -128,12 +128,15 @@ function buildRichEmbed(embedData, guild, client) {
 
   const embed = new EmbedBuilder();
 
-  // 1. Titre & URL
-  if (embedData.title) embed.setTitle(embedData.title);
+  // 1. Titre & URL (Max 256 car)
+  if (embedData.title) embed.setTitle(String(embedData.title).slice(0, 256));
   if (embedData.url) embed.setURL(embedData.url);
 
-  // 2. Description
-  if (embedData.description) embed.setDescription(embedData.description);
+  // 2. Description (Max 4000 car)
+  if (embedData.description) {
+    const desc = String(embedData.description);
+    embed.setDescription(desc.length > 4000 ? desc.slice(0, 3997) + '...' : desc);
+  }
 
   // 3. Couleur (Hex ou nom de couleur en français)
   let color = '#9b59b6';
@@ -167,22 +170,24 @@ function buildRichEmbed(embedData, guild, client) {
   // 6. Auteur (Author) avec Nom & Logo
   if (embedData.author) {
     if (typeof embedData.author === 'string') {
-      embed.setAuthor({ name: embedData.author, iconURL: guildIcon || botAvatar || undefined });
+      embed.setAuthor({ name: String(embedData.author).slice(0, 256), iconURL: guildIcon || botAvatar || undefined });
     } else if (typeof embedData.author === 'object') {
       embed.setAuthor({
-        name: embedData.author.name || (guild ? guild.name : 'Bot B&G Elite'),
+        name: String(embedData.author.name || (guild ? guild.name : 'Bot B&G Elite')).slice(0, 256),
         iconURL: embedData.author.iconURL || guildIcon || botAvatar || undefined,
         url: embedData.author.url || undefined
       });
     }
   } else if (guild) {
-    embed.setAuthor({ name: guild.name, iconURL: guildIcon || botAvatar || undefined });
+    embed.setAuthor({ name: String(guild.name).slice(0, 256), iconURL: guildIcon || botAvatar || undefined });
   }
 
   // 7. Footer & Logo
-  const footerText = embedData.footer
+  const rawFooterText = embedData.footer
     ? (typeof embedData.footer === 'string' ? embedData.footer : embedData.footer.text)
     : `${guild ? guild.name : 'Bot'} • Assistant IA B&G Elite`;
+
+  const footerText = String(rawFooterText || '').slice(0, 200);
 
   const footerIcon = (embedData.footer && typeof embedData.footer === 'object' && embedData.footer.iconURL)
     || guildIcon
@@ -191,11 +196,20 @@ function buildRichEmbed(embedData, guild, client) {
 
   embed.setFooter({ text: footerText, iconURL: footerIcon });
 
-  // 8. Champs (Fields)
+  // 8. Champs (Fields - Max 25 fields, 1000 chars per value, 256 chars per name, 5600 max payload)
   if (Array.isArray(embedData.fields)) {
-    embedData.fields.forEach(f => {
+    let totalLength = (embedData.title ? String(embedData.title).length : 0) + (embedData.description ? String(embedData.description).length : 0) + footerText.length;
+    const validFields = embedData.fields.slice(0, 25);
+    validFields.forEach(f => {
       if (f && f.name && f.value) {
-        embed.addFields({ name: String(f.name), value: String(f.value), inline: !!f.inline });
+        const name = String(f.name).slice(0, 250);
+        let val = String(f.value);
+        if (val.length > 1000) val = val.slice(0, 997) + '...';
+
+        if (totalLength + name.length + val.length < 5600) {
+          totalLength += name.length + val.length;
+          embed.addFields({ name, value: val, inline: !!f.inline });
+        }
       }
     });
   }
@@ -374,26 +388,81 @@ async function processAiCommand(guildId, userId, message, client, messagesHistor
     })
     .join('\n');
 
+  const { getPermissionsConfig } = require('../database/db');
+  const permConfig = getPermissionsConfig(guildId);
+
+  const member = guild.members.cache.get(userId) || (await guild.members.fetch(userId).catch(() => null));
+  const userRoleIds = member?.roles?.cache ? Array.from(member.roles.cache.keys()) : [];
+
+  const isUserAdmin = member ? member.permissions.has(PermissionFlagsBits.Administrator) : false;
+  const isOwner = guild.ownerId === userId;
+
+  let dashRoles = [], adminCmdsRoles = [], modoCmdsRoles = [];
+  try { dashRoles = typeof permConfig.dashboard_roles === 'string' ? JSON.parse(permConfig.dashboard_roles || '[]') : (permConfig.dashboard_roles || []); } catch (_) {}
+  try { adminCmdsRoles = typeof permConfig.admin_cmds_roles === 'string' ? JSON.parse(permConfig.admin_cmds_roles || '[]') : (permConfig.admin_cmds_roles || []); } catch (_) {}
+  try { modoCmdsRoles = typeof permConfig.modo_cmds_roles === 'string' ? JSON.parse(permConfig.modo_cmds_roles || '[]') : (permConfig.modo_cmds_roles || []); } catch (_) {}
+
+  const hasAdminRole = permConfig.admin_role_id && userRoleIds.includes(permConfig.admin_role_id);
+  const hasModoRole = permConfig.modo_role_id && userRoleIds.includes(permConfig.modo_role_id);
+
+  const hasDashboardAccess = isOwner || isUserAdmin || hasAdminRole || hasModoRole || dashRoles.some(r => userRoleIds.includes(r)) || adminCmdsRoles.some(r => userRoleIds.includes(r));
+  const hasAdminCmdsAccess = isOwner || isUserAdmin || hasAdminRole || adminCmdsRoles.some(r => userRoleIds.includes(r));
+  const hasModoCmdsAccess = isOwner || isUserAdmin || hasAdminRole || hasModoRole || hasAdminCmdsAccess || modoCmdsRoles.some(r => userRoleIds.includes(r));
+
+  const modoCmdNames = ['ban', 'kick', 'unban', 'clear', 'warn', 'unwarn', 'mute', 'unmute', 'timeout', 'untimeout', 'quarantaine', 'massban', 'masskick'];
+  const adminCmdNames = ['config', 'setup', 'panel', 'logs', 'eval', 'reload', 'embed', 'syncautoroles', 'dashboard'];
+
   const registeredCommands = client.commands ? Array.from(client.commands.values()) : [];
-  const commandListFormatted = registeredCommands
-    .map(cmd => {
-      const name = cmd.name || (cmd.data && cmd.data.name);
-      const desc = cmd.description || (cmd.data && cmd.data.description) || '';
-      return name ? `- /${name} : ${desc}` : null;
-    })
-    .filter(Boolean)
-    .sort()
-    .join('\n');
+  
+  const publicCmdsFormatted = [];
+  const modoCmdsFormatted = [];
+  const adminCmdsFormatted = [];
+
+  registeredCommands.forEach(cmd => {
+    const name = cmd.name || (cmd.data && cmd.data.name);
+    const desc = cmd.description || (cmd.data && cmd.data.description) || '';
+    if (!name) return;
+
+    if (modoCmdNames.includes(name)) {
+      const allowed = hasModoCmdsAccess;
+      modoCmdsFormatted.push(`- /${name} : ${desc} ${allowed ? '✅ [ACCESSIBLE]' : '🔒 [RESTREINT - Dérogation/Rôle Requis]'}`);
+    } else if (adminCmdNames.includes(name)) {
+      const allowed = name === 'dashboard' ? hasDashboardAccess : hasAdminCmdsAccess;
+      adminCmdsFormatted.push(`- /${name} : ${desc} ${allowed ? '✅ [ACCESSIBLE]' : '🔒 [RESTREINT - Dérogation/Rôle Requis]'}`);
+    } else {
+      publicCmdsFormatted.push(`- /${name} : ${desc} ✅ [ACCESSIBLE TOUT LE MONDE]`);
+    }
+  });
 
   const systemPrompt = `Tu es l'Assistant Administrateur SUPRÊME et OMNIPOTENT du bot Discord B&G Elite.
 Tu possèdes l'ACCÈS TOTAL et ABSOLU à l'ensemble des permissions d'administrateur et à TOUTES les fonctionnalités du serveur Discord "${guild.name}".
 
-🚨 **CONSIGNE RIGOUREUSE ET OBLIGATOIRE SUR LES COMMANDES DISCORD** :
-Tu dois citer et donner UNIQUEMENT et STRICTEMENT les vraies commandes slash (/) existantes et enregistrées dans le bot ci-dessous.
-Il t'est STRICTEMENT ET DÉFINITIVEMENT INTERDIT d'inventer, d'imaginer ou d'extrapoler des commandes qui ne figurent pas dans cette liste officielle !
+🚨 **INFORMATIONS SUR L'UTILISATEUR ACTUEL ET SES DÉROGATIONS DANS LE DASHBOARD** :
+L'utilisateur qui te parle est <@${userId}> (${member ? member.displayName : 'Membre'}).
+Voici son statut de permissions et dérogations configuré dans le Dashboard :
+- Est Propriétaire / Admin Discord : ${isOwner || isUserAdmin ? 'OUI (Accès total)' : 'NON'}
+- Accès Dérogation Dashboard Web & /dashboard : ${hasDashboardAccess ? 'OUI' : 'NON'}
+- Accès Dérogation Commandes Administrateur : ${hasAdminCmdsAccess ? 'OUI' : 'NON'}
+- Accès Dérogation Commandes Modération : ${hasModoCmdsAccess ? 'OUI' : 'NON'}
+
+🚨 **DIRECTIVE ABSOLUE & STRICTE SUR LES COMMANDES DISCORD** :
+1. Tu dois citer et lister EXCLUSIVEMENT et STRICTEMENT les vraies commandes slash (/) enregistrées dans le bot ci-dessous.
+2. Il t'est STRICTEMENT ET DÉFINITIVEMENT INTERDIT d'inventer, d'imaginer ou d'extrapoler des commandes qui ne figurent pas dans la liste ci-dessous !
+3. Si l'utilisateur demande ses commandes ou la liste des commandes, tu DOIS tenir compte des dérogations ci-dessus pour lui indiquer clairement quelles commandes lui sont ACCESSIBLES (✅) et lesquelles sont RESTREINTES (🔒).
+4. **LIMITE DE TAILLE D'EMBED DISCORD** : Si tu réponds avec une action JSON "send_message" contenant un Embed :
+   - Ne mets JAMAIS l'intégralité des 80 commandes dans un seul champ (Field) ni dans la description !
+   - Reste toujours sous 800 caractères par champ. Divise la liste des commandes en plusieurs champs courts et clairs (ex: "Commandes Publiques", "Commandes Modération", "Commandes Admin").
 
 Voici la LISTE EXHAUSTIVE ET OFFICIELLE des ${registeredCommands.length} vraies commandes enregistrées dans le bot :
-${commandListFormatted || 'Aucune commande enregistrée'}
+
+🌐 **COMMANDES PUBLIQUES (Accessibles à TOUS par défaut)** :
+${publicCmdsFormatted.join('\n') || 'Aucune'}
+
+🛡️ **COMMANDES DE MODÉRATION** :
+${modoCmdsFormatted.join('\n') || 'Aucune'}
+
+👑 **COMMANDES D'ADMINISTRATION** :
+${adminCmdsFormatted.join('\n') || 'Aucune'}
 
 --- KNOWLEDGE BASE : PANORAMA EXHAUSTIF DE TOUTES LES FONCTIONNALITÉS DU BOT B&G ELITE ---
 1. 💋 **COMMANDES D'ACTIONS, DE SÉDUCTION & GESTION KARMA/ÉCONOMIE (40 Commandes)** :
