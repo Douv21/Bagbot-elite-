@@ -442,69 +442,73 @@ async function handleTicketInteraction(interaction, client) {
     await interaction.reply({ content: `👤 Le ticket a été assigné à <@${targetUserId}>.` });
   }
 
-  else if (customId === 'ticket_manage_member' || customId === 'ticket_member') {
+  else if (customId === 'ticket_member') {
     const isStaff = await checkIsTicketStaff(interaction);
     if (!isStaff) {
       return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
     }
 
     const active = getActiveTicket(interaction.channelId);
-    let roleMsg = '';
+    if (!active) {
+      return interaction.reply({ content: '❌ Impossible de trouver le ticket actif.', ephemeral: true });
+    }
 
-    if (active) {
-      const option = db.prepare('SELECT * FROM ticket_options WHERE guild_id = ? AND id = ?').get(guildId, active.option_id);
-      if (option) {
-        const ticketCreator = await interaction.guild.members.fetch(active.user_id).catch(() => null);
-        if (ticketCreator) {
-          let rolesToAdd = [];
-          let rolesToRemove = [];
-          try { rolesToAdd = JSON.parse(option.member_roles_add || '[]'); } catch (e) {}
-          try { rolesToRemove = JSON.parse(option.member_roles_remove || '[]'); } catch (e) {}
+    const option = db.prepare('SELECT * FROM ticket_options WHERE guild_id = ? AND id = ?').get(guildId, active.option_id);
+    if (!option) {
+      return interaction.reply({ content: '❌ Configuration de ticket introuvable.', ephemeral: true });
+    }
 
-          let addedList = [];
-          let removedList = [];
+    const ticketCreator = await interaction.guild.members.fetch(active.user_id).catch(() => null);
+    if (!ticketCreator) {
+      return interaction.reply({ content: '❌ Membre introuvable sur le serveur.', ephemeral: true });
+    }
 
-          for (const rId of rolesToAdd) {
-            const role = interaction.guild.roles.cache.get(rId);
-            if (role && !ticketCreator.roles.cache.has(rId)) {
-              await ticketCreator.roles.add(role).catch(console.error);
-              addedList.push(`<@&${rId}>`);
-            }
-          }
+    let rolesToAdd = [];
+    let rolesToRemove = [];
+    try { rolesToAdd = JSON.parse(option.member_roles_add || '[]'); } catch (e) {}
+    try { rolesToRemove = JSON.parse(option.member_roles_remove || '[]'); } catch (e) {}
 
-          for (const rId of rolesToRemove) {
-            const role = interaction.guild.roles.cache.get(rId);
-            if (role && ticketCreator.roles.cache.has(rId)) {
-              await ticketCreator.roles.remove(role).catch(console.error);
-              removedList.push(`<@&${rId}>`);
-            }
-          }
+    if (rolesToAdd.length === 0 && rolesToRemove.length === 0) {
+      return interaction.reply({ content: '❌ Aucun rôle "Membre" n\'a été configuré dans le Dashboard pour cette catégorie de ticket.', ephemeral: true });
+    }
 
-          if (addedList.length > 0 || removedList.length > 0) {
-            roleMsg = `\n\n👥 **Mise à jour du statut Membre pour <@${active.user_id}> :**`;
-            if (addedList.length > 0) roleMsg += `\n➕ Rôles ajoutés : ${addedList.join(', ')}`;
-            if (removedList.length > 0) roleMsg += `\n➖ Rôles retirés : ${removedList.join(', ')}`;
-          }
-        }
+    let addedList = [];
+    let removedList = [];
+
+    for (const rId of rolesToAdd) {
+      const role = interaction.guild.roles.cache.get(rId);
+      if (role && !ticketCreator.roles.cache.has(rId)) {
+        await ticketCreator.roles.add(role).catch(console.error);
+        addedList.push(`<@&${rId}>`);
       }
     }
 
-    const manageRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('ticket_add_member_btn')
-        .setLabel('Ajouter un membre au salon ➕')
-        .setStyle(ButtonStyle.Success),
-      new ButtonBuilder()
-        .setCustomId('ticket_remove_member_btn')
-        .setLabel('Retirer un membre du salon ➖')
-        .setStyle(ButtonStyle.Danger)
-    );
+    for (const rId of rolesToRemove) {
+      const role = interaction.guild.roles.cache.get(rId);
+      if (role && ticketCreator.roles.cache.has(rId)) {
+        await ticketCreator.roles.remove(role).catch(console.error);
+        removedList.push(`<@&${rId}>`);
+      }
+    }
 
-    await interaction.reply({ 
-      content: `👥 **Gestion des membres du ticket**${roleMsg}\n\nQue souhaitez-vous faire d'autre ?`, 
-      components: [manageRow], 
-      ephemeral: true 
-    });
+    let roleMsg = '';
+    if (addedList.length > 0) roleMsg += `\n➕ Rôles ajoutés : ${addedList.join(', ')}`;
+    if (removedList.length > 0) roleMsg += `\n➖ Rôles retirés : ${removedList.join(', ')}`;
+
+    // Mettre à jour l'embed de bienvenue du ticket
+    const messages = await interaction.channel.messages.fetch({ limit: 25 }).catch(() => null);
+    const welcomeMsg = messages ? messages.find(m => m.embeds.length > 0 && m.embeds[0].title && m.embeds[0].title.includes("TICKET D'ASSISTANCE")) : null;
+
+    if (welcomeMsg) {
+      const embed = EmbedBuilder.from(welcomeMsg.embeds[0]);
+      const currentFields = embed.data.fields || [];
+      const newFields = currentFields.filter(f => f.name !== '👥 Membre validé par');
+      newFields.push({ name: '👥 Membre validé par', value: `<@${interaction.user.id}>`, inline: true });
+      embed.setFields(newFields);
+      await welcomeMsg.edit({ embeds: [embed] }).catch(console.error);
+    }
+
+    await interaction.reply({ content: `👥 **Statut Membre attribué à <@${active.user_id}> par <@${interaction.user.id}> !**${roleMsg}` });
   }
 
   else if (customId === 'ticket_certify') {
@@ -514,61 +518,62 @@ async function handleTicketInteraction(interaction, client) {
     }
 
     const active = getActiveTicket(interaction.channelId);
-    let roleMsg = '';
+    if (!active) {
+      return interaction.reply({ content: '❌ Impossible de trouver le ticket actif.', ephemeral: true });
+    }
 
-    if (active) {
-      const option = db.prepare('SELECT * FROM ticket_options WHERE guild_id = ? AND id = ?').get(guildId, active.option_id);
-      if (option) {
-        const ticketCreator = await interaction.guild.members.fetch(active.user_id).catch(() => null);
-        if (ticketCreator) {
-          let rolesToAdd = [];
-          let rolesToRemove = [];
-          try { rolesToAdd = JSON.parse(option.certify_roles_add || '[]'); } catch (e) {}
-          try { rolesToRemove = JSON.parse(option.certify_roles_remove || '[]'); } catch (e) {}
+    const option = db.prepare('SELECT * FROM ticket_options WHERE guild_id = ? AND id = ?').get(guildId, active.option_id);
+    if (!option) {
+      return interaction.reply({ content: '❌ Configuration de ticket introuvable.', ephemeral: true });
+    }
 
-          let addedList = [];
-          let removedList = [];
+    const ticketCreator = await interaction.guild.members.fetch(active.user_id).catch(() => null);
+    if (!ticketCreator) {
+      return interaction.reply({ content: '❌ Membre introuvable sur le serveur.', ephemeral: true });
+    }
 
-          for (const rId of rolesToAdd) {
-            const role = interaction.guild.roles.cache.get(rId);
-            if (role && !ticketCreator.roles.cache.has(rId)) {
-              await ticketCreator.roles.add(role).catch(console.error);
-              addedList.push(`<@&${rId}>`);
-            }
-          }
+    let rolesToAdd = [];
+    let rolesToRemove = [];
+    try { rolesToAdd = JSON.parse(option.certify_roles_add || '[]'); } catch (e) {}
+    try { rolesToRemove = JSON.parse(option.certify_roles_remove || '[]'); } catch (e) {}
 
-          for (const rId of rolesToRemove) {
-            const role = interaction.guild.roles.cache.get(rId);
-            if (role && ticketCreator.roles.cache.has(rId)) {
-              await ticketCreator.roles.remove(role).catch(console.error);
-              removedList.push(`<@&${rId}>`);
-            }
-          }
+    let addedList = [];
+    let removedList = [];
 
-          if (addedList.length > 0 || removedList.length > 0) {
-            roleMsg = `\n\n🎖️ **Mise à jour du statut Certifié pour <@${active.user_id}> :**`;
-            if (addedList.length > 0) roleMsg += `\n➕ Rôles attribués : ${addedList.join(', ')}`;
-            if (removedList.length > 0) roleMsg += `\n➖ Rôles retirés : ${removedList.join(', ')}`;
-          }
-        }
+    for (const rId of rolesToAdd) {
+      const role = interaction.guild.roles.cache.get(rId);
+      if (role && !ticketCreator.roles.cache.has(rId)) {
+        await ticketCreator.roles.add(role).catch(console.error);
+        addedList.push(`<@&${rId}>`);
       }
     }
 
+    for (const rId of rolesToRemove) {
+      const role = interaction.guild.roles.cache.get(rId);
+      if (role && ticketCreator.roles.cache.has(rId)) {
+        await ticketCreator.roles.remove(role).catch(console.error);
+        removedList.push(`<@&${rId}>`);
+      }
+    }
+
+    let roleMsg = '';
+    if (addedList.length > 0) roleMsg += `\n➕ Rôles certifiés ajoutés : ${addedList.join(', ')}`;
+    if (removedList.length > 0) roleMsg += `\n➖ Rôles retirés : ${removedList.join(', ')}`;
+
+    // Mettre à jour l'embed de bienvenue du ticket
     const messages = await interaction.channel.messages.fetch({ limit: 25 }).catch(() => null);
     const welcomeMsg = messages ? messages.find(m => m.embeds.length > 0 && m.embeds[0].title && m.embeds[0].title.includes("TICKET D'ASSISTANCE")) : null;
 
     if (welcomeMsg) {
       const embed = EmbedBuilder.from(welcomeMsg.embeds[0]);
       const currentFields = embed.data.fields || [];
-      const hasCertify = currentFields.some(f => f.name === '✅ Certification');
-
-      if (!hasCertify) {
-        embed.addFields({ name: '✅ Certification', value: `Certifié par <@${interaction.user.id}>`, inline: true });
-        await welcomeMsg.edit({ embeds: [embed] }).catch(console.error);
-      }
+      const newFields = currentFields.filter(f => f.name !== '✅ Certification');
+      newFields.push({ name: '✅ Certification', value: `Membre certifié par <@${interaction.user.id}>`, inline: true });
+      embed.setFields(newFields);
+      await welcomeMsg.edit({ embeds: [embed] }).catch(console.error);
     }
 
-    await interaction.reply({ content: `✅ **Ce ticket a été certifié avec succès par <@${interaction.user.id}> !**${roleMsg}` });
+    await interaction.reply({ content: `✅ **Membre certifié par <@${interaction.user.id}> !**${roleMsg}` });
   }
 
   else if (customId === 'ticket_add_member_btn') {
