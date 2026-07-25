@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
-const { PermissionFlagsBits } = require('discord.js');
+const { PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const { client } = require('./index');
 const { 
   db, 
@@ -1507,7 +1507,7 @@ app.post('/api/config/announce-features', async (req, res) => {
         `🍷 **1. Économie, Banque & Karma Séducteur**\n` +
         `• Gagnez des pièces et du Karma en écrivant dans les salons et avec \`/work\`, \`/crime\`, \`/daily\`.\n` +
         `• Économisez à la \`/banque\` et débloquez jusqu'à **-20% de réduction** automatique en boutique grâce à votre Karma.\n\n` +
-        `<ctrl42> **2. Suites Privées VIP Temporaires**\n` +
+        `👑 **2. Suites Privées VIP Temporaires**\n` +
         `• Louez votre propre havre de paix personnalisé pendant 24h, 7 jours ou 1 mois via \`/boutique\`.\n` +
         `• Un salon textuel et un salon vocal privés sont créés automatiquement avec un panneau de contrôle pour inviter ou exclure des membres.\n\n` +
         `💋 **3. Boutique & Cadeaux d'Intimité (IA)**\n` +
@@ -1524,10 +1524,16 @@ app.post('/api/config/announce-features', async (req, res) => {
         `📜 **7. Système de Quêtes & Missions**\n` +
         `• Accomplissez des missions hebdomadaires et montez en niveau pour débloquer des rôles et bonus d'XP.`
       )
-      .setColor('#E74C3C')
-      .setThumbnail(guild.iconURL({ dynamic: true }) || null)
-      .setFooter({ text: '💋 B&G Elite • Système d\'Animation & Privilèges VIP', iconURL: guild.iconURL({ dynamic: true }) })
-      .setTimestamp();
+      .setColor('#E74C3C');
+
+    const iconUrl = guild.iconURL({ dynamic: true });
+    if (iconUrl) {
+      embed.setThumbnail(iconUrl);
+      embed.setFooter({ text: '💋 B&G Elite • Système d\'Animation & Privilèges VIP', iconURL: iconUrl });
+    } else {
+      embed.setFooter({ text: '💋 B&G Elite • Système d\'Animation & Privilèges VIP' });
+    }
+    embed.setTimestamp();
 
     await channel.send({ embeds: [embed] });
     res.json({ success: true, message: 'Embed de présentation des fonctionnalités envoyé avec succès !' });
@@ -1581,10 +1587,16 @@ app.post('/api/config/announce-commands', async (req, res) => {
           inline: false 
         }
       )
-      .setColor('#5865F2')
-      .setThumbnail(guild.iconURL({ dynamic: true }) || null)
-      .setFooter({ text: '🤖 Liste des commandes slash • B&G Elite', iconURL: guild.iconURL({ dynamic: true }) })
-      .setTimestamp();
+      .setColor('#5865F2');
+
+    const iconUrl = guild.iconURL({ dynamic: true });
+    if (iconUrl) {
+      embed.setThumbnail(iconUrl);
+      embed.setFooter({ text: '🤖 Liste des commandes slash • B&G Elite', iconURL: iconUrl });
+    } else {
+      embed.setFooter({ text: '🤖 Liste des commandes slash • B&G Elite' });
+    }
+    embed.setTimestamp();
 
     await channel.send({ embeds: [embed] });
     res.json({ success: true, message: 'Embed des commandes envoyé avec succès !' });
