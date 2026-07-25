@@ -4872,24 +4872,15 @@ document.addEventListener('DOMContentLoaded', () => {
     filtered.forEach(cmd => {
       const isEnabled = cmd.enabled;
       
-      let rolesOptions = serverRolesForCmdPerms.map(r => {
-        const isAllowed = cmd.allowed_roles.includes(r.id);
-        const isDenied = cmd.denied_roles.includes(r.id);
-        return {
-          id: r.id,
-          name: r.name,
-          color: r.color ? '#' + r.color.toString(16).padStart(6, '0') : '#99aab5',
-          isAllowed,
-          isDenied
-        };
-      });
+      const configuredAllowedRoles = serverRolesForCmdPerms.filter(r => cmd.allowed_roles.includes(r.id));
+      const configuredDeniedRoles = serverRolesForCmdPerms.filter(r => cmd.denied_roles.includes(r.id));
 
       html += `
-        <div class="card glass" style="padding: 18px 22px; margin-bottom: 12px; border-left: 4px solid ${isEnabled ? '#2ecc71' : '#e74c3c'};">
+        <div class="card glass" style="padding: 18px 22px; margin-bottom: 14px; border-left: 4px solid ${isEnabled ? '#2ecc71' : '#e74c3c'};">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div>
-              <span style="font-size: 1.1rem; font-weight: 700; color: #fff;">/${cmd.name}</span>
-              <span style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; text-transform: uppercase; margin-left: 8px; color: #00d2d3;">${cmd.category}</span>
+              <span style="font-size: 1.15rem; font-weight: 700; color: #fff;">/${cmd.name}</span>
+              <span style="background: rgba(255,255,255,0.1); padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; text-transform: uppercase; margin-left: 8px; color: #00d2d3;">${cmd.category}</span>
               <p style="margin: 4px 0 0 0; color: #b9bbbe; font-size: 0.88rem;">${cmd.description || 'Aucune description'}</p>
             </div>
             
@@ -4905,22 +4896,38 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
 
+          <div style="margin-top: 12px; font-size: 0.85rem;">
+            ${configuredAllowedRoles.length > 0 ? `
+              <div style="margin-bottom: 6px;">
+                <strong style="color: #2ecc71;"><i class="fa-solid fa-circle-check"></i> Rôles autorisés configurés :</strong>
+                ${configuredAllowedRoles.map(r => `<span style="background: rgba(46,204,113,0.15); border: 1px solid #2ecc71; color: #2ecc71; padding: 2px 8px; border-radius: 10px; margin-left: 6px; font-weight: 600; display: inline-block;">${r.name}</span>`).join('')}
+              </div>
+            ` : '<div style="color: #8e9297; margin-bottom: 6px;"><em>✨ Aucun rôle restreint (Commande ouverte à tout le monde par défaut)</em></div>'}
+
+            ${configuredDeniedRoles.length > 0 ? `
+              <div>
+                <strong style="color: #e74c3c;"><i class="fa-solid fa-ban"></i> Rôles interdits configurés :</strong>
+                ${configuredDeniedRoles.map(r => `<span style="background: rgba(231,76,60,0.15); border: 1px solid #e74c3c; color: #e74c3c; padding: 2px 8px; border-radius: 10px; margin-left: 6px; font-weight: 600; display: inline-block;">${r.name}</span>`).join('')}
+              </div>
+            ` : ''}
+          </div>
+
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.06);">
             <div>
               <label style="font-size: 0.82rem; color: #2ecc71; font-weight: 600; display: block; margin-bottom: 6px;">
-                <i class="fa-solid fa-circle-check"></i> Rôles autorisés (Vide = Tout le monde) :
+                <i class="fa-solid fa-user-check"></i> Sélecteur multiple des Rôles autorisés :
               </label>
-              <select class="cmd-allowed-roles-select" data-cmd="${cmd.name}" multiple style="width: 100%; height: 90px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; padding: 5px; outline: none;">
-                ${rolesOptions.map(r => `<option value="${r.id}" ${r.isAllowed ? 'selected' : ''}>${r.name}</option>`).join('')}
+              <select class="cmd-allowed-roles-select" data-cmd="${cmd.name}" multiple style="width: 100%; height: 100px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #fff; padding: 6px; outline: none;">
+                ${serverRolesForCmdPerms.map(r => `<option value="${r.id}" ${cmd.allowed_roles.includes(r.id) ? 'selected' : ''}>${r.name}</option>`).join('')}
               </select>
             </div>
 
             <div>
               <label style="font-size: 0.82rem; color: #e74c3c; font-weight: 600; display: block; margin-bottom: 6px;">
-                <i class="fa-solid fa-ban"></i> Rôles interdits (Ex: Quarantaine, Muet) :
+                <i class="fa-solid fa-user-xmark"></i> Sélecteur multiple des Rôles interdits :
               </label>
-              <select class="cmd-denied-roles-select" data-cmd="${cmd.name}" multiple style="width: 100%; height: 90px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; padding: 5px; outline: none;">
-                ${rolesOptions.map(r => `<option value="${r.id}" ${r.isDenied ? 'selected' : ''}>${r.name}</option>`).join('')}
+              <select class="cmd-denied-roles-select" data-cmd="${cmd.name}" multiple style="width: 100%; height: 100px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #fff; padding: 6px; outline: none;">
+                ${serverRolesForCmdPerms.map(r => `<option value="${r.id}" ${cmd.denied_roles.includes(r.id) ? 'selected' : ''}>${r.name}</option>`).join('')}
               </select>
             </div>
           </div>
