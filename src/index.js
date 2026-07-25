@@ -161,6 +161,110 @@ client.on('interactionCreate', async interaction => {
 
   if (interaction.isButton()) {
     const customId = interaction.customId;
+
+    if (customId.startsWith('boutique_buy_self:')) {
+      const itemName = customId.replace('boutique_buy_self:', '');
+      const boutiqueCmd = client.commands.get('boutique');
+      if (boutiqueCmd && boutiqueCmd.processPurchase) {
+        await boutiqueCmd.processPurchase(interaction, itemName, interaction.user.id);
+      }
+      return;
+    } else if (customId.startsWith('boutique_gift_target:')) {
+      const itemName = customId.replace('boutique_gift_target:', '');
+      const { UserSelectMenuBuilder, ActionRowBuilder } = require('discord.js');
+      const userSelect = new UserSelectMenuBuilder()
+        .setCustomId(`boutique_gift_select:${itemName}`)
+        .setPlaceholder('🎁 Sélectionnez le membre chanceux à qui offrir ce cadeau...')
+        .setMinValues(1)
+        .setMaxValues(1);
+
+      const row = new ActionRowBuilder().addComponents(userSelect);
+      return interaction.reply({
+        content: `🎁 **Offrir : ${itemName}**\nSélectionnez ci-dessous le membre du serveur qui recevra votre cadeau :`,
+        components: [row],
+        ephemeral: true
+      });
+    } else if (customId.startsWith('counting_')) {
+      const parts = customId.split(':');
+      const action = parts[0];
+      const channelId = parts[1];
+      const targetUserId = parts[2];
+
+      if (interaction.user.id !== targetUserId) {
+        return interaction.reply({ content: '❌ Seul le membre concerné par l\'erreur de comptage peut choisir d\'utiliser sa chance.', ephemeral: true });
+      }
+
+      const pending = global.pendingCountingErrors ? global.pendingCountingErrors.get(`${channelId}:${targetUserId}`) : null;
+      if (pending) {
+        clearTimeout(pending.timerId);
+        global.pendingCountingErrors.delete(`${channelId}:${targetUserId}`);
+      }
+
+      const { db, getCountingStats, resetCountingStats } = require('./database/db');
+      const { EmbedBuilder } = require('discord.js');
+
+      if (action === 'counting_use_chance') {
+        const userChance = db.prepare("SELECT quantity, item_name FROM inventory WHERE guild_id = ? AND user_id = ? AND (item_name LIKE '%chance%comptage%' OR item_name LIKE '%joker%comptage%') AND quantity > 0").get(interaction.guildId, targetUserId);
+
+        if (!userChance || userChance.quantity <= 0) {
+          return interaction.reply({ content: '❌ Vous n\'avez plus de Chance de Comptage dans votre inventaire !', ephemeral: true });
+        }
+
+        if (userChance.quantity > 1) {
+          db.prepare("UPDATE inventory SET quantity = quantity - 1 WHERE guild_id = ? AND user_id = ? AND item_name = ?").run(interaction.guildId, targetUserId, userChance.item_name);
+        } else {
+          db.prepare("DELETE FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?").run(interaction.guildId, targetUserId, userChance.item_name);
+        }
+
+        const countingChan = db.prepare('SELECT * FROM counting_channels WHERE channel_id = ?').get(channelId);
+        const remaining = userChance.quantity - 1;
+        const emojiChance = countingChan ? (countingChan.emoji_chance || '🍀') : '🍀';
+
+        const chanceEmbed = new EmbedBuilder()
+          .setTitle(`${emojiChance} CHANCE DE COMPTAGE UTILISÉE !`)
+          .setDescription(`<@${targetUserId}> a choisi d'utiliser **1x ${emojiChance} Chance de Comptage** de son inventaire !\n\nLe compte est préservé à **${countingChan ? countingChan.current_number : 0}**. Vous pouvez continuer à compter à partir du nombre suivant !`)
+          .setColor('#2ECC71')
+          .setFooter({ text: `Chances restantes pour ${interaction.user.username} : ${remaining}` })
+          .setTimestamp();
+
+        if (pending && pending.promptMsg) {
+          await pending.promptMsg.react(emojiChance).catch(() => {});
+        }
+
+        await interaction.update({ embeds: [chanceEmbed], components: [] }).catch(() => null);
+        return;
+      } else if (action === 'counting_decline_chance') {
+        await interaction.update({ content: '❌ *Réinitialisation acceptée par le membre.*', embeds: [], components: [] }).catch(() => null);
+        
+        const countingChan = db.prepare('SELECT * FROM counting_channels WHERE channel_id = ?').get(channelId);
+        if (countingChan) {
+          const stats = getCountingStats(channelId);
+          const medals = ['🥇', '🥈', '🥉'];
+          let leaderboardText = '*(Aucun chiffre validé dans cette session)*';
+          if (stats && stats.length > 0) {
+            leaderboardText = stats.map((r, i) => {
+              const prefix = medals[i] || `**#${i + 1}**`;
+              return `${prefix} <@${r.user_id}> — **${r.count}** nombre${r.count > 1 ? 's' : ''} validé${r.count > 1 ? 's' : ''}`;
+            }).join('\n');
+          }
+
+          resetCountingStats(channelId);
+          db.prepare('UPDATE counting_channels SET current_number = start_number, last_user_id = NULL WHERE channel_id = ?').run(channelId);
+
+          const emojiError = countingChan.emoji_error || '❌';
+          const errorEmbed = new EmbedBuilder()
+            .setTitle('💥 ERREUR DE COMPTAGE !')
+            .setDescription(`Le compte a été réinitialisé à **${countingChan.start_number}** !`)
+            .addFields({ name: '📊 Classement de la session (Top Participants)', value: leaderboardText })
+            .setColor('#E74C3C')
+            .setTimestamp();
+
+          await interaction.channel.send({ embeds: [errorEmbed] }).catch(() => null);
+        }
+        return;
+      }
+    }
+
     if (customId.startsWith('autorole_')) {
       const roleId = customId.split('_')[1];
       if (!roleId) return;
@@ -415,6 +519,22 @@ client.on('interactionCreate', async interaction => {
 
   if (interaction.isUserSelectMenu()) {
     const customId = interaction.customId;
+
+    if (customId.startsWith('boutique_gift_select:')) {
+      const itemName = customId.replace('boutique_gift_select:', '');
+      const targetUserId = interaction.values[0];
+      const boutiqueCmd = client.commands.get('boutique');
+
+      if (targetUserId === interaction.user.id) {
+        return interaction.reply({ content: '❌ Vous ne pouvez pas vous offrir un cadeau à vous-même via ce menu. Choisissez un autre membre ou achetez directement pour vous.', ephemeral: true });
+      }
+
+      if (boutiqueCmd && boutiqueCmd.processPurchase) {
+        await boutiqueCmd.processPurchase(interaction, itemName, targetUserId);
+      }
+      return;
+    }
+
     if (customId === 'suite_invite_select' || customId === 'suite_exclude_select') {
       const { getPrivateSuiteByChannel } = require('./database/db');
       const suite = getPrivateSuiteByChannel(interaction.channelId);

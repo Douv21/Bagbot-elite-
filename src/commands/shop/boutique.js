@@ -104,91 +104,107 @@ module.exports = {
       return interaction.reply({ embeds: [embed], components: [row] });
     }
 
-    // Acheter l'article
+    // Afficher les options Acheter / Offrir pour l'article sélectionné
     const item = db.prepare('SELECT * FROM shop WHERE guild_id = ? AND item_name = ?').get(guildId, itemName);
-
     if (!item) {
-      return interaction.reply({ content: `❌ L'article **${itemName}** n'existe pas dans la boutique. Utilisez \`/boutique\` sans argument pour voir les articles disponibles.`, ephemeral: true });
+      return interaction.reply({ content: `❌ L'article **${itemName}** n'existe pas dans la boutique.`, ephemeral: true });
     }
-
-    // Récupérer l'économie de l'utilisateur
-    const economy = getEconomy(guildId, userId);
 
     const discount = getKarmaDiscount(guildId, userId);
     const finalPrice = Math.round(item.price * (1 - discount));
 
-    if (economy.wallet < finalPrice) {
-      return interaction.reply({ content: `❌ Vous n'avez pas assez d'argent en poche. Cet article coûte **${finalPrice}** pièces${discount > 0 ? ` (avec réduction de ${Math.round(discount * 100)}%)` : ''}, et vous n'en avez que **${economy.wallet}**.`, ephemeral: true });
+    const promptEmbed = new EmbedBuilder()
+      .setTitle(`💋 Commande : ${item.item_name}`)
+      .setDescription(`💎 **Tarif :** \`${finalPrice} pièces\`${discount > 0 ? ` ~~(~~${item.price}~~ -${Math.round(discount * 100)}%)~~` : ''}\n👠 *${item.description || ''}*\n\nSouhaitez-vous acheter cet article pour vous-même ou l'offrir en cadeau à un autre membre ?`)
+      .setColor('#E74C3C')
+      .setTimestamp();
+
+    const buttonsRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`boutique_buy_self:${item.item_name}`)
+        .setLabel('🛒 Acheter pour moi')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(`boutique_gift_target:${item.item_name}`)
+        .setLabel('🎁 Offrir à un membre')
+        .setStyle(ButtonStyle.Primary)
+    );
+
+    if (interaction.isStringSelectMenu && interaction.isStringSelectMenu()) {
+      return interaction.reply({ embeds: [promptEmbed], components: [buttonsRow], ephemeral: true });
+    } else {
+      return interaction.reply({ embeds: [promptEmbed], components: [buttonsRow], ephemeral: true });
+    }
+  },
+
+  async processPurchase(interaction, itemName, targetUserId = null) {
+    const guildId = interaction.guild.id;
+    const buyerId = interaction.user.id;
+    const recipientId = targetUserId || buyerId;
+    const isGift = recipientId !== buyerId;
+
+    const item = db.prepare('SELECT * FROM shop WHERE guild_id = ? AND item_name = ?').get(guildId, itemName);
+    if (!item) {
+      const msg = `❌ L'article **${itemName}** n'existe pas dans la boutique.`;
+      return interaction.replied || interaction.deferred ? interaction.editReply({ content: msg }) : interaction.reply({ content: msg, ephemeral: true });
     }
 
-    // Vérifier si l'article est une suite privée
+    const economy = getEconomy(guildId, buyerId);
+    const discount = getKarmaDiscount(guildId, buyerId);
+    const finalPrice = Math.round(item.price * (1 - discount));
+
+    if (economy.wallet < finalPrice) {
+      const msg = `❌ Vous n'avez pas assez d'argent en poche. Cet article coûte **${finalPrice}** pièces, et vous n'en avez que **${economy.wallet}**.`;
+      return interaction.replied || interaction.deferred ? interaction.editReply({ content: msg }) : interaction.reply({ content: msg, ephemeral: true });
+    }
+
     const isSuite = item.item_name.toLowerCase().startsWith('suite privée');
     if (isSuite) {
-      let durationMs = 0;
-      let durationLabel = '';
-      if (/1\s*jour/i.test(item.item_name)) {
-        durationMs = 24 * 60 * 60 * 1000;
-        durationLabel = '1 jour';
-      } else if (/7\s*jour/i.test(item.item_name)) {
+      let durationMs = 24 * 60 * 60 * 1000;
+      let durationLabel = '1 jour';
+      if (/7\s*jour/i.test(item.item_name)) {
         durationMs = 7 * 24 * 60 * 60 * 1000;
         durationLabel = '7 jours';
       } else if (/1\s*mois/i.test(item.item_name)) {
         durationMs = 30 * 24 * 60 * 60 * 1000;
         durationLabel = '1 mois';
-      } else {
-        durationMs = 24 * 60 * 60 * 1000;
-        durationLabel = '1 jour';
       }
 
-      await interaction.deferReply();
+      if (!interaction.deferred && !interaction.replied) await interaction.deferReply();
 
-      // Retirer l'argent
-      updateEconomy(guildId, userId, {
-        wallet: economy.wallet - finalPrice
-      });
+      updateEconomy(guildId, buyerId, { wallet: economy.wallet - finalPrice });
 
-      const existingSuite = getPrivateSuite(guildId, userId);
+      const existingSuite = getPrivateSuite(guildId, recipientId);
       if (existingSuite) {
         const txtChan = interaction.guild.channels.cache.get(existingSuite.text_channel_id);
-        
         if (txtChan) {
           const newExpiry = Math.max(Date.now(), existingSuite.expires_at) + durationMs;
-          updatePrivateSuiteExpiry(guildId, userId, newExpiry);
-          await txtChan.send(`🎉 **<@${userId}> a prolongé cette suite de ${durationLabel} !**\nNouvelle date d'expiration : <t:${Math.floor(newExpiry / 1000)}:F> (<t:${Math.floor(newExpiry / 1000)}:R>).`);
+          updatePrivateSuiteExpiry(guildId, recipientId, newExpiry);
+          await txtChan.send(`🎉 **${isGift ? `<@${buyerId}> a offert une prolongation` : `<@${buyerId}> a prolongé cette suite`} de ${durationLabel} !**\nNouvelle date d'expiration : <t:${Math.floor(newExpiry / 1000)}:F>.`);
 
-          return interaction.editReply({ content: `🎉 Vous avez prolongé votre suite privée existante de **${durationLabel}** pour **${finalPrice}** pièces !` });
+          return interaction.editReply({ content: isGift ? `🎁 **CADEAU OFFERT !** Vous avez offert **${durationLabel}** de Suite Privée à <@${recipientId}> pour **${finalPrice}** pièces !` : `🎉 Vous avez prolongé votre suite privée de **${durationLabel}** pour **${finalPrice}** pièces !` });
         }
       }
 
-      // Récupérer la catégorie configurée en base de données
       const shopCfg = getShopConfig(guildId);
       let category = null;
       if (shopCfg && shopCfg.privateSuiteCategoryId) {
-        category = interaction.guild.channels.cache.get(shopCfg.privateSuiteCategoryId);
-        if (!category) {
-          category = await interaction.guild.channels.fetch(shopCfg.privateSuiteCategoryId).catch(() => null);
-        }
+        category = interaction.guild.channels.cache.get(shopCfg.privateSuiteCategoryId) || await interaction.guild.channels.fetch(shopCfg.privateSuiteCategoryId).catch(() => null);
       }
-
-      // Si aucune catégorie n'est configurée ou trouvée, on cherche la catégorie par défaut ou on la crée
       if (!category) {
         category = interaction.guild.channels.cache.find(c => /suites/i.test(c.name || '') && c.type === ChannelType.GuildCategory);
         if (!category) {
           category = await interaction.guild.channels.create({
             name: '👑 🛋️ │ SUITES PRIVÉES VIP',
             type: ChannelType.GuildCategory,
-            permissionOverwrites: [
-              {
-                id: interaction.guild.id,
-                deny: [PermissionFlagsBits.ViewChannel]
-              }
-            ]
+            permissionOverwrites: [{ id: interaction.guild.id, deny: [PermissionFlagsBits.ViewChannel] }]
           }).catch(() => null);
         }
       }
 
       const prefix = (shopCfg && shopCfg.suiteChannelPrefix) ? shopCfg.suiteChannelPrefix : '👑┆suite-';
-      const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const targetMember = await interaction.guild.members.fetch(recipientId).catch(() => null);
+      const cleanUsername = (targetMember?.user?.username || 'vip').toLowerCase().replace(/[^a-z0-9]/g, '');
       const chanName = `${prefix}${cleanUsername}`.slice(0, 90);
 
       try {
@@ -197,124 +213,88 @@ module.exports = {
           type: ChannelType.GuildText,
           parent: category ? category.id : null,
           permissionOverwrites: [
-            {
-              id: interaction.guild.id,
-              deny: [PermissionFlagsBits.ViewChannel]
-            },
-            {
-              id: userId,
-              allow: [
-                PermissionFlagsBits.ViewChannel,
-                PermissionFlagsBits.SendMessages,
-                PermissionFlagsBits.ReadMessageHistory,
-                PermissionFlagsBits.EmbedLinks,
-                PermissionFlagsBits.AttachFiles
-              ]
-            },
-            {
-              id: interaction.client.user.id,
-              allow: [
-                PermissionFlagsBits.ViewChannel,
-                PermissionFlagsBits.SendMessages,
-                PermissionFlagsBits.ManageChannels,
-                PermissionFlagsBits.ManageRoles,
-                PermissionFlagsBits.ReadMessageHistory
-              ]
-            }
+            { id: interaction.guild.id, deny: [PermissionFlagsBits.ViewChannel] },
+            { id: recipientId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.AttachFiles] },
+            { id: interaction.client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManageRoles, PermissionFlagsBits.ReadMessageHistory] }
           ]
         });
 
         const expiresAt = Date.now() + durationMs;
-        addPrivateSuite(guildId, userId, textChannel.id, null, expiresAt);
+        addPrivateSuite(guildId, recipientId, textChannel.id, null, expiresAt);
 
         const welcomeEmbed = new EmbedBuilder()
           .setTitle('👑 🛋️ ✨ BIENVENUE DANS VOTRE SUITE PRIVÉE VIP ✨ 🛋️ 👑')
           .setDescription(
-            `🔥 **Félicitations <@${userId}> !** Vous prenez possession de votre Suite Privée d'Exception !\n\n` +
-            `*Cet espace haut de gamme et entièrement sécurisé est votre havre d'intimité d'exception. Vous et vos invités triés sur le volet pouvez échanger en toute discrétion, sérénité et volupté...* 🥂💋\n\n` +
-            `>>> **"Un havre d'intimité, de luxe et de volupté réservé à l'élite..."** ✨\n\n` +
-            `⏳ **Durée de réservation :** Expire le <t:${Math.floor(expiresAt / 1000)}:F> (<t:${Math.floor(expiresAt / 1000)}:R>).\n` +
-            `*Pour prolonger la durée de votre suite, rendez-vous à tout moment dans la boutique (\`/boutique\`) !*`
+            `🔥 **Félicitations <@${recipientId}> !** ${isGift ? `Ce havre de paix vous a été généreusement offert par <@${buyerId}> !` : `Vous prenez possession de votre Suite Privée d'Exception !`}\n\n` +
+            `*Cet espace haut de gamme et entièrement sécurisé est votre havre d'intimité d'exception. Vous et vos invités privilégiés pouvez échanger en toute sérénité...* 🥂💋\n\n` +
+            `⏳ **Durée de réservation :** Expire le <t:${Math.floor(expiresAt / 1000)}:F> (<t:${Math.floor(expiresAt / 1000)}:R>).\n`
           )
           .setColor('#F1C40F')
-          .setFooter({ text: 'B&G Elite • Suite Privée VIP & Privative' })
           .setTimestamp();
 
-        // Envoyer le panel interactif de gestion
         const panelEmbed = new EmbedBuilder()
           .setTitle('🔑 🛋️ Panneau de Contrôle & Gestion de la Suite')
-          .setDescription('Utilisez les boutons ci-dessous pour accorder ou retirer l\'accès à vos invités privilégiés.\n\n*Les menus d\'invitation et d\'exclusion s\'afficheront sous forme de messages privés (embeds) confidentiels.*')
+          .setDescription('Utilisez les boutons ci-dessous pour accorder ou retirer l\'accès à vos invités privilégiés.')
           .setColor('#9B59B6');
 
         const panelRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId('suite_invite_btn')
-            .setLabel('Inviter un membre')
-            .setStyle(ButtonStyle.Success)
-            .setEmoji('➕'),
-          new ButtonBuilder()
-            .setCustomId('suite_exclude_btn')
-            .setLabel('Exclure un membre')
-            .setStyle(ButtonStyle.Danger)
-            .setEmoji('➖')
+          new ButtonBuilder().setCustomId('suite_invite_btn').setLabel('Inviter un membre').setStyle(ButtonStyle.Success).setEmoji('➕'),
+          new ButtonBuilder().setCustomId('suite_exclude_btn').setLabel('Exclure un membre').setStyle(ButtonStyle.Danger).setEmoji('➖')
         );
 
         await textChannel.send({ embeds: [welcomeEmbed, panelEmbed], components: [panelRow] }).catch(console.error);
 
-        return interaction.editReply({ content: `🎉 Vous avez acheté une **${item.item_name}** pour **${finalPrice}** pièces ! Votre salon privatif <#${textChannel.id}> a été créé.` });
+        const replyMsg = isGift 
+          ? `🎁 💋 **CADEAU EXCLUSIF !** <@${buyerId}> a offert une **${item.item_name}** à <@${recipientId}> ! Le salon privatif <#${textChannel.id}> a été créé.` 
+          : `🎉 Vous avez acheté une **${item.item_name}** pour **${finalPrice}** pièces ! Votre salon privatif <#${textChannel.id}> a été créé.`;
+
+        return interaction.editReply({ content: replyMsg });
       } catch (err) {
-        console.error('Erreur lors de la création de la suite:', err);
-        updateEconomy(guildId, userId, {
-          wallet: economy.wallet
-        });
-        return interaction.editReply({ content: `❌ Une erreur est survenue lors de la création du salon de votre suite privée. Vous avez été remboursé.` });
+        console.error('Erreur création suite:', err);
+        updateEconomy(guildId, buyerId, { wallet: economy.wallet });
+        return interaction.editReply({ content: '❌ Une erreur est survenue lors de la création de la suite. Vous avez été remboursé.' });
       }
     }
 
-    // Pour les articles standards : Retirer l'argent
-    updateEconomy(guildId, userId, {
-      wallet: economy.wallet - finalPrice
-    });
+    // Standard items: deduct money from buyer
+    if (!interaction.deferred && !interaction.replied) await interaction.deferReply();
+    updateEconomy(guildId, buyerId, { wallet: economy.wallet - finalPrice });
 
-    // Ajouter à l'inventaire
-    const invItem = db.prepare('SELECT * FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?').get(guildId, userId, item.item_name);
-
+    // Add item to recipient's inventory
+    const invItem = db.prepare('SELECT * FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?').get(guildId, recipientId, item.item_name);
     if (invItem) {
-      db.prepare('UPDATE inventory SET quantity = quantity + 1 WHERE guild_id = ? AND user_id = ? AND item_name = ?')
-        .run(guildId, userId, item.item_name);
+      db.prepare('UPDATE inventory SET quantity = quantity + 1 WHERE guild_id = ? AND user_id = ? AND item_name = ?').run(guildId, recipientId, item.item_name);
     } else {
-      db.prepare('INSERT INTO inventory (guild_id, user_id, item_name, quantity) VALUES (?, ?, ?, 1)')
-        .run(guildId, userId, item.item_name);
+      db.prepare('INSERT INTO inventory (guild_id, user_id, item_name, quantity) VALUES (?, ?, ?, 1)').run(guildId, recipientId, item.item_name);
     }
 
     let rewardsGiven = [];
 
-    // Si l'objet donne un rôle, l'attribuer (permanent ou temporaire)
+    // Role reward
     if (item.role_id) {
       const role = interaction.guild.roles.cache.get(item.role_id);
       if (role) {
-        const member = interaction.guild.members.cache.get(userId);
+        const member = await interaction.guild.members.fetch(recipientId).catch(() => null);
         if (member) {
           try {
             await member.roles.add(role);
             if (item.role_duration_ms > 0) {
               const expiresAt = Date.now() + item.role_duration_ms;
-              addTemporaryRole(guildId, userId, item.role_id, expiresAt);
-              rewardsGiven.push(`le rôle temporaire **${role.name}** (pendant ${formatDuration(item.role_duration_ms)})`);
+              addTemporaryRole(guildId, recipientId, item.role_id, expiresAt);
+              rewardsGiven.push(`le rôle temporaire **${role.name}** (${formatDuration(item.role_duration_ms)})`);
             } else {
               rewardsGiven.push(`le rôle permanent **${role.name}**`);
             }
           } catch (e) {
-            console.error(e);
-            rewardsGiven.push(`le rôle **${role.name}** (erreur d'attribution, contactez le staff)`);
+            rewardsGiven.push(`le rôle **${role.name}**`);
           }
         }
       }
     }
 
-    // Gain d'XP
+    // XP reward
     if (item.reward_xp > 0) {
-      const member = interaction.guild.members.cache.get(userId);
+      const member = await interaction.guild.members.fetch(recipientId).catch(() => null);
       if (member) {
         const { addXP } = require('../../utils/helpers');
         await addXP(interaction.guild, member, item.reward_xp, interaction.channel);
@@ -322,19 +302,28 @@ module.exports = {
       }
     }
 
-    // Gain de Karma
+    // Karma reward
     if (item.reward_karma > 0) {
-      updateEconomy(guildId, userId, {
-        karma: economy.karma + item.reward_karma
-      });
+      const recipientEconomy = getEconomy(guildId, recipientId);
+      updateEconomy(guildId, recipientId, { karma: recipientEconomy.karma + item.reward_karma });
       rewardsGiven.push(`**+${item.reward_karma} Karma**`);
     }
 
     let rewardText = '';
     if (rewardsGiven.length > 0) {
-      rewardText = ` (Vous avez reçu : ${rewardsGiven.join(', ')})`;
+      rewardText = ` (${isGift ? `<@${recipientId}> a reçu` : 'Vous avez reçu'} : ${rewardsGiven.join(', ')})`;
     }
 
-    return interaction.reply({ content: `🎉 **Achat réussi !** Vous avez acheté **${item.item_name}** pour **${finalPrice}** pièces${rewardText} !` });
+    if (isGift) {
+      const giftEmbed = new EmbedBuilder()
+        .setTitle('🎁 💋 CADEAU OFFERT DANS LA BOUTIQUE !')
+        .setDescription(`🎉 **<@${buyerId}>** a généreusement offert **${item.item_name}** à **<@${recipientId}>** pour **${finalPrice}** pièces !${rewardText}`)
+        .setColor('#E74C3C')
+        .setTimestamp();
+
+      return interaction.editReply({ embeds: [giftEmbed] });
+    } else {
+      return interaction.editReply({ content: `🎉 **Achat réussi !** Vous avez acheté **${item.item_name}** pour **${finalPrice}** pièces${rewardText} !` });
+    }
   }
 };

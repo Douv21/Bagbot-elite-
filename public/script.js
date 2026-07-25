@@ -1865,6 +1865,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Formulaire Ajout / Modification de salon de Comptage
+  const formAddCountingChannel = document.getElementById('form-add-counting-channel');
+  if (formAddCountingChannel) {
+    formAddCountingChannel.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const channel_id = document.getElementById('counting-channel-select').value;
+      const mode = document.getElementById('counting-mode-select').value;
+      const start_number = parseFloat(document.getElementById('counting-start-number').value) || 0;
+      const emoji_success = document.getElementById('counting-emoji-success').value || '✅';
+      const emoji_error = document.getElementById('counting-emoji-error').value || '❌';
+      const emoji_highscore = document.getElementById('counting-emoji-highscore').value || '🏆';
+      const emoji_chance = document.getElementById('counting-emoji-chance').value || '🍀';
+
+      fetch('/api/config/counting/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel_id,
+          mode,
+          start_number,
+          emoji_success,
+          emoji_error,
+          emoji_highscore,
+          emoji_chance
+        })
+      })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          showToast('Salon de comptage enregistré avec ses émojis !');
+          loadGuildConfiguration();
+        } else {
+          showToast('Erreur: ' + resData.error, true);
+        }
+      })
+      .catch(err => showToast('Erreur: ' + err.message, true));
+    });
+  }
+
   // Forums Illimités
   formForums.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -3619,9 +3658,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderCountingChannels(list) {
     const container = document.getElementById('counting-channels-list-tbody');
+    if (!container) return;
     container.innerHTML = '';
     if (list.length === 0) {
-      container.innerHTML = '<tr><td colspan="7" style="color: #8e9297; text-align: center; font-style: italic; padding: 15px;">Aucun salon de comptage configuré.</td></tr>';
+      container.innerHTML = '<tr><td colspan="8" style="color: #8e9297; text-align: center; font-style: italic; padding: 15px;">Aucun salon de comptage configuré.</td></tr>';
       return;
     }
     list.forEach(item => {
@@ -3630,12 +3670,18 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const modeLabel = item.mode === 'math' ? 'Mathématique' : (item.mode === 'reverse' ? 'Inversé' : 'Normal');
 
+      const emojiSuccess = item.emoji_success || '✅';
+      const emojiError = item.emoji_error || '❌';
+      const emojiHighscore = item.emoji_highscore || '🏆';
+      const emojiChance = item.emoji_chance || '🍀';
+
       tr.innerHTML = `
         <td style="font-weight: 600;"><i class="fa-solid fa-hashtag" style="color: #7289da;"></i> ${channelName}</td>
         <td><span class="badge" style="background: rgba(114, 137, 218, 0.2); color: #7289da; padding: 4px 8px; border-radius: 4px;">${modeLabel}</span></td>
         <td style="font-weight: bold; color: #fff;">${item.current_number}</td>
         <td>${item.start_number}</td>
         <td style="font-weight: bold; color: #2ecc71;">${item.high_score}</td>
+        <td><span title="Succès: ${emojiSuccess} | Erreur: ${emojiError} | Record: ${emojiHighscore} | Chance: ${emojiChance}">${emojiSuccess} ${emojiError} ${emojiHighscore} ${emojiChance}</span></td>
         <td>${item.last_user_id ? `<@${item.last_user_id}>` : '<span style="color:#8e9297; font-style:italic;">Aucun</span>'}</td>
         <td>
           <button class="btn btn-delete btn-sm" style="padding: 4px 8px; font-size: 0.8rem;"><i class="fa-solid fa-trash"></i> Retirer</button>

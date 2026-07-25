@@ -146,30 +146,12 @@ module.exports = {
 
           const { incrementCountingStat, getCountingStats, resetCountingStats } = require('../database/db');
 
-          const sendCountingErrorEmbed = async (reason) => {
-            // Vérifier si l'utilisateur possède une Chance de Comptage dans son inventaire
-            const userChance = db.prepare("SELECT quantity, item_name FROM inventory WHERE guild_id = ? AND user_id = ? AND (item_name LIKE '%chance%comptage%' OR item_name LIKE '%joker%comptage%') AND quantity > 0").get(guildId, userId);
+          const emojiSuccess = countingChan.emoji_success || '✅';
+          const emojiError = countingChan.emoji_error || '❌';
+          const emojiHighscore = countingChan.emoji_highscore || '🏆';
+          const emojiChance = countingChan.emoji_chance || '🍀';
 
-            if (userChance && userChance.quantity > 0) {
-              if (userChance.quantity > 1) {
-                db.prepare("UPDATE inventory SET quantity = quantity - 1 WHERE guild_id = ? AND user_id = ? AND item_name = ?").run(guildId, userId, userChance.item_name);
-              } else {
-                db.prepare("DELETE FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?").run(guildId, userId, userChance.item_name);
-              }
-
-              const remaining = userChance.quantity - 1;
-              const chanceEmbed = new EmbedBuilder()
-                .setTitle('🍀 CHANCE DE COMPTAGE UTILISÉE !')
-                .setDescription(`${reason}\n\n<@${userId}> a utilisé **1x 🍀 Chance de Comptage** de son inventaire pour sauver la session !\nLe compte est préservé à **${countingChan.current_number}**. Vous pouvez continuer à compter à partir du nombre suivant !`)
-                .setColor('#2ECC71')
-                .setFooter({ text: `Chances restantes pour ${message.author.username} : ${remaining}` })
-                .setTimestamp();
-
-              await message.react('🍀').catch(() => {});
-              await message.reply({ embeds: [chanceEmbed] }).catch(() => {});
-              return true; // Sauvé !
-            }
-
+          const executeReset = async (reason) => {
             const stats = getCountingStats(message.channel.id);
             const medals = ['🥇', '🥈', '🥉'];
             let leaderboardText = '*(Aucun chiffre validé dans cette session)*';
@@ -190,9 +172,62 @@ module.exports = {
               .setColor('#E74C3C')
               .setTimestamp();
 
-            await message.react('❌').catch(() => {});
+            await message.react(emojiError).catch(() => {});
             await message.reply({ embeds: [errorEmbed] }).catch(() => {});
             return false;
+          };
+
+          const sendCountingErrorEmbed = async (reason) => {
+            // Vérifier si l'utilisateur possède une Chance de Comptage dans son inventaire
+            const userChance = db.prepare("SELECT quantity, item_name FROM inventory WHERE guild_id = ? AND user_id = ? AND (item_name LIKE '%chance%comptage%' OR item_name LIKE '%joker%comptage%') AND quantity > 0").get(guildId, userId);
+
+            if (userChance && userChance.quantity > 0) {
+              await message.react(emojiError).catch(() => {});
+
+              const promptEmbed = new EmbedBuilder()
+                .setTitle(`⚠️ ERREUR DE COMPTAGE !`)
+                .setDescription(`${reason}\n\n<@${userId}>, tu possèdes **${userChance.quantity}x ${emojiChance} Chance(s) de Comptage** dans ton inventaire !\n\n*Souhaites-tu utiliser 1x Chance pour sauver la session et maintenir le compteur à **${countingChan.current_number}** ?*\n⏰ *Tu as 15 secondes pour faire ton choix.*`)
+                .setColor('#F1C40F')
+                .setFooter({ text: 'Clique sur le bouton ci-dessous pour utiliser ta chance.' })
+                .setTimestamp();
+
+              const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                  .setCustomId(`counting_use_chance:${message.channel.id}:${userId}`)
+                  .setLabel(`Utiliser 1x Chance (${userChance.quantity})`)
+                  .setStyle(ButtonStyle.Success)
+                  .setEmoji(emojiChance),
+                new ButtonBuilder()
+                  .setCustomId(`counting_decline_chance:${message.channel.id}:${userId}`)
+                  .setLabel('Accepter la réinitialisation')
+                  .setStyle(ButtonStyle.Danger)
+                  .setEmoji(emojiError)
+              );
+
+              const promptMsg = await message.reply({ embeds: [promptEmbed], components: [row] }).catch(() => null);
+
+              if (promptMsg) {
+                const timerId = setTimeout(async () => {
+                  try {
+                    await promptMsg.edit({ content: '⏳ *Temps écoulé (15s). La réinitialisation du compteur a été appliquée.*', components: [] }).catch(() => null);
+                    await executeReset(reason);
+                  } catch (_) {}
+                }, 15000);
+
+                global.pendingCountingErrors = global.pendingCountingErrors || new Map();
+                global.pendingCountingErrors.set(`${message.channel.id}:${userId}`, {
+                  timerId,
+                  promptMsg,
+                  countingChan,
+                  userChance,
+                  reason
+                });
+              }
+
+              return true;
+            }
+
+            return executeReset(reason);
           };
 
           if (proposedNumber === null || isNaN(proposedNumber)) {
@@ -231,7 +266,7 @@ module.exports = {
             }
 
             if (countingChan.mode === 'reverse' && nextNumber === 0) {
-              await message.react('🎉').catch(() => {});
+              await message.react(emojiHighscore).catch(() => {});
               
               const stats = getCountingStats(message.channel.id);
               const medals = ['🥇', '🥈', '🥉'];
@@ -256,7 +291,7 @@ module.exports = {
 
               await message.channel.send({ embeds: [victoryEmbed] }).catch(() => {});
             } else {
-              await message.react('✅').catch(() => {});
+              await message.react(emojiSuccess).catch(() => {});
               db.prepare('UPDATE counting_channels SET current_number = ?, last_user_id = ?, high_score = ? WHERE channel_id = ?')
                 .run(nextNumber, userId, newHighScore, message.channel.id);
             }

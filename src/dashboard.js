@@ -1445,11 +1445,21 @@ app.post('/api/config/counting/add', (req, res) => {
   try {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
-    const { channel_id, mode, start_number } = req.body;
+    const { channel_id, mode, start_number, emoji_success, emoji_error, emoji_highscore, emoji_chance } = req.body;
     if (!channel_id || !mode) return res.status(400).json({ error: 'Informations incomplètes' });
 
     const num = start_number !== undefined ? parseFloat(start_number) : 0;
-    addCountingChannel(guildId, channel_id, mode, num);
+    const { addCountingChannel } = require('./database/db');
+    addCountingChannel(
+      guildId, 
+      channel_id, 
+      mode, 
+      num, 
+      emoji_success || '✅', 
+      emoji_error || '❌', 
+      emoji_highscore || '🏆', 
+      emoji_chance || '🍀'
+    );
     res.json({ success: true });
   } catch (error) {
     console.error(error);

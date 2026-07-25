@@ -425,9 +425,18 @@ function initDatabase() {
       current_number REAL DEFAULT 0,
       last_user_id TEXT,
       high_score REAL DEFAULT 0,
-      start_number REAL DEFAULT 0
+      start_number REAL DEFAULT 0,
+      emoji_success TEXT DEFAULT '✅',
+      emoji_error TEXT DEFAULT '❌',
+      emoji_highscore TEXT DEFAULT '🏆',
+      emoji_chance TEXT DEFAULT '🍀'
     )
   `).run();
+
+  try { db.prepare("ALTER TABLE counting_channels ADD COLUMN emoji_success TEXT DEFAULT '✅'").run(); } catch (e) {}
+  try { db.prepare("ALTER TABLE counting_channels ADD COLUMN emoji_error TEXT DEFAULT '❌'").run(); } catch (e) {}
+  try { db.prepare("ALTER TABLE counting_channels ADD COLUMN emoji_highscore TEXT DEFAULT '🏆'").run(); } catch (e) {}
+  try { db.prepare("ALTER TABLE counting_channels ADD COLUMN emoji_chance TEXT DEFAULT '🍀'").run(); } catch (e) {}
 
   // 23. Suites privées
   db.prepare(`
@@ -1055,11 +1064,18 @@ const getCountingChannel = (channelId) => {
   return db.prepare('SELECT * FROM counting_channels WHERE channel_id = ?').get(channelId);
 };
 
-const addCountingChannel = (guildId, channelId, mode, startNumber) => {
+const addCountingChannel = (guildId, channelId, mode, startNumber, emojiSuccess = '✅', emojiError = '❌', emojiHighscore = '🏆', emojiChance = '🍀') => {
   return db.prepare(`
-    INSERT OR REPLACE INTO counting_channels (guild_id, channel_id, mode, current_number, high_score, start_number)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(guildId, channelId, mode, startNumber, 0, startNumber);
+    INSERT INTO counting_channels (guild_id, channel_id, mode, current_number, high_score, start_number, emoji_success, emoji_error, emoji_highscore, emoji_chance)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(channel_id) DO UPDATE SET
+      mode = excluded.mode,
+      start_number = excluded.start_number,
+      emoji_success = excluded.emoji_success,
+      emoji_error = excluded.emoji_error,
+      emoji_highscore = excluded.emoji_highscore,
+      emoji_chance = excluded.emoji_chance
+  `).run(guildId, channelId, mode, startNumber, 0, startNumber, emojiSuccess, emojiError, emojiHighscore, emojiChance);
 };
 
 const updateCountingChannel = (channelId, data) => {
