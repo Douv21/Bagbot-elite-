@@ -4885,9 +4885,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const configuredAllowedRoles = serverRolesForCmdPerms.filter(r => cmd.allowed_roles.includes(r.id));
       const configuredDeniedRoles = serverRolesForCmdPerms.filter(r => cmd.denied_roles.includes(r.id));
 
-      let accessBadge = '<span style="background: rgba(46,204,113,0.15); border: 1px solid #2ecc71; color: #2ecc71; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 700; margin-left: 8px;">✨ Accessible à tout le monde</span>';
-      
-      if (cmd.allowed_roles.length > 0) {
+      const catLower = (cmd.category || '').toLowerCase();
+      const nameLower = (cmd.name || '').toLowerCase();
+
+      const isAdminOrModCategory = ['administration', 'modération', 'sécurité', 'admin', 'moderation', 'config', 'support'].some(c => catLower.includes(c));
+      const isAdminOrModCommandName = ['admin', 'ban', 'kick', 'unban', 'clear', 'quarantaine', 'automod', 'logs', 'embed', 'ticket', 'panel', 'config', 'setup', 'eval', 'reload', 'lock', 'unlock', 'mute', 'unmute', 'timeout', 'untimeout', 'warn', 'unwarn'].some(n => nameLower.includes(n));
+
+      const isDefaultAdminCmd = isAdminOrModCategory || isAdminOrModCommandName;
+
+      let accessBadge = '';
+      if (cmd.allowed_roles.length === 0) {
+        if (isDefaultAdminCmd) {
+          accessBadge = '<span style="background: rgba(231,76,60,0.15); border: 1px solid #e74c3c; color: #e74c3c; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 700; margin-left: 8px;">🔒 Accessible uniquement aux Admins</span>';
+        } else {
+          accessBadge = '<span style="background: rgba(46,204,113,0.15); border: 1px solid #2ecc71; color: #2ecc71; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 700; margin-left: 8px;">✨ Accessible à tout le monde</span>';
+        }
+      } else {
         const isAdminOnly = cmd.allowed_roles.length === 1 && (cmd.allowed_roles.includes('admin') || serverRolesForCmdPerms.find(r => r.id === cmd.allowed_roles[0])?.name.toLowerCase().includes('admin'));
         if (isAdminOnly) {
           accessBadge = '<span style="background: rgba(231,76,60,0.15); border: 1px solid #e74c3c; color: #e74c3c; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 700; margin-left: 8px;">🔒 Accessible uniquement aux Admins</span>';
@@ -4897,7 +4910,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const allowedCount = cmd.allowed_roles.length;
-      const allowedLabel = allowedCount > 0 ? `🟩 ${allowedCount} rôle(s) autorisés` : '✨ Tous les rôles autorisés par défaut';
+      const allowedLabel = allowedCount > 0 ? `🟩 ${allowedCount} rôle(s) autorisés` : (isDefaultAdminCmd ? '🔒 Administrateurs uniquement' : '✨ Tous les rôles autorisés par défaut');
 
       const deniedCount = cmd.denied_roles.length;
       const deniedLabel = deniedCount > 0 ? `🟥 ${deniedCount} rôle(s) interdits` : '✨ Aucun rôle interdit';
