@@ -593,6 +593,8 @@ function initDatabase() {
       max_karma INTEGER DEFAULT 3,
       PRIMARY KEY (guild_id, action_name)
     )
+  `).run();
+
   db.prepare(`
     CREATE TABLE IF NOT EXISTS command_permissions (
       guild_id TEXT NOT NULL,
