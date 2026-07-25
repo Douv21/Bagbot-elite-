@@ -39,19 +39,19 @@ function upsertSession(userId, patch) {
 
 function buildEmbed(step, session) {
   const accused = session.accusedId ? `<@${session.accusedId}>` : '*Non sélectionné*';
-  const lawyer = session.lawyerId ? `<@${session.lawyerId}>` : '*Aucun (ou à désigner par l\'accusé)*';
+  const lawyer = session.lawyerId ? `<@${session.lawyerId}>` : '*Aucun (Plairad seul)*';
   const charge = session.charge ? session.charge : '*Aucun chef d\'accusation renseigné*';
 
   const titles = {
     accused: '⚖️ 👤 Étape 1/3 — Choix de l\'Accusé',
-    lawyer: '⚖️ 💼 Étape 2/3 — Désignation de la Défense (Avocat)',
+    lawyer: '⚖️ 💼 Étape 2/3 — Désignation de l\'Avocat du Plaignant',
     charge: '⚖️ 📜 Étape 3/3 — Rédiger le Chef d\'Accusation',
     confirm: '✨ 🏛️ Récapitulatif & Validation du Dossier'
   };
 
   const descriptions = {
     accused: "🔍 Sélectionnez le membre mis en cause (**l'Accusé**) dans le menu déroulant ci-dessous.",
-    lawyer: "💼 Choisissez un **Avocat** pour la défense ou passez cette étape si l'accusé le choisira lui-même.",
+    lawyer: "💼 Sélectionnez un **Avocat du Plaignant (Accusation)** pour vous représenter ou passez cette étape.",
     charge: "📜 Cliquez sur le bouton ci-dessous pour saisir le **Chef d'accusation** motivant l'audience.",
     confirm: "🏛️ Vérifiez l'exactitude des informations et cliquez sur **`[ 🚀 Lancer le Procès ]`** pour ouvrir la séance."
   };
@@ -62,7 +62,7 @@ function buildEmbed(step, session) {
     .setDescription(descriptions[step] || 'Suivi de la procédure judiciaire.')
     .addFields(
       { name: '👤 Accusé', value: accused, inline: true },
-      { name: '💼 Avocat (Défense)', value: lawyer, inline: true },
+      { name: '💼 Avocat (Plaignant)', value: lawyer, inline: true },
       { name: '📜 Chef d\'Accusation', value: charge.length > 1024 ? charge.slice(0, 1021) + '…' : charge, inline: false },
     )
     .setFooter({ text: 'B&G Elite • Cour de Justice & Tribunal' })
@@ -96,7 +96,7 @@ function rowAccused(ownerId) {
 function rowLawyer(ownerId) {
   const select = new UserSelectMenuBuilder()
     .setCustomId(`tribunal:lawyer:${ownerId}`)
-    .setPlaceholder("💼 Sélectionner l'avocat de l'accusé (optionnel)…")
+    .setPlaceholder("💼 Sélectionner l'avocat du plaignant (optionnel)…")
     .setMinValues(1)
     .setMaxValues(1);
   return [
@@ -104,7 +104,7 @@ function rowLawyer(ownerId) {
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`tribunal:skip_lawyer:${ownerId}`)
-        .setLabel('Sans Avocat')
+        .setLabel('Sans Avocat (Plaider seul)')
         .setStyle(ButtonStyle.Secondary)
         .setEmoji('⏩'),
       new ButtonBuilder()
@@ -155,7 +155,7 @@ function caseButtons(caseId) {
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
         .setCustomId(`tribunal_case:accused_lawyer_pick:${caseId}`)
-        .setLabel("💼 Accusé : Choisir l'Avocat")
+        .setLabel("💼 Accusé : Choisir mon Avocat")
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`tribunal_case:close:${caseId}`)
@@ -362,19 +362,19 @@ module.exports = {
         }
 
         if (action === 'accused_lawyer_pick') {
-          if (interaction.user.id !== record.accusedId && !isAdmin(interaction.member)) {
-            try { await interaction.reply({ content: '❌ Seul l\'accusé (ou un admin) peut choisir son avocat.', ephemeral: true }); } catch (_) {}
+          if (interaction.user.id !== record.accusedId) {
+            try { await interaction.reply({ content: `❌ Seul l'Accusé (<@${record.accusedId}>) est autorisé à choisir son propre avocat de la défense.`, ephemeral: true }); } catch (_) {}
             return true;
           }
 
           const select = new UserSelectMenuBuilder()
             .setCustomId(`tribunal_case:pick_lawyer_select:${caseId}`)
-            .setPlaceholder("💼 Choisir l'avocat de la défense…")
+            .setPlaceholder("💼 Choisir mon avocat de la défense…")
             .setMinValues(1)
             .setMaxValues(1);
 
           const row = new ActionRowBuilder().addComponents(select);
-          try { await interaction.reply({ content: '💼 **Sélectionnez votre avocat dans la liste :**', components: [row], ephemeral: true }); } catch (_) {}
+          try { await interaction.reply({ content: '💼 **Accusé, sélectionnez votre avocat de la défense dans la liste ci-dessous :**', components: [row], ephemeral: true }); } catch (_) {}
           return true;
         }
       }

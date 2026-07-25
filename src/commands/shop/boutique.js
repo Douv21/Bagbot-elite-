@@ -178,8 +178,10 @@ module.exports = {
         }
       }
 
+      const shopCfg = getShopConfig(guildId);
+      const prefix = (shopCfg && shopCfg.suiteChannelPrefix) ? shopCfg.suiteChannelPrefix : '👑┆suite-';
       const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const chanName = `👑・suite-privée-${cleanUsername}`.slice(0, 90);
+      const chanName = `${prefix}${cleanUsername}`.slice(0, 90);
 
       try {
         const textChannel = await interaction.guild.channels.create({
