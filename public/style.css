@@ -1625,3 +1625,277 @@ td.text-center, td[colspan] {
   display: block;
   opacity: 1;
 }
+/* Discord Integration Style UI for Command Permissions */
+.discord-integration-card {
+  background: rgba(24, 25, 28, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.discord-integration-card:hover {
+  border-color: rgba(88, 101, 242, 0.4);
+  box-shadow: 0 6px 25px rgba(88, 101, 242, 0.15);
+}
+
+.discord-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.discord-cmd-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.discord-cmd-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.3px;
+}
+
+.discord-category-tag {
+  background: rgba(88, 101, 242, 0.15);
+  border: 1px solid rgba(88, 101, 242, 0.3);
+  color: #5865F2;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.discord-perm-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.discord-perm-badge.badge-admin {
+  background: rgba(231, 76, 60, 0.15);
+  border: 1px solid rgba(231, 76, 60, 0.4);
+  color: #e74c3c;
+}
+
+.discord-perm-badge.badge-everyone {
+  background: rgba(46, 204, 113, 0.15);
+  border: 1px solid rgba(46, 204, 113, 0.4);
+  color: #2ecc71;
+}
+
+.discord-perm-badge.badge-restricted {
+  background: rgba(52, 152, 219, 0.15);
+  border: 1px solid rgba(52, 152, 219, 0.4);
+  color: #3498db;
+}
+
+.discord-cmd-desc {
+  margin: 6px 0 0 0;
+  color: #b9bbbe;
+  font-size: 0.9rem;
+}
+
+.discord-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.discord-card-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.discord-perm-column {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 15px;
+}
+
+.discord-perm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.perm-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.perm-title.allowed { color: #2ecc71; }
+.perm-title.denied { color: #e74c3c; }
+
+.perm-hint {
+  font-size: 0.78rem;
+  color: #8e9297;
+}
+
+.discord-role-badges-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 38px;
+  align-items: center;
+}
+
+.discord-role-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid #5865f2;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #ffffff;
+  transition: transform 0.15s;
+}
+
+.discord-role-pill:hover {
+  transform: translateY(-1px);
+}
+
+.discord-role-pill.denied-pill {
+  border-color: #e74c3c;
+}
+
+.discord-role-pill .role-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.discord-role-pill .remove-role-btn {
+  color: #8e9297;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: color 0.15s;
+  margin-left: 2px;
+}
+
+.discord-role-pill .remove-role-btn:hover {
+  color: #e74c3c;
+}
+
+.empty-roles-text {
+  font-size: 0.83rem;
+  color: #8e9297;
+  font-style: italic;
+}
+
+.discord-add-role-btn {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #00d2d3;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.discord-add-role-btn:hover {
+  background: rgba(0, 210, 211, 0.1);
+  border-color: #00d2d3;
+}
+
+.discord-add-role-btn.denied-btn {
+  color: #ff6b6b;
+}
+
+.discord-add-role-btn.denied-btn:hover {
+  background: rgba(255, 107, 107, 0.1);
+  border-color: #ff6b6b;
+}
+
+.discord-dropdown-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 99;
+  background: #18191c;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  padding: 10px;
+  margin-top: 5px;
+}
+
+.discord-search-box {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.discord-search-box i {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8e9297;
+  font-size: 0.78rem;
+}
+
+.discord-search-box input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 7px 10px 7px 30px;
+  color: #fff;
+  font-size: 0.82rem;
+  outline: none;
+}
+
+.cmd-options-scroll-list {
+  max-height: 160px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cmd-option-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #fff;
+  transition: background 0.15s;
+}
+
+.cmd-option-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
