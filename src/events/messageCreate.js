@@ -254,14 +254,17 @@ module.exports = {
             incrementCountingStat(message.channel.id, userId);
 
             let newHighScore = countingChan.high_score;
+            let isNewRecord = false;
             if (countingChan.mode === 'reverse') {
               const currentProgress = countingChan.start_number - nextNumber;
               if (currentProgress > countingChan.high_score) {
                 newHighScore = currentProgress;
+                isNewRecord = true;
               }
             } else {
               if (nextNumber > countingChan.high_score) {
                 newHighScore = nextNumber;
+                isNewRecord = true;
               }
             }
 
@@ -291,7 +294,11 @@ module.exports = {
 
               await message.channel.send({ embeds: [victoryEmbed] }).catch(() => {});
             } else {
-              await message.react(emojiSuccess).catch(() => {});
+              if (isNewRecord) {
+                await message.react(emojiHighscore).catch(() => {});
+              } else {
+                await message.react(emojiSuccess).catch(() => {});
+              }
               db.prepare('UPDATE counting_channels SET current_number = ?, last_user_id = ?, high_score = ? WHERE channel_id = ?')
                 .run(nextNumber, userId, newHighScore, message.channel.id);
             }

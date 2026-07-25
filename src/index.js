@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Partials, Collection, REST, Routes, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, PermissionFlagsBits } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, Collection, REST, Routes, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, UserSelectMenuBuilder, PermissionFlagsBits } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const { initDatabase } = require('./database/db');
@@ -475,12 +475,69 @@ client.on('interactionCreate', async interaction => {
       const pendingId = parseInt(customId.replace('conf_reject_', ''));
       const { handleConfessionRejection } = require('./utils/confessionHandler');
       return handleConfessionRejection(interaction, pendingId);
+    } else if (customId.startsWith('inv_btn_use:')) {
+      const itemName = customId.replace('inv_btn_use:', '');
+      const selectMenu = new UserSelectMenuBuilder()
+        .setCustomId(`inv_use_target:${itemName}`)
+        .setPlaceholder(`Choisissez le membre avec qui utiliser ${itemName}...`);
+      const row = new ActionRowBuilder().addComponents(selectMenu);
+      return interaction.reply({ content: `🧪 **Avec quel membre souhaitez-vous utiliser "${itemName}" ?**`, components: [row], ephemeral: true });
+    } else if (customId.startsWith('inv_btn_gift:')) {
+      const itemName = customId.replace('inv_btn_gift:', '');
+      const selectMenu = new UserSelectMenuBuilder()
+        .setCustomId(`inv_gift_target:${itemName}`)
+        .setPlaceholder(`Choisissez le membre à qui offrir ${itemName}...`);
+      const row = new ActionRowBuilder().addComponents(selectMenu);
+      return interaction.reply({ content: `🎁 **À quel membre souhaitez-vous offrir "${itemName}" ?**`, components: [row], ephemeral: true });
+    } else if (customId.startsWith('inv_btn_drop:')) {
+      const itemName = customId.replace('inv_btn_drop:', '');
+      const userId = interaction.user.id;
+      const guildId = interaction.guild.id;
+      const { db } = require('./database/db');
+
+      const item = db.prepare('SELECT * FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?').get(guildId, userId, itemName);
+      if (!item || item.quantity <= 0) {
+        return interaction.reply({ content: '❌ Vous ne possédez pas cet objet.', ephemeral: true });
+      }
+
+      if (item.quantity > 1) {
+        db.prepare('UPDATE inventory SET quantity = quantity - 1 WHERE guild_id = ? AND user_id = ? AND item_name = ?').run(guildId, userId, itemName);
+      } else {
+        db.prepare('DELETE FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?').run(guildId, userId, itemName);
+      }
+
+      return interaction.reply({ content: `🗑️ Vous avez jeté 1x **${itemName}** de votre inventaire.`, ephemeral: true });
     }
     return;
   }
 
   if (interaction.isStringSelectMenu()) {
-    if (interaction.customId === 'boutique_acheter') {
+    if (interaction.customId === 'inv_select_item') {
+      const itemName = interaction.values[0];
+      const userId = interaction.user.id;
+      const guildId = interaction.guild.id;
+      const { db } = require('./database/db');
+
+      const item = db.prepare('SELECT * FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?').get(guildId, userId, itemName);
+      if (!item || item.quantity <= 0) {
+        return interaction.reply({ content: '❌ Vous ne possédez plus cet objet dans votre inventaire.', ephemeral: true });
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle(`🎒 Objet : ${item.item_name}`)
+        .setDescription(`💎 **Quantité possédée :** \`x${item.quantity}\`\n\n👇 *Choisissez une action à effectuer ci-dessous :*`)
+        .setColor('#9B59B6')
+        .setFooter({ text: '🎒 Inventaire VIP • B&G Elite' })
+        .setTimestamp();
+
+      const actionRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`inv_btn_use:${item.item_name}`).setLabel('Utiliser avec un membre').setStyle(ButtonStyle.Primary).setEmoji('🧪'),
+        new ButtonBuilder().setCustomId(`inv_btn_gift:${item.item_name}`).setLabel('Offrir à un membre').setStyle(ButtonStyle.Success).setEmoji('🎁'),
+        new ButtonBuilder().setCustomId(`inv_btn_drop:${item.item_name}`).setLabel('Jeter 1x').setStyle(ButtonStyle.Danger).setEmoji('🗑️')
+      );
+
+      return interaction.reply({ embeds: [embed], components: [actionRow], ephemeral: true });
+    } else if (interaction.customId === 'boutique_acheter') {
       const itemName = interaction.values[0];
       const command = client.commands.get('boutique');
       if (command) {
@@ -519,6 +576,109 @@ client.on('interactionCreate', async interaction => {
 
   if (interaction.isUserSelectMenu()) {
     const customId = interaction.customId;
+
+    if (customId.startsWith('inv_use_target:')) {
+      const itemName = customId.replace('inv_use_target:', '');
+      const targetUserId = interaction.values[0];
+      const userId = interaction.user.id;
+      const guildId = interaction.guild.id;
+      const { db } = require('./database/db');
+
+      const item = db.prepare('SELECT * FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?').get(guildId, userId, itemName);
+      if (!item || item.quantity <= 0) {
+        return interaction.reply({ content: '❌ Vous ne possédez plus cet objet dans votre inventaire.', ephemeral: true });
+      }
+
+      if (item.quantity > 1) {
+        db.prepare('UPDATE inventory SET quantity = quantity - 1 WHERE guild_id = ? AND user_id = ? AND item_name = ?').run(guildId, userId, itemName);
+      } else {
+        db.prepare('DELETE FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?').run(guildId, userId, itemName);
+      }
+
+      await interaction.deferReply({ ephemeral: true });
+
+      const buyerMember = await interaction.guild.members.fetch(userId).catch(() => null);
+      const targetMember = await interaction.guild.members.fetch(targetUserId).catch(() => null);
+
+      const { generateSensualText } = require('./utils/aiActionHelper');
+      const instruction = `${buyerMember ? buyerMember.displayName : 'L\'auteur'} utilise l'objet sensuel "${itemName}" avec ${targetMember ? targetMember.displayName : 'la cible'}.`;
+      const aiText = await generateSensualText(instruction, 250, guildId, targetMember);
+
+      const useEmbed = new EmbedBuilder()
+        .setTitle('🧪 💋 UTILISATION D\'UN OBJET DE SÉDUCTION ! 💋 🧪')
+        .setDescription(
+          `🔥 **Attention les yeux... Un moment de partage passionné a lieu !** 💋\n\n` +
+          `✨ **<@${userId}>** utilise **${itemName}** avec **<@${targetUserId}>** ! 🥂👠\n\n` +
+          `>>> *"${aiText || `${interaction.user.username} partage un moment d'une complicité intense et envoûtante avec ${targetMember ? targetMember.displayName : 'son partenaire'}.`}"*`
+        )
+        .setColor('#9B59B6')
+        .setFooter({ text: '💋 Moment Sensuel & Expérience VIP • B&G Elite' })
+        .setTimestamp();
+
+      await interaction.channel.send({ content: `💋 **Hey <@${targetUserId}> ! <@${userId}> vient d'utiliser l'objet ${itemName} avec toi !** 🔥✨`, embeds: [useEmbed] }).catch(() => {});
+
+      return interaction.editReply({ content: `✅ **Succès !** Vous avez utilisé 1x **${itemName}** avec <@${targetUserId}> !` });
+    }
+
+    if (customId.startsWith('inv_gift_target:')) {
+      const itemName = customId.replace('inv_gift_target:', '');
+      const targetUserId = interaction.values[0];
+      const userId = interaction.user.id;
+      const guildId = interaction.guild.id;
+      const { db } = require('./database/db');
+
+      if (targetUserId === userId) {
+        return interaction.reply({ content: '❌ Vous ne pouvez pas vous offrir un cadeau à vous-même.', ephemeral: true });
+      }
+
+      const item = db.prepare('SELECT * FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?').get(guildId, userId, itemName);
+      if (!item || item.quantity <= 0) {
+        return interaction.reply({ content: '❌ Vous ne possédez plus cet objet dans votre inventaire.', ephemeral: true });
+      }
+
+      if (item.quantity > 1) {
+        db.prepare('UPDATE inventory SET quantity = quantity - 1 WHERE guild_id = ? AND user_id = ? AND item_name = ?').run(guildId, userId, itemName);
+      } else {
+        db.prepare('DELETE FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?').run(guildId, userId, itemName);
+      }
+
+      const targetItem = db.prepare('SELECT * FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?').get(guildId, targetUserId, itemName);
+      if (targetItem) {
+        db.prepare('UPDATE inventory SET quantity = quantity + 1 WHERE guild_id = ? AND user_id = ? AND item_name = ?').run(guildId, targetUserId, itemName);
+      } else {
+        db.prepare('INSERT INTO inventory (guild_id, user_id, item_name, quantity) VALUES (?, ?, ?, 1)').run(guildId, targetUserId, itemName);
+      }
+
+      await interaction.deferReply({ ephemeral: true });
+
+      const buyerMember = await interaction.guild.members.fetch(userId).catch(() => null);
+      const targetMember = await interaction.guild.members.fetch(targetUserId).catch(() => null);
+
+      const { generateAiGiftPhrase } = require('./utils/aiActionHelper');
+      const aiGiftText = await generateAiGiftPhrase(buyerMember, targetMember, itemName, guildId);
+
+      const sexyQuotes = [
+        "Un frisson de désir traverse le salon... L'amour et le fantasme n'attendent pas. 💋",
+        "Un geste brûlant d'élégance et de séduction pur jus... 🥂🔥",
+        "Une délicieuse surprise envoûtante transmise directement depuis le boudoir... 💄💋"
+      ];
+      const quote = aiGiftText || sexyQuotes[Math.floor(Math.random() * sexyQuotes.length)];
+
+      const giftEmbed = new EmbedBuilder()
+        .setTitle('🔥 🎁 💋 CADEAU TRANSMIS AVEC PASSION ! 💋 🎁 🔥')
+        .setDescription(
+          `🔥 **Attention les yeux... Un désir secret vient d'être offert !** 💋\n\n` +
+          `✨ **<@${userId}>** fait fondre **<@${targetUserId}>** en lui transmettant **${itemName}** ! 👠🥂\n\n` +
+          `>>> *"${quote}"*`
+        )
+        .setColor('#E74C3C')
+        .setFooter({ text: '💋 Boudoir VIP & Transferts d\'Inventaire • B&G Elite' })
+        .setTimestamp();
+
+      await interaction.channel.send({ content: `💋 **Hey <@${targetUserId}> ! Reçois ce cadeau torride transmis depuis l'inventaire de <@${userId}> !** 🔥✨`, embeds: [giftEmbed] }).catch(() => {});
+
+      return interaction.editReply({ content: `✅ **Succès !** Vous avez offert 1x **${itemName}** à <@${targetUserId}> !` });
+    }
 
     if (customId.startsWith('boutique_gift_select:')) {
       const itemName = customId.replace('boutique_gift_select:', '');

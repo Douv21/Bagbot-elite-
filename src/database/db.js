@@ -1065,6 +1065,10 @@ const getCountingChannel = (channelId) => {
 };
 
 const addCountingChannel = (guildId, channelId, mode, startNumber, emojiSuccess = '✅', emojiError = '❌', emojiHighscore = '🏆', emojiChance = '🍀') => {
+  const existing = db.prepare('SELECT current_number, high_score FROM counting_channels WHERE channel_id = ?').get(channelId);
+  const currentNum = existing ? existing.current_number : startNumber;
+  const highScore = existing ? existing.high_score : 0;
+
   return db.prepare(`
     INSERT INTO counting_channels (guild_id, channel_id, mode, current_number, high_score, start_number, emoji_success, emoji_error, emoji_highscore, emoji_chance)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -1075,7 +1079,7 @@ const addCountingChannel = (guildId, channelId, mode, startNumber, emojiSuccess 
       emoji_error = excluded.emoji_error,
       emoji_highscore = excluded.emoji_highscore,
       emoji_chance = excluded.emoji_chance
-  `).run(guildId, channelId, mode, startNumber, 0, startNumber, emojiSuccess, emojiError, emojiHighscore, emojiChance);
+  `).run(guildId, channelId, mode, currentNum, highScore, startNumber, emojiSuccess, emojiError, emojiHighscore, emojiChance);
 };
 
 const updateCountingChannel = (channelId, data) => {
