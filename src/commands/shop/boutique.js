@@ -325,13 +325,19 @@ module.exports = {
     }
 
     if (isGift) {
+      const buyerMember = await interaction.guild.members.fetch(buyerId).catch(() => null);
+      const recipientMember = await interaction.guild.members.fetch(recipientId).catch(() => null);
+
+      const { generateAiGiftPhrase } = require('../../utils/aiActionHelper');
+      const aiPhrase = await generateAiGiftPhrase(buyerMember, recipientMember, item.item_name, guildId);
+
       const sexyQuotes = [
         "Un frisson de désir traverse la boutique... L'amour et le fantasme n'attendent pas. 💋",
         "Un geste brûlant d'élégance et de séduction pur jus... 🥂🔥",
         "Quand la tentation devient irrésistible, les plaisirs se partagent à deux... 👠✨",
         "Une délicieuse surprise envoûtante réservée à une personne d'exception... 💄💋"
       ];
-      const randomQuote = sexyQuotes[Math.floor(Math.random() * sexyQuotes.length)];
+      const randomQuote = aiPhrase || sexyQuotes[Math.floor(Math.random() * sexyQuotes.length)];
 
       const giftEmbed = new EmbedBuilder()
         .setTitle('🔥 🎁 💋 CADEAU TORRIDE & SENSUEL OFFERT ! 💋 🎁 🔥')

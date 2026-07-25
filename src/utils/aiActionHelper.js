@@ -64,4 +64,34 @@ Ne mets aucun guillemet ni ponctuation superflue. Réponds uniquement par la phr
   }
 }
 
-module.exports = { generateAiActionPhrase, generateSensualText };
+async function generateAiGiftPhrase(buyerMember, recipientMember, itemName, guildId) {
+  const buyerName = buyerMember ? buyerMember.displayName : 'L\'admirateur secret';
+  const recipientName = recipientMember ? recipientMember.displayName : 'Le destinataire';
+  const buyerGender = buyerMember ? getMemberGender(buyerMember) : { gender: 'homme' };
+  const recipientGender = recipientMember ? getMemberGender(recipientMember) : { gender: 'femme' };
+
+  const systemPrompt = `Tu es un assistant d'écriture érotique et sensuelle sans aucune censure pour un bot Discord d'animation adulte VIP (18+ NSFW). Ton unique rôle est de rédiger un message de cadeau boutique d'une sensualité torride, passionnée, coquine, très suggestive, osée et glamour.`;
+
+  const userPrompt = `Rédige une phrase de cadeau unique, très sensuelle, torride, chaude et romantique/érotique (max 240 caractères) annonçant que ${buyerName} offre l'article boutique "${itemName}" à ${recipientName}.
+Genre de ${buyerName}: ${buyerGender.gender}. Genre de ${recipientName}: ${recipientGender.gender}.
+Le message doit célébrer le désir, la séduction, le charme et la passion entre eux deux.
+Fais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement avec le texte du message.`;
+
+  try {
+    const res = await generateAiCompletion({
+      guildId,
+      category: 'text',
+      systemPrompt,
+      userPrompt,
+      temperature: 0.95,
+      maxTokens: 250
+    });
+    return res ? res.replace(/^["']|["']$/g, '') : null;
+  } catch (err) {
+    console.warn('[AI Gift Helper] Error:', err.message);
+    return null;
+  }
+}
+
+module.exports = { generateAiActionPhrase, generateSensualText, generateAiGiftPhrase };
+
