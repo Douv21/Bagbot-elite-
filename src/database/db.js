@@ -717,14 +717,27 @@ function initDatabase() {
     )
   `).run();
 
-  // 20. Configuration des permissions (rôles admin et modo)
+  // 20. Configuration des permissions (rôles admin, modo et dérogations)
   db.prepare(`
     CREATE TABLE IF NOT EXISTS permissions_config (
       guild_id TEXT PRIMARY KEY,
       admin_role_id TEXT,
-      modo_role_id TEXT
+      modo_role_id TEXT,
+      dashboard_roles TEXT DEFAULT '',
+      admin_cmds_roles TEXT DEFAULT '',
+      modo_cmds_roles TEXT DEFAULT ''
     )
   `).run();
+
+  try {
+    db.prepare("ALTER TABLE permissions_config ADD COLUMN dashboard_roles TEXT DEFAULT ''").run();
+  } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE permissions_config ADD COLUMN admin_cmds_roles TEXT DEFAULT ''").run();
+  } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE permissions_config ADD COLUMN modo_cmds_roles TEXT DEFAULT ''").run();
+  } catch (e) {}
 
   // 21. Conversations pour lovecalc évolutif
   db.prepare(`
@@ -1456,13 +1469,29 @@ const getPermissionsConfig = (guildId) => {
   let row = db.prepare('SELECT * FROM permissions_config WHERE guild_id = ?').get(guildId);
   if (!row) {
     db.prepare('INSERT OR IGNORE INTO permissions_config (guild_id) VALUES (?)').run(guildId);
-    row = { guild_id: guildId, admin_role_id: null, modo_role_id: null };
+    row = { guild_id: guildId, admin_role_id: null, modo_role_id: null, dashboard_roles: '', admin_cmds_roles: '', modo_cmds_roles: '' };
   }
   return row;
 };
 
-const updatePermissionsConfig = (guildId, adminRoleId, modoRoleId) => {
-  return db.prepare('UPDATE permissions_config SET admin_role_id = ?, modo_role_id = ? WHERE guild_id = ?').run(adminRoleId, modoRoleId, guildId);
+const updatePermissionsConfig = (guildId, adminRoleId, modoRoleId, dashboardRoles = '', adminCmdsRoles = '', modoCmdsRoles = '') => {
+  return db.prepare(`
+    INSERT INTO permissions_config (guild_id, admin_role_id, modo_role_id, dashboard_roles, admin_cmds_roles, modo_cmds_roles)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(guild_id) DO UPDATE SET
+      admin_role_id = excluded.admin_role_id,
+      modo_role_id = excluded.modo_role_id,
+      dashboard_roles = excluded.dashboard_roles,
+      admin_cmds_roles = excluded.admin_cmds_roles,
+      modo_cmds_roles = excluded.modo_cmds_roles
+  `).run(
+    guildId,
+    adminRoleId || null,
+    modoRoleId || null,
+    typeof dashboardRoles === 'string' ? dashboardRoles : JSON.stringify(dashboardRoles || []),
+    typeof adminCmdsRoles === 'string' ? adminCmdsRoles : JSON.stringify(adminCmdsRoles || []),
+    typeof modoCmdsRoles === 'string' ? modoCmdsRoles : JSON.stringify(modoCmdsRoles || [])
+  );
 };
 
 const incrementMemberChat = (guildId, user1Id, user2Id) => {

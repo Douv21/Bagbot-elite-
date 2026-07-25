@@ -580,14 +580,32 @@ client.on('interactionCreate', async interaction => {
       const member = interaction.member;
       const isUserAdmin = member.permissions.has(PermissionsBitField.Flags.Administrator);
       
+      const userRoleIds = member?.roles?.cache ? Array.from(member.roles.cache.keys()) : [];
+
+      let dashRoles = [];
+      let adminCmdsRoles = [];
+      let modoCmdsRoles = [];
+      try { dashRoles = typeof permConfig.dashboard_roles === 'string' ? JSON.parse(permConfig.dashboard_roles || '[]') : (permConfig.dashboard_roles || []); } catch (_) {}
+      try { adminCmdsRoles = typeof permConfig.admin_cmds_roles === 'string' ? JSON.parse(permConfig.admin_cmds_roles || '[]') : (permConfig.admin_cmds_roles || []); } catch (_) {}
+      try { modoCmdsRoles = typeof permConfig.modo_cmds_roles === 'string' ? JSON.parse(permConfig.modo_cmds_roles || '[]') : (permConfig.modo_cmds_roles || []); } catch (_) {}
+
+      const hasDashDerogation = interaction.commandName === 'dashboard' && dashRoles.some(rId => userRoleIds.includes(rId));
+      const hasAdminCmdsDerogation = adminCmdsRoles.some(rId => userRoleIds.includes(rId));
+      
+      const isModoCmd = ['ban', 'kick', 'unban', 'clear', 'warn', 'unwarn', 'mute', 'unmute', 'timeout', 'untimeout', 'quarantaine', 'massban', 'masskick'].includes(interaction.commandName);
+      const hasModoCmdsDerogation = isModoCmd && modoCmdsRoles.some(rId => userRoleIds.includes(rId));
+
       const hasAllowedRole = 
         isUserAdmin || 
         (adminRoleId && member.roles.cache.has(adminRoleId)) || 
-        (modoRoleId && member.roles.cache.has(modoRoleId));
+        (modoRoleId && member.roles.cache.has(modoRoleId)) ||
+        hasDashDerogation ||
+        hasAdminCmdsDerogation ||
+        hasModoCmdsDerogation;
         
       if (!hasAllowedRole) {
         return interaction.reply({
-          content: "❌ Cette commande est réservée aux Administrateurs et Modérateurs.",
+          content: "❌ Cette commande est réservée aux Administrateurs et Modérateurs autorisés.",
           ephemeral: true
         });
       }

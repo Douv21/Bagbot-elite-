@@ -479,12 +479,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const ticketCertifyAddSelect = document.getElementById('ticket_opt_certify_roles_add');
     const ticketCertifyRemoveSelect = document.getElementById('ticket_opt_certify_roles_remove');
 
+    const permDashSelect = document.getElementById('perm_dashboard_roles');
+    const permAdminCmdsSelect = document.getElementById('perm_admin_cmds_roles');
+    const permModoCmdsSelect = document.getElementById('perm_modo_cmds_roles');
+
     const selectToPopulate = [
       ticketPingSelect,
       ticketMemberAddSelect,
       ticketMemberRemoveSelect,
       ticketCertifyAddSelect,
-      ticketCertifyRemoveSelect
+      ticketCertifyRemoveSelect,
+      permDashSelect,
+      permAdminCmdsSelect,
+      permModoCmdsSelect
     ];
 
     selectToPopulate.forEach(selectEl => {
@@ -681,7 +688,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCountingChannels(config.counting_channels || []);
         if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
 
-        // Permissions Configuration
+        // Permissions Configuration & Dérogations
         const perms = config.permissions_config || {};
         const adminRoleSel = document.getElementById('perm_admin_role_id');
         const modoRoleSel = document.getElementById('perm_modo_role_id');
@@ -693,6 +700,26 @@ document.addEventListener('DOMContentLoaded', () => {
           modoRoleSel.value = perms.modo_role_id || '';
           if (modoRoleSel.syncCustomSelect) modoRoleSel.syncCustomSelect();
         }
+
+        let dashRoles = [];
+        let adminCmdsRoles = [];
+        let modoCmdsRoles = [];
+        try { dashRoles = typeof perms.dashboard_roles === 'string' ? JSON.parse(perms.dashboard_roles || '[]') : (perms.dashboard_roles || []); } catch (_) {}
+        try { adminCmdsRoles = typeof perms.admin_cmds_roles === 'string' ? JSON.parse(perms.admin_cmds_roles || '[]') : (perms.admin_cmds_roles || []); } catch (_) {}
+        try { modoCmdsRoles = typeof perms.modo_cmds_roles === 'string' ? JSON.parse(perms.modo_cmds_roles || '[]') : (perms.modo_cmds_roles || []); } catch (_) {}
+
+        const setMultiSelectValues = (selectId, valuesArr) => {
+          const sel = document.getElementById(selectId);
+          if (!sel) return;
+          Array.from(sel.options).forEach(opt => {
+            opt.selected = valuesArr.includes(opt.value);
+          });
+          if (sel.syncCustomSelect) sel.syncCustomSelect();
+        };
+
+        setMultiSelectValues('perm_dashboard_roles', dashRoles);
+        setMultiSelectValues('perm_admin_cmds_roles', adminCmdsRoles);
+        setMultiSelectValues('perm_modo_cmds_roles', modoCmdsRoles);
 
         // Charger la configuration Karma
         fetch('/api/config/karma')
@@ -1796,6 +1823,28 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(err => showToast('Erreur: ' + err.message, true));
   });
+
+  // 15. Formulaire des Permissions & Dérogations de Rôles
+  if (formPermissions) {
+    formPermissions.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const getMultiValues = (id) => {
+        const select = document.getElementById(id);
+        if (!select) return [];
+        return Array.from(select.selectedOptions).map(opt => opt.value);
+      };
+
+      const data = {
+        admin_role_id: document.getElementById('perm_admin_role_id').value || null,
+        modo_role_id: document.getElementById('perm_modo_role_id').value || null,
+        dashboard_roles: getMultiValues('perm_dashboard_roles'),
+        admin_cmds_roles: getMultiValues('perm_admin_cmds_roles'),
+        modo_cmds_roles: getMultiValues('perm_modo_cmds_roles')
+      };
+
+      saveConfig('/api/config/permissions', data);
+    });
+  }
 
   // Filtrage de la liste d'Action ou Vérité
   const filterActionVerite = document.getElementById('filter-action-verite');

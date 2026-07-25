@@ -307,8 +307,25 @@ app.post('/api/select-guild', (req, res) => {
     }
     const permissions = parseInt(userGuild.permissions, 10);
     const isOwnerOrAdmin = userGuild.owner || (permissions & 0x8);
+
     if (!isOwnerOrAdmin) {
-      return res.status(403).json({ error: 'Accès restreint aux Propriétaires et Administrateurs' });
+      let hasDashboardDerogation = false;
+      try {
+        const permCfg = db.prepare('SELECT dashboard_roles, admin_cmds_roles, admin_role_id, modo_role_id FROM permissions_config WHERE guild_id = ?').get(guildId);
+        if (permCfg) {
+          let dashRoles = [], adminCmdsRoles = [];
+          try { dashRoles = JSON.parse(permCfg.dashboard_roles || '[]'); } catch (_) {}
+          try { adminCmdsRoles = JSON.parse(permCfg.admin_cmds_roles || '[]'); } catch (_) {}
+
+          if (dashRoles.length > 0 || adminCmdsRoles.length > 0 || permCfg.admin_role_id || permCfg.modo_role_id) {
+            hasDashboardDerogation = true;
+          }
+        }
+      } catch (_) {}
+
+      if (!hasDashboardDerogation) {
+        return res.status(403).json({ error: 'Accès restreint aux Propriétaires et Administrateurs (ou rôles autorisés en dérogation)' });
+      }
     }
 
     req.session.selectedGuild = guildId;
@@ -582,15 +599,17 @@ app.post('/api/config/permissions', (req, res) => {
     const guildId = req.session.selectedGuild;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { admin_role_id, modo_role_id } = req.body;
+    const { admin_role_id, modo_role_id, dashboard_roles, admin_cmds_roles, modo_cmds_roles } = req.body;
+    const { updatePermissionsConfig } = require('./database/db');
 
-    db.prepare(`
-      INSERT INTO permissions_config (guild_id, admin_role_id, modo_role_id)
-      VALUES (?, ?, ?)
-      ON CONFLICT(guild_id) DO UPDATE SET
-        admin_role_id = excluded.admin_role_id,
-        modo_role_id = excluded.modo_role_id
-    `).run(guildId, admin_role_id || null, modo_role_id || null);
+    updatePermissionsConfig(
+      guildId,
+      admin_role_id || null,
+      modo_role_id || null,
+      dashboard_roles || [],
+      admin_cmds_roles || [],
+      modo_cmds_roles || []
+    );
 
     res.json({ success: true });
   } catch (error) {
