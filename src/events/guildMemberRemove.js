@@ -130,5 +130,38 @@ module.exports = {
     } catch (err) {
       console.error('Erreur fermeture automatique tickets membre sortant:', err);
     }
+
+    // --- REMISE À ZÉRO COMPLÈTE & CONSERVATION DU RÔLE D'ÂGE ---
+    try {
+      // 1. Détecter et sauvegarder le rôle d'âge (s'il en possède un)
+      const isAgeRole = (role) => {
+        const name = (role.name || '').toLowerCase();
+        return name.includes('ans') || name.includes('age') || name.includes('âge') ||
+               name.includes('18+') || name.includes('🔞') || name.includes('majeur') || name.includes('mineur');
+      };
+      const ageRole = member.roles.cache.find(isAgeRole);
+      if (ageRole) {
+        db.prepare(`
+          INSERT OR REPLACE INTO saved_user_age_roles (guild_id, user_id, role_id)
+          VALUES (?, ?, ?)
+        `).run(guildId, member.id, ageRole.id);
+      }
+
+      // 2. Remise à zéro complète (Suppression de toutes les données du membre sur ce serveur)
+      db.prepare('DELETE FROM economy WHERE guild_id = ? AND user_id = ?').run(guildId, member.id);
+      db.prepare('DELETE FROM leveling WHERE guild_id = ? AND user_id = ?').run(guildId, member.id);
+      db.prepare('DELETE FROM voice_xp WHERE guild_id = ? AND user_id = ?').run(guildId, member.id);
+      db.prepare('DELETE FROM inventory WHERE guild_id = ? AND user_id = ?').run(guildId, member.id);
+      db.prepare('DELETE FROM temporary_roles WHERE guild_id = ? AND user_id = ?').run(guildId, member.id);
+      db.prepare('DELETE FROM member_locations WHERE guild_id = ? AND user_id = ?').run(guildId, member.id);
+      try { db.prepare('DELETE FROM user_quests WHERE guild_id = ? AND user_id = ?').run(guildId, member.id); } catch (_) {}
+      try { db.prepare('DELETE FROM user_letters WHERE guild_id = ? AND user_id = ?').run(guildId, member.id); } catch (_) {}
+      try { db.prepare('DELETE FROM star_weekly_points WHERE guild_id = ? AND user_id = ?').run(guildId, member.id); } catch (_) {}
+      try { db.prepare('DELETE FROM quarantined_users WHERE guild_id = ? AND user_id = ?').run(guildId, member.id); } catch (_) {}
+
+      console.log(`[Remise à Zéro] Toutes les données (Argent, Karma, Niveau, Inventaire) de ${member.user.tag} (${member.id}) ont été réinitialisées suite à son départ du serveur ${guildId}.`);
+    } catch (err) {
+      console.error('Erreur réinitialisation données membre sortant:', err);
+    }
   }
 };

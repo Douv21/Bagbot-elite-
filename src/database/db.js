@@ -646,6 +646,16 @@ function initDatabase() {
     )
   `).run();
 
+  // 35. Conservation des Rôles d'Âge au départ/retour des membres
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS saved_user_age_roles (
+      guild_id TEXT,
+      user_id TEXT,
+      role_id TEXT,
+      PRIMARY KEY (guild_id, user_id)
+    )
+  `).run();
+
   // Migrations pour les auto-rôles embeds (type et mode)
   try {
     db.prepare("ALTER TABLE autorole_embeds ADD COLUMN type TEXT DEFAULT 'buttons'").run();

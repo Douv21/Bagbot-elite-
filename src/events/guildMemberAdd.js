@@ -128,6 +128,21 @@ module.exports = {
       }
     }
 
+    // --- RESTITUTION DU RÔLE D'ÂGE CONSERVÉ ---
+    try {
+      const savedAge = db.prepare('SELECT role_id FROM saved_user_age_roles WHERE guild_id = ? AND user_id = ?').get(guildId, member.id);
+      if (savedAge && savedAge.role_id) {
+        const role = member.guild.roles.cache.get(savedAge.role_id);
+        const botMember = member.guild.members.me;
+        if (role && botMember && role.position < botMember.roles.highest.position) {
+          await member.roles.add(role.id).catch(() => {});
+          console.log(`[Rôle d'Âge Restitué] Rôle "${role.name}" réattribué à ${member.user.tag}`);
+        }
+      }
+    } catch (err) {
+      console.error('Erreur restitution rôle d\'âge:', err);
+    }
+
     // --- LOG D'ARRIVÉE ---
     const logEmbed = new EmbedBuilder()
       .setTitle('📥 Nouveau Membre')
