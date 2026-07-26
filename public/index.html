@@ -1584,6 +1584,10 @@
                       <option value="tromper">Tromper (/tromper)</option>
                       <option value="vin">Vin (/vin)</option>
                     </optgroup>
+                    <optgroup label="🤝 Actions SFW & Amicales">
+                      <option value="gifle">👋 Gifle (/gifle)</option>
+                      <option value="patpat">🫳 Patpat (/patpat)</option>
+                    </optgroup>
                   </select>
                 </div>
                 
@@ -1606,8 +1610,28 @@
                   </div>
                 </div>
 
-                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Mettre à jour l'action</button>
+                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les gains de l'action</button>
               </form>
+
+              <!-- Liste des récompenses configurées -->
+              <div class="table-container" style="margin-top: 25px;">
+                <h4 style="margin-bottom: 10px; font-size: 0.95rem; color: #f1c40f;"><i class="fa-solid fa-list-check"></i> Tableau des Récompenses d'Actions Personalissées</h4>
+                <table class="premium-table">
+                  <thead>
+                    <tr>
+                      <th>Commande / Action</th>
+                      <th>Gain Pièces (Min - Max)</th>
+                      <th>Gain Karma (Min - Max)</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="action-rewards-list">
+                    <tr>
+                      <td colspan="4" class="text-center">Aucune personnalisation spécifique. (Gains par défaut : 5-15 pièces, 1-3 karma)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <!-- Paliers de Karma -->

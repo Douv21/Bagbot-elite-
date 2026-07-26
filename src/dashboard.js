@@ -568,6 +568,8 @@ app.get('/api/config', (req, res) => {
     // Tribunal Config
     const tribunalDb = require('./utils/tribunal_db');
     const tribunalConfig = tribunalDb.getTribunalConfig(guildId);
+    const { getAllActionRewards } = require('./database/db');
+    const actionRewards = getAllActionRewards(guildId);
 
     res.json({
       welcome_leave: welcomeLeave,
@@ -587,7 +589,8 @@ app.get('/api/config', (req, res) => {
       counting_channels: countingChannels,
       bump_config: bumpConfig,
       shop_config: shopConfig,
-      tribunal_config: tribunalConfig
+      tribunal_config: tribunalConfig,
+      action_rewards: actionRewards
     });
   } catch (error) {
     console.error('Erreur chargement config:', error);
@@ -1064,6 +1067,62 @@ app.post('/api/config/action-gifs/delete', (req, res) => {
     if (!id) return res.status(400).json({ error: 'ID requis' });
 
     deleteActionGif(guildId, id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- RECOMPENSES PAR ACTION (KARMA & PIECES) ---
+app.get('/api/config/action-rewards', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { getAllActionRewards } = require('./database/db');
+    const rewards = getAllActionRewards(guildId);
+    res.json(rewards);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/action-rewards', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { action_name, min_money, max_money, min_karma, max_karma } = req.body;
+    if (!action_name) return res.status(400).json({ error: 'Nom de l\'action requis' });
+
+    const { setActionReward } = require('./database/db');
+    setActionReward(
+      guildId,
+      action_name,
+      min_money !== undefined ? parseInt(min_money) : 5,
+      max_money !== undefined ? parseInt(max_money) : 15,
+      min_karma !== undefined ? parseInt(min_karma) : 1,
+      max_karma !== undefined ? parseInt(max_karma) : 3
+    );
+
+    res.json({ success: true, message: 'Récompenses de l\'action sauvegardées !' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/action-rewards/delete', (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { action_name } = req.body;
+    if (!action_name) return res.status(400).json({ error: 'Nom de l\'action requis' });
+
+    const { db } = require('./database/db');
+    db.prepare('DELETE FROM action_rewards WHERE guild_id = ? AND action_name = ?').run(guildId, action_name);
     res.json({ success: true });
   } catch (error) {
     console.error(error);

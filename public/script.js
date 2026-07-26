@@ -2499,6 +2499,89 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // --- ACTION REWARDS MANAGER ---
+  const formActionRewards = document.getElementById('form-action-rewards');
+  const actionRewardsList = document.getElementById('action-rewards-list');
+
+  if (formActionRewards) {
+    formActionRewards.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const action_name = document.getElementById('reward_action_name').value;
+      const min_money = parseInt(document.getElementById('reward_min_money').value) || 0;
+      const max_money = parseInt(document.getElementById('reward_max_money').value) || 0;
+      const min_karma = parseInt(document.getElementById('reward_min_karma').value) || 0;
+      const max_karma = parseInt(document.getElementById('reward_max_karma').value) || 0;
+
+      fetch('/api/config/action-rewards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action_name, min_money, max_money, min_karma, max_karma })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            showToast(`Récompenses enregistrées pour /${action_name} !`);
+            fetchAndRenderActionRewards();
+          } else {
+            showToast('Erreur: ' + (data.error || 'inconnue'), true);
+          }
+        })
+        .catch(err => showToast(err.message, true));
+    });
+  }
+
+  function fetchAndRenderActionRewards() {
+    fetch('/api/config/action-rewards')
+      .then(res => res.json())
+      .then(rewards => {
+        renderActionRewards(rewards);
+      })
+      .catch(console.error);
+  }
+
+  function renderActionRewards(rewards) {
+    if (!actionRewardsList) return;
+    if (!rewards || rewards.length === 0) {
+      actionRewardsList.innerHTML = '<tr><td colspan="4" class="text-center">Aucune personnalisation spécifique. (Gains par défaut : 5-15 pièces, 1-3 karma)</td></tr>';
+      return;
+    }
+
+    actionRewardsList.innerHTML = '';
+    rewards.forEach(rew => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>/${rew.action_name}</strong></td>
+        <td>💰 <strong>${rew.min_money}</strong> à <strong>${rew.max_money}</strong> pièces</td>
+        <td>✨ <strong>${rew.min_karma}</strong> à <strong>${rew.max_karma}</strong> karma</td>
+        <td><button class="btn btn-danger btn-delete-action-reward" data-action="${rew.action_name}"><i class="fa-solid fa-trash-can"></i> Réinitialiser</button></td>
+      `;
+
+      tr.querySelector('.btn-delete-action-reward').addEventListener('click', () => {
+        deleteActionReward(rew.action_name);
+      });
+
+      actionRewardsList.appendChild(tr);
+    });
+  }
+
+  function deleteActionReward(action_name) {
+    if (!confirm(`Voulez-vous réinitialiser les gains par défaut pour /${action_name} ?`)) return;
+
+    fetch('/api/config/action-rewards/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action_name })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          showToast(`Action /${action_name} réinitialisée aux valeurs par défaut !`);
+          fetchAndRenderActionRewards();
+        }
+      })
+      .catch(console.error);
+  }
+
   // Réinitialisation des messages NSFW (FEU)
   document.getElementById('btn-reset-nsfw').addEventListener('click', () => {
     if (!confirm('Voulez-vous vraiment réinitialiser les compteurs FEU (NSFW) de TOUS les membres sur ce serveur ?')) return;
