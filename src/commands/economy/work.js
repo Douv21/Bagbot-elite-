@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getEconomy, updateEconomy, getActionReward } = require('../../database/db');
+const { getEconomy, updateEconomy, getActionReward, getActionGifs } = require('../../database/db');
+const { generateAiEconomyPhrase } = require('../../utils/aiActionHelper');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -29,6 +30,8 @@ module.exports = {
       });
     }
 
+    await interaction.deferReply();
+
     const rewardConfig = getActionReward(guildId, 'travailler');
     const minReward = rewardConfig.min_money;
     const maxReward = rewardConfig.max_money;
@@ -41,9 +44,18 @@ module.exports = {
       last_work: now
     });
 
+    const aiPhrase = await generateAiEconomyPhrase('travailler', interaction.member, earnings, karmaGain, true, guildId);
+    const defaultDesc = `💼 **${interaction.member.displayName}** a travaillé dur pour la communauté et récolte ses fruits !`;
+
+    const gifs = getActionGifs(guildId, 'travailler');
+    let gifUrl = null;
+    if (gifs && gifs.length > 0) {
+      gifUrl = gifs[Math.floor(Math.random() * gifs.length)].gif_url;
+    }
+
     const successEmbed = new EmbedBuilder()
       .setTitle('💼 Travail accompli !')
-      .setDescription(`Vous avez travaillé dur pour le serveur !`)
+      .setDescription(aiPhrase || defaultDesc)
       .addFields(
         { name: '💰 Pièces gagnées', value: `+${earnings} pièces`, inline: true }
       )
@@ -54,7 +66,11 @@ module.exports = {
       successEmbed.addFields({ name: '✨ Karma gagné', value: `+${karmaGain} karma`, inline: true });
     }
 
-    await interaction.reply({
+    if (gifUrl) {
+      successEmbed.setImage(gifUrl);
+    }
+
+    await interaction.editReply({
       embeds: [successEmbed]
     });
   }

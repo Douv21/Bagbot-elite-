@@ -1,5 +1,6 @@
-const { SlashCommandBuilder } = require('discord.js');
-const { getEconomy, updateEconomy } = require('../../database/db');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { getEconomy, updateEconomy, getActionGifs } = require('../../database/db');
+const { generateAiEconomyPhrase } = require('../../utils/aiActionHelper');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -40,43 +41,82 @@ module.exports = {
       return interaction.reply({ content: `❌ <@${target.id}> est trop pauvre ! Il a moins de **100 pièces** en poche.`, ephemeral: true });
     }
 
+    await interaction.deferReply();
+
+    const targetMember = await interaction.guild.members.fetch(target.id).catch(() => null);
     const success = Math.random() < 0.45; // 45% de chance
-    let reply = '';
+    let stolen = 0;
+    let karmaChange = 0;
+    let title = '';
+    let color = 0x000000;
 
     if (success) {
       // Voler entre 10% et 35% du portefeuille de la cible
       const percent = Math.floor(Math.random() * 26) + 10;
-      const stolen = Math.floor((targetEconomy.wallet * percent) / 100);
+      stolen = Math.floor((targetEconomy.wallet * percent) / 100);
+      karmaChange = -3;
+      title = '💸 Vol Réussi !';
+      color = 0x2ecc71;
 
       updateEconomy(guildId, userId, {
         wallet: economy.wallet + stolen,
-        karma: economy.karma - 3,
+        karma: economy.karma + karmaChange,
         last_rob: now
       });
 
       updateEconomy(guildId, target.id, {
         wallet: targetEconomy.wallet - stolen
       });
-
-      reply = `💸 **Vol réussi !** Vous avez détroussé <@${target.id}> et volé **💰 ${stolen} pièces** (soit ${percent}% de sa poche). Votre karma baisse : **✨ -3**.`;
     } else {
       // Payer une amende à la cible (entre 50 et 150 pièces)
       const fine = Math.floor(Math.random() * 101) + 50;
-      const finalFine = Math.min(economy.wallet, fine);
+      stolen = -Math.min(economy.wallet, fine);
+      karmaChange = -1;
+      title = '👮 Pris la main dans le sac !';
+      color = 0xe74c3c;
 
       updateEconomy(guildId, userId, {
-        wallet: economy.wallet - finalFine,
-        karma: economy.karma - 1,
+        wallet: economy.wallet + stolen,
+        karma: economy.karma + karmaChange,
         last_rob: now
       });
 
       updateEconomy(guildId, target.id, {
-        wallet: targetEconomy.wallet + finalFine
+        wallet: targetEconomy.wallet - stolen
       });
-
-      reply = `👮 **Pris la main dans le sac !** <@${target.id}> vous a plaqué au sol. Vous lui avez payé une amende de **💰 ${finalFine} pièces** (Karma : **✨ -1**).`;
     }
 
-    await interaction.reply({ content: reply });
+    const extraContext = `Cible du vol: ${targetMember ? targetMember.displayName : target.username}.`;
+    const aiPhrase = await generateAiEconomyPhrase('voler', interaction.member, stolen, karmaChange, success, guildId, extraContext);
+
+    const gifs = getActionGifs(guildId, 'voler');
+    let gifUrl = null;
+    if (gifs && gifs.length > 0) {
+      gifUrl = gifs[Math.floor(Math.random() * gifs.length)].gif_url;
+    }
+
+    const embed = new EmbedBuilder()
+      .setTitle(title)
+      .setDescription(aiPhrase || (success ? `💸 Vous avez réussi à détrousser <@${target.id}> !` : `👮 <@${target.id}> vous a surpris et vous avez payé une amende !`))
+      .setColor(color)
+      .setTimestamp();
+
+    if (success) {
+      embed.addFields(
+        { name: '💰 Pièces volées', value: `+${stolen} pièces`, inline: true },
+        { name: '✨ Karma', value: `${karmaChange} karma`, inline: true }
+      );
+    } else {
+      embed.addFields(
+        { name: '💰 Amende versée', value: `${stolen} pièces`, inline: true },
+        { name: '✨ Karma', value: `${karmaChange} karma`, inline: true }
+      );
+    }
+
+    if (gifUrl) {
+      embed.setImage(gifUrl);
+    }
+
+    await interaction.editReply({ embeds: [embed] });
   }
 };

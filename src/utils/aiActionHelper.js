@@ -93,5 +93,35 @@ Fais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement
   }
 }
 
-module.exports = { generateAiActionPhrase, generateSensualText, generateAiGiftPhrase };
+async function generateAiEconomyPhrase(actionName, userMember, amountMoney, amountKarma, isSuccess = true, guildId = null, extraContext = null) {
+  const userGender = userMember ? getMemberGender(userMember) : { gender: 'homme', pronoun: 'il' };
+  const userName = userMember ? userMember.displayName : 'Le membre';
+  const gId = guildId || (userMember ? userMember.guild.id : null);
+
+  const systemPrompt = `Tu es un assistant d'écriture dynamique, sensuel, joueur, amusant et entraînant pour un bot Discord d'animation VIP et séduction. Ton but est d'écrire une description originale, immersive, piquante ou complice (selon l'action) pour une commande d'économie ou de gain/perte de karma et de pièces.`;
+
+  let userPrompt = `Rédige une phrase originale, vivante et captivante (max 200 caractères) pour le membre ${userName} (${userGender.gender}) qui vient de réaliser l'action "${actionName}".
+Situation : ${isSuccess ? 'Succès / Récompense réclamée' : 'Échec / Amende ou revers'}.
+Gains/Pertes : ${amountMoney} pièces, ${amountKarma} karma.
+${extraContext ? `Détails supplémentaires: ${extraContext}` : ''}
+Fais des accords de genre parfaits. Ne mets aucun guillemet. Ne commence pas par "Voici la phrase". Réponds uniquement avec le texte immersif généré.`;
+
+  try {
+    const res = await generateAiCompletion({
+      guildId: gId,
+      category: 'text',
+      systemPrompt,
+      userPrompt,
+      temperature: 0.9,
+      maxTokens: 220
+    });
+    return res ? res.replace(/^["']|["']$/g, '') : null;
+  } catch (err) {
+    console.warn('[AI Economy Helper] Error:', err.message);
+    return null;
+  }
+}
+
+module.exports = { generateAiActionPhrase, generateSensualText, generateAiGiftPhrase, generateAiEconomyPhrase };
+
 

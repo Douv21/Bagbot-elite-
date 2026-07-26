@@ -1,5 +1,6 @@
-const { SlashCommandBuilder } = require('discord.js');
-const { getEconomy, updateEconomy } = require('../../database/db');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { getEconomy, updateEconomy, getActionGifs } = require('../../database/db');
+const { generateAiEconomyPhrase } = require('../../utils/aiActionHelper');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -20,32 +21,69 @@ module.exports = {
       return interaction.reply({ content: `⏱️ La police patrouille encore. Retentez votre chance dans **${hours}h et ${mins}m**.`, ephemeral: true });
     }
 
+    await interaction.deferReply();
+
     const success = Math.random() < 0.5; // 50% de réussite
-    let reply = '';
-    
+    let earnings = 0;
+    let karmaLoss = 0;
+    let title = '';
+    let color = 0x000000;
+
     if (success) {
-      const earnings = Math.floor(Math.random() * 351) + 250; // 250 à 600 pièces
-      const karmaLoss = 2;
+      earnings = Math.floor(Math.random() * 351) + 250; // 250 à 600 pièces
+      karmaLoss = 2;
+      title = '🕵️ Crime Réussi !';
+      color = 0x2ecc71;
       
       updateEconomy(guildId, userId, {
         wallet: economy.wallet + earnings,
         karma: economy.karma - karmaLoss,
         last_crime: now
       });
-      reply = `🕵️ **Crime réussi !** Vous avez cambriolé une supérette et récupéré **💰 ${earnings} pièces** (Karma : **✨ -${karmaLoss}**).`;
     } else {
       const loss = Math.floor(Math.random() * 151) + 150; // 150 à 300 pièces
-      const newWallet = Math.max(0, economy.wallet - loss);
-      const karmaLoss = 1;
+      earnings = -loss;
+      karmaLoss = 1;
+      title = '👮 Pris par la Police !';
+      color = 0xe74c3c;
 
+      const newWallet = Math.max(0, economy.wallet - loss);
       updateEconomy(guildId, userId, {
         wallet: newWallet,
         karma: economy.karma - karmaLoss,
         last_crime: now
       });
-      reply = `👮 **Échec !** La police vous a repéré. Vous avez dû payer une amende de **💰 ${loss} pièces** pour vous échapper (Karma : **✨ -${karmaLoss}**).`;
     }
 
-    await interaction.reply({ content: reply });
+    const aiPhrase = await generateAiEconomyPhrase('crime', interaction.member, earnings, -karmaLoss, success, guildId);
+    const gifs = getActionGifs(guildId, 'crime');
+    let gifUrl = null;
+    if (gifs && gifs.length > 0) {
+      gifUrl = gifs[Math.floor(Math.random() * gifs.length)].gif_url;
+    }
+
+    const embed = new EmbedBuilder()
+      .setTitle(title)
+      .setDescription(aiPhrase || (success ? `🕵️ Vous avez réussi votre méfait !` : `👮 Vous avez été arrêté par les autorités !`))
+      .setColor(color)
+      .setTimestamp();
+
+    if (success) {
+      embed.addFields(
+        { name: '💰 Butin volé', value: `+${earnings} pièces`, inline: true },
+        { name: '✨ Karma', value: `-${karmaLoss} karma`, inline: true }
+      );
+    } else {
+      embed.addFields(
+        { name: '💰 Amende payée', value: `${earnings} pièces`, inline: true },
+        { name: '✨ Karma', value: `-${karmaLoss} karma`, inline: true }
+      );
+    }
+
+    if (gifUrl) {
+      embed.setImage(gifUrl);
+    }
+
+    await interaction.editReply({ embeds: [embed] });
   }
 };

@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getEconomy, updateEconomy, getActionReward } = require('../../database/db');
+const { getEconomy, updateEconomy, getActionReward, getActionGifs } = require('../../database/db');
+const { generateAiEconomyPhrase } = require('../../utils/aiActionHelper');
 
 module.exports = {
   name: 'daily',
@@ -33,6 +34,8 @@ module.exports = {
       });
     }
 
+    await interaction.deferReply();
+
     const rewardConfig = getActionReward(guildId, 'daily');
     const minReward = rewardConfig.min_money;
     const maxReward = rewardConfig.max_money;
@@ -45,9 +48,18 @@ module.exports = {
       last_daily: now
     });
 
+    const aiPhrase = await generateAiEconomyPhrase('daily', interaction.member, reward, karmaReward, true, guildId);
+    const defaultDesc = `🎁 **${interaction.member.displayName}** a réclamé sa récompense quotidienne avec succès !`;
+
+    const gifs = getActionGifs(guildId, 'daily');
+    let gifUrl = null;
+    if (gifs && gifs.length > 0) {
+      gifUrl = gifs[Math.floor(Math.random() * gifs.length)].gif_url;
+    }
+
     const successEmbed = new EmbedBuilder()
       .setTitle('🎁 Récompense Quotidienne Réclamée !')
-      .setDescription(`Vous avez reçu votre récompense du jour !`)
+      .setDescription(aiPhrase || defaultDesc)
       .addFields(
         { name: '💰 Pièces gagnées', value: `+${reward} pièces`, inline: true }
       )
@@ -58,7 +70,11 @@ module.exports = {
       successEmbed.addFields({ name: '✨ Karma gagné', value: `+${karmaReward} karma`, inline: true });
     }
 
-    return interaction.reply({
+    if (gifUrl) {
+      successEmbed.setImage(gifUrl);
+    }
+
+    return interaction.editReply({
       embeds: [successEmbed]
     });
   }
