@@ -445,22 +445,24 @@ async function handleTicketInteraction(interaction, client) {
   else if (customId === 'ticket_member') {
     const isStaff = await checkIsTicketStaff(interaction);
     if (!isStaff) {
-      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+      return interaction.reply({ content: '❌ Seuls les membres de l\'équipe support mentionnés à l\'ouverture peuvent effectuer cette action. Vous ne pouvez pas exécuter cette action sur votre propre ticket.', ephemeral: true });
     }
+
+    await interaction.deferReply();
 
     const active = getActiveTicket(interaction.channelId);
     if (!active) {
-      return interaction.reply({ content: '❌ Impossible de trouver le ticket actif.', ephemeral: true });
+      return interaction.editReply({ content: '❌ Impossible de trouver le ticket actif.' });
     }
 
     const option = db.prepare('SELECT * FROM ticket_options WHERE guild_id = ? AND id = ?').get(guildId, active.option_id);
     if (!option) {
-      return interaction.reply({ content: '❌ Configuration de ticket introuvable.', ephemeral: true });
+      return interaction.editReply({ content: '❌ Configuration de ticket introuvable.' });
     }
 
     const ticketCreator = await interaction.guild.members.fetch(active.user_id).catch(() => null);
     if (!ticketCreator) {
-      return interaction.reply({ content: '❌ Membre introuvable sur le serveur.', ephemeral: true });
+      return interaction.editReply({ content: '❌ Membre introuvable sur le serveur.' });
     }
 
     let rolesToAdd = [];
@@ -469,7 +471,7 @@ async function handleTicketInteraction(interaction, client) {
     try { rolesToRemove = JSON.parse(option.member_roles_remove || '[]'); } catch (e) {}
 
     if (rolesToAdd.length === 0 && rolesToRemove.length === 0) {
-      return interaction.reply({ content: '❌ Aucun rôle "Membre" n\'a été configuré dans le Dashboard pour cette catégorie de ticket.', ephemeral: true });
+      return interaction.editReply({ content: '❌ Aucun rôle "Membre" n\'a été configuré dans le Dashboard pour cette catégorie de ticket.' });
     }
 
     let addedList = [];
@@ -508,28 +510,30 @@ async function handleTicketInteraction(interaction, client) {
       await welcomeMsg.edit({ embeds: [embed] }).catch(console.error);
     }
 
-    await interaction.reply({ content: `👥 **Statut Membre attribué à <@${active.user_id}> par <@${interaction.user.id}> !**${roleMsg}` });
+    await interaction.editReply({ content: `👥 **Statut Membre attribué à <@${active.user_id}> par <@${interaction.user.id}> !**${roleMsg}` });
   }
 
   else if (customId === 'ticket_certify') {
     const isStaff = await checkIsTicketStaff(interaction);
     if (!isStaff) {
-      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+      return interaction.reply({ content: '❌ Seuls les membres de l\'équipe support mentionnés à l\'ouverture peuvent effectuer cette action. Vous ne pouvez pas exécuter cette action sur votre propre ticket.', ephemeral: true });
     }
+
+    await interaction.deferReply();
 
     const active = getActiveTicket(interaction.channelId);
     if (!active) {
-      return interaction.reply({ content: '❌ Impossible de trouver le ticket actif.', ephemeral: true });
+      return interaction.editReply({ content: '❌ Impossible de trouver le ticket actif.' });
     }
 
     const option = db.prepare('SELECT * FROM ticket_options WHERE guild_id = ? AND id = ?').get(guildId, active.option_id);
     if (!option) {
-      return interaction.reply({ content: '❌ Configuration de ticket introuvable.', ephemeral: true });
+      return interaction.editReply({ content: '❌ Configuration de ticket introuvable.' });
     }
 
     const ticketCreator = await interaction.guild.members.fetch(active.user_id).catch(() => null);
     if (!ticketCreator) {
-      return interaction.reply({ content: '❌ Membre introuvable sur le serveur.', ephemeral: true });
+      return interaction.editReply({ content: '❌ Membre introuvable sur le serveur.' });
     }
 
     let rolesToAdd = [];
@@ -573,13 +577,13 @@ async function handleTicketInteraction(interaction, client) {
       await welcomeMsg.edit({ embeds: [embed] }).catch(console.error);
     }
 
-    await interaction.reply({ content: `✅ **Membre certifié par <@${interaction.user.id}> !**${roleMsg}` });
+    await interaction.editReply({ content: `✅ **Membre certifié par <@${interaction.user.id}> !**${roleMsg}` });
   }
 
   else if (customId === 'ticket_add_member_btn') {
     const isStaff = await checkIsTicketStaff(interaction);
     if (!isStaff) {
-      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+      return interaction.reply({ content: '❌ Seuls les membres de l\'équipe support mentionnés à l\'ouverture peuvent effectuer cette action.', ephemeral: true });
     }
 
     const { UserSelectMenuBuilder } = require('discord.js');
@@ -595,7 +599,7 @@ async function handleTicketInteraction(interaction, client) {
   else if (customId === 'ticket_remove_member_btn') {
     const isStaff = await checkIsTicketStaff(interaction);
     if (!isStaff) {
-      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+      return interaction.reply({ content: '❌ Seuls les membres de l\'équipe support mentionnés à l\'ouverture peuvent effectuer cette action.', ephemeral: true });
     }
 
     const { UserSelectMenuBuilder } = require('discord.js');
@@ -611,7 +615,7 @@ async function handleTicketInteraction(interaction, client) {
   else if (customId === 'ticket_add_member_select' && interaction.isUserSelectMenu()) {
     const isStaff = await checkIsTicketStaff(interaction);
     if (!isStaff) {
-      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+      return interaction.reply({ content: '❌ Seuls les membres de l\'équipe support mentionnés à l\'ouverture peuvent effectuer cette action.', ephemeral: true });
     }
 
     const targetUserId = interaction.values[0];
@@ -628,7 +632,7 @@ async function handleTicketInteraction(interaction, client) {
   else if (customId === 'ticket_remove_member_select' && interaction.isUserSelectMenu()) {
     const isStaff = await checkIsTicketStaff(interaction);
     if (!isStaff) {
-      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+      return interaction.reply({ content: '❌ Seuls les membres de l\'équipe support mentionnés à l\'ouverture peuvent effectuer cette action.', ephemeral: true });
     }
 
     const targetUserId = interaction.values[0];
@@ -642,14 +646,19 @@ async function checkIsTicketStaff(interaction) {
   const member = interaction.member;
   if (!guild || !member) return false;
 
+  // Récupérer le ticket actif depuis la BDD
+  const activeTicket = getActiveTicket(interaction.channelId);
+  if (!activeTicket) return false;
+
+  // L'auteur du ticket ne peut JAMAIS utiliser les boutons d'action du staff sur son propre ticket
+  if (member.id === activeTicket.user_id) {
+    return false;
+  }
+
   // Propriétaire du serveur et administrateurs
   if (member.id === guild.ownerId || member.permissions.has(PermissionFlagsBits.Administrator)) {
     return true;
   }
-
-  // Récupérer le ticket actif depuis la BDD
-  const activeTicket = getActiveTicket(interaction.channelId);
-  if (!activeTicket) return false;
 
   const option = db.prepare('SELECT * FROM ticket_options WHERE guild_id = ? AND id = ?').get(guild.id, activeTicket.option_id);
   if (!option) return false;
