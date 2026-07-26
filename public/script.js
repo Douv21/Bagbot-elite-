@@ -2500,7 +2500,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- ACTION REWARDS MANAGER ---
-  const formActionRewards = document.getElementById('form-action-rewards');
   const actionRewardsList = document.getElementById('action-rewards-list');
 
   if (formActionRewards) {
