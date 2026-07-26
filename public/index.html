@@ -107,6 +107,7 @@
           <div class="category-title"><i class="fa-solid fa-sliders" style="color: #5865F2;"></i> GESTION DU SERVEUR</div>
           <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées & Départs</button>
           <button class="tab-btn" data-tab="tab-announcements"><i class="fa-solid fa-bullhorn" style="color: #e74c3c;"></i> Annonces & Guides <span class="nav-badge badge-gold">VIP</span></button>
+          <button class="tab-btn" data-tab="tab-embed-sender"><i class="fa-solid fa-file-code" style="color: #9b59b6;"></i> Envoyeur d'Embeds <span class="nav-badge badge-purple">NOUVEAU</span></button>
           <button class="tab-btn" data-tab="tab-autoroles"><i class="fa-solid fa-user-plus"></i> Auto-Rôles à l'Arrivée</button>
           <button class="tab-btn" data-tab="tab-reactionroles"><i class="fa-solid fa-rectangle-list"></i> Rôles Réaction</button>
           <button class="tab-btn" data-tab="tab-autothread"><i class="fa-solid fa-hashtag"></i> Auto-Thread</button>
@@ -2067,6 +2068,144 @@
                     <!-- Rempli en JS -->
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Envoyeur d'Embeds Simple -->
+          <div id="tab-embed-sender" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-file-code" style="color: #9b59b6;"></i> Envoyeur d'Embeds Simple (Message Pur)</h2>
+            <div class="card glass mb-4">
+              <p style="color: #b9bbbe; font-size: 0.9rem;">Composez et envoyez un message Embed sur mesure dans n'importe quel salon de votre serveur (message pur, sans rôle réaction, sans bouton).</p>
+            </div>
+
+            <div class="row">
+              <div class="col-md-7">
+                <div class="card glass mb-4">
+                  <h3>⚙️ Configuration du Message Embed</h3>
+                  <form id="form-simple-embed" class="inner-form">
+                    <div class="form-row">
+                      <div class="form-group">
+                        <label for="simple_embed_channel"><i class="fa-solid fa-hashtag"></i> Salon de destination :</label>
+                        <select id="simple_embed_channel" required class="channel-select custom-select">
+                          <option value="">Sélectionner un salon...</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label for="simple_embed_color"><i class="fa-solid fa-palette"></i> Couleur de la barre :</label>
+                        <input type="color" id="simple_embed_color" value="#5865f2" style="padding: 2px; height: 42px; width: 100%;">
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label for="simple_embed_title"><i class="fa-solid fa-heading"></i> Titre de l'Embed :</label>
+                      <input type="text" id="simple_embed_title" class="inner-input" placeholder="ex: 📢 Annonce Importante">
+                    </div>
+
+                    <div class="form-group">
+                      <label for="simple_embed_desc"><i class="fa-solid fa-align-left"></i> Description / Contenu textuel :</label>
+                      <textarea id="simple_embed_desc" rows="6" class="inner-input" placeholder="Rédigez le texte du message embed ici..." style="resize: vertical;"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                      <div class="form-group">
+                        <label for="simple_embed_thumbnail_option"><i class="fa-solid fa-image"></i> Miniature (Thumbnail) :</label>
+                        <select id="simple_embed_thumbnail_option" class="custom-select">
+                          <option value="none">Aucune miniature</option>
+                          <option value="server">Avatar du serveur</option>
+                          <option value="bot">Avatar du Bot</option>
+                          <option value="custom">URL Personnalisée</option>
+                        </select>
+                      </div>
+                      <div class="form-group" id="group_simple_embed_custom_thumb" style="display: none;">
+                        <label for="simple_embed_custom_thumb_url">Lien Miniature (URL) :</label>
+                        <input type="text" id="simple_embed_custom_thumb_url" class="inner-input" placeholder="https://.../thumbnail.png">
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label for="simple_embed_image"><i class="fa-solid fa-file-image"></i> Image d'illustration en bas (URL) :</label>
+                      <input type="text" id="simple_embed_image" class="inner-input" placeholder="ex: https://media.giphy.com/media/.../giphy.gif">
+                    </div>
+
+                    <div class="form-row">
+                      <div class="form-group">
+                        <label for="simple_embed_author_name"><i class="fa-solid fa-user"></i> Nom de l'auteur (Optionnel) :</label>
+                        <input type="text" id="simple_embed_author_name" class="inner-input" placeholder="ex: Modération B&G Elite">
+                      </div>
+                      <div class="form-group">
+                        <label for="simple_embed_author_icon"><i class="fa-solid fa-circle-user"></i> Icône Auteur (URL) :</label>
+                        <input type="text" id="simple_embed_author_icon" class="inner-input" placeholder="https://...">
+                      </div>
+                    </div>
+
+                    <div class="form-row">
+                      <div class="form-group">
+                        <label for="simple_embed_footer_text"><i class="fa-solid fa-shoe-prints"></i> Bas de page / Footer (Optionnel) :</label>
+                        <input type="text" id="simple_embed_footer_text" class="inner-input" placeholder="ex: 💋 Serveur Officiel • 2026">
+                      </div>
+                      <div class="form-group">
+                        <label for="simple_embed_ping"><i class="fa-solid fa-bell"></i> Notification / Mention :</label>
+                        <select id="simple_embed_ping" class="custom-select">
+                          <option value="none">Aucune mention</option>
+                          <option value="everyone">@everyone</option>
+                          <option value="here">@here</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="form-group" style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-top: 10px;">
+                      <label for="simple_embed_edit_msg_id"><i class="fa-solid fa-pen-to-square"></i> Modifier un Embed déjà existant (Optionnel) :</label>
+                      <input type="text" id="simple_embed_edit_msg_id" class="inner-input" placeholder="Insérer l'ID du message Discord pour le modifier...">
+                      <small class="help-text">Si rempli, le bot modifiera ce message existant au lieu d'en envoyer un nouveau.</small>
+                    </div>
+
+                    <div class="actions-bar" style="margin-top: 15px;">
+                      <button type="submit" class="btn btn-save" style="width: 100%; padding: 12px; font-size: 1rem;"><i class="fa-solid fa-paper-plane"></i> Envoyer le message Embed</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <!-- Right: Live Discord Preview -->
+              <div class="col-md-5">
+                <div class="card glass mb-4" style="position: sticky; top: 20px;">
+                  <h3>✨ Aperçu Discord en direct</h3>
+                  <div class="discord-preview-container" style="margin-top: 15px; padding: 15px; background: #36393f; border-radius: 8px;">
+                    <div class="discord-message">
+                      <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="discord-avatar" alt="Bot Avatar" id="simple-embed-preview-bot-avatar">
+                      <div class="discord-message-content">
+                        <div class="discord-message-header">
+                          <span class="discord-bot-name" id="simple-embed-preview-bot-name">Bagbot Elite</span>
+                          <span class="discord-bot-tag">BOT</span>
+                        </div>
+                        <div id="simple-embed-preview-mention" style="color: #00aff4; font-size: 0.9rem; margin-bottom: 4px; display: none;"></div>
+
+                        <div class="discord-embed" id="simple-embed-preview-container" style="border-left: 4px solid #5865f2; background: #2f3136; padding: 12px; border-radius: 4px;">
+                          <div id="simple-embed-preview-author" style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #ffffff; font-weight: 600; margin-bottom: 6px; display: none;">
+                            <img id="simple-embed-preview-author-icon" src="" style="width: 20px; height: 20px; border-radius: 50%; display: none;">
+                            <span id="simple-embed-preview-author-name"></span>
+                          </div>
+
+                          <div id="simple-embed-preview-title" style="color: #ffffff; font-weight: 700; font-size: 1rem; margin-bottom: 6px;">Aperçu du Titre</div>
+
+                          <div style="display: flex; gap: 10px; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex-grow: 1; min-width: 0;">
+                              <div id="simple-embed-preview-desc" style="color: #dcddde; font-size: 0.875rem; white-space: pre-wrap; word-break: break-word;">Aperçu de la description...</div>
+                            </div>
+                            <img id="simple-embed-preview-thumbnail" src="" alt="" style="width: 60px; height: 60px; border-radius: 4px; display: none; object-fit: cover; flex-shrink: 0;">
+                          </div>
+
+                          <img id="simple-embed-preview-image" src="" alt="" style="width: 100%; max-height: 250px; object-fit: cover; border-radius: 4px; margin-top: 8px; display: none;">
+
+                          <div id="simple-embed-preview-footer" style="font-size: 0.75rem; color: #a3a6aa; margin-top: 8px; display: none; align-items: center; gap: 6px;">
+                            <span id="simple-embed-preview-footer-text"></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -1250,6 +1250,87 @@ app.post('/api/config/autorole-embeds/delete', async (req, res) => {
   }
 });
 
+// --- SYSTEME D'ENVOI D'EMBEDS SIMPLE (MESSAGE PUR) ---
+app.post('/api/config/send-simple-embed', async (req, res) => {
+  try {
+    const guildId = req.session.selectedGuild;
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const {
+      channel_id, title, description, color, thumbnail_url,
+      image_url, author_name, author_icon, footer_text, footer_icon,
+      ping_type, existing_message_id
+    } = req.body;
+
+    if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
+
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
+
+    const channel = guild.channels.cache.get(channel_id);
+    if (!channel) return res.status(404).json({ error: 'Salon introuvable ou inaccessible' });
+
+    const embed = new EmbedBuilder();
+
+    if (title && title.trim()) embed.setTitle(title.trim());
+    if (description && description.trim()) embed.setDescription(description.trim());
+    if (color) embed.setColor(color);
+    else embed.setColor('#5865F2');
+
+    if (thumbnail_url) {
+      if (thumbnail_url === 'server') {
+        const icon = guild.iconURL({ dynamic: true });
+        if (icon) embed.setThumbnail(icon);
+      } else if (thumbnail_url === 'bot') {
+        embed.setThumbnail(client.user.displayAvatarURL({ dynamic: true }));
+      } else if (thumbnail_url.startsWith('http://') || thumbnail_url.startsWith('https://')) {
+        embed.setThumbnail(thumbnail_url);
+      }
+    }
+
+    if (image_url && (image_url.startsWith('http://') || image_url.startsWith('https://'))) {
+      embed.setImage(image_url);
+    }
+
+    if (author_name && author_name.trim()) {
+      const authorObj = { name: author_name.trim() };
+      if (author_icon && (author_icon.startsWith('http://') || author_icon.startsWith('https://'))) {
+        authorObj.iconURL = author_icon;
+      }
+      embed.setAuthor(authorObj);
+    }
+
+    if (footer_text && footer_text.trim()) {
+      const footerObj = { text: footer_text.trim() };
+      if (footer_icon && (footer_icon.startsWith('http://') || footer_icon.startsWith('https://'))) {
+        footerObj.iconURL = footer_icon;
+      }
+      embed.setFooter(footerObj);
+    }
+
+    embed.setTimestamp();
+
+    let contentPayload = undefined;
+    if (ping_type === 'everyone') contentPayload = '@everyone';
+    else if (ping_type === 'here') contentPayload = '@here';
+
+    if (existing_message_id && existing_message_id.trim()) {
+      const targetMsg = await channel.messages.fetch(existing_message_id.trim()).catch(() => null);
+      if (!targetMsg) {
+        return res.status(404).json({ error: 'Message existant introuvable dans ce salon' });
+      }
+      await targetMsg.edit({ content: contentPayload, embeds: [embed] });
+      res.json({ success: true, messageId: targetMsg.id, message: 'Message Embed mis à jour avec succès !' });
+    } else {
+      const sentMsg = await channel.send({ content: contentPayload, embeds: [embed] });
+      res.json({ success: true, messageId: sentMsg.id, message: 'Message Embed envoyé avec succès dans le salon !' });
+    }
+  } catch (error) {
+    console.error('Erreur send-simple-embed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Auto-rôles à l'arrivée
 app.post('/api/config/autoroles-on-join/add', (req, res) => {
   try {

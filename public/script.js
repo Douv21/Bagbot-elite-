@@ -5567,5 +5567,178 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(err => showToast(`❌ Erreur réseau : ${err.message}`, true));
     });
   }
+
+  // Initialiser l'envoyeur d'embeds simple
+  initSimpleEmbedSender();
 });
+
+// --- ENVOYEUR D'EMBEDS SIMPLE ---
+function initSimpleEmbedSender() {
+  const form = document.getElementById('form-simple-embed');
+  if (!form) return;
+
+  const inputTitle = document.getElementById('simple_embed_title');
+  const inputDesc = document.getElementById('simple_embed_desc');
+  const inputColor = document.getElementById('simple_embed_color');
+  const selectThumb = document.getElementById('simple_embed_thumbnail_option');
+  const customThumbGroup = document.getElementById('group_simple_embed_custom_thumb');
+  const inputCustomThumb = document.getElementById('simple_embed_custom_thumb_url');
+  const inputImage = document.getElementById('simple_embed_image');
+  const inputAuthorName = document.getElementById('simple_embed_author_name');
+  const inputAuthorIcon = document.getElementById('simple_embed_author_icon');
+  const inputFooterText = document.getElementById('simple_embed_footer_text');
+  const selectPing = document.getElementById('simple_embed_ping');
+
+  // Elements preview
+  const prevTitle = document.getElementById('simple-embed-preview-title');
+  const prevDesc = document.getElementById('simple-embed-preview-desc');
+  const prevContainer = document.getElementById('simple-embed-preview-container');
+  const prevThumb = document.getElementById('simple-embed-preview-thumbnail');
+  const prevImage = document.getElementById('simple-embed-preview-image');
+  const prevAuthor = document.getElementById('simple-embed-preview-author');
+  const prevAuthorIcon = document.getElementById('simple-embed-preview-author-icon');
+  const prevAuthorName = document.getElementById('simple-embed-preview-author-name');
+  const prevFooter = document.getElementById('simple-embed-preview-footer');
+  const prevFooterText = document.getElementById('simple-embed-preview-footer-text');
+  const prevMention = document.getElementById('simple-embed-preview-mention');
+
+  function updatePreview() {
+    // Title
+    if (inputTitle && inputTitle.value.trim()) {
+      prevTitle.innerText = inputTitle.value;
+      prevTitle.style.display = 'block';
+    } else {
+      prevTitle.innerText = 'Aperçu du Titre';
+      prevTitle.style.display = 'block';
+    }
+
+    // Description
+    if (inputDesc && inputDesc.value.trim()) {
+      prevDesc.innerText = inputDesc.value;
+    } else {
+      prevDesc.innerText = 'Aperçu de la description...';
+    }
+
+    // Color
+    if (inputColor) {
+      prevContainer.style.borderLeftColor = inputColor.value || '#5865f2';
+    }
+
+    // Thumbnail
+    const thumbVal = selectThumb ? selectThumb.value : 'none';
+    if (thumbVal === 'custom') {
+      if (customThumbGroup) customThumbGroup.style.display = 'block';
+      if (inputCustomThumb && inputCustomThumb.value.trim()) {
+        prevThumb.src = inputCustomThumb.value;
+        prevThumb.style.display = 'block';
+      } else {
+        prevThumb.style.display = 'none';
+      }
+    } else {
+      if (customThumbGroup) customThumbGroup.style.display = 'none';
+      if (thumbVal === 'server' && typeof currentGuildIcon !== 'undefined' && currentGuildIcon) {
+        prevThumb.src = currentGuildIcon;
+        prevThumb.style.display = 'block';
+      } else if (thumbVal === 'bot' && typeof currentBotAvatar !== 'undefined' && currentBotAvatar) {
+        prevThumb.src = currentBotAvatar;
+        prevThumb.style.display = 'block';
+      } else {
+        prevThumb.style.display = 'none';
+      }
+    }
+
+    // Image
+    if (inputImage && inputImage.value.trim()) {
+      prevImage.src = inputImage.value;
+      prevImage.style.display = 'block';
+    } else {
+      prevImage.style.display = 'none';
+    }
+
+    // Author
+    if (inputAuthorName && inputAuthorName.value.trim()) {
+      prevAuthorName.innerText = inputAuthorName.value;
+      if (inputAuthorIcon && inputAuthorIcon.value.trim()) {
+        prevAuthorIcon.src = inputAuthorIcon.value;
+        prevAuthorIcon.style.display = 'inline-block';
+      } else {
+        prevAuthorIcon.style.display = 'none';
+      }
+      prevAuthor.style.display = 'flex';
+    } else {
+      prevAuthor.style.display = 'none';
+    }
+
+    // Footer
+    if (inputFooterText && inputFooterText.value.trim()) {
+      prevFooterText.innerText = inputFooterText.value;
+      prevFooter.style.display = 'flex';
+    } else {
+      prevFooter.style.display = 'none';
+    }
+
+    // Ping
+    if (selectPing) {
+      if (selectPing.value === 'everyone') {
+        prevMention.innerText = '@everyone';
+        prevMention.style.display = 'block';
+      } else if (selectPing.value === 'here') {
+        prevMention.innerText = '@here';
+        prevMention.style.display = 'block';
+      } else {
+        prevMention.style.display = 'none';
+      }
+    }
+  }
+
+  [inputTitle, inputDesc, inputColor, selectThumb, inputCustomThumb, inputImage, inputAuthorName, inputAuthorIcon, inputFooterText, selectPing].forEach(el => {
+    if (el) el.addEventListener('input', updatePreview);
+  });
+  if (selectThumb) selectThumb.addEventListener('change', updatePreview);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const channel_id = document.getElementById('simple_embed_channel').value;
+    if (!channel_id) return showToast('⚠️ Veuillez sélectionner un salon de destination.', true);
+
+    let thumbnail_url = selectThumb ? selectThumb.value : 'none';
+    if (thumbnail_url === 'custom' && inputCustomThumb) {
+      thumbnail_url = inputCustomThumb.value;
+    }
+
+    const payload = {
+      channel_id,
+      title: inputTitle.value,
+      description: inputDesc.value,
+      color: inputColor.value,
+      thumbnail_url,
+      image_url: inputImage.value,
+      author_name: inputAuthorName.value,
+      author_icon: inputAuthorIcon.value,
+      footer_text: inputFooterText.value,
+      ping_type: selectPing ? selectPing.value : 'none',
+      existing_message_id: document.getElementById('simple_embed_edit_msg_id').value
+    };
+
+    try {
+      const res = await fetch('/api/config/send-simple-embed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(data.message || '✅ Message Embed envoyé avec succès !');
+        form.reset();
+        updatePreview();
+      } else {
+        showToast(`❌ Erreur : ${data.error || 'Impossible d\'envoyer l\'embed'}`, true);
+      }
+    } catch (err) {
+      showToast(`❌ Erreur réseau : ${err.message}`, true);
+    }
+  });
+}
 
