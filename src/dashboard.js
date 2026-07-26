@@ -1625,27 +1625,27 @@ app.post('/api/config/announce-commands', async (req, res) => {
       .addFields(
         { 
           name: '💰 Économie, Banque, Boutique & Inventaire', 
-          value: '`/solde` — Solde portefeuille & banque\n`/banque` — Déposer / Retirer des pièces\n`/boutique` — Catalogue VIP & Louer des Suites Privées\n`/inventaire` — Sac à dos (Utiliser avec un membre, Offrir, Jeter)\n`/pay` — Transférer des pièces à un membre\n`/work` — Travailler pour gagner des pièces\n`/crime` — Tenter un crime osé\n`/rob` — Voler des pièces à un membre\n`/daily` — Prime quotidienne gratuite\n`/karma` — Consulter son Karma & réductions boutique\n`/quetes` — Missions & quêtes du serveur\n`/peche` — Partir à la pêche',
+          value: '`/solde` — Solde portefeuille & compte bancaire\n`/deposer` — Déposer des pièces à la banque\n`/retirer` — Retirer des pièces de la banque\n`/travailler` — Travailler pour gagner des pièces & karma\n`/daily` — Prime quotidienne gratuite\n`/pecher` — Attraper des poissons et des pièces\n`/crime` — Tenter un crime osé pour gagner gros\n`/voler` — Tenter de voler des pièces à un autre membre\n`/donner` — Transférer des pièces à un membre\n`/karma` — Consulter son Karma & réductions boutique\n`/quetes` — Missions & quêtes du serveur\n`/boutique` — Catalogue VIP & Louer des Suites Privées\n`/inventaire` — Sac à dos (Utiliser, Offrir, Jeter)',
           inline: false 
         },
         { 
-          name: '🍷 Actions & RP Tendres (Interactivité)', 
-          value: '`/calin` • `/embrasser` • `/caresser` • `/chatouiller` • `/danser` • `/reconforter` • `/rose` • `/flirter` • `/seduire` • `/attrape` • `/batailleoreiller` • `/cuisiner` • `/dormir` • `/douche` • `/lit` • `/reanimer` • `/reveiller` • `/vin`',
+          name: '🤝 Actions SFW & Amicales', 
+          value: '`/gifle` • `/patpat` • `/batailleoreiller` • `/chatouiller` • `/cuisiner` • `/danser` • `/reconforter` • `/reveiller` • `/rose` • `/vin` • `/attrape` • `/dormir` • `/douche` • `/reanimer` • `/oups`',
           inline: false 
         },
         { 
-          name: '🔥 Actions Torrides, Sensuelles & BDSM (NSFW)', 
-          value: '`/branler` • `/doigter` • `/fuck` • `/sodo` • `/sucer` • `/orgasme` • `/orgie` • `/deshabiller` • `/lecher` • `/masser` • `/mordre` • `/mouiller` • `/touche` • `/69` • `/collier` • `/laisse` • `/ordonner` • `/punir` • `/tirercheveux` • `/tromper` • `/oups` • `/agenouiller`',
+          name: '🍷 Actions RP Adulte, Torrides & Sensuelles (NSFW)', 
+          value: '`/calin` • `/embrasser` • `/caresser` • `/flirter` • `/seduire` • `/lit` • `/branler` • `/doigter` • `/fuck` • `/sodo` • `/sucer` • `/orgasme` • `/orgie` • `/deshabiller` • `/lecher` • `/masser` • `/mordre` • `/mouiller` • `/touche` • `/69` • `/collier` • `/laisse` • `/ordonner` • `/punir` • `/tirercheveux` • `/tromper` • `/agenouiller`',
           inline: false 
         },
         { 
           name: '🎮 Mini-Jeux, Fun & Confessions', 
-          value: '`/action-verite` — Partie Action ou Vérité (Soft, Hard, Extrême, Couple)\n`/confesser` — Envoyer une confession anonyme\n`/motcache` — Jeu du mot mystère\n`/star-semaine` — Voir la star élue du serveur\n`/lovecalc` — Calcul de compatibilité amoureuse\n`/combats` — Défis et duels entre membres\n`/proche` — Trouver le membre le plus proche',
+          value: '`/action-verite` — Partie Action ou Vérité (Soft, Hard, Extrême, Couple)\n`/confesser` — Envoyer une confession anonyme\n`/mot-cache` — Jeu du mot ou de la phrase mystère\n`/uno` — Jouer au UNO interactif avec cartes animées\n`/star` — Voir la star élue de la semaine et le classement\n`/lovecalc` — Calculer la compatibilité amoureuse\n`/proche` — Trouver le membre géographiquement le plus proche\n`/mapville` — Définir votre ville/localisation sur la carte des membres',
           inline: false 
         },
         { 
           name: '⚙️ Profil, Niveaux & Accès', 
-          value: '`/level` — Carte XP & Niveau actuel\n`/classement` — Classement général du serveur\n`/carte` — Voir la carte du serveur\n`/dashboard` — Panneau d\'administration Web',
+          value: '`/niveau` (ou `/level`) — Carte XP, Niveau & Rang actuel\n`/classement` — Classement général XP du serveur\n`/dashboard` — Lien d\'accès au panneau Web',
           inline: false 
         }
       )
@@ -1671,12 +1671,12 @@ app.post('/api/config/announce-commands', async (req, res) => {
         },
         { 
           name: '🛡️ Sécurité, Sanctions & Quarantaine', 
-          value: '`/quarantaine` — Placer / Retirer un membre de quarantaine anti-raid\n`/clear` — Purge rapide de messages dans un salon\n`/warn` / `/unwarn` — Ajouter / Retirer des avertissements\n`/timeout` / `/unmute` — Mettre en sourdine / Rendre la parole\n`/kick` — Expulser un membre du serveur\n`/ban` / `/unban` — Bannir / Débannir un membre\n`/massban` — Bannissement groupé d\'utilisateurs\n`/masskick` — Expulsion groupée d\'utilisateurs',
+          value: '`/quarantaine` — Placer / Retirer un membre de quarantaine anti-raid\n`/clear` — Purge rapide de messages dans un salon\n`/warn` — Ajouter / Retirer / Voir les avertissements d\'un membre\n`/timeout` — Mettre en sourdine / Rendre la parole\n`/kick` — Expulser un membre du serveur\n`/ban` — Bannir / Débannir un membre\n`/massban` — Bannissement groupé d\'utilisateurs\n`/masskick` — Expulsion groupée d\'utilisateurs',
           inline: false 
         },
         { 
           name: '🛠️ Outils & Gestion du Bot', 
-          value: '`/ajoute` — Ajouter des pièces, du karma ou du contenu\n`/sync-autoroles` — Synchroniser les rôles réaction rétroactivement\n`/drop-money` — Largage de pièces dans le salon\n`/drop-karma` — Largage de karma dans le salon\n`/drop-xp` — Largage d\'XP dans le salon\n`Clic droit > Ajouter Émoji` — Ajouter directement un émoji sur le serveur',
+          value: '`/ajoute` — Ajouter des pièces, du karma ou de l\'XP (Admin)\n`/sync-autoroles` — Synchroniser les rôles réaction rétroactivement\n`/drop-argent` — Largage de pièces dans le salon\n`/drop-karma` — Largage de karma dans le salon\n`/drop-xp` — Largage d\'XP dans le salon\n`Clic droit > Ajouter Émoji` — Ajouter un émoji sur le serveur depuis un message',
           inline: false 
         }
       )
