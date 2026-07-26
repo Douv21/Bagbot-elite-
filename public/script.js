@@ -5583,11 +5583,44 @@ function initSimpleEmbedSender() {
   const selectThumb = document.getElementById('simple_embed_thumbnail_option');
   const customThumbGroup = document.getElementById('group_simple_embed_custom_thumb');
   const inputCustomThumb = document.getElementById('simple_embed_custom_thumb_url');
+  const fileCustomThumb = document.getElementById('simple_embed_custom_thumb_file');
   const inputImage = document.getElementById('simple_embed_image');
+  const fileImage = document.getElementById('simple_embed_image_file');
   const inputAuthorName = document.getElementById('simple_embed_author_name');
   const inputAuthorIcon = document.getElementById('simple_embed_author_icon');
+  const fileAuthorIcon = document.getElementById('simple_embed_author_icon_file');
   const inputFooterText = document.getElementById('simple_embed_footer_text');
   const selectPing = document.getElementById('simple_embed_ping');
+
+  // Helper Téléverser un fichier
+  const handleFileUpload = async (fileInput, textInput) => {
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) return;
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      showToast('📤 Téléversement de l\'image en cours...');
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        textInput.value = data.url;
+        showToast('✅ Image téléversée avec succès !');
+        updatePreview();
+      } else {
+        showToast(`❌ Erreur téléversement : ${data.error || 'Erreur inconnue'}`, true);
+      }
+    } catch (err) {
+      showToast(`❌ Erreur réseau : ${err.message}`, true);
+    }
+  };
+
+  if (fileImage) fileImage.addEventListener('change', () => handleFileUpload(fileImage, inputImage));
+  if (fileCustomThumb) fileCustomThumb.addEventListener('change', () => handleFileUpload(fileCustomThumb, inputCustomThumb));
+  if (fileAuthorIcon) fileAuthorIcon.addEventListener('change', () => handleFileUpload(fileAuthorIcon, inputAuthorIcon));
 
   // Elements preview
   const prevTitle = document.getElementById('simple-embed-preview-title');

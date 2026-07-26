@@ -1277,33 +1277,49 @@ app.post('/api/config/send-simple-embed', async (req, res) => {
     if (color) embed.setColor(color);
     else embed.setColor('#5865F2');
 
+    const resolveUrl = (urlStr) => {
+      if (!urlStr || typeof urlStr !== 'string') return null;
+      const trimmed = urlStr.trim();
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+      if (trimmed.startsWith('/')) {
+        const protocol = req.protocol || 'http';
+        const host = req.get('host') || '127.0.0.1:49601';
+        return `${protocol}://${host}${trimmed}`;
+      }
+      return trimmed;
+    };
+
     if (thumbnail_url) {
       if (thumbnail_url === 'server') {
         const icon = guild.iconURL({ dynamic: true });
         if (icon) embed.setThumbnail(icon);
       } else if (thumbnail_url === 'bot') {
         embed.setThumbnail(client.user.displayAvatarURL({ dynamic: true }));
-      } else if (thumbnail_url.startsWith('http://') || thumbnail_url.startsWith('https://')) {
-        embed.setThumbnail(thumbnail_url);
+      } else {
+        const fullThumb = resolveUrl(thumbnail_url);
+        if (fullThumb) embed.setThumbnail(fullThumb);
       }
     }
 
-    if (image_url && (image_url.startsWith('http://') || image_url.startsWith('https://'))) {
-      embed.setImage(image_url);
+    const fullImg = resolveUrl(image_url);
+    if (fullImg) {
+      embed.setImage(fullImg);
     }
 
     if (author_name && author_name.trim()) {
       const authorObj = { name: author_name.trim() };
-      if (author_icon && (author_icon.startsWith('http://') || author_icon.startsWith('https://'))) {
-        authorObj.iconURL = author_icon;
+      const fullAuthIcon = resolveUrl(author_icon);
+      if (fullAuthIcon) {
+        authorObj.iconURL = fullAuthIcon;
       }
       embed.setAuthor(authorObj);
     }
 
     if (footer_text && footer_text.trim()) {
       const footerObj = { text: footer_text.trim() };
-      if (footer_icon && (footer_icon.startsWith('http://') || footer_icon.startsWith('https://'))) {
-        footerObj.iconURL = footer_icon;
+      const fullFooterIcon = resolveUrl(footer_icon);
+      if (fullFooterIcon) {
+        footerObj.iconURL = fullFooterIcon;
       }
       embed.setFooter(footerObj);
     }
