@@ -718,10 +718,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (adminRoleSel) {
           adminRoleSel.value = perms.admin_role_id || '';
           if (adminRoleSel.syncCustomSelect) adminRoleSel.syncCustomSelect();
+          adminRoleSel.dispatchEvent(new Event('change'));
         }
         if (modoRoleSel) {
           modoRoleSel.value = perms.modo_role_id || '';
           if (modoRoleSel.syncCustomSelect) modoRoleSel.syncCustomSelect();
+          modoRoleSel.dispatchEvent(new Event('change'));
         }
 
         let dashRoles = [];
@@ -738,6 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
             opt.selected = valuesArr.includes(opt.value);
           });
           if (sel.syncCustomSelect) sel.syncCustomSelect();
+          sel.dispatchEvent(new Event('change'));
         };
 
         setMultiSelectValues('perm_dashboard_roles', dashRoles);
