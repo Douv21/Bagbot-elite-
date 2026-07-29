@@ -837,12 +837,13 @@ client.on('interactionCreate', async interaction => {
 
     const isAllowedForEveryone = 
       command.category === 'actions' ||
-      ['action-verite', 'niveau', 'solde', 'karma', 'mapville', 'proche', 'boutique', 'leaderboard', 'confess', 'confesser', 'deposit', 'withdraw', 'lovecalc', 'mot-cache', 'tribunal', 'uno'].includes(interaction.commandName);
+      ['action-verite', 'niveau', 'solde', 'karma', 'mapville', 'proche', 'boutique', 'leaderboard', 'confess', 'confesser', 'deposit', 'withdraw', 'lovecalc', 'mot-cache', 'tribunal', 'uno', 'star', 'gifle', 'patpat'].includes(interaction.commandName);
       
     if (!isAllowedForEveryone) {
       const { PermissionsBitField } = require('discord.js');
       const member = interaction.member;
-      const isUserAdmin = member.permissions.has(PermissionsBitField.Flags.Administrator);
+      const userPerms = member ? member.permissions : new PermissionsBitField();
+      const isUserAdmin = userPerms.has(PermissionsBitField.Flags.Administrator);
       
       const userRoleIds = member?.roles?.cache ? Array.from(member.roles.cache.keys()) : [];
 
@@ -859,8 +860,31 @@ client.on('interactionCreate', async interaction => {
       const isModoCmd = ['ban', 'kick', 'unban', 'clear', 'warn', 'unwarn', 'mute', 'unmute', 'timeout', 'untimeout', 'quarantaine', 'massban', 'masskick'].includes(interaction.commandName);
       const hasModoCmdsDerogation = isModoCmd && modoCmdsRoles.some(rId => userRoleIds.includes(rId));
 
+      // Vérification des permissions Discord natives selon la commande
+      let hasDiscordNativePerm = false;
+      const cmdName = interaction.commandName;
+
+      if (['ban', 'unban', 'massban'].includes(cmdName)) {
+        hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.BanMembers);
+      } else if (['kick', 'masskick'].includes(cmdName)) {
+        hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.KickMembers);
+      } else if (['clear', 'warn', 'unwarn', 'mute', 'unmute', 'timeout', 'untimeout', 'quarantaine'].includes(cmdName)) {
+        hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.ModerateMembers) || userPerms.has(PermissionsBitField.Flags.ManageMessages);
+      } else {
+        // Commandes Admin / Config
+        hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.ManageGuild);
+      }
+
+      // Si la commande définit par défaut des permissions requises dans son builder
+      if (!hasDiscordNativePerm && command.data && command.data.default_member_permissions) {
+        try {
+          hasDiscordNativePerm = userPerms.has(BigInt(command.data.default_member_permissions));
+        } catch (_) {}
+      }
+
       const hasAllowedRole = 
-        isUserAdmin || 
+        isUserAdmin ||
+        hasDiscordNativePerm ||
         (adminRoleId && member.roles.cache.has(adminRoleId)) || 
         (modoRoleId && member.roles.cache.has(modoRoleId)) ||
         hasDashDerogation ||
@@ -869,7 +893,7 @@ client.on('interactionCreate', async interaction => {
         
       if (!hasAllowedRole) {
         return interaction.reply({
-          content: "❌ Cette commande est réservée aux Administrateurs et Modérateurs autorisés.",
+          content: "❌ Vous n'avez pas les permissions Discord ou le rôle requis pour utiliser cette commande.",
           ephemeral: true
         });
       }

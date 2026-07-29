@@ -2397,7 +2397,24 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const admin_role_id = document.getElementById('perm_admin_role_id').value;
       const modo_role_id = document.getElementById('perm_modo_role_id').value;
-      saveConfig('/api/config/permissions', { admin_role_id, modo_role_id });
+
+      const getMultiSelectValues = (id) => {
+        const select = document.getElementById(id);
+        if (!select) return [];
+        return Array.from(select.selectedOptions).map(opt => opt.value);
+      };
+
+      const dashboard_roles = getMultiSelectValues('perm_dashboard_roles');
+      const admin_cmds_roles = getMultiSelectValues('perm_admin_cmds_roles');
+      const modo_cmds_roles = getMultiSelectValues('perm_modo_cmds_roles');
+
+      saveConfig('/api/config/permissions', { 
+        admin_role_id, 
+        modo_role_id,
+        dashboard_roles,
+        admin_cmds_roles,
+        modo_cmds_roles
+      });
     });
   }
 
