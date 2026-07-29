@@ -512,6 +512,10 @@ document.addEventListener('DOMContentLoaded', () => {
         select.syncCustomSelect();
       }
     });
+
+    if (typeof updatePermissionsRoleBadges === 'function') {
+      updatePermissionsRoleBadges();
+    }
   }
 
   function loadGuildConfiguration() {
@@ -739,6 +743,10 @@ document.addEventListener('DOMContentLoaded', () => {
         setMultiSelectValues('perm_dashboard_roles', dashRoles);
         setMultiSelectValues('perm_admin_cmds_roles', adminCmdsRoles);
         setMultiSelectValues('perm_modo_cmds_roles', modoCmdsRoles);
+
+        if (typeof updatePermissionsRoleBadges === 'function') {
+          updatePermissionsRoleBadges();
+        }
 
         // Charger la configuration Karma
         fetch('/api/config/karma')
@@ -2417,6 +2425,64 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  function updatePermissionsRoleBadges() {
+    const getRoleName = (roleId) => {
+      const roleObj = rolesListState.find(r => r.id === roleId);
+      return roleObj ? roleObj.name : `Rôle ID: ${roleId}`;
+    };
+
+    // 1. Rôle Admin
+    const adminSel = document.getElementById('perm_admin_role_id');
+    const adminBadgeContainer = document.getElementById('badge_admin_role_id');
+    if (adminSel && adminBadgeContainer) {
+      const val = adminSel.value;
+      if (val) {
+        adminBadgeContainer.innerHTML = `<span style="background: rgba(241, 196, 15, 0.2); border: 1px solid #f1c40f; color: #f1c40f; padding: 4px 12px; border-radius: 12px; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;"><i class="fa-solid fa-crown"></i> ${getRoleName(val)}</span>`;
+      } else {
+        adminBadgeContainer.innerHTML = `<span style="color: #8e9297; font-style: italic; font-size: 0.83rem;">(Aucun rôle Administrateur sélectionné)</span>`;
+      }
+    }
+
+    // 2. Rôle Modo
+    const modoSel = document.getElementById('perm_modo_role_id');
+    const modoBadgeContainer = document.getElementById('badge_modo_role_id');
+    if (modoSel && modoBadgeContainer) {
+      const val = modoSel.value;
+      if (val) {
+        modoBadgeContainer.innerHTML = `<span style="background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; color: #e74c3c; padding: 4px 12px; border-radius: 12px; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;"><i class="fa-solid fa-shield-halved"></i> ${getRoleName(val)}</span>`;
+      } else {
+        modoBadgeContainer.innerHTML = `<span style="color: #8e9297; font-style: italic; font-size: 0.83rem;">(Aucun rôle Modérateur sélectionné)</span>`;
+      }
+    }
+
+    // 3. Multi-sélecteurs
+    const renderMultiBadges = (selectId, containerId, badgeColor) => {
+      const sel = document.getElementById(selectId);
+      const container = document.getElementById(containerId);
+      if (!sel || !container) return;
+      const selectedOpts = Array.from(sel.selectedOptions).filter(opt => opt.value);
+      if (selectedOpts.length === 0) {
+        container.innerHTML = `<span style="color: #8e9297; font-style: italic; font-size: 0.83rem;">(Aucun rôle dérivé configuré)</span>`;
+        return;
+      }
+      container.innerHTML = selectedOpts.map(opt => 
+        `<span style="background: ${badgeColor}22; border: 1px solid ${badgeColor}; color: ${badgeColor}; padding: 4px 12px; border-radius: 12px; font-weight: 600; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px;"><i class="fa-solid fa-user-tag"></i> ${opt.textContent || getRoleName(opt.value)}</span>`
+      ).join('');
+    };
+
+    renderMultiBadges('perm_dashboard_roles', 'badges_dashboard_roles', '#3498db');
+    renderMultiBadges('perm_admin_cmds_roles', 'badges_admin_cmds_roles', '#f1c40f');
+    renderMultiBadges('perm_modo_cmds_roles', 'badges_modo_cmds_roles', '#e74c3c');
+  }
+
+  // Écouteurs de changement pour mettre à jour les badges de rôles en direct
+  ['perm_admin_role_id', 'perm_modo_role_id', 'perm_dashboard_roles', 'perm_admin_cmds_roles', 'perm_modo_cmds_roles'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('change', updatePermissionsRoleBadges);
+    }
+  });
 
   // 3. Quarantaine
   formQuarantine.addEventListener('submit', (e) => {

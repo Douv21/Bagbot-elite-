@@ -2858,6 +2858,18 @@ Il/Elle remporte le rôle {role} et brille sur le serveur !</textarea>
           <!-- Tab: Permissions -->
           <div id="tab-permissions" class="tab-content">
             <h2 class="section-title"><i class="fa-solid fa-lock"></i> Configuration des Permissions & Dérogations de Rôles</h2>
+
+            <!-- Card 0: Permissions Discord Natives Automatiques -->
+            <div class="card glass mb-4" style="border-left: 4px solid #2ecc71; background: rgba(46, 204, 113, 0.05);">
+              <h3 style="color: #2ecc71; margin-bottom: 8px;"><i class="fa-solid fa-shield-cat"></i> Permissions Discord Natives Automatiques</h3>
+              <p style="color: #d0d7de; font-size: 0.88rem; line-height: 1.5; margin: 0;">
+                ⚡ <strong>Prise en charge automatique des permissions des rôles Discord :</strong><br>
+                • Tout rôle avec la permission Discord <strong>"Bannir des membres"</strong> a automatiquement accès à <code>/ban</code>, <code>/unban</code>, <code>/massban</code>.<br>
+                • Tout rôle avec la permission Discord <strong>"Expulser des membres"</strong> a automatiquement accès à <code>/kick</code>, <code>/masskick</code>.<br>
+                • Tout rôle avec la permission Discord <strong>"Modérer des membres"</strong> ou <strong>"Gérer les messages"</strong> a automatiquement accès à <code>/clear</code>, <code>/warn</code>, <code>/mute</code>, <code>/timeout</code>, <code>/quarantaine</code>.<br>
+                • Tout rôle avec la permission <strong>"Gérer le serveur"</strong> ou <strong>"Administrateur"</strong> a accès à toutes les commandes d'administration.
+              </p>
+            </div>
             
             <form id="form-permissions" class="glass-form">
               
@@ -2874,6 +2886,7 @@ Il/Elle remporte le rôle {role} et brille sur le serveur !</textarea>
                     <select id="perm_admin_role_id" class="role-select custom-select">
                       <option value="">Aucun rôle configuré</option>
                     </select>
+                    <div id="badge_admin_role_id" style="margin-top: 8px;"></div>
                     <small class="form-help">Rôle ayant les droits d'administration complets sur le bot.</small>
                   </div>
                   
@@ -2882,6 +2895,7 @@ Il/Elle remporte le rôle {role} et brille sur le serveur !</textarea>
                     <select id="perm_modo_role_id" class="role-select custom-select">
                       <option value="">Aucun rôle configuré</option>
                     </select>
+                    <div id="badge_modo_role_id" style="margin-top: 8px;"></div>
                     <small class="form-help">Rôle ayant accès aux commandes de modération du bot.</small>
                   </div>
                 </div>
@@ -2902,6 +2916,7 @@ Il/Elle remporte le rôle {role} et brille sur le serveur !</textarea>
                   <select id="perm_dashboard_roles" multiple class="role-select custom-select" style="height: 110px;">
                     <!-- Rempli dynamiquement en JS -->
                   </select>
+                  <div id="badges_dashboard_roles" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;"></div>
                 </div>
 
                 <!-- Info box -->
@@ -2929,6 +2944,7 @@ Il/Elle remporte le rôle {role} et brille sur le serveur !</textarea>
                   <select id="perm_admin_cmds_roles" multiple class="role-select custom-select" style="height: 110px;">
                     <!-- Rempli dynamiquement en JS -->
                   </select>
+                  <div id="badges_admin_cmds_roles" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;"></div>
                 </div>
 
                 <!-- Info box -->
@@ -2956,6 +2972,7 @@ Il/Elle remporte le rôle {role} et brille sur le serveur !</textarea>
                   <select id="perm_modo_cmds_roles" multiple class="role-select custom-select" style="height: 110px;">
                     <!-- Rempli dynamiquement en JS -->
                   </select>
+                  <div id="badges_modo_cmds_roles" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;"></div>
                 </div>
 
                 <!-- Info box -->

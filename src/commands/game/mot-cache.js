@@ -131,8 +131,13 @@ module.exports = {
 
         const winEmbed = new EmbedBuilder()
           .setTitle('💋 JEU DEVINÉ ! Victoire Torride !')
-          .setDescription(aiWinDesc || `🍒 Félicitations à <@${userId}> qui a percé le secret :\n\n🍑 **"${game.secret_phrase}"** !`)
+          .setDescription(aiWinDesc ? `${aiWinDesc}\n\n🍑 **Phrase Secrète :** \`${game.secret_phrase}\`` : `🍒 Félicitations à <@${userId}> qui a percé le secret :\n\n🍑 **"${game.secret_phrase}"** !`)
           .setColor('#E74C3C')
+          .addFields({
+            name: '🔑 Phrase Secrète Découverte',
+            value: `>>> **"${game.secret_phrase}"**`,
+            inline: false
+          })
           .setTimestamp();
 
         if (rewardMessages.length > 0) {
