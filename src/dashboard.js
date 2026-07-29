@@ -95,16 +95,70 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
   }
 });
 
+// Persistent SQLite Session Store pour express-session
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_sessions (
+    sid TEXT PRIMARY KEY,
+    sess TEXT NOT NULL,
+    expired INTEGER NOT NULL
+  )
+`);
+
+class SQLiteSessionStore extends session.Store {
+  constructor() {
+    super();
+    this.getStmt = db.prepare('SELECT sess FROM user_sessions WHERE sid = ? AND expired > ?');
+    this.setStmt = db.prepare(`
+      INSERT INTO user_sessions (sid, sess, expired) VALUES (?, ?, ?)
+      ON CONFLICT(sid) DO UPDATE SET sess = excluded.sess, expired = excluded.expired
+    `);
+    this.destroyStmt = db.prepare('DELETE FROM user_sessions WHERE sid = ?');
+  }
+
+  get(sid, callback) {
+    try {
+      const row = this.getStmt.get(sid, Date.now());
+      if (!row) return callback(null, null);
+      const data = JSON.parse(row.sess);
+      callback(null, data);
+    } catch (err) {
+      callback(err);
+    }
+  }
+
+  set(sid, sess, callback) {
+    try {
+      const maxAge = sess && sess.cookie && sess.cookie.maxAge ? sess.cookie.maxAge : 30 * 24 * 60 * 60 * 1000;
+      const expired = Date.now() + maxAge;
+      const sessStr = JSON.stringify(sess);
+      this.setStmt.run(sid, sessStr, expired);
+      if (callback) callback(null);
+    } catch (err) {
+      if (callback) callback(err);
+    }
+  }
+
+  destroy(sid, callback) {
+    try {
+      this.destroyStmt.run(sid);
+      if (callback) callback(null);
+    } catch (err) {
+      if (callback) callback(err);
+    }
+  }
+}
+
 // Middleware Session
 const isHttps = process.env.HTTPS_PROXY === 'true';
 app.use(session({
+  store: new SQLiteSessionStore(),
   secret: process.env.SESSION_SECRET || 'bagbot-elite-secret-key-change-in-production',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   cookie: { 
     secure: isHttps,
-    maxAge: 24 * 60 * 60 * 1000,
-    sameSite: isHttps ? 'none' : 'lax',
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+    sameSite: 'lax',
     httpOnly: true
   },
   name: 'bagbot-elite.sid'
@@ -571,7 +625,7 @@ app.get('/api/config', (req, res) => {
     // Permissions Config
     let permissionsConfig = db.prepare('SELECT * FROM permissions_config WHERE guild_id = ?').get(guildId);
     if (!permissionsConfig) {
-      permissionsConfig = { admin_role_id: null, modo_role_id: null };
+      permissionsConfig = { admin_role_id: null, modo_role_id: null, dashboard_roles: '[]', admin_cmds_roles: '[]', modo_cmds_roles: '[]' };
     }
 
     const { getBumpConfig, getShopConfig } = require('./database/db');
