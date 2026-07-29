@@ -5622,6 +5622,25 @@ function initSimpleEmbedSender() {
   if (fileCustomThumb) fileCustomThumb.addEventListener('change', () => handleFileUpload(fileCustomThumb, inputCustomThumb));
   if (fileAuthorIcon) fileAuthorIcon.addEventListener('change', () => handleFileUpload(fileAuthorIcon, inputAuthorIcon));
 
+  const btnUseMyProfile = document.getElementById('btn_simple_embed_use_my_profile');
+  if (btnUseMyProfile) {
+    btnUseMyProfile.addEventListener('click', () => {
+      if (!currentUser) {
+        showToast('❌ Impossible de récupérer vos informations de membre.', true);
+        return;
+      }
+      const name = currentUser.global_name || currentUser.username;
+      let avatar = currentUser.avatar_url;
+      if (!avatar && currentUser.avatar) {
+        avatar = `https://cdn.discordapp.com/avatars/${currentUser.id}/${currentUser.avatar}.png`;
+      }
+      if (inputAuthorName) inputAuthorName.value = name;
+      if (inputAuthorIcon) inputAuthorIcon.value = avatar || '';
+      showToast('👤 Nom et avatar du membre insérés avec succès !');
+      updatePreview();
+    });
+  }
+
   // Elements preview
   const prevTitle = document.getElementById('simple-embed-preview-title');
   const prevDesc = document.getElementById('simple-embed-preview-desc');
@@ -5669,7 +5688,18 @@ function initSimpleEmbedSender() {
       }
     } else {
       if (customThumbGroup) customThumbGroup.style.display = 'none';
-      if (thumbVal === 'server' && typeof currentGuildIcon !== 'undefined' && currentGuildIcon) {
+      if (thumbVal === 'user' && currentUser) {
+        let avatar = currentUser.avatar_url;
+        if (!avatar && currentUser.avatar) {
+          avatar = `https://cdn.discordapp.com/avatars/${currentUser.id}/${currentUser.avatar}.png`;
+        }
+        if (avatar) {
+          prevThumb.src = avatar;
+          prevThumb.style.display = 'block';
+        } else {
+          prevThumb.style.display = 'none';
+        }
+      } else if (thumbVal === 'server' && typeof currentGuildIcon !== 'undefined' && currentGuildIcon) {
         prevThumb.src = currentGuildIcon;
         prevThumb.style.display = 'block';
       } else if (thumbVal === 'bot' && typeof currentBotAvatar !== 'undefined' && currentBotAvatar) {

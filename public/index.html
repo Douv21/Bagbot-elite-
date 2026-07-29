@@ -2112,9 +2112,10 @@
                         <label for="simple_embed_thumbnail_option"><i class="fa-solid fa-image"></i> Miniature (Thumbnail) :</label>
                         <select id="simple_embed_thumbnail_option" class="custom-select">
                           <option value="none">Aucune miniature</option>
+                          <option value="user">Mon avatar Discord (Créateur)</option>
                           <option value="server">Avatar du serveur</option>
                           <option value="bot">Avatar du Bot</option>
-                          <option value="custom">URL Personnalisée</option>
+                          <option value="custom">URL Personnalisée / Téléversement</option>
                         </select>
                       </div>
                       <div class="form-group" id="group_simple_embed_custom_thumb" style="display: none;">
@@ -2142,8 +2143,13 @@
 
                     <div class="form-row">
                       <div class="form-group">
-                        <label for="simple_embed_author_name"><i class="fa-solid fa-user"></i> Nom de l'auteur (Optionnel) :</label>
-                        <input type="text" id="simple_embed_author_name" class="inner-input" placeholder="ex: Modération B&G Elite">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                          <label for="simple_embed_author_name" style="margin: 0;"><i class="fa-solid fa-user"></i> Nom de l'auteur (Optionnel) :</label>
+                          <button type="button" id="btn_simple_embed_use_my_profile" class="btn" style="background: linear-gradient(135deg, #7289da, #5865f2); color: #fff; font-size: 0.78rem; padding: 3px 10px; border-radius: 6px; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fa-solid fa-user-check"></i> Insérer mon profil Discord
+                          </button>
+                        </div>
+                        <input type="text" id="simple_embed_author_name" class="inner-input" placeholder="ex: Modération B&G Elite (ou cliquez sur 'Insérer mon profil')">
                       </div>
                       <div class="form-group">
                         <label for="simple_embed_author_icon"><i class="fa-solid fa-circle-user"></i> Icône Auteur (URL ou Téléversement) :</label>

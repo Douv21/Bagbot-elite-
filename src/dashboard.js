@@ -207,6 +207,7 @@ app.get('/callback', async (req, res) => {
     req.session.user = {
       id: userData.id,
       username: userData.username,
+      global_name: userData.global_name || userData.username,
       discriminator: userData.discriminator,
       avatar: userData.avatar,
       accessToken: tokenData.access_token,
@@ -242,13 +243,23 @@ app.post('/api/log-error', (req, res) => {
 app.get('/api/user', (req, res) => {
   console.log(`[/api/user] Vérification auth. Session user existante: ${req.session.user ? req.session.user.username : 'non'}`);
   if (req.session.user) {
+    const u = req.session.user;
+    let avatarUrl = 'https://cdn.discordapp.com/embed/avatars/0.png';
+    if (u.avatar) {
+      avatarUrl = `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png`;
+    } else if (u.id) {
+      avatarUrl = `https://cdn.discordapp.com/embed/avatars/${(BigInt(u.id) >> 22n) % 5n}.png`;
+    }
+
     res.json({ 
       authenticated: true, 
       user: {
-        id: req.session.user.id,
-        username: req.session.user.username,
-        avatar: req.session.user.avatar,
-        guilds: req.session.user.guilds
+        id: u.id,
+        username: u.username,
+        global_name: u.global_name || u.username,
+        avatar: u.avatar,
+        avatar_url: avatarUrl,
+        guilds: u.guilds
       }
     });
   } else {
@@ -1290,7 +1301,13 @@ app.post('/api/config/send-simple-embed', async (req, res) => {
     };
 
     if (thumbnail_url) {
-      if (thumbnail_url === 'server') {
+      if (thumbnail_url === 'user' && req.session.user) {
+        const u = req.session.user;
+        const uAvatar = u.avatar 
+          ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png` 
+          : `https://cdn.discordapp.com/embed/avatars/${(BigInt(u.id) >> 22n) % 5n}.png`;
+        embed.setThumbnail(uAvatar);
+      } else if (thumbnail_url === 'server') {
         const icon = guild.iconURL({ dynamic: true });
         if (icon) embed.setThumbnail(icon);
       } else if (thumbnail_url === 'bot') {
