@@ -6,8 +6,7 @@ module.exports = {
     .setName('kick')
     .setDescription('Exclure un membre du serveur')
     .addUserOption(option => option.setName('cible').setDescription('Le membre à exclure').setRequired(true))
-    .addStringOption(option => option.setName('raison').setDescription('Raison de l\'exclusion').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
+    .addStringOption(option => option.setName('raison').setDescription('Raison de l\'exclusion').setRequired(false)),
   async execute(interaction) {
     const target = interaction.options.getMember('cible');
     const reason = interaction.options.getString('raison') || 'Aucune raison fournie';

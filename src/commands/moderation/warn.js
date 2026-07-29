@@ -6,7 +6,6 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('warn')
     .setDescription('Gérer les avertissements des membres')
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
     .addSubcommand(subcommand =>
       subcommand
         .setName('add')

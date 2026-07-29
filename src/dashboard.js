@@ -126,13 +126,15 @@ app.use((req, res, next) => {
   console.log(`[HTTP] ${req.method} ${req.url}`);
   next();
 });
-app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
 // Désactiver la mise en cache globale (HTML, JS, CSS, APIs)
 app.use((req, res, next) => {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   next();
 });
+
+app.use(express.static(path.join(__dirname, '../public')));
 // Route principale
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));

@@ -6,8 +6,7 @@ module.exports = {
     .setName('ban')
     .setDescription('Bannir un membre du serveur')
     .addUserOption(option => option.setName('cible').setDescription('Le membre à bannir').setRequired(true))
-    .addStringOption(option => option.setName('raison').setDescription('Raison du bannissement').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
+    .addStringOption(option => option.setName('raison').setDescription('Raison du bannissement').setRequired(false)),
   async execute(interaction) {
     const target = interaction.options.getMember('cible');
     const reason = interaction.options.getString('raison') || 'Aucune raison fournie';

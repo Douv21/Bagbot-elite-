@@ -6,7 +6,6 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('quarantaine')
     .setDescription('Mettre ou retirer un membre de la quarantaine')
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
     .addSubcommand(subcommand =>
       subcommand
         .setName('add')

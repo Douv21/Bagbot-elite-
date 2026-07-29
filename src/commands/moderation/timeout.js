@@ -7,8 +7,7 @@ module.exports = {
     .setDescription('Exclure temporairement (timeout) un membre')
     .addUserOption(option => option.setName('cible').setDescription('Le membre à exclure temporairement').setRequired(true))
     .addIntegerOption(option => option.setName('duree').setDescription('Durée en minutes').setRequired(true))
-    .addStringOption(option => option.setName('raison').setDescription('Raison du timeout').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
+    .addStringOption(option => option.setName('raison').setDescription('Raison du timeout').setRequired(false)),
   async execute(interaction) {
     const target = interaction.options.getMember('cible');
     const duration = interaction.options.getInteger('duree');

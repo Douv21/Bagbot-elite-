@@ -5,7 +5,6 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('sync-autoroles')
     .setDescription("Synchroniser rétroactivement les liaisons d'auto-rôles pour tous les membres")
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .setDMPermission(false),
 
   async execute(interaction) {

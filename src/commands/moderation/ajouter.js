@@ -34,7 +34,6 @@ module.exports = {
         .setDescription('Valeur ou quantité (supérieure ou égale à 0)')
         .setRequired(true)
         .setMinValue(0))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false),
 
   async execute(interaction) {

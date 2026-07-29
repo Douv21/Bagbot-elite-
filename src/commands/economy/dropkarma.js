@@ -16,7 +16,6 @@ module.exports = {
       option.setName("message")
         .setDescription("Message personnalisé (optionnel)")
         .setRequired(false))
-    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
     .setDMPermission(false),
   
   description: "Drop de Karma pour le premier qui réagit (Admin uniquement)",
