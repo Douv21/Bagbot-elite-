@@ -739,6 +739,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (el) el.checked = !!bool;
   }
 
+  function setMultiSelectValues(selectId, valuesArr) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    const targetVals = Array.isArray(valuesArr) ? valuesArr.map(v => String(v)) : [];
+    Array.from(sel.options).forEach(opt => {
+      opt.selected = targetVals.includes(String(opt.value));
+    });
+    if (sel.syncCustomSelect) sel.syncCustomSelect();
+    sel.dispatchEvent(new Event('change'));
+  }
+
   function loadGuildConfiguration(guildId) {
     const targetGuildId = guildId || (guildSelect ? guildSelect.value : '');
     const url = targetGuildId ? `/api/config?guildId=${targetGuildId}` : '/api/config';
@@ -4476,7 +4487,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function initializeSearchableSelects() {
-    const selectors = ['.role-select', '.channel-select', '.announce-channel-select', '.custom-select'];
+    const selectors = ['.role-select', '.channel-select', '.announce-channel-select', '.custom-select', '.category-select'];
     selectors.forEach(selector => {
       document.querySelectorAll(selector).forEach(select => {
         if (select.multiple) {
@@ -4487,6 +4498,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  initializeSearchableSelects();
 
   function updateXpCurvePreview() {
     const base = parseInt(document.getElementById('xp_base').value) || 120;
@@ -5908,7 +5921,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tabQuestsBtn.addEventListener('click', loadQuestsConfig);
   }
 
-  function initializeSearchableSelects() {
+  function syncAllCustomSelects() {
     document.querySelectorAll('select.custom-select, select.channel-select, select.role-select, select.announce-channel-select, select.category-select').forEach(select => {
       if (select.syncCustomSelect) {
         try { select.syncCustomSelect(); } catch (e) {}
@@ -5916,7 +5929,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  initializeSearchableSelects();
+  syncAllCustomSelects();
 
   const btnSendFeatures = document.getElementById('btn-send-features-embed');
   if (btnSendFeatures) {
