@@ -1,9 +1,11 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('dashboard')
-    .setDescription('Affiche le lien d\'accès au Dashboard premium de Bagbot Elite'),
+    .setDescription('Affiche le lien d\'accès au Dashboard premium de Bagbot Elite')
+    .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers)
+    .setDMPermission(false),
   async execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
 

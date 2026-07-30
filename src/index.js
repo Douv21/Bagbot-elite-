@@ -853,9 +853,10 @@ client.on('interactionCreate', async interaction => {
     } catch (e) {}
 
     const isAllowedForEveryone = 
-      command.category === 'actions' ||
-      command.category === 'economy' ||
-      ['travailler', 'daily', 'work', 'crime', 'rob', 'voler', 'pecher', 'action-verite', 'niveau', 'solde', 'karma', 'mapville', 'proche', 'boutique', 'leaderboard', 'confess', 'confesser', 'deposit', 'deposer', 'withdraw', 'retirer', 'donner', 'pay', 'lovecalc', 'mot-cache', 'tribunal', 'uno', 'star', 'gifle', 'patpat', 'quetes'].includes(interaction.commandName);
+      (command.category === 'actions' || 
+       (command.category === 'economy' && !['dropargent', 'dropkarma', 'dropxp'].includes(interaction.commandName)) ||
+       ['travailler', 'daily', 'work', 'crime', 'rob', 'voler', 'pecher', 'action-verite', 'niveau', 'solde', 'karma', 'mapville', 'proche', 'boutique', 'leaderboard', 'confess', 'confesser', 'deposit', 'deposer', 'withdraw', 'retirer', 'donner', 'pay', 'lovecalc', 'mot-cache', 'tribunal', 'uno', 'star', 'gifle', 'patpat', 'quetes'].includes(interaction.commandName)) &&
+      !['dashboard'].includes(interaction.commandName);
       
     if (!isAllowedForEveryone) {
       const isUserAdmin = Boolean(userPerms.has(PermissionsBitField.Flags.Administrator));
@@ -871,7 +872,7 @@ client.on('interactionCreate', async interaction => {
       const hasDashDerogation = interaction.commandName === 'dashboard' && dashRoles.some(rId => userRoleIds.includes(rId));
       const hasAdminCmdsDerogation = adminCmdsRoles.some(rId => userRoleIds.includes(rId));
       
-      const isModoCmd = ['ban', 'kick', 'unban', 'clear', 'warn', 'unwarn', 'mute', 'unmute', 'timeout', 'untimeout', 'quarantaine', 'massban', 'masskick', 'dropargent', 'dropkarma', 'dropxp'].includes(interaction.commandName);
+      const isModoCmd = ['ban', 'kick', 'unban', 'clear', 'warn', 'unwarn', 'mute', 'unmute', 'timeout', 'untimeout', 'quarantaine', 'massban', 'masskick', 'dropargent', 'dropkarma', 'dropxp', 'dashboard'].includes(interaction.commandName);
       const hasModoCmdsDerogation = isModoCmd && modoCmdsRoles.some(rId => userRoleIds.includes(rId));
 
       // Vérification des permissions Discord natives selon la commande
@@ -883,8 +884,8 @@ client.on('interactionCreate', async interaction => {
           hasDiscordNativePerm = true;
         } else if (['ban', 'unban', 'massban'].includes(cmdName)) {
           hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.BanMembers) || userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.ModerateMembers);
-        } else if (['kick', 'masskick'].includes(cmdName)) {
-          hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.BanMembers);
+        } else if (['kick', 'masskick', 'dashboard'].includes(cmdName)) {
+          hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.BanMembers) || hasDashDerogation;
         } else if (['clear'].includes(cmdName)) {
           hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.ManageMessages) || userPerms.has(PermissionsBitField.Flags.ModerateMembers) || userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.BanMembers);
         } else if (['warn', 'unwarn', 'mute', 'unmute', 'timeout', 'untimeout', 'quarantaine', 'dropargent', 'dropkarma', 'dropxp'].includes(cmdName)) {

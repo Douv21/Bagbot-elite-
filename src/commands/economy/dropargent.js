@@ -21,12 +21,14 @@ module.exports = {
   description: "Drop d'argent pour le premier qui réagit (Admin uniquement)",
   
   async execute(interaction) {
-    const perms = interaction.memberPermissions;
-    const isStaff = perms?.has(PermissionsBitField.Flags.Administrator) ||
-                    perms?.has(PermissionsBitField.Flags.KickMembers) ||
-                    perms?.has(PermissionsBitField.Flags.BanMembers) ||
-                    perms?.has(PermissionsBitField.Flags.ModerateMembers) ||
-                    perms?.has(PermissionsBitField.Flags.ManageMessages);
+    const perms = interaction.memberPermissions || interaction.member?.permissions;
+    const isStaff = Boolean(
+      perms?.has(PermissionsBitField.Flags.Administrator) ||
+      perms?.has(PermissionsBitField.Flags.KickMembers) ||
+      perms?.has(PermissionsBitField.Flags.BanMembers) ||
+      perms?.has(PermissionsBitField.Flags.ModerateMembers) ||
+      perms?.has(PermissionsBitField.Flags.ManageMessages)
+    );
     if (!isStaff) {
       return interaction.reply({ 
         content: "❌ Vous devez disposer des autorisations de modération (Expulser, Bannir, Modérer ou Gérer les messages) pour créer un drop d'argent.", 
