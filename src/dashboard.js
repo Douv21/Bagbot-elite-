@@ -422,8 +422,8 @@ app.get('/api/selected-guild', (req, res) => {
 // API pour obtenir les salons (via le bot)
 app.get('/api/channels', async (req, res) => {
   try {
-    const guildId = req.query.guildId || (req.session && req.session.selectedGuild);
-    if (!guildId) {
+    const guildId = (req.query && req.query.guildId) || (req.session && req.session.selectedGuild);
+    if (!req.session || !req.session.user || !guildId) {
       return res.json([]);
     }
     const botApiPort = process.env.BOT_API_PORT || 49602;
@@ -443,8 +443,8 @@ app.get('/api/channels', async (req, res) => {
 // API pour obtenir les rôles (via le bot)
 app.get('/api/roles', async (req, res) => {
   try {
-    const guildId = req.query.guildId || (req.session && req.session.selectedGuild);
-    if (!guildId) {
+    const guildId = (req.query && req.query.guildId) || (req.session && req.session.selectedGuild);
+    if (!req.session || !req.session.user || !guildId) {
       return res.json([]);
     }
     const botApiPort = process.env.BOT_API_PORT || 49602;

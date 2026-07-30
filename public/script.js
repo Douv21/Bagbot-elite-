@@ -482,9 +482,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Fetch channels, roles & members de façon sécurisée
     try {
       await Promise.all([
-        fetch(`/api/channels?guildId=${guildId}`).then(res => res.json()).then(data => { channelsList = Array.isArray(data) ? data : []; }),
-        fetch(`/api/roles?guildId=${guildId}`).then(res => res.json()).then(data => { rolesList = Array.isArray(data) ? data : []; }),
-        fetch(`/api/members?guildId=${guildId}`).then(res => res.json()).then(data => { membersList = Array.isArray(data) ? data : []; })
+        fetch(`/api/channels?guildId=${guildId}`, { cache: 'no-store' }).then(res => res.json()).then(data => { channelsList = Array.isArray(data) ? data : []; }),
+        fetch(`/api/roles?guildId=${guildId}`, { cache: 'no-store' }).then(res => res.json()).then(data => { rolesList = Array.isArray(data) ? data : []; }),
+        fetch(`/api/members?guildId=${guildId}`, { cache: 'no-store' }).then(res => res.json()).then(data => { membersList = Array.isArray(data) ? data : []; })
       ]);
     } catch (err) {
       console.error('Erreur chargement ressources guilde:', err);
@@ -753,7 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function loadGuildConfiguration(guildId) {
     const targetGuildId = guildId || (guildSelect ? guildSelect.value : '');
     const url = targetGuildId ? `/api/config?guildId=${targetGuildId}` : '/api/config';
-    fetch(url)
+    fetch(url, { cache: 'no-store' })
       .then(res => res.json())
       .then(config => {
         // Welcome / Leave
