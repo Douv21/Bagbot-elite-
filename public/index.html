@@ -120,7 +120,6 @@
           <button class="tab-btn" data-tab="tab-quarantine"><i class="fa-solid fa-shield-halved"></i> Quarantaine Anti-Raid</button>
           <button class="tab-btn" data-tab="tab-automod"><i class="fa-solid fa-user-shield"></i> Auto-Modération</button>
           <button class="tab-btn" data-tab="tab-forums"><i class="fa-solid fa-comments"></i> Forums Illimités</button>
-          <button class="tab-btn" data-tab="tab-cmd-permissions"><i class="fa-solid fa-terminal" style="color: #00d2d3;"></i> Commandes & Accès <span class="nav-badge badge-blue">NOUVEAU</span></button>
           <button class="tab-btn" data-tab="tab-tribunal"><i class="fa-solid fa-gavel"></i> Tribunal Discord</button>
         </div>
 
@@ -835,33 +834,7 @@
             </div>
           </div>
 
-          <!-- Tab: Commandes & Permissions -->
-          <div id="tab-cmd-permissions" class="tab-content">
-            <h2 class="section-title"><i class="fa-solid fa-terminal" style="color: #00d2d3;"></i> Gestion des Commandes & Accès</h2>
-            
-            <div class="card glass">
-              <p>Activez, désactivez et ajustez finement les permissions d'accès aux <strong>commandes slash</strong> du bot pour chaque rôle de votre serveur (ex: /deposer, /solde, etc.).</p>
-              
-              <div style="display: flex; gap: 15px; margin: 20px 0; flex-wrap: wrap;">
-                <div style="flex: 2; min-width: 250px; position: relative;">
-                  <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #8e9297;"></i>
-                  <input type="text" id="cmd-perm-search" placeholder="🔍 Filtrer les commandes (ex: /deposer, économie)..." style="width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 12px 15px 12px 40px; color: #fff; font-size: 0.95rem; outline: none;">
-                </div>
-                <div style="flex: 1; min-width: 180px;">
-                  <select id="cmd-perm-category-filter" style="width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 12px 15px; color: #fff; font-size: 0.95rem; outline: none;">
-                    <option value="ALL">Toutes les catégories</option>
-                  </select>
-                </div>
-              </div>
 
-              <div id="cmd-permissions-container" style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
-                <div style="text-align: center; padding: 40px; color: #8e9297;">
-                  <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 10px;"></i>
-                  <p>Chargement des commandes du serveur...</p>
-                </div>
-              </div>
-            </div>
-          </div>
 
           <!-- Tab: Système de Quêtes -->
           <div id="tab-quests" class="tab-content">
