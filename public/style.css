@@ -1899,3 +1899,164 @@ td.text-center, td[colspan] {
 .cmd-option-item:hover {
   background: rgba(255, 255, 255, 0.08);
 }
+
+/* ==========================================================================
+   THEME NOIR PROFOND / CHARBON & VIOLET VELOURS - CONTOURS OR & BOUTONS NAV
+   ========================================================================== */
+
+body {
+  background-color: #0d0d12 !important;
+  color: #f1f2f6 !important;
+}
+
+.glow-1 {
+  background: radial-gradient(circle, rgba(142, 68, 173, 0.25) 0%, rgba(0, 0, 0, 0) 70%) !important;
+}
+
+.glow-2 {
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, rgba(0, 0, 0, 0) 70%) !important;
+}
+
+.topbar {
+  background: rgba(18, 16, 26, 0.92) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.3) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.brand-text {
+  background: linear-gradient(135deg, #ffffff 0%, #d4af37 50%, #9b59b6 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  font-weight: 700 !important;
+}
+
+.sidebar {
+  background: rgba(18, 16, 26, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  border-radius: 16px !important;
+  padding: 16px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+}
+
+.sidebar-category {
+  margin-bottom: 20px !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(212, 175, 55, 0.12) !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
+}
+
+.category-title {
+  color: #e6c875 !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.2px !important;
+  text-transform: uppercase !important;
+  margin-bottom: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.tab-btn {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 10px 14px !important;
+  margin-bottom: 6px !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(212, 175, 55, 0.15) !important;
+  border-radius: 10px !important;
+  color: #d1d5db !important;
+  font-weight: 600 !important;
+  font-size: 0.88rem !important;
+  cursor: pointer !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.tab-btn:hover {
+  background: linear-gradient(135deg, rgba(142, 68, 173, 0.3), rgba(108, 92, 231, 0.2)) !important;
+  border-color: rgba(212, 175, 55, 0.6) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 16px rgba(142, 68, 173, 0.4), inset 0 0 10px rgba(212, 175, 55, 0.15) !important;
+  transform: translateX(4px) !important;
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, rgba(142, 68, 173, 0.65), rgba(108, 92, 231, 0.45)) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 20px rgba(142, 68, 173, 0.6), 0 0 12px rgba(212, 175, 55, 0.5) !important;
+  font-weight: 700 !important;
+}
+
+.tab-btn i {
+  font-size: 1rem !important;
+  width: 20px !important;
+  text-align: center !important;
+  transition: transform 0.2s ease !important;
+}
+
+.tab-btn:hover i {
+  transform: scale(1.15) rotate(4deg) !important;
+}
+
+.nav-badge {
+  margin-left: auto !important;
+  padding: 2px 8px !important;
+  border-radius: 20px !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+}
+
+.badge-purple {
+  background: rgba(142, 68, 173, 0.4) !important;
+  border: 1px solid #9b59b6 !important;
+  color: #f3a6ff !important;
+  box-shadow: 0 0 8px rgba(155, 89, 182, 0.5) !important;
+}
+
+.badge-gold {
+  background: rgba(212, 175, 55, 0.25) !important;
+  border: 1px solid #d4af37 !important;
+  color: #ffd700 !important;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.5) !important;
+}
+
+.badge-blue {
+  background: rgba(0, 210, 211, 0.25) !important;
+  border: 1px solid #00d2d3 !important;
+  color: #7efff5 !important;
+  box-shadow: 0 0 8px rgba(0, 210, 211, 0.4) !important;
+}
+
+.card.glass {
+  background: rgba(20, 18, 30, 0.9) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(16px) !important;
+}
+
+.card.glass h2, .card.glass h3 {
+  color: #f3e5ab !important;
+  text-shadow: 0 0 12px rgba(212, 175, 55, 0.3) !important;
+}
+
+.server-card {
+  background: rgba(26, 23, 38, 0.9) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  border-radius: 14px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.server-card:hover {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 25px rgba(142, 68, 173, 0.5), 0 0 15px rgba(212, 175, 55, 0.4) !important;
+  transform: translateY(-4px) !important;
+}
