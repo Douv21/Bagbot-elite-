@@ -98,6 +98,150 @@ document.addEventListener('DOMContentLoaded', () => {
       sidebarOverlay.classList.remove('open');
     });
   }
+  // Accordion toggle for sidebar categories
+  document.querySelectorAll('.sidebar-category .category-title').forEach(title => {
+    title.addEventListener('click', (e) => {
+      e.preventDefault();
+      const parentCat = title.parentElement;
+      if (parentCat) {
+        parentCat.classList.toggle('collapsed');
+      }
+    });
+  });
+
+  // --- CONSOLE CATEGORY CARDS HUB & RETRACTABLE SUB-SIDEBAR NAVIGATION ---
+  const mainNavHub = document.getElementById('main-navigation-hub');
+  const categoryWorkspace = document.getElementById('category-workspace');
+  const subSidebarNav = document.getElementById('sub-sidebar');
+  const subSidebarCatTitle = document.getElementById('sub-sidebar-cat-title');
+  const subSidebarBtnsList = document.getElementById('sub-sidebar-buttons-list');
+  const btnToggleSubSidebar = document.getElementById('btn-toggle-sub-sidebar');
+  const btnReturnHub = document.getElementById('btn-return-hub');
+  const btnReturnHubSide = document.getElementById('btn-return-hub-side');
+  const navCategoryCards = document.querySelectorAll('.nav-category-card');
+
+  const categoryTitles = {
+    server: '⚙️ GESTION DU SERVEUR',
+    security: '🛡️ SÉCURITÉ & MODÉRATION',
+    economy: '📈 ÉCONOMIE & JEUX',
+    ai: '🤖 ASSISTANT & IA VIP'
+  };
+
+  const categorySubTabs = {
+    server: [
+      { id: 'tab-welcome', label: 'Arrivées & Départs', icon: 'fa-door-open', color: '#00d2d3' },
+      { id: 'tab-boost', label: 'Remerciements Boost', icon: 'fa-rocket', color: '#F47FFF' },
+      { id: 'tab-announcements', label: 'Annonces & Guides', icon: 'fa-bullhorn', color: '#ff6b6b' },
+      { id: 'tab-embed-sender', label: 'Éditeur & Envoyeur Embeds', icon: 'fa-file-code', color: '#9b59b6' },
+      { id: 'tab-autoroles', label: 'Auto-Rôles à l\'Arrivée', icon: 'fa-user-plus', color: '#54a0ff' },
+      { id: 'tab-reactionroles', label: 'Rôles Réaction', icon: 'fa-rectangle-list', color: '#5f27cd' },
+      { id: 'tab-autothread', label: 'Auto-Thread Salons', icon: 'fa-hashtag', color: '#48dbfb' },
+      { id: 'tab-logs', label: 'Logs d\'Activité', icon: 'fa-list-check', color: '#1dd1a1' }
+    ],
+    security: [
+      { id: 'tab-quarantine', label: 'Quarantaine Anti-Raid', icon: 'fa-shield-cat', color: '#ff3838' },
+      { id: 'tab-automod', label: 'Auto-Modération', icon: 'fa-user-shield', color: '#ff9f1a' },
+      { id: 'tab-cmd-permissions', label: 'Commandes & Permissions', icon: 'fa-key', color: '#00d2d3' },
+      { id: 'tab-tickets', label: 'Support & Tickets', icon: 'fa-ticket', color: '#3498db' },
+      { id: 'tab-forums', label: 'Forums Illimités', icon: 'fa-comments', color: '#10ac84' }
+    ],
+    economy: [
+      { id: 'tab-leveling', label: 'Niveaux, XP & Cartes', icon: 'fa-arrow-trend-up', color: '#2ed573' },
+      { id: 'tab-shop', label: 'Boutique & Suites Privées', icon: 'fa-shop', color: '#ffa502' },
+      { id: 'tab-karma', label: 'Système de Karma', icon: 'fa-star', color: '#eccc68' },
+      { id: 'tab-tribunal', label: 'Tribunal Discord', icon: 'fa-gavel', color: '#ffb142' },
+      { id: 'tab-star', label: 'Star de la Semaine', icon: 'fa-star', color: '#f1c40f' },
+      { id: 'tab-quests', label: 'Système de Quêtes', icon: 'fa-scroll', color: '#f1c40f' },
+      { id: 'tab-counting', label: 'Salons de Comptage', icon: 'fa-calculator', color: '#70a1ff' },
+      { id: 'tab-game', label: 'Jeu Mot Caché', icon: 'fa-gamepad', color: '#ff4757' },
+      { id: 'tab-bump', label: 'Rappels de Bump', icon: 'fa-bell', color: '#e84393' },
+      { id: 'tab-map', label: 'Carte des Membres', icon: 'fa-map-location-dot', color: '#009432' }
+    ],
+    ai: [
+      { id: 'tab-assistant', label: 'Assistant IA Admin', icon: 'fa-robot', color: '#9b59b6' },
+      { id: 'tab-ai', label: 'Clés & Modèles IA', icon: 'fa-brain', color: '#1abc9c' }
+    ]
+  };
+
+  const openCategoryWorkspace = (catKey) => {
+    const subTabs = categorySubTabs[catKey] || [];
+    if (!subTabs.length) return;
+
+    if (mainNavHub) mainNavHub.style.display = 'none';
+    if (btnReturnHub) btnReturnHub.style.display = 'inline-flex';
+    if (categoryWorkspace) categoryWorkspace.style.display = 'flex';
+
+    if (subSidebarCatTitle) {
+      subSidebarCatTitle.innerHTML = `<i class="fa-solid fa-layer-group"></i> <span class="side-text">${categoryTitles[catKey] || 'MODULES'}</span>`;
+    }
+
+    if (subSidebarBtnsList) {
+      subSidebarBtnsList.innerHTML = '';
+      subTabs.forEach((st, idx) => {
+        const sBtn = document.createElement('button');
+        sBtn.type = 'button';
+        sBtn.className = `sub-sidebar-btn ${idx === 0 ? 'active' : ''}`;
+        sBtn.setAttribute('data-tab', st.id);
+        sBtn.title = st.label;
+        sBtn.innerHTML = `<i class="fa-solid ${st.icon}" style="color: ${st.color}; font-size: 1.1rem; width: 20px; text-align: center;"></i> <span class="side-text">${st.label}</span>`;
+        
+        sBtn.addEventListener('click', () => {
+          subSidebarBtnsList.querySelectorAll('.sub-sidebar-btn').forEach(b => b.classList.remove('active'));
+          sBtn.classList.add('active');
+          switchTab(st.id);
+        });
+        subSidebarBtnsList.appendChild(sBtn);
+      });
+    }
+
+    // Activer le 1er onglet (ex: Arrivées & Départs pour serveur)
+    switchTab(subTabs[0].id);
+  };
+
+  const returnToMainHub = () => {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    if (categoryWorkspace) categoryWorkspace.style.display = 'none';
+    if (btnReturnHub) btnReturnHub.style.display = 'none';
+    if (mainNavHub) mainNavHub.style.display = 'block';
+  };
+
+  const switchTab = (tabId) => {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    const targetTab = document.getElementById(tabId);
+    if (targetTab) {
+      targetTab.classList.add('active');
+      setTimeout(() => {
+        targetTab.querySelectorAll('select.custom-select, select.channel-select, select.role-select, select.announce-channel-select, select.category-select').forEach(select => {
+          if (select.syncCustomSelect) {
+            try { select.syncCustomSelect(); } catch (e) {}
+          }
+        });
+      }, 50);
+    }
+    if (tabId === 'tab-gifs') {
+      fetchAndRenderGifs();
+    } else if (tabId === 'tab-map') {
+      const guildId = guildSelect ? guildSelect.value : '';
+      const mapIframe = document.getElementById('map-iframe');
+      if (mapIframe) mapIframe.src = `map.html?guild=${guildId}`;
+    }
+  };
+
+  navCategoryCards.forEach(card => {
+    card.addEventListener('click', () => {
+      const catKey = card.getAttribute('data-hub-cat');
+      openCategoryWorkspace(catKey);
+    });
+  });
+
+  if (btnReturnHub) btnReturnHub.addEventListener('click', returnToMainHub);
+  if (btnReturnHubSide) btnReturnHubSide.addEventListener('click', returnToMainHub);
+
+  if (btnToggleSubSidebar && subSidebarNav) {
+    btnToggleSubSidebar.addEventListener('click', () => {
+      subSidebarNav.classList.toggle('retracted');
+    });
+  }
 
   // Tab switching logic
   const tabBtns = document.querySelectorAll('.tab-btn');
@@ -184,11 +328,16 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .then(res => res.json())
       .then(data => {
-        // Toujours afficher l'écran de sélection de serveur à la connexion au dashboard
-        noGuildSelected.style.display = 'block';
-        configForms.style.display = 'none';
-        guildSelect.value = '';
-        updateActiveGuildIcon('');
+        const targetGuildId = (data && data.guildId) ? data.guildId : (guildsList.length > 0 ? guildsList[0].id : '');
+        if (targetGuildId && guildsList.some(g => g.id === targetGuildId)) {
+          guildSelect.value = targetGuildId;
+          handleGuildSelection(targetGuildId);
+        } else {
+          noGuildSelected.style.display = 'block';
+          configForms.style.display = 'none';
+          guildSelect.value = '';
+          updateActiveGuildIcon('');
+        }
       })
       .catch(console.error);
   }
@@ -381,6 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Populate Channels
     const channelSelects = document.querySelectorAll('.channel-select');
     channelSelects.forEach(select => {
+      const curVal = select.getAttribute('data-saved-value') || select.value || '';
       if (select.id === 'game_announce_channel') {
         select.innerHTML = '<option value="">Salon d\'origine de la discussion</option>';
       } else if (select.id === 'autothread-channel-select') {
@@ -389,7 +539,6 @@ document.addEventListener('DOMContentLoaded', () => {
         select.innerHTML = '<option value="">Désactivé</option>';
       }
       channelsList.forEach(ch => {
-        // Option text channels only (0: GuildText, 5: GuildAnnouncement)
         if (ch.type === 0 || ch.type === 5) {
           const option = document.createElement('option');
           option.value = ch.id;
@@ -397,11 +546,16 @@ document.addEventListener('DOMContentLoaded', () => {
           select.appendChild(option);
         }
       });
+      if (curVal) {
+        select.value = curVal;
+        select.setAttribute('data-saved-value', curVal);
+      }
     });
 
     // Populate Announce Channels
     const announceSelects = document.querySelectorAll('.announce-channel-select');
     announceSelects.forEach(select => {
+      const curVal = select.getAttribute('data-saved-value') || select.value || '';
       select.innerHTML = `
         <option value="current">Salon actuel (où le membre parle)</option>
         <option value="disabled">Désactiver les annonces</option>
@@ -414,11 +568,16 @@ document.addEventListener('DOMContentLoaded', () => {
           select.appendChild(option);
         }
       });
+      if (curVal) {
+        select.value = curVal;
+        select.setAttribute('data-saved-value', curVal);
+      }
     });
 
     // Populate Categories (type 4 is GuildCategory)
     const categorySelects = document.querySelectorAll('.category-select');
     categorySelects.forEach(select => {
+      const curVal = select.getAttribute('data-saved-value') || select.value || '';
       select.innerHTML = '<option value="">-- Créer automatiquement une catégorie --</option>';
       channelsList.forEach(ch => {
         if (ch.type === 4) {
@@ -428,6 +587,10 @@ document.addEventListener('DOMContentLoaded', () => {
           select.appendChild(option);
         }
       });
+      if (curVal) {
+        select.value = curVal;
+        select.setAttribute('data-saved-value', curVal);
+      }
     });
 
     // Populate Multi-Select Channels (Selfie / Nude)
@@ -435,7 +598,6 @@ document.addEventListener('DOMContentLoaded', () => {
     multiChannelSelects.forEach(select => {
       select.innerHTML = '';
       channelsList.forEach(ch => {
-        // Option text channels (0: GuildText, 5: GuildAnnouncement) et salons Forum (15: GuildForum)
         if (ch.type === 0 || ch.type === 5 || ch.type === 15) {
           const option = document.createElement('option');
           option.value = ch.id;
@@ -449,9 +611,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Populate Roles
     const roleSelects = document.querySelectorAll('.role-select');
     roleSelects.forEach(select => {
+      const curVal = select.getAttribute('data-saved-value') || select.value || '';
       select.innerHTML = '<option value="">Sélectionner un rôle</option>';
       rolesList.forEach(role => {
-        // Exclude @everyone role which has the same ID as the guild
         if (role.name !== '@everyone') {
           const option = document.createElement('option');
           option.value = role.id;
@@ -459,6 +621,10 @@ document.addEventListener('DOMContentLoaded', () => {
           select.appendChild(option);
         }
       });
+      if (curVal) {
+        select.value = curVal;
+        select.setAttribute('data-saved-value', curVal);
+      }
     });
 
     // Populate Forums Checkboxes
@@ -559,7 +725,18 @@ document.addEventListener('DOMContentLoaded', () => {
   function safeSetVal(id, val) {
     const el = document.getElementById(id);
     if (el) {
-      el.value = (val !== undefined && val !== null) ? val : '';
+      const sVal = (val !== undefined && val !== null) ? String(val) : '';
+      el.value = sVal;
+      if (el.tagName === 'SELECT') {
+        Array.from(el.options).forEach((opt, idx) => {
+          if (opt.value === sVal) {
+            opt.selected = true;
+            el.selectedIndex = idx;
+          } else {
+            opt.selected = false;
+          }
+        });
+      }
       if (el.syncCustomSelect) el.syncCustomSelect();
     }
   }
@@ -674,28 +851,32 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Tribunal Category & Roles & Prefix
         const trib = config.tribunal_config || {};
-        safeSetVal('tribunal_category', trib.categoryId);
-        safeSetVal('tribunal_channel_prefix', trib.channelPrefix || '⚖️┆procès-');
-        safeSetVal('tribunal_auto_delete_minutes', trib.autoDeleteMinutes ?? 5);
+        safeSetVal('tribunal_category', trib.categoryId || trib.category_id || '');
+        safeSetVal('tribunal_channel_prefix', trib.channelPrefix || trib.channel_prefix || '⚖️┆procès-');
+        safeSetVal('tribunal_auto_delete_minutes', trib.autoDeleteMinutes ?? trib.auto_delete_minutes ?? 5);
 
-        const tribAccessRolesEl = document.getElementById('tribunal_access_roles');
-        if (tribAccessRolesEl) {
-          const selectedAccess = trib.accessRoles || [];
-          Array.from(tribAccessRolesEl.options).forEach(opt => {
-            opt.selected = selectedAccess.includes(opt.value);
-          });
-          if (tribAccessRolesEl.syncCustomSelect) tribAccessRolesEl.syncCustomSelect();
+        if (typeof setMultiSelectValues === 'function') {
+          setMultiSelectValues('tribunal_access_roles', trib.accessRoles || trib.access_roles || []);
+        } else {
+          const tribAccessRolesEl = document.getElementById('tribunal_access_roles');
+          if (tribAccessRolesEl) {
+            const selectedAccess = trib.accessRoles || trib.access_roles || [];
+            Array.from(tribAccessRolesEl.options).forEach(opt => {
+              opt.selected = selectedAccess.includes(opt.value);
+            });
+            if (tribAccessRolesEl.syncCustomSelect) tribAccessRolesEl.syncCustomSelect();
+          }
         }
 
-        safeSetVal('tribunal_judge_role', trib.judgeRoleId);
-        safeSetVal('tribunal_lawyer_role', trib.lawyerRoleId);
-        safeSetVal('tribunal_accused_role', trib.accusedRoleId);
-        safeSetVal('tribunal_plaintiff_role', trib.plaintiffRoleId);
+        safeSetVal('tribunal_judge_role', trib.judgeRoleId || trib.judge_role_id || '');
+        safeSetVal('tribunal_lawyer_role', trib.lawyerRoleId || trib.lawyer_role_id || '');
+        safeSetVal('tribunal_accused_role', trib.accusedRoleId || trib.accused_role_id || '');
+        safeSetVal('tribunal_plaintiff_role', trib.plaintiffRoleId || trib.plaintiff_role_id || '');
 
         // Shop Config
         const shopCfg = config.shop_config || {};
-        safeSetVal('private_suite_category_id', shopCfg.privateSuiteCategoryId);
-        safeSetVal('suite_channel_prefix', shopCfg.suiteChannelPrefix || '👑┆suite-');
+        safeSetVal('private_suite_category_id', shopCfg.privateSuiteCategoryId || shopCfg.private_suite_category_id || '');
+        safeSetVal('suite_channel_prefix', shopCfg.suiteChannelPrefix || shopCfg.suite_channel_prefix || '👑┆suite-');
         
         if (typeof updateXpCurvePreview === 'function') {
           try { updateXpCurvePreview(); } catch (e) {}
@@ -715,13 +896,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Boost Config
         const bst = config.boost_config || {};
         safeSetCheck('boost_enabled', bst.enabled !== 0);
-        safeSetVal('boost_channel', bst.channel_id || '');
+        safeSetVal('boost_channel', bst.channel_id || bst.channelId || '');
         safeSetVal('boost_color', bst.color || '#F47FFF');
         safeSetVal('boost_title', bst.title || '🚀 Nouveau Boost de Serveur !');
         safeSetVal('boost_message', bst.message || '🎉 Un grand MERCI à {user.mention} d\'avoir boosté **{server}** ! Grâce à toi, le serveur gagne en puissance ! 💖');
-        safeSetVal('boost_reward_money', bst.reward_money ?? 5000);
-        safeSetVal('boost_reward_karma', bst.reward_karma ?? 50);
-        safeSetVal('boost_image_url', bst.image_url || '');
+        safeSetVal('boost_reward_money', bst.reward_money ?? bst.rewardMoney ?? 5000);
+        safeSetVal('boost_reward_karma', bst.reward_karma ?? bst.rewardKarma ?? 50);
+        safeSetVal('boost_image_url', bst.image_url || bst.imageUrl || '');
 
         // Auto-rôles & Counting renders
         try { renderAutoroleJoin(config.autoroles_on_join || []); } catch (e) {}
@@ -876,6 +1057,15 @@ document.addEventListener('DOMContentLoaded', () => {
           reminderRoleSelect.value = bump.reminder_role || '';
           if (reminderRoleSelect.syncCustomSelect) reminderRoleSelect.syncCustomSelect();
         }
+
+        // Synchronisation universelle de TOUS les sélecteurs du Dashboard
+        setTimeout(() => {
+          document.querySelectorAll('select.custom-select, select.channel-select, select.role-select, select.announce-channel-select, select.category-select').forEach(select => {
+            if (select.syncCustomSelect) {
+              try { select.syncCustomSelect(); } catch (e) {}
+            }
+          });
+        }, 80);
 
         // Charger les thèmes de cartes par rôle
         loadRoleThemes();
@@ -3982,12 +4172,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getRoleName(roleId) {
-    const role = rolesList.find(r => r.id === roleId);
+    if (!roleId) return 'Aucun';
+    const role = rolesList.find(r => String(r.id) === String(roleId));
     return role ? role.name : roleId;
   }
 
   function getChannelName(channelId) {
-    const chan = channelsList.find(c => c.id === channelId);
+    if (!channelId) return 'Aucun';
+    const chan = channelsList.find(c => String(c.id) === String(channelId));
     return chan ? chan.name : channelId;
   }
 
@@ -4061,7 +4253,15 @@ document.addEventListener('DOMContentLoaded', () => {
         item.dataset.value = opt.value;
 
         item.addEventListener('click', () => {
-          selectElement.selectedIndex = idx;
+          selectElement.value = opt.value;
+          Array.from(selectElement.options).forEach((o, i) => {
+            if (i === idx) {
+              o.selected = true;
+              selectElement.selectedIndex = i;
+            } else {
+              o.selected = false;
+            }
+          });
           triggerText.textContent = text;
           
           optionsList.querySelectorAll('.custom-select-option-item').forEach(el => el.classList.remove('selected'));
@@ -4108,11 +4308,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Synchronisation en cas de changement manuel
     selectElement.addEventListener('change', () => {
-      triggerText.textContent = selectElement.options[selectElement.selectedIndex]?.text || 'Sélectionner...';
+      const selOpt = selectElement.options[selectElement.selectedIndex] || Array.from(selectElement.options).find(o => o.value === selectElement.value || o.selected);
+      triggerText.textContent = selOpt ? selOpt.text : (selectElement.options[0]?.text || 'Désactivé');
     });
 
     selectElement.syncCustomSelect = () => {
-      triggerText.textContent = selectElement.options[selectElement.selectedIndex]?.text || 'Sélectionner...';
+      const selOpt = selectElement.options[selectElement.selectedIndex] || Array.from(selectElement.options).find(o => o.value === selectElement.value || o.selected);
+      triggerText.textContent = selOpt ? selOpt.text : (selectElement.options[0]?.text || 'Désactivé');
       if (wrapper.classList.contains('open')) {
         renderOptions();
       }
