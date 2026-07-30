@@ -22,27 +22,17 @@ module.exports = {
   
   async execute(interaction) {
     const perms = interaction.memberPermissions || interaction.member?.permissions;
-    const userRoleIds = interaction.member?.roles?.cache ? Array.from(interaction.member.roles.cache.keys()) : (Array.isArray(interaction.member?.roles) ? interaction.member.roles : []);
-    
-    const { getPermissionsConfig } = require("../../database/db");
-    let modoCmdsRoles = [];
-    try {
-      const permConfig = getPermissionsConfig(interaction.guild.id);
-      modoCmdsRoles = typeof permConfig.modo_cmds_roles === 'string' ? JSON.parse(permConfig.modo_cmds_roles || '[]') : (permConfig.modo_cmds_roles || []);
-      if (permConfig.modo_role_id) modoCmdsRoles.push(permConfig.modo_role_id);
-    } catch (_) {}
-
-    const isStaff = Boolean(
+    const hasDiscordNativePerm = Boolean(
       perms?.has(PermissionsBitField.Flags.Administrator) ||
-      perms?.has(PermissionsBitField.Flags.KickMembers) ||
-      perms?.has(PermissionsBitField.Flags.BanMembers) ||
       perms?.has(PermissionsBitField.Flags.ModerateMembers) ||
       perms?.has(PermissionsBitField.Flags.ManageMessages) ||
-      modoCmdsRoles.some(rId => userRoleIds.includes(rId))
+      perms?.has(PermissionsBitField.Flags.KickMembers) ||
+      perms?.has(PermissionsBitField.Flags.BanMembers)
     );
-    if (!isStaff) {
+
+    if (!hasDiscordNativePerm) {
       return interaction.reply({ 
-        content: "❌ Vous devez disposer des autorisations de modération (Expulser, Bannir, Modérer ou Gérer les messages) ou d'un rôle Staff pour créer un drop d'argent.", 
+        content: "❌ Vous devez posséder une permission de modération Discord native (Exclure temporairement, Gérer les messages, Expulser ou Bannir) pour créer un drop d'argent.", 
         ephemeral: true 
       });
     }
