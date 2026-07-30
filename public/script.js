@@ -885,62 +885,77 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- INTERACTIVE EMBED EDITOR BINDINGS ---
 
   function updateInteractiveEditor() {
-    const mode = document.getElementById('edit-mode-select').value;
-    const data = mode === 'welcome' ? welcomeData : leaveData;
+    const editModeEl = document.getElementById('edit-mode-select');
+    if (!editModeEl) return;
+    const mode = editModeEl.value;
+    const data = mode === 'welcome' ? (welcomeData || {}) : (leaveData || {});
 
-    document.getElementById('target-channel-select').value = data.channel_id;
-    document.getElementById('embed-color-picker').value = data.color;
-    document.getElementById('embed-title-input').value = data.title;
-    document.getElementById('embed-desc-field').value = data.desc;
-    document.getElementById('discord-left-bar').style.borderColor = data.color;
-    document.getElementById('embed-thumbnail-checkbox').checked = data.thumbnail;
-    
-    // Author Name and Icon
-    document.getElementById('embed-author-name-input').value = data.author_name;
-    document.getElementById('embed-author-icon-input').value = data.author_icon;
+    safeSetVal('target-channel-select', data.channel_id || '');
+    safeSetVal('embed-color-picker', data.color || '#00ff00');
+    safeSetVal('embed-title-input', data.title || '');
+    safeSetVal('embed-desc-field', data.desc || '');
+
+    const leftBar = document.getElementById('discord-left-bar');
+    if (leftBar) leftBar.style.borderColor = data.color || '#00ff00';
+
+    safeSetCheck('embed-thumbnail-checkbox', data.thumbnail);
+    safeSetVal('embed-author-name-input', data.author_name || '');
+    safeSetVal('embed-author-icon-input', data.author_icon || '');
+
     const authorImg = document.getElementById('embed-author-icon-img');
     const authorIconWrapper = document.getElementById('author-icon-wrapper');
-    if (data.author_icon) {
-      authorImg.src = data.author_icon;
-      authorImg.style.display = 'block';
-      authorIconWrapper.style.display = 'flex';
-    } else {
-      authorImg.style.display = 'none';
-      authorIconWrapper.style.display = 'none';
+    if (authorImg && authorIconWrapper) {
+      if (data.author_icon) {
+        authorImg.src = data.author_icon;
+        authorImg.style.display = 'block';
+        authorIconWrapper.style.display = 'flex';
+      } else {
+        authorImg.style.display = 'none';
+        authorIconWrapper.style.display = 'none';
+      }
     }
 
-    // Footer
-    document.getElementById('embed-footer-input').value = data.footer;
+    safeSetVal('embed-footer-input', data.footer || '');
 
     const filterGroup = document.getElementById('welcome-role-filter-group');
-    if (mode === 'welcome') {
-      filterGroup.style.display = 'block';
-      document.getElementById('welcome-role-filter-select').value = welcomeData.role_filter || '';
-    } else {
-      filterGroup.style.display = 'none';
+    if (filterGroup) {
+      if (mode === 'welcome') {
+        filterGroup.style.display = 'block';
+        safeSetVal('welcome-role-filter-select', welcomeData.role_filter || '');
+      } else {
+        filterGroup.style.display = 'none';
+      }
     }
 
+    const thumbImg = document.getElementById('discord-thumbnail-img');
+    const thumbToggleText = document.getElementById('thumbnail-toggle-text');
+    const thumbBox = document.getElementById('discord-thumbnail-box');
     if (data.thumbnail) {
-      document.getElementById('discord-thumbnail-img').style.display = 'block';
-      document.getElementById('thumbnail-toggle-text').textContent = 'Photo Active';
-      document.getElementById('discord-thumbnail-box').style.opacity = '1';
+      if (thumbImg) thumbImg.style.display = 'block';
+      if (thumbToggleText) thumbToggleText.textContent = 'Photo Active';
+      if (thumbBox) thumbBox.style.opacity = '1';
     } else {
-      document.getElementById('discord-thumbnail-img').style.display = 'none';
-      document.getElementById('thumbnail-toggle-text').textContent = 'Masquée';
-      document.getElementById('discord-thumbnail-box').style.opacity = '0.6';
+      if (thumbImg) thumbImg.style.display = 'none';
+      if (thumbToggleText) thumbToggleText.textContent = 'Masquée';
+      if (thumbBox) thumbBox.style.opacity = '0.6';
     }
 
+    const mainImg = document.getElementById('discord-image-img');
+    const overlayImg = document.getElementById('discord-image-overlay');
+    const wrapperImg = document.getElementById('image-url-wrapper');
     if (data.image_url) {
-      document.getElementById('discord-image-img').src = data.image_url;
-      document.getElementById('discord-image-img').style.display = 'block';
-      document.getElementById('discord-image-overlay').style.display = 'none';
-      document.getElementById('embed-image-input').value = data.image_url;
-      document.getElementById('image-url-wrapper').style.display = 'flex';
+      if (mainImg) {
+        mainImg.src = data.image_url;
+        mainImg.style.display = 'block';
+      }
+      if (overlayImg) overlayImg.style.display = 'none';
+      safeSetVal('embed-image-input', data.image_url);
+      if (wrapperImg) wrapperImg.style.display = 'flex';
     } else {
-      document.getElementById('discord-image-img').style.display = 'none';
-      document.getElementById('discord-image-overlay').style.display = 'flex';
-      document.getElementById('embed-image-input').value = '';
-      document.getElementById('image-url-wrapper').style.display = 'none';
+      if (mainImg) mainImg.style.display = 'none';
+      if (overlayImg) overlayImg.style.display = 'flex';
+      safeSetVal('embed-image-input', '');
+      if (wrapperImg) wrapperImg.style.display = 'none';
     }
   }
 

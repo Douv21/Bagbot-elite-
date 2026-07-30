@@ -176,6 +176,18 @@ app.use((req, res, next) => {
   next();
 });
 
+function getReqGuildId(req) {
+  return (req.session && req.session.selectedGuild) || (req.query && req.query.guildId) || (req.body && req.body.guildId) || null;
+}
+
+app.use((req, res, next) => {
+  const gId = (req.query && req.query.guildId) || (req.body && req.body.guildId);
+  if (gId && req.session) {
+    req.session.selectedGuild = gId;
+  }
+  next();
+});
+
 app.use((req, res, next) => {
   console.log(`[HTTP] ${req.method} ${req.url}`);
   next();
@@ -650,7 +662,7 @@ app.get('/api/config', (req, res) => {
 // Sauvegarder la configuration des permissions (admin & modo)
 app.post('/api/config/permissions', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { admin_role_id, modo_role_id, dashboard_roles, admin_cmds_roles, modo_cmds_roles } = req.body;
@@ -675,7 +687,7 @@ app.post('/api/config/permissions', (req, res) => {
 // 2. Sauvegarder Bienvenue & Départ
 app.post('/api/config/welcome-leave', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const {
@@ -726,7 +738,7 @@ app.post('/api/config/welcome-leave', (req, res) => {
 // 3. Sauvegarder Confessions
 app.post('/api/config/confessions', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { channels } = req.body; // Un tableau de { channel_id, confession_name, use_thread }
@@ -765,7 +777,7 @@ app.post('/api/config/confessions', (req, res) => {
 // 4. Sauvegarder Quarantaine
 app.post('/api/config/quarantine', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { role_id, channel_id } = req.body;
@@ -785,7 +797,7 @@ app.post('/api/config/quarantine', (req, res) => {
 // Sauvegarder la configuration du Tribunal
 app.post('/api/config/tribunal', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { category_id, judge_role_id, lawyer_role_id, accused_role_id, plaintiff_role_id, channel_prefix, access_roles, auto_delete_minutes } = req.body;
@@ -813,7 +825,7 @@ app.post('/api/config/tribunal', (req, res) => {
 // Sauvegarder la configuration de la Boutique (catégorie et préfixe suites privées)
 app.post('/api/config/shop-settings', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { private_suite_category_id, suite_channel_prefix } = req.body;
@@ -845,7 +857,7 @@ app.post('/api/config/sync-channels', async (req, res) => {
 // 5. Sauvegarder Logs d'activité
 app.post('/api/config/logs', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { channel_id, events } = req.body;
@@ -865,7 +877,7 @@ app.post('/api/config/logs', (req, res) => {
 // 6. Ajouter un objet/rôle à la Boutique
 app.post('/api/config/shop/add', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { item_name, price, description, role_id, role_duration_ms, reward_xp, reward_karma } = req.body;
@@ -897,7 +909,7 @@ app.post('/api/config/shop/add', (req, res) => {
 // 7. Supprimer un objet de la Boutique
 app.post('/api/config/shop/delete', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { item_name } = req.body;
@@ -916,7 +928,7 @@ app.post('/api/config/shop/delete', (req, res) => {
 // 7.5 Modifier le prix d'un objet de la Boutique
 app.post('/api/config/shop/update-price', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { item_name, price } = req.body;
@@ -935,7 +947,7 @@ app.post('/api/config/shop/update-price', (req, res) => {
 // 8. Ajouter une récompense de niveau
 app.post('/api/config/level-rewards/add', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { level, role_id } = req.body;
@@ -958,7 +970,7 @@ app.post('/api/config/level-rewards/add', (req, res) => {
 // 9. Supprimer une récompense de niveau
 app.post('/api/config/level-rewards/delete', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { level } = req.body;
@@ -974,7 +986,7 @@ app.post('/api/config/level-rewards/delete', (req, res) => {
 // 10. Sauvegarder la configuration de leveling (min/max XP, annonce)
 app.post('/api/config/leveling', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { 
@@ -1022,7 +1034,7 @@ app.post('/api/config/leveling', (req, res) => {
 // 10b. Réinitialiser les messages NSFW de tous les membres (FEU)
 app.post('/api/config/leveling/reset-nsfw', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     db.prepare('UPDATE leveling SET nsfw_messages = 0 WHERE guild_id = ?').run(guildId);
@@ -1036,7 +1048,7 @@ app.post('/api/config/leveling/reset-nsfw', (req, res) => {
 // 11. Sauvegarder la configuration du jeu Mot Caché
 app.post('/api/config/game', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { secret_phrase, reward_money, reward_xp, reward_role_id, reward_chance, is_active, reset_progress, appearance_chance, letter_emoji, announce_channel, ephemeral_letters } = req.body;
@@ -1077,7 +1089,7 @@ app.post('/api/config/game', (req, res) => {
 // 11. Récupérer tous les GIFs d'action du serveur
 app.get('/api/config/action-gifs', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
     const gifs = getAllActionGifs(guildId);
     res.json(gifs);
@@ -1090,7 +1102,7 @@ app.get('/api/config/action-gifs', (req, res) => {
 // 12. Ajouter un GIF d'action
 app.post('/api/config/action-gifs/add', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { action_name, gif_url } = req.body;
@@ -1109,7 +1121,7 @@ app.post('/api/config/action-gifs/add', (req, res) => {
 // 13. Supprimer un GIF d'action
 app.post('/api/config/action-gifs/delete', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { id } = req.body;
@@ -1126,7 +1138,7 @@ app.post('/api/config/action-gifs/delete', (req, res) => {
 // --- RECOMPENSES PAR ACTION (KARMA & PIECES) ---
 app.get('/api/config/action-rewards', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
     const { getAllActionRewards } = require('./database/db');
     const rewards = getAllActionRewards(guildId);
@@ -1139,7 +1151,7 @@ app.get('/api/config/action-rewards', (req, res) => {
 
 app.post('/api/config/action-rewards', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { action_name, min_money, max_money, min_karma, max_karma } = req.body;
@@ -1164,7 +1176,7 @@ app.post('/api/config/action-rewards', (req, res) => {
 
 app.post('/api/config/action-rewards/delete', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { action_name } = req.body;
@@ -1182,7 +1194,7 @@ app.post('/api/config/action-rewards/delete', (req, res) => {
 // 14. Sauvegarder la configuration d'automodération
 app.post('/api/config/automod', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const {
@@ -1213,7 +1225,7 @@ app.post('/api/config/automod', (req, res) => {
 // Envoyer et enregistrer un embed d'auto-rôle
 app.post('/api/config/autorole-embeds/add', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { channel_id, title, description, color, thumbnail, image_url, options, type = 'buttons', mode = 'normal', existing_message_id = null } = req.body;
@@ -1276,7 +1288,7 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
 // Supprimer un embed d'auto-rôle
 app.post('/api/config/autorole-embeds/delete', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { message_id, channel_id } = req.body;
@@ -1302,7 +1314,7 @@ app.post('/api/config/autorole-embeds/delete', async (req, res) => {
 // --- SYSTEME D'ENVOI D'EMBEDS SIMPLE (MESSAGE PUR) ---
 app.post('/api/config/send-simple-embed', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
     const {
@@ -1405,7 +1417,7 @@ app.post('/api/config/send-simple-embed', async (req, res) => {
 // Auto-rôles à l'arrivée
 app.post('/api/config/autoroles-on-join/add', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
     const { role_id } = req.body;
     if (!role_id) return res.status(400).json({ error: 'Rôle requis' });
@@ -1420,7 +1432,7 @@ app.post('/api/config/autoroles-on-join/add', (req, res) => {
 
 app.post('/api/config/autoroles-on-join/delete', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
     const { role_id } = req.body;
     if (!role_id) return res.status(400).json({ error: 'Rôle requis' });
@@ -1436,7 +1448,7 @@ app.post('/api/config/autoroles-on-join/delete', (req, res) => {
 // Auto-rôles sur obtention
 app.post('/api/config/autoroles-on-role/add', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
     const { trigger_role_id, target_role_id } = req.body;
     if (!trigger_role_id || !target_role_id) return res.status(400).json({ error: 'Rôles requis' });
@@ -1451,7 +1463,7 @@ app.post('/api/config/autoroles-on-role/add', (req, res) => {
 
 app.post('/api/config/autoroles-on-role/delete', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
     const { trigger_role_id, target_role_id } = req.body;
     if (!trigger_role_id || !target_role_id) return res.status(400).json({ error: 'Rôles requis' });
@@ -1467,7 +1479,7 @@ app.post('/api/config/autoroles-on-role/delete', (req, res) => {
 // API Permisions & Contrôle d'accès des Commandes Slash
 app.get('/api/config/command-permissions', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
     const { getAllCommandPermissions } = require('./database/db');
@@ -1514,7 +1526,7 @@ app.get('/api/config/command-permissions', (req, res) => {
 
 app.post('/api/config/command-permissions', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
     const { command_name, enabled, allowed_roles, denied_roles, allowed_users } = req.body;
@@ -1538,7 +1550,7 @@ app.post('/api/config/command-permissions', (req, res) => {
 // API SYSTÈME DE QUÊTES & MISSIONS
 app.get('/api/config/quests', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
     const { getQuests } = require('./database/db');
@@ -1560,7 +1572,7 @@ app.get('/api/config/quests', (req, res) => {
 
 app.post('/api/config/quests/add', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
     const { addQuest } = require('./database/db');
@@ -1574,7 +1586,7 @@ app.post('/api/config/quests/add', (req, res) => {
 
 app.post('/api/config/quests/update', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
     const { id, ...data } = req.body;
@@ -1591,7 +1603,7 @@ app.post('/api/config/quests/update', (req, res) => {
 
 app.post('/api/config/quests/delete', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
     const { id } = req.body;
@@ -1608,7 +1620,7 @@ app.post('/api/config/quests/delete', (req, res) => {
 
 app.post('/api/config/autoroles-on-role/sync', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const guild = client.guilds.cache.get(guildId);
@@ -1656,7 +1668,7 @@ app.post('/api/config/autoroles-on-role/sync', async (req, res) => {
 
 app.post('/api/config/counting/add', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
     const { channel_id, mode, start_number, emoji_success, emoji_error, emoji_highscore, emoji_chance } = req.body;
     if (!channel_id || !mode) return res.status(400).json({ error: 'Informations incomplètes' });
@@ -1682,7 +1694,7 @@ app.post('/api/config/counting/add', (req, res) => {
 
 app.post('/api/config/counting/delete', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
     const { channel_id } = req.body;
     if (!channel_id) return res.status(400).json({ error: 'ID requis' });
@@ -1699,7 +1711,7 @@ app.post('/api/config/counting/delete', (req, res) => {
 
 app.post('/api/config/announce-features', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
     const { channel_id } = req.body;
@@ -1756,7 +1768,7 @@ app.post('/api/config/announce-features', async (req, res) => {
 
 app.post('/api/config/announce-commands', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
     const { channel_id } = req.body;
@@ -1936,7 +1948,7 @@ app.get('/api/map-image', async (req, res) => {
 
 app.get('/api/config/karma', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const config = getKarmaConfig(guildId);
@@ -1949,7 +1961,7 @@ app.get('/api/config/karma', (req, res) => {
 
 app.post('/api/config/karma', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { 
@@ -1991,7 +2003,7 @@ app.post('/api/config/karma', (req, res) => {
 
 app.get('/api/config/unlimited-forums', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const channels = getUnlimitedForums(guildId);
@@ -2004,7 +2016,7 @@ app.get('/api/config/unlimited-forums', (req, res) => {
 
 app.post('/api/config/unlimited-forums', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { channels } = req.body;
@@ -2027,7 +2039,7 @@ app.post('/api/config/unlimited-forums', (req, res) => {
 
 app.get('/api/config/autothread', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const channels = getAutoThreadChannels(guildId);
@@ -2040,7 +2052,7 @@ app.get('/api/config/autothread', (req, res) => {
 
 app.post('/api/config/autothread', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { channels } = req.body;
@@ -2058,7 +2070,7 @@ app.post('/api/config/autothread', (req, res) => {
 
 app.get('/api/config/action-verite', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const items = getActionVeriteItems(guildId);
@@ -2071,7 +2083,7 @@ app.get('/api/config/action-verite', (req, res) => {
 
 app.post('/api/config/action-verite/add', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { type, category, content } = req.body;
@@ -2087,7 +2099,7 @@ app.post('/api/config/action-verite/add', (req, res) => {
 
 app.post('/api/config/action-verite/delete', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { id } = req.body;
@@ -2103,7 +2115,7 @@ app.post('/api/config/action-verite/delete', (req, res) => {
 
 app.get('/api/config/action-verite/channels', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const config = getActionVeriteConfig(guildId);
@@ -2116,7 +2128,7 @@ app.get('/api/config/action-verite/channels', (req, res) => {
 
 app.post('/api/config/action-verite/channels', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { sfw_channel_id, nsfw_channel_id } = req.body;
@@ -2137,7 +2149,7 @@ app.post('/api/config/action-verite/channels', (req, res) => {
 
 app.get('/api/config/tickets', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const panels = getTicketPanels(guildId);
@@ -2151,7 +2163,7 @@ app.get('/api/config/tickets', (req, res) => {
 
 app.post('/api/config/tickets/panel/add', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { title, description, color, thumbnail, selector_type, channel_id, image_url, allowed_options } = req.body;
@@ -2186,7 +2198,7 @@ app.post('/api/config/tickets/panel/add', async (req, res) => {
 
 app.post('/api/config/tickets/panel/update', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { id, title, description, color, thumbnail, selector_type, channel_id, image_url, allowed_options } = req.body;
@@ -2221,7 +2233,7 @@ app.post('/api/config/tickets/panel/update', async (req, res) => {
 // Endpoint pour forcer le renvoi de l'embed principal d'un panel de tickets dans le salon
 app.post('/api/config/tickets/panel/resend', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { id } = req.body;
@@ -2244,7 +2256,7 @@ app.post('/api/config/tickets/panel/resend', async (req, res) => {
 // Endpoint de réactualisation & resynchronisation globale des salons et panels d'embeds
 app.post('/api/config/sync-channels', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { sendOrUpdateTicketPanel } = require('./utils/tickets');
@@ -2268,7 +2280,7 @@ app.post('/api/config/sync-channels', async (req, res) => {
 
 app.post('/api/config/tickets/panel/delete', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { id } = req.body;
@@ -2298,7 +2310,7 @@ app.post('/api/config/tickets/panel/delete', async (req, res) => {
 
 app.get('/api/config/ai', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const keys = getAiKeys();
@@ -2388,7 +2400,7 @@ app.post('/api/config/ai/keys/test', async (req, res) => {
 
 app.post('/api/config/ai/config/update', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { preferred_provider, groq_text_model, groq_vision_model, groq_server_model, gemini_model } = req.body;
@@ -2411,7 +2423,7 @@ app.post('/api/config/ai/config/update', (req, res) => {
 // Obtenir les configurations de gains pour toutes les actions
 app.get('/api/config/action-rewards', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const fs = require('fs');
@@ -2433,7 +2445,7 @@ app.get('/api/config/action-rewards', (req, res) => {
 // Mettre à jour les gains d'une action
 app.post('/api/config/action-rewards', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { action_name, min_money, max_money, min_karma, max_karma } = req.body;
@@ -2456,7 +2468,7 @@ app.post('/api/config/action-rewards', (req, res) => {
 
 app.post('/api/config/tickets/options/add', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button } = req.body;
@@ -2505,7 +2517,7 @@ app.post('/api/config/tickets/options/add', async (req, res) => {
 
 app.post('/api/config/tickets/options/delete', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { id } = req.body;
@@ -2531,7 +2543,7 @@ app.post('/api/config/tickets/options/delete', async (req, res) => {
 
 app.get('/api/emojis', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const guild = client.guilds.cache.get(guildId);
@@ -2563,7 +2575,7 @@ app.get('/api/emojis', async (req, res) => {
 // Thèmes par rôle
 app.get('/api/config/role-themes', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { getRoleThemes } = require('./database/db');
@@ -2577,7 +2589,7 @@ app.get('/api/config/role-themes', (req, res) => {
 
 app.post('/api/config/role-themes/add', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { role_id, theme_name } = req.body;
@@ -2594,7 +2606,7 @@ app.post('/api/config/role-themes/add', (req, res) => {
 
 app.post('/api/config/role-themes/delete', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { role_id, theme_name } = req.body;
@@ -2683,7 +2695,7 @@ app.post('/api/ai/reset', (req, res) => {
 // Configuration des rappels de Bump
 app.get('/api/config/bump', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { getBumpConfig } = require('./database/db');
@@ -2697,7 +2709,7 @@ app.get('/api/config/bump', (req, res) => {
 
 app.post('/api/config/bump', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { reminder_channel, reminder_role } = req.body;
@@ -2714,7 +2726,7 @@ app.post('/api/config/bump', (req, res) => {
 // --- ENDPOINTS STAR DE LA SEMAINE ---
 app.get('/api/star/config', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { getStarConfig } = require('./database/db');
@@ -2728,7 +2740,7 @@ app.get('/api/star/config', (req, res) => {
 
 app.post('/api/star/config', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { updateStarConfig } = require('./database/db');
@@ -2742,7 +2754,7 @@ app.post('/api/star/config', (req, res) => {
 
 app.get('/api/star/leaderboard', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const { getStarConfig, getStarWeeklyLeaderboard, getCurrentWeekIdentifier } = require('./database/db');
@@ -2786,7 +2798,7 @@ app.get('/api/star/leaderboard', async (req, res) => {
 
 app.post('/api/star/force-election', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const guild = client.guilds.cache.get(guildId);
