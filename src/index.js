@@ -854,7 +854,8 @@ client.on('interactionCreate', async interaction => {
 
     const isAllowedForEveryone = 
       command.category === 'actions' ||
-      ['action-verite', 'niveau', 'solde', 'karma', 'mapville', 'proche', 'boutique', 'leaderboard', 'confess', 'confesser', 'deposit', 'withdraw', 'lovecalc', 'mot-cache', 'tribunal', 'uno', 'star', 'gifle', 'patpat'].includes(interaction.commandName);
+      command.category === 'economy' ||
+      ['travailler', 'daily', 'work', 'crime', 'rob', 'voler', 'pecher', 'action-verite', 'niveau', 'solde', 'karma', 'mapville', 'proche', 'boutique', 'leaderboard', 'confess', 'confesser', 'deposit', 'deposer', 'withdraw', 'retirer', 'donner', 'pay', 'lovecalc', 'mot-cache', 'tribunal', 'uno', 'star', 'gifle', 'patpat', 'quetes'].includes(interaction.commandName);
       
     if (!isAllowedForEveryone) {
       const isUserAdmin = Boolean(userPerms.has(PermissionsBitField.Flags.Administrator));

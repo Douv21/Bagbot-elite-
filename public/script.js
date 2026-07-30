@@ -184,22 +184,11 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .then(res => res.json())
       .then(data => {
-        const targetGuildId = (data.guildId && guildsList.some(g => g.id === data.guildId))
-          ? data.guildId
-          : (guildsList.length > 0 ? guildsList[0].id : null);
-
-        if (targetGuildId) {
-          guildSelect.value = targetGuildId;
-          handleGuildSelection(targetGuildId);
-          fetch('/api/select-guild', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ guildId: targetGuildId })
-          }).catch(console.error);
-        } else {
-          noGuildSelected.style.display = 'block';
-          configForms.style.display = 'none';
-        }
+        // Toujours afficher l'écran de sélection de serveur à la connexion au dashboard
+        noGuildSelected.style.display = 'block';
+        configForms.style.display = 'none';
+        guildSelect.value = '';
+        updateActiveGuildIcon('');
       })
       .catch(console.error);
   }
@@ -2188,7 +2177,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (selectorSel.syncCustomSelect) selectorSel.syncCustomSelect();
 
     let allowedArr = [];
-    try { allowedArr = JSON.parse(p.allowed_options || '[]'); } catch (e) {}
+    try {
+      if (p.allowed_options && p.allowed_options !== '[]') {
+        allowedArr = JSON.parse(p.allowed_options);
+      } else {
+        allowedArr = options.map(o => o.value);
+      }
+    } catch (e) {
+      allowedArr = options.map(o => o.value);
+    }
     renderAllowedOptionsCheckboxes(options, allowedArr);
 
     updateLiveTicketPreviewFromForm();
