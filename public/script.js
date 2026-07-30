@@ -121,20 +121,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const navCategoryCards = document.querySelectorAll('.nav-category-card');
 
   const categoryTitles = {
-    nsfw: '🔞 ADULTES 18+ SENSUEL',
     server: '⚙️ GESTION DU SERVEUR',
     security: '🛡️ SÉCURITÉ & MODÉRATION',
     economy: '📈 ÉCONOMIE & JEUX',
-    ai: '🤖 ASSISTANT & IA VIP'
+    ai: '🤖 ASSISTANT & IA VIP',
+    nsfw: '🔞 ADULTES 18+ SENSUEL'
   };
 
   const categorySubTabs = {
-    nsfw: [
-      { id: 'tab-role-themes', label: 'Thèmes Érotiques 18+', icon: 'fa-venus-mars', color: '#ff2a6d' },
-      { id: 'tab-action-verite', label: 'Action ou Vérité Hot', icon: 'fa-fire', color: '#ff477e' },
-      { id: 'tab-gifs', label: 'GIFs & Interactions 18+', icon: 'fa-file-video', color: '#ff2a6d' },
-      { id: 'tab-confessions', label: 'Confessions 18+', icon: 'fa-mask', color: '#a29bfe' }
-    ],
     server: [
       { id: 'tab-welcome', label: 'Arrivées & Départs', icon: 'fa-door-open', color: '#00d2d3' },
       { id: 'tab-boost', label: 'Remerciements Boost', icon: 'fa-rocket', color: '#F47FFF' },
@@ -167,6 +161,12 @@ document.addEventListener('DOMContentLoaded', () => {
       { id: 'tab-assistant', label: 'Assistant IA Admin', icon: 'fa-robot', color: '#9b59b6' },
       { id: 'tab-star', label: 'Star de la Semaine', icon: 'fa-star', color: '#f1c40f' },
       { id: 'tab-ai', label: 'Clés & Modèles IA', icon: 'fa-brain', color: '#1abc9c' }
+    ],
+    nsfw: [
+      { id: 'tab-role-themes', label: 'Thèmes Érotiques 18+', icon: 'fa-venus-mars', color: '#ff2a6d' },
+      { id: 'tab-action-verite', label: 'Action ou Vérité Hot', icon: 'fa-fire', color: '#ff477e' },
+      { id: 'tab-gifs', label: 'GIFs & Interactions 18+', icon: 'fa-file-video', color: '#ff2a6d' },
+      { id: 'tab-confessions', label: 'Confessions 18+', icon: 'fa-mask', color: '#a29bfe' }
     ]
   };
 
@@ -845,16 +845,16 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Tribunal Category & Roles & Prefix
         const trib = config.tribunal_config || {};
-        safeSetVal('tribunal_category', trib.categoryId);
-        safeSetVal('tribunal_channel_prefix', trib.channelPrefix || '⚖️┆procès-');
-        safeSetVal('tribunal_auto_delete_minutes', trib.autoDeleteMinutes ?? 5);
+        safeSetVal('tribunal_category', trib.categoryId || trib.category_id || '');
+        safeSetVal('tribunal_channel_prefix', trib.channelPrefix || trib.channel_prefix || '⚖️┆procès-');
+        safeSetVal('tribunal_auto_delete_minutes', trib.autoDeleteMinutes ?? trib.auto_delete_minutes ?? 5);
 
         if (typeof setMultiSelectValues === 'function') {
-          setMultiSelectValues('tribunal_access_roles', trib.accessRoles || []);
+          setMultiSelectValues('tribunal_access_roles', trib.accessRoles || trib.access_roles || []);
         } else {
           const tribAccessRolesEl = document.getElementById('tribunal_access_roles');
           if (tribAccessRolesEl) {
-            const selectedAccess = trib.accessRoles || [];
+            const selectedAccess = trib.accessRoles || trib.access_roles || [];
             Array.from(tribAccessRolesEl.options).forEach(opt => {
               opt.selected = selectedAccess.includes(opt.value);
             });
@@ -862,15 +862,15 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
 
-        safeSetVal('tribunal_judge_role', trib.judgeRoleId);
-        safeSetVal('tribunal_lawyer_role', trib.lawyerRoleId);
-        safeSetVal('tribunal_accused_role', trib.accusedRoleId);
-        safeSetVal('tribunal_plaintiff_role', trib.plaintiffRoleId);
+        safeSetVal('tribunal_judge_role', trib.judgeRoleId || trib.judge_role_id || '');
+        safeSetVal('tribunal_lawyer_role', trib.lawyerRoleId || trib.lawyer_role_id || '');
+        safeSetVal('tribunal_accused_role', trib.accusedRoleId || trib.accused_role_id || '');
+        safeSetVal('tribunal_plaintiff_role', trib.plaintiffRoleId || trib.plaintiff_role_id || '');
 
         // Shop Config
         const shopCfg = config.shop_config || {};
-        safeSetVal('private_suite_category_id', shopCfg.privateSuiteCategoryId);
-        safeSetVal('suite_channel_prefix', shopCfg.suiteChannelPrefix || '👑┆suite-');
+        safeSetVal('private_suite_category_id', shopCfg.privateSuiteCategoryId || shopCfg.private_suite_category_id || '');
+        safeSetVal('suite_channel_prefix', shopCfg.suiteChannelPrefix || shopCfg.suite_channel_prefix || '👑┆suite-');
         
         if (typeof updateXpCurvePreview === 'function') {
           try { updateXpCurvePreview(); } catch (e) {}
@@ -890,13 +890,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Boost Config
         const bst = config.boost_config || {};
         safeSetCheck('boost_enabled', bst.enabled !== 0);
-        safeSetVal('boost_channel', bst.channel_id || '');
+        safeSetVal('boost_channel', bst.channel_id || bst.channelId || '');
         safeSetVal('boost_color', bst.color || '#F47FFF');
         safeSetVal('boost_title', bst.title || '🚀 Nouveau Boost de Serveur !');
         safeSetVal('boost_message', bst.message || '🎉 Un grand MERCI à {user.mention} d\'avoir boosté **{server}** ! Grâce à toi, le serveur gagne en puissance ! 💖');
-        safeSetVal('boost_reward_money', bst.reward_money ?? 5000);
-        safeSetVal('boost_reward_karma', bst.reward_karma ?? 50);
-        safeSetVal('boost_image_url', bst.image_url || '');
+        safeSetVal('boost_reward_money', bst.reward_money ?? bst.rewardMoney ?? 5000);
+        safeSetVal('boost_reward_karma', bst.reward_karma ?? bst.rewardKarma ?? 50);
+        safeSetVal('boost_image_url', bst.image_url || bst.imageUrl || '');
 
         // Auto-rôles & Counting renders
         try { renderAutoroleJoin(config.autoroles_on_join || []); } catch (e) {}
@@ -1051,6 +1051,15 @@ document.addEventListener('DOMContentLoaded', () => {
           reminderRoleSelect.value = bump.reminder_role || '';
           if (reminderRoleSelect.syncCustomSelect) reminderRoleSelect.syncCustomSelect();
         }
+
+        // Synchronisation universelle de TOUS les sélecteurs du Dashboard
+        setTimeout(() => {
+          document.querySelectorAll('select.custom-select, select.channel-select, select.role-select, select.announce-channel-select, select.category-select').forEach(select => {
+            if (select.syncCustomSelect) {
+              try { select.syncCustomSelect(); } catch (e) {}
+            }
+          });
+        }, 80);
 
         // Charger les thèmes de cartes par rôle
         loadRoleThemes();
