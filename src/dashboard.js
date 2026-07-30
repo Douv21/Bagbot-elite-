@@ -2811,9 +2811,19 @@ app.listen(PORT, '0.0.0.0', async () => {
     const ipRes = await fetch('https://api.ipify.org?format=json').then(r => r.json());
     if (ipRes && ipRes.ip) {
       console.log(`🔗 Lien d'accès externe (IP publique) : http://${ipRes.ip}:${PORT}`);
-      console.log(`💡 Note : Pour que ce lien fonctionne depuis l'extérieur de votre réseau, vous devez rediriger le port ${PORT} vers l'IP locale de votre machine (192.168.1.133) dans la configuration de votre box internet.`);
+      console.log(`💡 Note : Pour que ce lien fonctionne depuis l'extérieur de votre réseau, vous devez rediriger le port ${PORT} (ou 49501) vers l'IP locale de votre machine (192.168.1.133) dans la configuration de votre box internet.`);
     }
   } catch (err) {
     console.log('Impossible de récupérer automatiquement l\'IP publique (pas de connexion internet ou API inaccessible).');
   }
 });
+
+if (PORT !== 49501) {
+  try {
+    app.listen(49501, '0.0.0.0', () => {
+      console.log(`✓ Dashboard premium également actif sur le port 49501 (compatibilité anciens liens)`);
+    });
+  } catch (err) {
+    console.error('Erreur écoute port 49501:', err);
+  }
+}
