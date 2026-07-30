@@ -184,20 +184,21 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .then(res => res.json())
       .then(data => {
-        if (data.guildId && guildsList.some(g => g.id === data.guildId)) {
-          guildSelect.value = data.guildId;
-          handleGuildSelection(data.guildId);
-        } else if (guildsList.length > 0) {
-          const firstGuildId = guildsList[0].id;
-          guildSelect.value = firstGuildId;
+        const targetGuildId = (data.guildId && guildsList.some(g => g.id === data.guildId))
+          ? data.guildId
+          : (guildsList.length > 0 ? guildsList[0].id : null);
+
+        if (targetGuildId) {
+          guildSelect.value = targetGuildId;
+          handleGuildSelection(targetGuildId);
           fetch('/api/select-guild', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ guildId: firstGuildId })
-          })
-          .then(r => r.json())
-          .then(() => handleGuildSelection(firstGuildId))
-          .catch(console.error);
+            body: JSON.stringify({ guildId: targetGuildId })
+          }).catch(console.error);
+        } else {
+          noGuildSelected.style.display = 'block';
+          configForms.style.display = 'none';
         }
       })
       .catch(console.error);
