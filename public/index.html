@@ -201,10 +201,30 @@
             </div>
           </div>
 
-          <!-- BARRE DE BOUTONS DES FONCTIONNALITÉS (FEATURE PILLS BAR) -->
-          <div id="feature-pills-bar" class="feature-pills-container gold-contour" style="display: none;">
-            <!-- Rempli dynamiquement lors du clic sur une carte de catégorie -->
-          </div>
+          <!-- ESPACE DE TRAVAIL AVEC SIDEBAR LATÉRALE RÉTRACTABLE (SUB-SIDEBAR) -->
+          <div id="category-workspace" class="category-workspace-layout" style="display: none;">
+            <!-- Sub-Sidebar Latérale Rétractable -->
+            <aside id="sub-sidebar" class="sub-sidebar-nav gold-contour">
+              <div class="sub-sidebar-top-bar">
+                <button type="button" id="btn-return-hub-side" class="btn btn-hub-return" title="Retour au Hub des Catégories">
+                  <i class="fa-solid fa-grid-2"></i> <span class="side-text">Hub</span>
+                </button>
+                <button type="button" id="btn-toggle-sub-sidebar" class="btn-toggle-sub-side" title="Rétracter / Déployer le menu">
+                  <i class="fa-solid fa-angles-left"></i>
+                </button>
+              </div>
+
+              <div id="sub-sidebar-cat-title" class="sub-sidebar-cat-title">
+                <i class="fa-solid fa-layer-group"></i> <span class="side-text">CATÉGORIE</span>
+              </div>
+
+              <div id="sub-sidebar-buttons-list" class="sub-sidebar-btns-list">
+                <!-- Rempli dynamiquement en JS lors du clic sur une carte de catégorie -->
+              </div>
+            </aside>
+
+            <!-- Zone de Formulaire Principale -->
+            <div class="sub-sidebar-form-container">
 
           <!-- Tab: AI Assistant -->
           <div id="tab-assistant" class="tab-content">

@@ -109,11 +109,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // --- CONSOLE CATEGORY CARDS HUB NAVIGATION ---
+  // --- CONSOLE CATEGORY CARDS HUB & RETRACTABLE SUB-SIDEBAR NAVIGATION ---
   const mainNavHub = document.getElementById('main-navigation-hub');
-  const featurePillsBar = document.getElementById('feature-pills-bar');
+  const categoryWorkspace = document.getElementById('category-workspace');
+  const subSidebarNav = document.getElementById('sub-sidebar');
+  const subSidebarCatTitle = document.getElementById('sub-sidebar-cat-title');
+  const subSidebarBtnsList = document.getElementById('sub-sidebar-buttons-list');
+  const btnToggleSubSidebar = document.getElementById('btn-toggle-sub-sidebar');
   const btnReturnHub = document.getElementById('btn-return-hub');
+  const btnReturnHubSide = document.getElementById('btn-return-hub-side');
   const navCategoryCards = document.querySelectorAll('.nav-category-card');
+
+  const categoryTitles = {
+    nsfw: '🔞 ADULTES 18+ SENSUEL',
+    server: '⚙️ GESTION DU SERVEUR',
+    security: '🛡️ SÉCURITÉ & MODÉRATION',
+    economy: '📈 ÉCONOMIE & JEUX',
+    ai: '🤖 ASSISTANT & IA VIP'
+  };
 
   const categorySubTabs = {
     nsfw: [
@@ -157,31 +170,46 @@ document.addEventListener('DOMContentLoaded', () => {
     ]
   };
 
-  const openCategorySubTabs = (catKey) => {
+  const openCategoryWorkspace = (catKey) => {
     const subTabs = categorySubTabs[catKey] || [];
     if (!subTabs.length) return;
 
     if (mainNavHub) mainNavHub.style.display = 'none';
     if (btnReturnHub) btnReturnHub.style.display = 'inline-flex';
-    if (featurePillsBar) {
-      featurePillsBar.style.display = 'flex';
-      featurePillsBar.innerHTML = '';
+    if (categoryWorkspace) categoryWorkspace.style.display = 'flex';
+
+    if (subSidebarCatTitle) {
+      subSidebarCatTitle.innerHTML = `<i class="fa-solid fa-layer-group"></i> <span class="side-text">${categoryTitles[catKey] || 'MODULES'}</span>`;
+    }
+
+    if (subSidebarBtnsList) {
+      subSidebarBtnsList.innerHTML = '';
       subTabs.forEach((st, idx) => {
-        const pBtn = document.createElement('button');
-        pBtn.type = 'button';
-        pBtn.className = `feature-pill-btn ${idx === 0 ? 'active' : ''}`;
-        pBtn.setAttribute('data-tab', st.id);
-        pBtn.innerHTML = `<i class="fa-solid ${st.icon}" style="color: ${st.color};"></i> ${st.label}`;
-        pBtn.addEventListener('click', () => {
-          featurePillsBar.querySelectorAll('.feature-pill-btn').forEach(b => b.classList.remove('active'));
-          pBtn.classList.add('active');
+        const sBtn = document.createElement('button');
+        sBtn.type = 'button';
+        sBtn.className = `sub-sidebar-btn ${idx === 0 ? 'active' : ''}`;
+        sBtn.setAttribute('data-tab', st.id);
+        sBtn.title = st.label;
+        sBtn.innerHTML = `<i class="fa-solid ${st.icon}" style="color: ${st.color}; font-size: 1.1rem; width: 20px; text-align: center;"></i> <span class="side-text">${st.label}</span>`;
+        
+        sBtn.addEventListener('click', () => {
+          subSidebarBtnsList.querySelectorAll('.sub-sidebar-btn').forEach(b => b.classList.remove('active'));
+          sBtn.classList.add('active');
           switchTab(st.id);
         });
-        featurePillsBar.appendChild(pBtn);
+        subSidebarBtnsList.appendChild(sBtn);
       });
     }
-    // Afficher le 1er onglet de la catégorie
+
+    // Activer le 1er onglet (ex: Arrivées & Départs pour serveur)
     switchTab(subTabs[0].id);
+  };
+
+  const returnToMainHub = () => {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    if (categoryWorkspace) categoryWorkspace.style.display = 'none';
+    if (btnReturnHub) btnReturnHub.style.display = 'none';
+    if (mainNavHub) mainNavHub.style.display = 'block';
   };
 
   const switchTab = (tabId) => {
@@ -202,16 +230,16 @@ document.addEventListener('DOMContentLoaded', () => {
   navCategoryCards.forEach(card => {
     card.addEventListener('click', () => {
       const catKey = card.getAttribute('data-hub-cat');
-      openCategorySubTabs(catKey);
+      openCategoryWorkspace(catKey);
     });
   });
 
-  if (btnReturnHub) {
-    btnReturnHub.addEventListener('click', () => {
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      if (featurePillsBar) featurePillsBar.style.display = 'none';
-      if (btnReturnHub) btnReturnHub.style.display = 'none';
-      if (mainNavHub) mainNavHub.style.display = 'block';
+  if (btnReturnHub) btnReturnHub.addEventListener('click', returnToMainHub);
+  if (btnReturnHubSide) btnReturnHubSide.addEventListener('click', returnToMainHub);
+
+  if (btnToggleSubSidebar && subSidebarNav) {
+    btnToggleSubSidebar.addEventListener('click', () => {
+      subSidebarNav.classList.toggle('retracted');
     });
   }
 
