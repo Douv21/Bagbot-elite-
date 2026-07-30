@@ -882,7 +882,7 @@ client.on('interactionCreate', async interaction => {
         if (isUserAdmin) {
           hasDiscordNativePerm = true;
         } else if (['ban', 'unban', 'massban'].includes(cmdName)) {
-          hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.BanMembers);
+          hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.BanMembers) || userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.ModerateMembers);
         } else if (['kick', 'masskick'].includes(cmdName)) {
           hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.BanMembers);
         } else if (['clear'].includes(cmdName)) {
