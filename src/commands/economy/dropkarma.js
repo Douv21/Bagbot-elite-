@@ -35,12 +35,18 @@ module.exports = {
     }
 
     const quantite = interaction.options.getInteger("quantite", true);
-    const customMessage = interaction.options.getString("message", false);
+    let customMessage = interaction.options.getString("message", false);
+
+    if (!customMessage) {
+      const { generateAiDropPhrase } = require("../../utils/aiActionHelper");
+      const aiDropText = await generateAiDropPhrase('dropkarma', quantite, interaction.member, interaction.guild.id);
+      customMessage = aiDropText || `✨ **Pluie de Karma Sacré !** <@${interaction.user.id}> offre un largage de **${quantite}** ✨ Karma ! Cliquez en premier sur le bouton ! 💎`;
+    }
 
     const embed = new EmbedBuilder()
-      .setFooter({ text: "Boys and Girls - Répandez de bonnes ondes" })
+      .setFooter({ text: `${interaction.guild.name} • Soyez le plus rapide !` })
       .setTitle("✨ Boost de Karma Disponible")
-      .setDescription(customMessage || "**" + quantite + "** Karma sont offerts au premier qui les saisira...")
+      .setDescription(customMessage)
       .setColor("#E1C4FF")
       .addFields(
         { name: "✨ Récompense", value: quantite + " Karma", inline: true },

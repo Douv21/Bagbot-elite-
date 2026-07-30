@@ -35,12 +35,18 @@ module.exports = {
     }
 
     const quantite = interaction.options.getInteger("quantite", true);
-    const customMessage = interaction.options.getString("message", false);
+    let customMessage = interaction.options.getString("message", false);
+
+    if (!customMessage) {
+      const { generateAiDropPhrase } = require("../../utils/aiActionHelper");
+      const aiDropText = await generateAiDropPhrase('dropxp', quantite, interaction.member, interaction.guild.id);
+      customMessage = aiDropText || `⚡ **Drop d'Énergie XP !** <@${interaction.user.id}> largue **${quantite}** XP dans le salon ! Cliquez vite sur le bouton pour monter de niveau ! 🚀`;
+    }
 
     const embed = new EmbedBuilder()
-      .setFooter({ text: "Boys and Girls - Montrez votre détermination" })
-      .setTitle("✨ Boost d'Expérience")
-      .setDescription(customMessage || `**${quantite}** XP sont offerts au plus déterminé d'entre vous...`)
+      .setFooter({ text: `${interaction.guild.name} • Soyez le plus rapide !` })
+      .setTitle("✨ Boost d'Expérience (XP)")
+      .setDescription(customMessage)
       .setColor("#9B59B6")
       .addFields(
         { name: "⭐ Récompense", value: quantite + " XP", inline: true },

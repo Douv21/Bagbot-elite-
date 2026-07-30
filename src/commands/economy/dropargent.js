@@ -35,12 +35,18 @@ module.exports = {
     }
 
     const montant = interaction.options.getInteger("montant", true);
-    const customMessage = interaction.options.getString("message", false);
+    let customMessage = interaction.options.getString("message", false);
+
+    if (!customMessage) {
+      const { generateAiDropPhrase } = require("../../utils/aiActionHelper");
+      const aiDropText = await generateAiDropPhrase('dropargent', montant, interaction.member, interaction.guild.id);
+      customMessage = aiDropText || `💰 **Alerte Largage de Pièces !** <@${interaction.user.id}> dépose **${montant}** 🪙 pièces au sol ! Le premier à cliquer sur le bouton gagne le trésor ! ⚡`;
+    }
 
     const embed = new EmbedBuilder()
-      .setFooter({ text: "Boys and Girls - Soyez rapide, soyez audacieux" })
-      .setTitle("💰 Trésor Disponible")
-      .setDescription(customMessage || `**${montant}** 🪙 attendent celui ou celle qui osera les saisir en premier...`)
+      .setFooter({ text: `${interaction.guild.name} • Soyez le plus rapide !` })
+      .setTitle("💰 Trésor & Largage Disponible")
+      .setDescription(customMessage)
       .setColor("#FFD700")
       .addFields(
         { name: "💵 Récompense", value: montant + " 🪙", inline: true },

@@ -145,6 +145,53 @@ Fais des accords de genre parfaits. Ne mets aucun guillemet. Ne commence pas par
   }
 }
 
-module.exports = { generateAiActionPhrase, generateSensualText, generateAiGiftPhrase, generateAiEconomyPhrase };
+async function generateAiBoostPhrase(member, guildId = null) {
+  const userName = member ? member.displayName : 'Le membre';
+  const gId = guildId || (member ? member.guild.id : null);
+
+  const systemPrompt = `Tu es l'animateur VIP dynamique, chaleureux et enthousiaste d'un bot Discord premium. Ton rôle est de remercier de manière éclatante, drôle et glorieuse un membre qui vient de booster le serveur avec son abonnement Nitro.`;
+  const userPrompt = `Rédige un message de remerciement épique, festif et chaleureux (max 250 caractères) pour ${userName} qui vient de booster le serveur avec Nitro. Mets en valeur son geste héroïque pour la communauté avec des emojis festifs (🚀, 💖, 💎, ✨, 🔥). Ne mets pas de guillemets autour de la phrase.`;
+
+  try {
+    const res = await generateAiCompletion({
+      guildId: gId,
+      category: 'text',
+      systemPrompt,
+      userPrompt,
+      temperature: 0.9,
+      maxTokens: 250
+    });
+    if (res) return res.replace(/^["']|["']$/g, '');
+  } catch (err) {
+    console.warn('[AI Boost Helper] Error:', err.message);
+  }
+  return null;
+}
+
+async function generateAiDropPhrase(dropType, amount, authorMember, guildId = null) {
+  const authorName = authorMember ? authorMember.displayName : 'Le Staff';
+  const gId = guildId || (authorMember ? authorMember.guild.id : null);
+
+  const unit = dropType === 'dropargent' ? '🪙 pièces' : (dropType === 'dropkarma' ? '✨ Karma' : '⚡ XP');
+  const systemPrompt = `Tu es l'animateur d'un serveur Discord dynamique. Ton but est de rédiger une annonce excitante et captivante pour un largage / drop gratuit d'économie ou de bonus dans le salon.`;
+  const userPrompt = `Rédige un court message d'annonce d'événement largage / drop de ${amount} ${unit} offert par ${authorName} (max 180 caractères). Sois motivant, festif et incitatif pour inciter les membres à cliquer rapidement sur le bouton de réclamation. Ne mets pas de guillemets.`;
+
+  try {
+    const res = await generateAiCompletion({
+      guildId: gId,
+      category: 'text',
+      systemPrompt,
+      userPrompt,
+      temperature: 0.9,
+      maxTokens: 200
+    });
+    if (res) return res.replace(/^["']|["']$/g, '');
+  } catch (err) {
+    console.warn('[AI Drop Helper] Error:', err.message);
+  }
+  return null;
+}
+
+module.exports = { generateAiActionPhrase, generateSensualText, generateAiGiftPhrase, generateAiEconomyPhrase, generateAiBoostPhrase, generateAiDropPhrase };
 
 

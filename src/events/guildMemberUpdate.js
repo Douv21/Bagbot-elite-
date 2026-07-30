@@ -136,6 +136,9 @@ module.exports = {
         if (boostConf && boostConf.enabled !== 0 && boostConf.channel_id) {
           const channel = newMember.guild.channels.cache.get(boostConf.channel_id);
           if (channel) {
+            const { generateAiBoostPhrase } = require('../utils/aiActionHelper');
+            const aiBoostText = await generateAiBoostPhrase(newMember, guildId);
+
             let msgText = boostConf.message || '🎉 Un grand MERCI à {user.mention} d\'avoir boosté **{server}** ! Grâce à toi, le serveur gagne en puissance ! 💖';
             msgText = msgText
               .replace(/{user}/g, newMember.user.tag)
@@ -150,11 +153,25 @@ module.exports = {
               .replace(/{user}/g, newMember.user.tag)
               .replace(/{server}/g, newMember.guild.name);
 
+            const finalDesc = aiBoostText ? `${aiBoostText}\n\n${msgText}` : msgText;
+
             const boostEmbed = new EmbedBuilder()
+              .setAuthor({ 
+                name: `🌟 NOUVEAU BOOSTER NITRO — ${newMember.user.displayName}`, 
+                iconURL: newMember.user.displayAvatarURL({ dynamic: true }) 
+              })
               .setTitle(titleText)
-              .setDescription(msgText)
+              .setDescription(finalDesc)
               .setColor(boostConf.color || '#F47FFF')
               .setThumbnail(newMember.user.displayAvatarURL({ dynamic: true }))
+              .addFields(
+                { name: '💎 Niveau du Serveur', value: `Niveau **${newMember.guild.premiumTier}** (${newMember.guild.premiumSubscriptionCount || 1} Boosts)`, inline: true },
+                { name: '🚀 Membre VIP', value: `<@${newMember.id}>`, inline: true }
+              )
+              .setFooter({ 
+                text: `${newMember.guild.name} • Remerciements Nitro VIP`, 
+                iconURL: newMember.guild.iconURL({ dynamic: true }) || undefined 
+              })
               .setTimestamp();
 
             if (boostConf.image_url) {
@@ -171,8 +188,8 @@ module.exports = {
               });
 
               boostEmbed.addFields({
-                name: '🎁 Récompense VIP',
-                value: `+**${rewardMoney}** 🪙 pièces & +**${rewardKarma}** ✨ Karma ajoutés à ton portefeuille !`,
+                name: '🎁 Récompense VIP accordée',
+                value: `+**${rewardMoney}** 🪙 pièces & +**${rewardKarma}** ✨ Karma versés sur le compte de <@${newMember.id}> !`,
                 inline: false
               });
             }
