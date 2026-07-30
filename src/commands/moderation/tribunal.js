@@ -538,6 +538,8 @@ module.exports = {
                     PermissionFlagsBits.ReadMessageHistory,
                     PermissionFlagsBits.EmbedLinks,
                     PermissionFlagsBits.AttachFiles,
+                    PermissionFlagsBits.UseExternalEmojis,
+                    PermissionFlagsBits.AddReactions,
                   ],
                 });
               }

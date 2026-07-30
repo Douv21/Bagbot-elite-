@@ -678,13 +678,17 @@ document.addEventListener('DOMContentLoaded', () => {
         safeSetVal('tribunal_channel_prefix', trib.channelPrefix || '⚖️┆procès-');
         safeSetVal('tribunal_auto_delete_minutes', trib.autoDeleteMinutes ?? 5);
 
-        const tribAccessRolesEl = document.getElementById('tribunal_access_roles');
-        if (tribAccessRolesEl) {
-          const selectedAccess = trib.accessRoles || [];
-          Array.from(tribAccessRolesEl.options).forEach(opt => {
-            opt.selected = selectedAccess.includes(opt.value);
-          });
-          if (tribAccessRolesEl.syncCustomSelect) tribAccessRolesEl.syncCustomSelect();
+        if (typeof setMultiSelectValues === 'function') {
+          setMultiSelectValues('tribunal_access_roles', trib.accessRoles || []);
+        } else {
+          const tribAccessRolesEl = document.getElementById('tribunal_access_roles');
+          if (tribAccessRolesEl) {
+            const selectedAccess = trib.accessRoles || [];
+            Array.from(tribAccessRolesEl.options).forEach(opt => {
+              opt.selected = selectedAccess.includes(opt.value);
+            });
+            if (tribAccessRolesEl.syncCustomSelect) tribAccessRolesEl.syncCustomSelect();
+          }
         }
 
         safeSetVal('tribunal_judge_role', trib.judgeRoleId);
