@@ -4,7 +4,8 @@ const { sendLog } = require('../../utils/helpers');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('kick')
-    .setDescription('Exclure un membre du serveur')
+    .setDescription('Expulser un membre du serveur')
+    .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers)
     .addUserOption(option => option.setName('cible').setDescription('Le membre à exclure').setRequired(true))
     .addStringOption(option => option.setName('raison').setDescription('Raison de l\'exclusion').setRequired(false)),
   async execute(interaction) {

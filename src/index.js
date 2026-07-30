@@ -873,15 +873,21 @@ client.on('interactionCreate', async interaction => {
       const cmdName = interaction.commandName;
 
       try {
-        if (['ban', 'unban', 'massban'].includes(cmdName)) {
+        if (isUserAdmin) {
+          hasDiscordNativePerm = true;
+        } else if (['ban', 'unban', 'massban'].includes(cmdName)) {
           hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.BanMembers);
         } else if (['kick', 'masskick'].includes(cmdName)) {
-          hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.KickMembers);
-        } else if (['clear', 'warn', 'unwarn', 'mute', 'unmute', 'timeout', 'untimeout', 'quarantaine'].includes(cmdName)) {
-          hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.ModerateMembers) || userPerms.has(PermissionsBitField.Flags.ManageMessages);
+          hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.BanMembers);
+        } else if (['clear'].includes(cmdName)) {
+          hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.ManageMessages) || userPerms.has(PermissionsBitField.Flags.ModerateMembers) || userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.BanMembers);
+        } else if (['warn', 'unwarn', 'mute', 'unmute', 'timeout', 'untimeout', 'quarantaine'].includes(cmdName)) {
+          hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.ModerateMembers) || userPerms.has(PermissionsBitField.Flags.ManageMessages) || userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.BanMembers);
+        } else if (['ajouter', 'syncautoroles', 'addEmojiContext'].includes(cmdName)) {
+          hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.ManageGuild) || userPerms.has(PermissionsBitField.Flags.ManageRoles);
         } else {
           // Commandes Admin / Config
-          hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.ManageGuild);
+          hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.ManageGuild) || userPerms.has(PermissionsBitField.Flags.Administrator);
         }
 
         // Si la commande définit par défaut des permissions requises dans son builder

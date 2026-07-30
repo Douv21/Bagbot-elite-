@@ -128,10 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const guildId = guildSelect ? guildSelect.value : '';
         const mapIframe = document.getElementById('map-iframe');
         if (mapIframe) mapIframe.src = `map.html?guild=${guildId}`;
-      } else if (tabId === 'tab-permissions') {
-        if (typeof updatePermissionsRoleBadges === 'function') {
-          updatePermissionsRoleBadges();
-        }
       }
     });
   });

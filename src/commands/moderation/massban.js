@@ -5,6 +5,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('massban')
     .setDescription('Bannir plusieurs membres en masse via IDs, mentions, rôles ou sans rôles')
+    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
     .addStringOption(option => option.setName('membres').setDescription('IDs ou Mentions des membres séparés par des espaces').setRequired(false))
     .addRoleOption(option => option.setName('role').setDescription('Bannir tous les membres ayant ce rôle').setRequired(false))
     .addBooleanOption(option => option.setName('sans_role').setDescription('Bannir tous les membres n\'ayant aucun rôle (uniquement @everyone)').setRequired(false))

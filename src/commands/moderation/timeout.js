@@ -5,6 +5,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('timeout')
     .setDescription('Exclure temporairement (timeout) un membre')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
     .addUserOption(option => option.setName('cible').setDescription('Le membre à exclure temporairement').setRequired(true))
     .addIntegerOption(option => option.setName('duree').setDescription('Durée en minutes').setRequired(true))
     .addStringOption(option => option.setName('raison').setDescription('Raison du timeout').setRequired(false)),

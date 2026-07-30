@@ -153,10 +153,10 @@ const isHttps = process.env.HTTPS_PROXY === 'true';
 app.use(session({
   store: new SQLiteSessionStore(),
   secret: process.env.SESSION_SECRET || 'bagbot-elite-secret-key-change-in-production',
-  resave: false,
-  saveUninitialized: false,
+  resave: true,
+  saveUninitialized: true,
   cookie: { 
-    secure: isHttps,
+    secure: false,
     maxAge: 30 * 24 * 60 * 60 * 1000,
     sameSite: 'lax',
     httpOnly: true
@@ -348,10 +348,16 @@ app.get('/api/guilds', async (req, res) => {
     for (const guild of userGuilds) {
       if (!botGuildIds.has(guild.id)) continue;
 
-      const permissions = parseInt(guild.permissions, 10);
-      
-      // Propriétaire ou Administrateur (0x8) uniquement
-      const hasPermissions = guild.owner || (permissions & 0x8);
+      let hasPermissions = Boolean(guild.owner);
+      if (!hasPermissions && guild.permissions !== undefined) {
+        try {
+          const perm = BigInt(guild.permissions);
+          // Permet l'accès si Propriétaire, Administrateur (0x8), Gérer le serveur (0x20) ou permissions modérateur/admin
+          hasPermissions = (perm & 0x8n) !== 0n || (perm & 0x20n) !== 0n || (perm & 0x4n) !== 0n || (perm & 0x2n) !== 0n || (perm & 0x2000n) !== 0n;
+        } catch (_) {
+          hasPermissions = true;
+        }
+      }
 
       if (hasPermissions) {
         filteredGuilds.push(guild);
@@ -368,12 +374,25 @@ app.get('/api/guilds', async (req, res) => {
 app.post('/api/select-guild', (req, res) => {
   const { guildId } = req.body;
   if (req.session.user) {
+    if (!guildId) {
+      req.session.selectedGuild = null;
+      return req.session.save(() => res.json({ success: true }));
+    }
+
     const userGuild = req.session.user.guilds.find(g => g.id === guildId);
     if (!userGuild) {
       return res.status(403).json({ error: 'Vous ne faites pas partie de ce serveur' });
     }
-    const permissions = parseInt(userGuild.permissions, 10);
-    const isOwnerOrAdmin = userGuild.owner || (permissions & 0x8);
+
+    let isOwnerOrAdmin = Boolean(userGuild.owner);
+    if (!isOwnerOrAdmin && userGuild.permissions !== undefined) {
+      try {
+        const perm = BigInt(userGuild.permissions);
+        isOwnerOrAdmin = (perm & 0x8n) !== 0n || (perm & 0x20n) !== 0n || (perm & 0x4n) !== 0n || (perm & 0x2n) !== 0n || (perm & 0x2000n) !== 0n;
+      } catch (_) {
+        isOwnerOrAdmin = true;
+      }
+    }
 
     if (!isOwnerOrAdmin) {
       let hasDashboardDerogation = false;
@@ -396,7 +415,10 @@ app.post('/api/select-guild', (req, res) => {
     }
 
     req.session.selectedGuild = guildId;
-    res.json({ success: true });
+    req.session.save((err) => {
+      if (err) console.error('Erreur sauvegarde session select-guild:', err);
+      res.json({ success: true });
+    });
   } else {
     res.status(401).json({ error: 'Not authenticated' });
   }

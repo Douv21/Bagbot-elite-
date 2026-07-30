@@ -5,6 +5,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('masskick')
     .setDescription('Expulser plusieurs membres en masse via IDs, mentions, rôles ou sans rôles')
+    .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers)
     .addStringOption(option => option.setName('membres').setDescription('IDs ou Mentions des membres séparés par des espaces').setRequired(false))
     .addRoleOption(option => option.setName('role').setDescription('Expulser tous les membres ayant ce rôle').setRequired(false))
     .addBooleanOption(option => option.setName('sans_role').setDescription('Expulser tous les membres n\'ayant aucun rôle (uniquement @everyone)').setRequired(false))
