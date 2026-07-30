@@ -214,9 +214,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (targetTab) {
       targetTab.classList.add('active');
       setTimeout(() => {
-        targetTab.querySelectorAll('select.custom-select, select.channel-select, select.role-select, select.announce-channel-select, select.category-select').forEach(select => {
-          if (select.syncCustomSelect) {
-            try { select.syncCustomSelect(); } catch (e) {}
+        targetTab.querySelectorAll('select').forEach(sel => {
+          const savedVal = sel.getAttribute('data-saved-value') || sel.value;
+          if (savedVal !== undefined && savedVal !== null && savedVal !== '') {
+            sel.value = savedVal;
+            Array.from(sel.options).forEach((opt, idx) => {
+              if (String(opt.value) === String(savedVal)) {
+                opt.selected = true;
+                sel.selectedIndex = idx;
+              }
+            });
+          }
+          if (sel.syncCustomSelect) {
+            try { sel.syncCustomSelect(); } catch (e) {}
           }
         });
       }, 50);

@@ -2127,7 +2127,7 @@ td.text-center, td[colspan] {
     border-right: none !important;
   }
 
-  .btn-toggle-sub-sidebar {
+  .btn-toggle-sub-sidebar, .btn-toggle-sub-side {
     background: rgba(142, 68, 173, 0.85) !important;
     border: 1px solid #d4af37 !important;
     color: #ffd700 !important;
@@ -2138,10 +2138,12 @@ td.text-center, td[colspan] {
     align-items: center !important;
     justify-content: center !important;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6) !important;
+    cursor: pointer !important;
   }
 
   /* Bouton déclencheur flottant quand la sidebar mobile est rétractée */
-  .sub-sidebar-nav.retracted .btn-toggle-sub-sidebar {
+  .sub-sidebar-nav.retracted .btn-toggle-sub-sidebar,
+  .sub-sidebar-nav.retracted .btn-toggle-sub-side {
     position: fixed !important;
     top: 75px !important;
     left: 12px !important;
@@ -2149,7 +2151,8 @@ td.text-center, td[colspan] {
     transform: none !important;
   }
 
-  .sub-sidebar-nav.retracted .btn-toggle-sub-sidebar i {
+  .sub-sidebar-nav.retracted .btn-toggle-sub-sidebar i,
+  .sub-sidebar-nav.retracted .btn-toggle-sub-side i {
     transform: rotate(180deg) !important;
   }
 
