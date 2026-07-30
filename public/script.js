@@ -149,6 +149,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  const categoryCardTabMap = {
+    server: 'tab-welcome',
+    security: 'tab-quarantine',
+    economy: 'tab-leveling',
+    ai: 'tab-assistant'
+  };
+
+  document.querySelectorAll('.nav-category-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const catKey = card.getAttribute('data-hub-cat');
+      const targetTabId = categoryCardTabMap[catKey] || 'tab-welcome';
+      const targetBtn = document.querySelector(`.tab-btn[data-tab="${targetTabId}"]`);
+      if (targetBtn) {
+        targetBtn.click();
+        const targetTabEl = document.getElementById(targetTabId);
+        if (targetTabEl) targetTabEl.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  });
+
   // Verify auth state
   fetch('/api/user', { cache: 'no-store' })
     .then(res => res.json())
