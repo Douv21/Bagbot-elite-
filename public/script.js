@@ -3713,7 +3713,10 @@ document.addEventListener('DOMContentLoaded', () => {
         card.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <h4 style="margin: 0; color: #fff;">${item.title || '(Message Existant)'}</h4>
-            <button class="btn btn-delete btn-sm" style="padding: 4px 8px; font-size: 0.8rem;"><i class="fa-solid fa-trash"></i> Supprimer</button>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="btn btn-edit-embed btn-sm" style="padding: 4px 8px; font-size: 0.8rem; background: #3498db; color: #fff;"><i class="fa-solid fa-pen-to-square"></i> Modifier</button>
+              <button type="button" class="btn btn-delete btn-sm" style="padding: 4px 8px; font-size: 0.8rem;"><i class="fa-solid fa-trash"></i> Supprimer</button>
+            </div>
           </div>
           <p style="margin: 2px 0; font-size: 0.85rem; color: #b9bbbe;">
             <i class="fa-solid fa-hashtag"></i> Salon: <strong>${channelName}</strong> · ID Message: <code>${item.message_id}</code>
@@ -3723,6 +3726,21 @@ document.addEventListener('DOMContentLoaded', () => {
             ${buttonsHtml}
           </div>
         `;
+
+        const editBtn = card.querySelector('.btn-edit-embed');
+        if (editBtn) {
+          editBtn.addEventListener('click', () => {
+            const embedSenderBtn = document.querySelector('.tab-btn[data-tab="tab-embed-sender"]');
+            if (embedSenderBtn) embedSenderBtn.click();
+            safeSetVal('simple_embed_channel', item.channel_id);
+            safeSetVal('simple_embed_edit_msg_id', item.message_id);
+            safeSetVal('simple_embed_title', item.title || '');
+            safeSetVal('simple_embed_desc', item.description || '');
+            safeSetVal('simple_embed_color', item.color || '#5865F2');
+            safeSetVal('simple_embed_image', item.image_url || '');
+            showToast('Embed chargé dans l\'éditeur !');
+          });
+        }
 
         card.querySelector('.btn-delete').addEventListener('click', () => {
           if (!confirm('Voulez-vous vraiment supprimer ce rôle réaction ? Le message sera supprimé de Discord et de la base de données.')) return;
@@ -5847,6 +5865,61 @@ function initSimpleEmbedSender() {
     if (el) el.addEventListener('input', updatePreview);
   });
   if (selectThumb) selectThumb.addEventListener('change', updatePreview);
+
+  let channelEmbedsList = [];
+  const simpleEmbedChanSelect = document.getElementById('simple_embed_channel');
+  const selectChannelEmbedsGroup = document.getElementById('group_select_channel_embeds');
+  const selectChannelEmbeds = document.getElementById('select_channel_embeds');
+
+  if (simpleEmbedChanSelect) {
+    simpleEmbedChanSelect.addEventListener('change', () => {
+      const channelId = simpleEmbedChanSelect.value;
+      if (!channelId) {
+        if (selectChannelEmbedsGroup) selectChannelEmbedsGroup.style.display = 'none';
+        return;
+      }
+
+      fetch(`/api/config/embeds/fetch-channel-messages?channelId=${channelId}`)
+        .then(res => res.json())
+        .then(embeds => {
+          channelEmbedsList = Array.isArray(embeds) ? embeds : [];
+          if (!selectChannelEmbeds) return;
+          selectChannelEmbeds.innerHTML = '<option value="">-- Sélectionner un message existant à charger / modifier --</option>';
+          if (channelEmbedsList.length > 0) {
+            channelEmbedsList.forEach(emb => {
+              const opt = document.createElement('option');
+              opt.value = emb.id;
+              opt.textContent = `[${emb.id}] ${emb.title} - ${(emb.description || '').slice(0, 30)}...`;
+              selectChannelEmbeds.appendChild(opt);
+            });
+            if (selectChannelEmbedsGroup) selectChannelEmbedsGroup.style.display = 'block';
+          } else {
+            if (selectChannelEmbedsGroup) selectChannelEmbedsGroup.style.display = 'none';
+          }
+        })
+        .catch(console.error);
+    });
+  }
+
+  if (selectChannelEmbeds) {
+    selectChannelEmbeds.addEventListener('change', () => {
+      const msgId = selectChannelEmbeds.value;
+      if (!msgId) return;
+      const targetEmb = channelEmbedsList.find(e => e.id === msgId);
+      if (targetEmb) {
+        safeSetVal('simple_embed_edit_msg_id', targetEmb.id);
+        safeSetVal('simple_embed_title', targetEmb.title || '');
+        safeSetVal('simple_embed_desc', targetEmb.description || '');
+        safeSetVal('simple_embed_color', targetEmb.color || '#5865F2');
+        safeSetVal('simple_embed_image', targetEmb.image || '');
+        safeSetVal('simple_embed_author_name', targetEmb.author_name || '');
+        safeSetVal('simple_embed_author_icon', targetEmb.author_icon || '');
+        safeSetVal('simple_embed_footer_text', targetEmb.footer || '');
+        showToast('Message embed chargé dans le formulaire !');
+        updatePreview();
+      }
+    });
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();

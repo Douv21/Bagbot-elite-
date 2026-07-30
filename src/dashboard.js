@@ -1397,19 +1397,84 @@ app.post('/api/config/send-simple-embed', async (req, res) => {
     if (ping_type === 'everyone') contentPayload = '@everyone';
     else if (ping_type === 'here') contentPayload = '@here';
 
+    let msgIdSaved = null;
     if (existing_message_id && existing_message_id.trim()) {
       const targetMsg = await channel.messages.fetch(existing_message_id.trim()).catch(() => null);
       if (!targetMsg) {
         return res.status(404).json({ error: 'Message existant introuvable dans ce salon' });
       }
       await targetMsg.edit({ content: contentPayload, embeds: [embed] });
-      res.json({ success: true, messageId: targetMsg.id, message: 'Message Embed mis à jour avec succès !' });
+      msgIdSaved = targetMsg.id;
     } else {
       const sentMsg = await channel.send({ content: contentPayload, embeds: [embed] });
-      res.json({ success: true, messageId: sentMsg.id, message: 'Message Embed envoyé avec succès dans le salon !' });
+      msgIdSaved = sentMsg.id;
     }
+
+    try {
+      deleteAutoroleEmbed(guildId, msgIdSaved);
+      addAutoroleEmbed(
+        guildId,
+        msgIdSaved,
+        channel_id,
+        title || 'Embed Simple',
+        description || '',
+        color || '#5865F2',
+        thumbnail_url ? 1 : 0,
+        image_url || null,
+        'simple',
+        'normal'
+      );
+    } catch (e) {
+      console.error('Erreur sauvegarde embed simple dans DB:', e);
+    }
+
+    res.json({ success: true, messageId: msgIdSaved, message: 'Message Embed envoyé/mis à jour avec succès dans le salon !' });
   } catch (error) {
     console.error('Erreur send-simple-embed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Route pour récupérer les messages Embed du salon depuis Discord pour édition
+app.get('/api/config/embeds/fetch-channel-messages', async (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const channelId = req.query.channelId;
+    if (!channelId) return res.status(400).json({ error: 'Salon requis' });
+
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
+
+    const channel = guild.channels.cache.get(channelId);
+    if (!channel || !channel.isTextBased()) return res.status(404).json({ error: 'Salon textuel introuvable' });
+
+    const messages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
+    if (!messages) return res.json([]);
+
+    const botEmbeds = [];
+    messages.forEach(msg => {
+      if (msg.author.id === client.user.id && msg.embeds.length > 0) {
+        const emb = msg.embeds[0];
+        botEmbeds.push({
+          id: msg.id,
+          channel_id: channel.id,
+          title: emb.title || '(Sans titre)',
+          description: emb.description || '',
+          color: emb.hexColor || '#5865F2',
+          thumbnail: emb.thumbnail ? emb.thumbnail.url : null,
+          image: emb.image ? emb.image.url : null,
+          author_name: emb.author ? emb.author.name : null,
+          author_icon: emb.author ? emb.author.iconURL : null,
+          footer: emb.footer ? emb.footer.text : null
+        });
+      }
+    });
+
+    res.json(botEmbeds);
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 });
