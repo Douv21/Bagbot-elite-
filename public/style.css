@@ -1,15 +1,20 @@
-/* style.css */
 :root {
-  --primary-color: #5865F2;
-  --primary-glow: rgba(88, 101, 242, 0.4);
-  --bg-dark: #08090c;
-  --bg-card: rgba(24, 28, 43, 0.85);
-  --text-color: #ffffff;
-  --text-muted: #b9bbbe;
-  --border-color: rgba(255, 255, 255, 0.14);
-  --success-color: #00FF87;
-  --danger-color: #ff477e;
-  --warning-color: #ffb300;
+  --primary-color: #8b5cf6; /* Violet Velours */
+  --primary-glow: rgba(139, 92, 246, 0.45);
+  --violet-deep: #4c1d95;
+  --violet-velvet: linear-gradient(135deg, #7c3aed, #4c1d95);
+  --bg-dark: #07080b; /* Noir Profond / Charbon */
+  --bg-charcoal: #11131c;
+  --bg-card: rgba(17, 19, 29, 0.88);
+  --text-color: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-color: rgba(139, 92, 246, 0.22);
+  --border-gold: rgba(255, 215, 0, 0.4);
+  --gold-glow: rgba(255, 215, 0, 0.3);
+  --gold-gradient: linear-gradient(135deg, rgba(255, 215, 0, 0.12) 0%, rgba(217, 119, 6, 0.08) 100%);
+  --success-color: #10b981;
+  --danger-color: #f43f5e;
+  --warning-color: #f59e0b;
 }
 
 * {
@@ -19,7 +24,7 @@
 }
 
 body {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
   background-color: var(--bg-dark);
   color: var(--text-color);
   min-height: 100vh;
@@ -2183,5 +2188,137 @@ td.text-center, td[colspan] {
 .card:hover {
   transform: translateY(-4px);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 24px var(--primary-glow);
-  border-color: rgba(88, 101, 242, 0.4);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+/* ==========================================================================
+   ⚡ STATUT RÉTRO-ÉCLAIRÉ EN DIRECT (BACKLIT LIVE STATUS BADGE)
+   ========================================================================== */
+
+.backlit-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 20px;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #10b981;
+  letter-spacing: 0.5px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #10b981;
+  animation: backlitPulse 1.8s infinite alternate ease-in-out;
+}
+
+@keyframes backlitPulse {
+  0% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 6px #10b981; }
+  100% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 14px #10b981, 0 0 20px #10b981; }
+}
+
+/* ==========================================================================
+   🏆 CARTE OR (GOLD CARDS FOR SPECIAL SECTIONS)
+   ========================================================================== */
+
+.card-gold, .card.gold-theme {
+  background: var(--gold-gradient) !important;
+  border: 1px solid var(--border-gold) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 20px var(--gold-glow) !important;
+}
+
+.card-gold:hover, .card.gold-theme:hover {
+  border-color: #ffd700 !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 215, 0, 0.5) !important;
+}
+
+/* ==========================================================================
+   🚀 BARRE D'ACCÈS RAPIDE AUX CATÉGORIES (QUICK CATEGORY BAR)
+   ========================================================================== */
+
+.category-quick-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+
+.quick-cat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(17, 19, 29, 0.75);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.quick-cat-btn:hover, .quick-cat-btn.active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(76, 29, 149, 0.3));
+  border-color: rgba(139, 92, 246, 0.6);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-nsfw-quick:hover, .btn-nsfw-quick.active {
+  background: linear-gradient(135deg, rgba(255, 42, 109, 0.25), rgba(157, 78, 237, 0.3)) !important;
+  border-color: rgba(255, 42, 109, 0.6) !important;
+  box-shadow: 0 4px 18px rgba(255, 42, 109, 0.4) !important;
+}
+
+.active-guild-banner-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 14px 22px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(17, 19, 29, 0.8));
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* ==========================================================================
+   💫 HOVER EFFECT TRAÎNÉE DE LUMIÈRE (LIGHT TRAIL HOVER SWEEP)
+   ========================================================================== */
+
+.card, .btn, .tab-btn, .quick-cat-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before, .quick-cat-btn::before {
+  content: '';
+  position: absolute;
+  top: -120%;
+  left: -120%;
+  width: 350%;
+  height: 350%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.18) 0%, transparent 65%);
+  opacity: 0;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  pointer-events: none;
+  transform: translate(-30%, -30%);
+}
+
+.card:hover::before, .quick-cat-btn:hover::before {
+  opacity: 1;
+  transform: translate(25%, 25%);
 }

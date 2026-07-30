@@ -109,6 +109,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Quick Category Filter Buttons
+  const quickCatBtns = document.querySelectorAll('.quick-cat-btn');
+  quickCatBtns.forEach(qBtn => {
+    qBtn.addEventListener('click', () => {
+      quickCatBtns.forEach(b => b.classList.remove('active'));
+      qBtn.classList.add('active');
+      const catTarget = qBtn.getAttribute('data-cat');
+      
+      const categories = document.querySelectorAll('.sidebar-category');
+      categories.forEach(cat => {
+        if (catTarget === 'all') {
+          cat.style.display = 'block';
+          cat.classList.remove('collapsed');
+        } else if (catTarget === 'nsfw' && cat.classList.contains('category-nsfw')) {
+          cat.style.display = 'block';
+          cat.classList.remove('collapsed');
+        } else if (catTarget === 'server' && cat.innerHTML.includes('GESTION DU SERVEUR')) {
+          cat.style.display = 'block';
+          cat.classList.remove('collapsed');
+        } else if (catTarget === 'security' && cat.innerHTML.includes('SÉCURITÉ & MODÉRATION')) {
+          cat.style.display = 'block';
+          cat.classList.remove('collapsed');
+        } else if (catTarget === 'economy' && cat.innerHTML.includes('ÉCONOMIE & JEUX')) {
+          cat.style.display = 'block';
+          cat.classList.remove('collapsed');
+        } else if (catTarget === 'ai' && cat.innerHTML.includes('ASSISTANT & STAR IA')) {
+          cat.style.display = 'block';
+          cat.classList.remove('collapsed');
+        } else {
+          cat.style.display = 'none';
+        }
+      });
+    });
+  });
+
   // Tab switching logic
   const tabBtns = document.querySelectorAll('.tab-btn');
   const tabContents = document.querySelectorAll('.tab-content');
