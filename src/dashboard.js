@@ -464,7 +464,7 @@ app.get('/api/roles', async (req, res) => {
 // API pour obtenir les membres (via le bot)
 app.get('/api/members', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild || req.query.guildId;
+    const guildId = (req.query && req.query.guildId) || (req.body && req.body.guildId) || (req.session && req.session.selectedGuild);
     if (!req.session.user || !guildId) {
       return res.json([]);
     }
@@ -501,7 +501,7 @@ app.get('/api/bot/info', async (req, res) => {
 // Changer l'avatar du bot globalement
 app.post('/api/bot/avatar', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild || req.query.guildId || req.body.guildId;
+    const guildId = (req.query && req.query.guildId) || (req.body && req.body.guildId) || (req.session && req.session.selectedGuild);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
     const { avatar_url } = req.body || {};
 
@@ -524,7 +524,7 @@ app.post('/api/bot/avatar', async (req, res) => {
 // 1. Obtenir toute la configuration d'un serveur
 app.get('/api/config', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild || req.query.guildId;
+    const guildId = (req.query && req.query.guildId) || (req.body && req.body.guildId) || (req.session && req.session.selectedGuild);
     if (!guildId) {
       return res.status(400).json({ error: 'No guild selected' });
     }
@@ -1976,7 +1976,7 @@ app.post('/api/config/announce-commands', async (req, res) => {
 
 app.get('/api/config/map-locations', async (req, res) => {
   try {
-    const guildId = req.query.guild || req.session.selectedGuild;
+    const guildId = (req.query && req.query.guild) || (req.query && req.query.guildId) || (req.session && req.session.selectedGuild);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const locations = db.prepare('SELECT * FROM member_locations WHERE guild_id = ?').all(guildId);
@@ -2005,7 +2005,7 @@ app.get('/api/config/map-locations', async (req, res) => {
 
 app.post('/api/config/map-locations/delete', async (req, res) => {
   try {
-    const guildId = req.body.guild || req.session.selectedGuild;
+    const guildId = (req.body && req.body.guild) || (req.body && req.body.guildId) || (req.session && req.session.selectedGuild);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const guild = client.guilds.cache.get(guildId);
