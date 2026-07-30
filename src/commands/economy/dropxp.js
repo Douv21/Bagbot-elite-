@@ -22,16 +22,27 @@ module.exports = {
   
   async execute(interaction) {
     const perms = interaction.memberPermissions || interaction.member?.permissions;
+    const userRoleIds = interaction.member?.roles?.cache ? Array.from(interaction.member.roles.cache.keys()) : (Array.isArray(interaction.member?.roles) ? interaction.member.roles : []);
+    
+    const { getPermissionsConfig } = require("../../database/db");
+    let modoCmdsRoles = [];
+    try {
+      const permConfig = getPermissionsConfig(interaction.guild.id);
+      modoCmdsRoles = typeof permConfig.modo_cmds_roles === 'string' ? JSON.parse(permConfig.modo_cmds_roles || '[]') : (permConfig.modo_cmds_roles || []);
+      if (permConfig.modo_role_id) modoCmdsRoles.push(permConfig.modo_role_id);
+    } catch (_) {}
+
     const isStaff = Boolean(
       perms?.has(PermissionsBitField.Flags.Administrator) ||
       perms?.has(PermissionsBitField.Flags.KickMembers) ||
       perms?.has(PermissionsBitField.Flags.BanMembers) ||
       perms?.has(PermissionsBitField.Flags.ModerateMembers) ||
-      perms?.has(PermissionsBitField.Flags.ManageMessages)
+      perms?.has(PermissionsBitField.Flags.ManageMessages) ||
+      modoCmdsRoles.some(rId => userRoleIds.includes(rId))
     );
     if (!isStaff) {
       return interaction.reply({ 
-        content: "❌ Vous devez disposer des autorisations de modération (Expulser, Bannir, Modérer ou Gérer les messages) pour créer un drop d'XP.", 
+        content: "❌ Vous devez disposer des autorisations de modération (Expulser, Bannir, Modérer ou Gérer les messages) ou d'un rôle Staff pour créer un drop d'XP.", 
         ephemeral: true 
       });
     }

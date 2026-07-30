@@ -821,7 +821,7 @@ client.on('interactionCreate', async interaction => {
         (['ban', 'unban', 'massban'].includes(interaction.commandName) && userPerms.has(PermissionsBitField.Flags.BanMembers)) ||
         (['kick', 'masskick'].includes(interaction.commandName) && (userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.BanMembers))) ||
         (['clear'].includes(interaction.commandName) && (userPerms.has(PermissionsBitField.Flags.ManageMessages) || userPerms.has(PermissionsBitField.Flags.ModerateMembers))) ||
-        (['warn', 'unwarn', 'mute', 'unmute', 'timeout', 'untimeout', 'quarantaine'].includes(interaction.commandName) && (userPerms.has(PermissionsBitField.Flags.ModerateMembers) || userPerms.has(PermissionsBitField.Flags.ManageMessages) || userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.BanMembers)));
+        (['warn', 'unwarn', 'mute', 'unmute', 'timeout', 'untimeout', 'quarantaine', 'dropargent', 'drop-argent', 'dropkarma', 'drop-karma', 'dropxp', 'drop-xp'].includes(interaction.commandName) && (userPerms.has(PermissionsBitField.Flags.ModerateMembers) || userPerms.has(PermissionsBitField.Flags.ManageMessages) || userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.BanMembers)));
 
       if (!hasNativePerm) {
         let allowedRoles = [];
@@ -854,7 +854,7 @@ client.on('interactionCreate', async interaction => {
 
     const isAllowedForEveryone = 
       (command.category === 'actions' || 
-       (command.category === 'economy' && !['dropargent', 'dropkarma', 'dropxp'].includes(interaction.commandName)) ||
+       (command.category === 'economy' && !['dropargent', 'drop-argent', 'dropkarma', 'drop-karma', 'dropxp', 'drop-xp'].includes(interaction.commandName)) ||
        ['travailler', 'daily', 'work', 'crime', 'rob', 'voler', 'pecher', 'action-verite', 'niveau', 'solde', 'karma', 'mapville', 'proche', 'boutique', 'leaderboard', 'confess', 'confesser', 'deposit', 'deposer', 'withdraw', 'retirer', 'donner', 'pay', 'lovecalc', 'mot-cache', 'tribunal', 'uno', 'star', 'gifle', 'patpat', 'quetes'].includes(interaction.commandName)) &&
       !['dashboard'].includes(interaction.commandName);
       
@@ -872,7 +872,7 @@ client.on('interactionCreate', async interaction => {
       const hasDashDerogation = interaction.commandName === 'dashboard' && dashRoles.some(rId => userRoleIds.includes(rId));
       const hasAdminCmdsDerogation = adminCmdsRoles.some(rId => userRoleIds.includes(rId));
       
-      const isModoCmd = ['ban', 'kick', 'unban', 'clear', 'warn', 'unwarn', 'mute', 'unmute', 'timeout', 'untimeout', 'quarantaine', 'massban', 'masskick', 'dropargent', 'dropkarma', 'dropxp', 'dashboard'].includes(interaction.commandName);
+      const isModoCmd = ['ban', 'kick', 'unban', 'clear', 'warn', 'unwarn', 'mute', 'unmute', 'timeout', 'untimeout', 'quarantaine', 'massban', 'masskick', 'dropargent', 'drop-argent', 'dropkarma', 'drop-karma', 'dropxp', 'drop-xp', 'dashboard'].includes(interaction.commandName);
       const hasModoCmdsDerogation = isModoCmd && modoCmdsRoles.some(rId => userRoleIds.includes(rId));
 
       // Vérification des permissions Discord natives selon la commande
@@ -888,7 +888,7 @@ client.on('interactionCreate', async interaction => {
           hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.BanMembers) || hasDashDerogation;
         } else if (['clear'].includes(cmdName)) {
           hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.ManageMessages) || userPerms.has(PermissionsBitField.Flags.ModerateMembers) || userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.BanMembers);
-        } else if (['warn', 'unwarn', 'mute', 'unmute', 'timeout', 'untimeout', 'quarantaine', 'dropargent', 'dropkarma', 'dropxp'].includes(cmdName)) {
+        } else if (['warn', 'unwarn', 'mute', 'unmute', 'timeout', 'untimeout', 'quarantaine', 'dropargent', 'drop-argent', 'dropkarma', 'drop-karma', 'dropxp', 'drop-xp'].includes(cmdName)) {
           hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.ModerateMembers) || userPerms.has(PermissionsBitField.Flags.ManageMessages) || userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.BanMembers);
         } else if (['ajouter', 'syncautoroles', 'addEmojiContext'].includes(cmdName)) {
           hasDiscordNativePerm = userPerms.has(PermissionsBitField.Flags.ManageGuild) || userPerms.has(PermissionsBitField.Flags.ManageRoles);
