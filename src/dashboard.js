@@ -204,7 +204,16 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../public'), {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res, filepath) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+  }
+}));
 // Route principale
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
