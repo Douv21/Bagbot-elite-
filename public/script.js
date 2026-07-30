@@ -727,6 +727,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try { renderAutoroleJoin(config.autoroles_on_join || []); } catch (e) {}
         try { renderAutoroleRole(config.autoroles_on_role || []); } catch (e) {}
         try { renderActiveAutoroles(config.autorole_embeds || []); } catch (e) {}
+        try { renderSimpleEmbedsSavedList(config.autorole_embeds || []); } catch (e) {}
         try { renderCountingChannels(config.counting_channels || []); } catch (e) {}
         if (typeof updateAutorolePreview === 'function') try { updateAutorolePreview(); } catch (e) {}
 
@@ -891,14 +892,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const data = mode === 'welcome' ? (welcomeData || {}) : (leaveData || {});
 
     safeSetVal('target-channel-select', data.channel_id || '');
-    safeSetVal('embed-color-picker', data.color || '#00ff00');
-    safeSetVal('embed-title-input', data.title || '');
-    safeSetVal('embed-desc-field', data.desc || '');
+    safeSetVal('embed-color-picker', data.color || (mode === 'welcome' ? '#00ff00' : '#ff0000'));
+    safeSetVal('embed-title-input', data.title || (mode === 'welcome' ? '👋 Bienvenue' : '👋 Au revoir'));
+    safeSetVal('embed-desc-field', data.desc || (mode === 'welcome' ? 'Bienvenue {user} sur le serveur !' : 'Au revoir {user} !'));
 
     const leftBar = document.getElementById('discord-left-bar');
-    if (leftBar) leftBar.style.borderColor = data.color || '#00ff00';
+    if (leftBar) leftBar.style.borderColor = data.color || (mode === 'welcome' ? '#00ff00' : '#ff0000');
 
-    safeSetCheck('embed-thumbnail-checkbox', data.thumbnail);
+    safeSetCheck('embed-thumbnail-checkbox', data.thumbnail !== undefined ? data.thumbnail : true);
     safeSetVal('embed-author-name-input', data.author_name || '');
     safeSetVal('embed-author-icon-input', data.author_icon || '');
 
@@ -930,7 +931,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const thumbImg = document.getElementById('discord-thumbnail-img');
     const thumbToggleText = document.getElementById('thumbnail-toggle-text');
     const thumbBox = document.getElementById('discord-thumbnail-box');
-    if (data.thumbnail) {
+    if (data.thumbnail !== false) {
       if (thumbImg) thumbImg.style.display = 'block';
       if (thumbToggleText) thumbToggleText.textContent = 'Photo Active';
       if (thumbBox) thumbBox.style.opacity = '1';
@@ -957,6 +958,11 @@ document.addEventListener('DOMContentLoaded', () => {
       safeSetVal('embed-image-input', '');
       if (wrapperImg) wrapperImg.style.display = 'none';
     }
+
+    const titleInput = document.getElementById('embed-title-input');
+    if (titleInput) titleInput.dispatchEvent(new Event('input'));
+    const descField = document.getElementById('embed-desc-field');
+    if (descField) descField.dispatchEvent(new Event('input'));
   }
 
   function fetchBotInfo(customAvatar = null) {
@@ -3765,6 +3771,61 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (err) {
         console.error('Error rendering active autorole item:', err, item);
       }
+    });
+  }
+
+  function renderSimpleEmbedsSavedList(list) {
+    const container = document.getElementById('simple-embeds-saved-list');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!list || list.length === 0) {
+      container.innerHTML = '<p style="color: #8e9297; font-style: italic; font-size: 0.85rem;">Aucun embed enregistré pour le moment. Créez-en un via le formulaire ci-dessous !</p>';
+      return;
+    }
+
+    list.forEach(item => {
+      const channelName = getChannelName(item.channel_id);
+      const itemCard = document.createElement('div');
+      itemCard.style.background = 'rgba(255,255,255,0.03)';
+      itemCard.style.border = '1px solid rgba(255,255,255,0.08)';
+      itemCard.style.padding = '10px 14px';
+      itemCard.style.borderRadius = '8px';
+      itemCard.style.display = 'flex';
+      itemCard.style.alignItems = 'center';
+      itemCard.style.justifyContent = 'space-between';
+      itemCard.style.gap = '10px';
+
+      itemCard.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;">
+          <div style="font-weight: 600; color: #fff; font-size: 0.95rem;">${item.title || '(Sans titre)'}</div>
+          <div style="font-size: 0.8rem; color: #b9bbbe;">
+            <i class="fa-solid fa-hashtag" style="color: #5865F2;"></i> <strong>${channelName}</strong> · ID: <code>${item.message_id}</code>
+          </div>
+          <div style="font-size: 0.8rem; color: #8e9297; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            "${(item.description || '').slice(0, 70)}"
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-load-embed" style="background: #9b59b6; color: #fff; padding: 6px 12px; font-size: 0.82rem; border-radius: 6px; flex-shrink: 0; cursor: pointer;">
+          <i class="fa-solid fa-download"></i> Charger dans l'Éditeur
+        </button>
+      `;
+
+      itemCard.querySelector('.btn-load-embed').addEventListener('click', () => {
+        safeSetVal('simple_embed_channel', item.channel_id);
+        safeSetVal('simple_embed_edit_msg_id', item.message_id);
+        safeSetVal('simple_embed_title', item.title || '');
+        safeSetVal('simple_embed_desc', item.description || '');
+        safeSetVal('simple_embed_color', item.color || '#5865F2');
+        safeSetVal('simple_embed_image', item.image_url || '');
+        if (typeof updatePreview === 'function') updatePreview();
+
+        const formEl = document.getElementById('form-simple-embed');
+        if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+        showToast('Embed chargé dans l\'éditeur !');
+      });
+
+      container.appendChild(itemCard);
     });
   }
 
