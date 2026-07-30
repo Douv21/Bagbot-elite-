@@ -1523,6 +1523,10 @@ const updateActionReward = (guildId, actionName, rewards) => {
   `).run(guildId, actionName, min_money, max_money, min_karma, max_karma);
 };
 
+const getAllActionRewards = (guildId) => {
+  return db.prepare('SELECT * FROM action_rewards WHERE guild_id = ?').all(guildId);
+};
+
 const getActiveTicket = (channelId) => {
   return db.prepare('SELECT * FROM active_tickets WHERE channel_id = ?').get(channelId);
 };
@@ -1863,6 +1867,7 @@ module.exports = {
   updateTicketOption,
   deleteTicketOption,
   getActionReward,
+  getAllActionRewards,
   updateActionReward,
   getActiveTicket,
   addActiveTicket,
