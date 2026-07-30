@@ -183,9 +183,20 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .then(res => res.json())
       .then(data => {
-        if (data.guildId) {
+        if (data.guildId && guildsList.some(g => g.id === data.guildId)) {
           guildSelect.value = data.guildId;
           handleGuildSelection(data.guildId);
+        } else if (guildsList.length > 0) {
+          const firstGuildId = guildsList[0].id;
+          guildSelect.value = firstGuildId;
+          fetch('/api/select-guild', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ guildId: firstGuildId })
+          })
+          .then(r => r.json())
+          .then(() => handleGuildSelection(firstGuildId))
+          .catch(console.error);
         }
       })
       .catch(console.error);
