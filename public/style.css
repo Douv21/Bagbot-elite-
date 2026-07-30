@@ -2065,37 +2065,157 @@ td.text-center, td[colspan] {
 }
 
 @media (max-width: 768px) {
+  /* Navbar Compact Mobile Layout */
   .navbar {
-    padding: 12px 16px;
-    border-radius: 0 0 16px 16px;
+    padding: 10px 14px !important;
+    gap: 10px !important;
   }
 
   .nav-brand span {
-    font-size: 1.1rem;
+    font-size: 0.98rem !important;
+  }
+
+  .logo-icon-nav {
+    font-size: 1.1rem !important;
+  }
+
+  .backlit-status {
+    padding: 4px 8px !important;
+    font-size: 0.68rem !important;
+    gap: 5px !important;
   }
 
   .user-profile span {
-    display: none;
+    display: none !important;
+  }
+
+  /* Espace de travail en colonne verticale sur mobile 9:16 */
+  .category-workspace-layout {
+    flex-direction: column !important;
+    gap: 14px !important;
+  }
+
+  /* Sub-Sidebar Latérale transformée en bande tactile supérieure sur mobile */
+  .sub-sidebar-nav {
+    width: 100% !important;
+    position: relative !important;
+    top: 0 !important;
+    padding: 12px !important;
+    border-radius: 14px !important;
+  }
+
+  .sub-sidebar-nav.retracted {
+    width: 100% !important;
+    padding: 10px !important;
+  }
+
+  .sub-sidebar-btns-list {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    padding-bottom: 6px !important;
+    gap: 8px !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .sub-sidebar-btn {
+    width: auto !important;
+    flex-shrink: 0 !important;
+    padding: 8px 14px !important;
+    font-size: 0.82rem !important;
+  }
+
+  .sub-sidebar-nav.retracted .sub-sidebar-btns-list {
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+  }
+
+  .sub-sidebar-nav.retracted .side-text {
+    display: inline-block !important; /* Texte visible sur mobile pour lisibilité */
+  }
+
+  .sub-sidebar-nav.retracted .sub-sidebar-btn {
+    padding: 8px 14px !important;
+  }
+
+  /* Formulaires et cartes 100% largeur mobile */
+  .sub-sidebar-form-container {
+    width: 100% !important;
   }
 
   .card {
-    padding: 16px;
-    border-radius: 14px;
+    padding: 16px 14px !important;
+    border-radius: 14px !important;
   }
 
-  .btn {
-    width: 100%;
-    padding: 14px;
-    font-size: 0.95rem;
+  .nav-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
   }
 
-  .btn-save {
-    width: 100% !important;
-    padding: 16px !important;
+  .nav-category-card {
+    min-height: auto !important;
+    padding: 20px !important;
+  }
+
+  /* Grille des serveurs mobile */
+  .servers-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Conteneur des formulaires */
+  .form-row, .grid-2, .grid-3, .grid-4 {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
 
   input, select, textarea {
-    font-size: 16px !important; /* Prevents auto-zoom on iOS safari */
+    font-size: 16px !important; /* Empêche le zoom auto sur Safari iOS */
+    padding: 12px !important;
+  }
+
+  /* Boutons tactiles mobile */
+  .btn, .btn-save {
+    width: 100% !important;
+    padding: 14px !important;
+    font-size: 0.95rem !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  /* Tableaux défilants sur mobile 9:16 */
+  table {
+    display: block !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .backlit-status .status-text {
+    font-size: 0.65rem;
+  }
+
+  .hub-title {
+    font-size: 1.25rem !important;
+  }
+
+  .hub-subtitle {
+    font-size: 0.85rem !important;
+  }
+
+  .active-guild-banner-card {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .active-guild-banner-card > div:last-child {
+    width: 100% !important;
+    justify-content: space-between !important;
   }
 }
 
