@@ -1945,3 +1945,94 @@ td.text-center, td[colspan] {
   width: 20px !important;
   text-align: center !important;
 }
+
+/* ==========================================================================
+   BOUTONS DE CATÉGORIES FINIS VIP (VOILET VELOURS, NOIR CHARBON & CONTOURS OR)
+   ========================================================================== */
+.btn-category-card {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  background: linear-gradient(135deg, rgba(22, 19, 36, 0.95) 0%, rgba(38, 25, 58, 0.95) 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.4) !important;
+  border-radius: 16px !important;
+  padding: 20px !important;
+  color: #ffffff !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  position: relative !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 10px rgba(212, 175, 55, 0.15) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  outline: none !important;
+  min-height: 190px !important;
+}
+
+.btn-category-card:hover {
+  background: linear-gradient(135deg, rgba(142, 68, 173, 0.85) 0%, rgba(91, 44, 111, 0.95) 100%) !important;
+  border-color: #ffd700 !important;
+  transform: translateY(-4px) scale(1.01) !important;
+  box-shadow: 0 12px 30px rgba(142, 68, 173, 0.5), 0 0 20px rgba(255, 215, 0, 0.4) !important;
+}
+
+.btn-cat-badge {
+  position: absolute !important;
+  top: 14px !important;
+  right: 14px !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  padding: 4px 10px !important;
+  border-radius: 20px !important;
+  text-transform: uppercase !important;
+}
+
+.btn-cat-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  margin-bottom: 12px !important;
+}
+
+.btn-cat-icon-box {
+  width: 46px !important;
+  height: 46px !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1.3rem !important;
+  background: rgba(142, 68, 173, 0.25) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #ffd700 !important;
+}
+
+.btn-cat-main-title {
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  margin: 0 !important;
+  letter-spacing: 0.5px !important;
+}
+
+.btn-cat-subtext {
+  font-size: 0.76rem !important;
+  color: #ffd700 !important;
+  font-weight: 600 !important;
+}
+
+.btn-cat-desc {
+  font-size: 0.85rem !important;
+  color: #cbd5e1 !important;
+  line-height: 1.4 !important;
+  margin-bottom: 16px !important;
+}
+
+.btn-cat-action {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding-top: 12px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  color: #ffd700 !important;
+}

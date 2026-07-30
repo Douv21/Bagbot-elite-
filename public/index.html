@@ -171,58 +171,84 @@
               <p class="hub-subtitle">Cliquez sur une catégorie ci-dessous ou naviguez via le menu latéral pour accéder aux modules.</p>
             </div>
 
-            <div class="nav-cards-grid">
-              <!-- CARTE 1: GESTION DU SERVEUR -->
-              <div class="nav-category-card gold-contour" data-hub-cat="server" style="cursor: pointer;">
-                <div class="card-hub-badge badge-purple">SERVEUR ⚙️</div>
-                <div class="card-hub-icon-box icon-violet">
-                  <i class="fa-solid fa-sliders"></i>
+            <div class="nav-category-buttons-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+              
+              <!-- BOUTON 1: GESTION DU SERVEUR -->
+              <button type="button" class="btn-category-card nav-category-card gold-contour" data-hub-cat="server">
+                <div class="btn-cat-badge badge-purple">SERVEUR ⚙️</div>
+                <div class="btn-cat-header">
+                  <div class="btn-cat-icon-box icon-violet">
+                    <i class="fa-solid fa-sliders"></i>
+                  </div>
+                  <div class="btn-cat-titles">
+                    <h3 class="btn-cat-main-title">GESTION DU SERVEUR</h3>
+                    <span class="btn-cat-subtext">8 modules disponibles</span>
+                  </div>
                 </div>
-                <h3 class="card-hub-title">GESTION DU SERVEUR</h3>
-                <p class="card-hub-desc">Arrivées/Départs, Remerciements Boost, Annonces, Éditeur Embeds, Auto-Rôles & Logs.</p>
-                <div class="card-hub-footer">
-                  <span class="btn-open-cat">Accéder au serveur ⚙️ <i class="fa-solid fa-arrow-right"></i></span>
+                <p class="btn-cat-desc">Arrivées/Départs, Remerciements Boost, Annonces, Éditeur Embeds, Auto-Rôles & Logs.</p>
+                <div class="btn-cat-action">
+                  <span>Accéder à la catégorie ⚙️</span>
+                  <i class="fa-solid fa-chevron-right"></i>
                 </div>
-              </div>
+              </button>
 
-              <!-- CARTE 2: SÉCURITÉ & MODÉRATION -->
-              <div class="nav-category-card gold-contour" data-hub-cat="security" style="cursor: pointer;">
-                <div class="card-hub-badge badge-red">MODÉRATION 🛡️</div>
-                <div class="card-hub-icon-box icon-red">
-                  <i class="fa-solid fa-shield-halved"></i>
+              <!-- BOUTON 2: SÉCURITÉ & MODÉRATION -->
+              <button type="button" class="btn-category-card nav-category-card gold-contour" data-hub-cat="security">
+                <div class="btn-cat-badge badge-red">MODÉRATION 🛡️</div>
+                <div class="btn-cat-header">
+                  <div class="btn-cat-icon-box icon-red">
+                    <i class="fa-solid fa-shield-halved"></i>
+                  </div>
+                  <div class="btn-cat-titles">
+                    <h3 class="btn-cat-main-title">SÉCURITÉ & MODÉRATION</h3>
+                    <span class="btn-cat-subtext">4 modules disponibles</span>
+                  </div>
                 </div>
-                <h3 class="card-hub-title">SÉCURITÉ & MODÉRATION</h3>
-                <p class="card-hub-desc">Quarantaine Anti-raid, Auto-modération & Forums Illimités.</p>
-                <div class="card-hub-footer">
-                  <span class="btn-open-cat">Sécuriser le serveur 🛡️ <i class="fa-solid fa-arrow-right"></i></span>
+                <p class="btn-cat-desc">Quarantaine Anti-raid, Auto-modération, Support & Tickets, Forums Illimités.</p>
+                <div class="btn-cat-action">
+                  <span>Accéder à la catégorie 🛡️</span>
+                  <i class="fa-solid fa-chevron-right"></i>
                 </div>
-              </div>
+              </button>
 
-              <!-- CARTE 3: ÉCONOMIE & JEUX -->
-              <div class="nav-category-card gold-contour" data-hub-cat="economy" style="cursor: pointer;">
-                <div class="card-hub-badge badge-gold">ÉCONOMIE 📈</div>
-                <div class="card-hub-icon-box icon-gold">
-                  <i class="fa-solid fa-chart-line"></i>
+              <!-- BOUTON 3: ÉCONOMIE, NIVEAUX & JEUX -->
+              <button type="button" class="btn-category-card nav-category-card gold-contour" data-hub-cat="economy">
+                <div class="btn-cat-badge badge-gold">ÉCONOMIE 📈</div>
+                <div class="btn-cat-header">
+                  <div class="btn-cat-icon-box icon-gold">
+                    <i class="fa-solid fa-chart-line"></i>
+                  </div>
+                  <div class="btn-cat-titles">
+                    <h3 class="btn-cat-main-title">ÉCONOMIE & JEUX</h3>
+                    <span class="btn-cat-subtext">12 modules disponibles</span>
+                  </div>
                 </div>
-                <h3 class="card-hub-title">ÉCONOMIE, NIVEAUX & JEUX</h3>
-                <p class="card-hub-desc">Niveaux XP, Tribunal Discord, Star de la Semaine, Boutique, Quêtes & Jeux.</p>
-                <div class="card-hub-footer">
-                  <span class="btn-open-cat">Accéder à l'économie 📈 <i class="fa-solid fa-arrow-right"></i></span>
+                <p class="btn-cat-desc">Niveaux XP, Tribunal Discord, Star de la Semaine, Boutique & Suites, Quêtes & Jeux.</p>
+                <div class="btn-cat-action">
+                  <span>Accéder à la catégorie 📈</span>
+                  <i class="fa-solid fa-chevron-right"></i>
                 </div>
-              </div>
+              </button>
 
-              <!-- CARTE 4: ASSISTANT & IA VIP -->
-              <div class="nav-category-card gold-contour" data-hub-cat="ai" style="cursor: pointer;">
-                <div class="card-hub-badge badge-purple">IA VIP 🤖</div>
-                <div class="card-hub-icon-box icon-teal">
-                  <i class="fa-solid fa-robot"></i>
+              <!-- BOUTON 4: ASSISTANT & IA VIP -->
+              <button type="button" class="btn-category-card nav-category-card gold-contour" data-hub-cat="ai">
+                <div class="btn-cat-badge badge-purple">IA VIP 🤖</div>
+                <div class="btn-cat-header">
+                  <div class="btn-cat-icon-box icon-teal">
+                    <i class="fa-solid fa-robot"></i>
+                  </div>
+                  <div class="btn-cat-titles">
+                    <h3 class="btn-cat-main-title">ASSISTANT & IA VIP</h3>
+                    <span class="btn-cat-subtext">2 modules disponibles</span>
+                  </div>
                 </div>
-                <h3 class="card-hub-title">ASSISTANT & IA VIP</h3>
-                <p class="card-hub-desc">Assistant IA Administrateur & Clés de Modèles IA.</p>
-                <div class="card-hub-footer">
-                  <span class="btn-open-cat">Ouvrir l'IA Admin 🤖 <i class="fa-solid fa-arrow-right"></i></span>
+                <p class="btn-cat-desc">Assistant IA Administrateur personnel & Clés de Modèles IA.</p>
+                <div class="btn-cat-action">
+                  <span>Accéder à la catégorie 🤖</span>
+                  <i class="fa-solid fa-chevron-right"></i>
                 </div>
-              </div>
+              </button>
+
             </div>
           </div>
 
