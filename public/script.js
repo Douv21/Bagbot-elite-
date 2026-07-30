@@ -97,7 +97,16 @@ document.addEventListener('DOMContentLoaded', () => {
       sidebar.classList.remove('open');
       sidebarOverlay.classList.remove('open');
     });
-  }
+  // Accordion toggle for sidebar categories
+  document.querySelectorAll('.sidebar-category .category-title').forEach(title => {
+    title.addEventListener('click', (e) => {
+      e.preventDefault();
+      const parentCat = title.parentElement;
+      if (parentCat) {
+        parentCat.classList.toggle('collapsed');
+      }
+    });
+  });
 
   // Tab switching logic
   const tabBtns = document.querySelectorAll('.tab-btn');

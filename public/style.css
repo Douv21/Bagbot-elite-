@@ -2093,3 +2093,95 @@ td.text-center, td[colspan] {
     font-size: 16px !important; /* Prevents auto-zoom on iOS safari */
   }
 }
+
+/* ==========================================================================
+   🌀 DYNAMIC ANIMATIONS & FLUID INTERACTION SYSTEM
+   ========================================================================== */
+
+/* Smooth Tab Content Crossfade */
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tab-content.active {
+  display: block;
+  animation: tabFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Collapsible Category Header Arrows & Smooth Collapsing */
+.sidebar-category .category-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  cursor: pointer;
+  padding: 6px 4px;
+  border-radius: 8px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-category .category-title:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-category .category-title::after {
+  content: '\f107';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  font-size: 0.8rem;
+  opacity: 0.6;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+
+.sidebar-category.collapsed .category-title::after {
+  transform: rotate(-90deg);
+}
+
+.sidebar-category.collapsed .tab-btn {
+  display: none !important;
+}
+
+/* Button Shimmer Effect */
+.btn-save, .btn-discord {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-save::after, .btn-discord::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(
+    60deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(30deg);
+  transition: all 0.6s ease;
+}
+
+.btn-save:hover::after, .btn-discord:hover::after {
+  left: 130%;
+}
+
+/* Card Hover 3D Depth */
+.card {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 24px var(--primary-glow);
+  border-color: rgba(88, 101, 242, 0.4);
+}
