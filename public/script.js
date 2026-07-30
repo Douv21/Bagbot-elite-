@@ -109,40 +109,111 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Quick Category Filter Buttons
-  const quickCatBtns = document.querySelectorAll('.quick-cat-btn');
-  quickCatBtns.forEach(qBtn => {
-    qBtn.addEventListener('click', () => {
-      quickCatBtns.forEach(b => b.classList.remove('active'));
-      qBtn.classList.add('active');
-      const catTarget = qBtn.getAttribute('data-cat');
-      
-      const categories = document.querySelectorAll('.sidebar-category');
-      categories.forEach(cat => {
-        if (catTarget === 'all') {
-          cat.style.display = 'block';
-          cat.classList.remove('collapsed');
-        } else if (catTarget === 'nsfw' && cat.classList.contains('category-nsfw')) {
-          cat.style.display = 'block';
-          cat.classList.remove('collapsed');
-        } else if (catTarget === 'server' && cat.innerHTML.includes('GESTION DU SERVEUR')) {
-          cat.style.display = 'block';
-          cat.classList.remove('collapsed');
-        } else if (catTarget === 'security' && cat.innerHTML.includes('SÉCURITÉ & MODÉRATION')) {
-          cat.style.display = 'block';
-          cat.classList.remove('collapsed');
-        } else if (catTarget === 'economy' && cat.innerHTML.includes('ÉCONOMIE & JEUX')) {
-          cat.style.display = 'block';
-          cat.classList.remove('collapsed');
-        } else if (catTarget === 'ai' && cat.innerHTML.includes('ASSISTANT & STAR IA')) {
-          cat.style.display = 'block';
-          cat.classList.remove('collapsed');
-        } else {
-          cat.style.display = 'none';
-        }
+  // --- CONSOLE CATEGORY CARDS HUB NAVIGATION ---
+  const mainNavHub = document.getElementById('main-navigation-hub');
+  const featurePillsBar = document.getElementById('feature-pills-bar');
+  const btnReturnHub = document.getElementById('btn-return-hub');
+  const navCategoryCards = document.querySelectorAll('.nav-category-card');
+
+  const categorySubTabs = {
+    nsfw: [
+      { id: 'tab-role-themes', label: 'Thèmes Érotiques 18+', icon: 'fa-venus-mars', color: '#ff2a6d' },
+      { id: 'tab-action-verite', label: 'Action ou Vérité Hot', icon: 'fa-fire', color: '#ff477e' },
+      { id: 'tab-gifs', label: 'GIFs & Interactions 18+', icon: 'fa-file-video', color: '#ff2a6d' },
+      { id: 'tab-confessions', label: 'Confessions 18+', icon: 'fa-mask', color: '#a29bfe' }
+    ],
+    server: [
+      { id: 'tab-welcome', label: 'Arrivées & Départs', icon: 'fa-door-open', color: '#00d2d3' },
+      { id: 'tab-boost', label: 'Remerciements Boost', icon: 'fa-rocket', color: '#F47FFF' },
+      { id: 'tab-announcements', label: 'Annonces & Guides', icon: 'fa-bullhorn', color: '#ff6b6b' },
+      { id: 'tab-embed-sender', label: 'Éditeur & Envoyeur Embeds', icon: 'fa-file-code', color: '#9b59b6' },
+      { id: 'tab-autoroles', label: 'Auto-Rôles à l\'Arrivée', icon: 'fa-user-plus', color: '#54a0ff' },
+      { id: 'tab-reactionroles', label: 'Rôles Réaction', icon: 'fa-rectangle-list', color: '#5f27cd' },
+      { id: 'tab-autothread', label: 'Auto-Thread Salons', icon: 'fa-hashtag', color: '#48dbfb' },
+      { id: 'tab-logs', label: 'Logs d\'Activité', icon: 'fa-list-check', color: '#1dd1a1' }
+    ],
+    security: [
+      { id: 'tab-quarantine', label: 'Quarantaine Anti-Raid', icon: 'fa-shield-cat', color: '#ff3838' },
+      { id: 'tab-automod', label: 'Auto-Modération', icon: 'fa-user-shield', color: '#ff9f1a' },
+      { id: 'tab-cmd-permissions', label: 'Commandes & Permissions', icon: 'fa-key', color: '#00d2d3' },
+      { id: 'tab-tribunal', label: 'Tribunal Discord', icon: 'fa-gavel', color: '#ffb142' },
+      { id: 'tab-tickets', label: 'Support & Tickets', icon: 'fa-ticket', color: '#3498db' },
+      { id: 'tab-forums', label: 'Forums Illimités', icon: 'fa-comments', color: '#10ac84' }
+    ],
+    economy: [
+      { id: 'tab-leveling', label: 'Niveaux, XP & Cartes', icon: 'fa-arrow-trend-up', color: '#2ed573' },
+      { id: 'tab-shop', label: 'Boutique & Suites Privées', icon: 'fa-shop', color: '#ffa502' },
+      { id: 'tab-karma', label: 'Système de Karma', icon: 'fa-star', color: '#eccc68' },
+      { id: 'tab-quests', label: 'Système de Quêtes', icon: 'fa-scroll', color: '#f1c40f' },
+      { id: 'tab-counting', label: 'Salons de Comptage', icon: 'fa-calculator', color: '#70a1ff' },
+      { id: 'tab-game', label: 'Jeu Mot Caché', icon: 'fa-gamepad', color: '#ff4757' },
+      { id: 'tab-bump', label: 'Rappels de Bump', icon: 'fa-bell', color: '#e84393' },
+      { id: 'tab-map', label: 'Carte des Membres', icon: 'fa-map-location-dot', color: '#009432' }
+    ],
+    ai: [
+      { id: 'tab-assistant', label: 'Assistant IA Admin', icon: 'fa-robot', color: '#9b59b6' },
+      { id: 'tab-star', label: 'Star de la Semaine', icon: 'fa-star', color: '#f1c40f' },
+      { id: 'tab-ai', label: 'Clés & Modèles IA', icon: 'fa-brain', color: '#1abc9c' }
+    ]
+  };
+
+  const openCategorySubTabs = (catKey) => {
+    const subTabs = categorySubTabs[catKey] || [];
+    if (!subTabs.length) return;
+
+    if (mainNavHub) mainNavHub.style.display = 'none';
+    if (btnReturnHub) btnReturnHub.style.display = 'inline-flex';
+    if (featurePillsBar) {
+      featurePillsBar.style.display = 'flex';
+      featurePillsBar.innerHTML = '';
+      subTabs.forEach((st, idx) => {
+        const pBtn = document.createElement('button');
+        pBtn.type = 'button';
+        pBtn.className = `feature-pill-btn ${idx === 0 ? 'active' : ''}`;
+        pBtn.setAttribute('data-tab', st.id);
+        pBtn.innerHTML = `<i class="fa-solid ${st.icon}" style="color: ${st.color};"></i> ${st.label}`;
+        pBtn.addEventListener('click', () => {
+          featurePillsBar.querySelectorAll('.feature-pill-btn').forEach(b => b.classList.remove('active'));
+          pBtn.classList.add('active');
+          switchTab(st.id);
+        });
+        featurePillsBar.appendChild(pBtn);
       });
+    }
+    // Afficher le 1er onglet de la catégorie
+    switchTab(subTabs[0].id);
+  };
+
+  const switchTab = (tabId) => {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    const targetTab = document.getElementById(tabId);
+    if (targetTab) {
+      targetTab.classList.add('active');
+    }
+    if (tabId === 'tab-gifs') {
+      fetchAndRenderGifs();
+    } else if (tabId === 'tab-map') {
+      const guildId = guildSelect ? guildSelect.value : '';
+      const mapIframe = document.getElementById('map-iframe');
+      if (mapIframe) mapIframe.src = `map.html?guild=${guildId}`;
+    }
+  };
+
+  navCategoryCards.forEach(card => {
+    card.addEventListener('click', () => {
+      const catKey = card.getAttribute('data-hub-cat');
+      openCategorySubTabs(catKey);
     });
   });
+
+  if (btnReturnHub) {
+    btnReturnHub.addEventListener('click', () => {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      if (featurePillsBar) featurePillsBar.style.display = 'none';
+      if (btnReturnHub) btnReturnHub.style.display = 'none';
+      if (mainNavHub) mainNavHub.style.display = 'block';
+    });
+  }
 
   // Tab switching logic
   const tabBtns = document.querySelectorAll('.tab-btn');
