@@ -164,6 +164,10 @@ app.use(session({
   name: 'bagbot-elite.sid'
 }));
 
+// Body parsers
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
 // Middlewares
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
@@ -377,7 +381,7 @@ app.get('/api/guilds', async (req, res) => {
 
 // API pour sélectionner un serveur
 app.post('/api/select-guild', (req, res) => {
-  const { guildId } = req.body;
+  const { guildId } = req.body || {};
   if (req.session && req.session.user) {
     if (!guildId) {
       req.session.selectedGuild = null;
@@ -487,7 +491,7 @@ app.post('/api/bot/avatar', async (req, res) => {
   try {
     const guildId = req.session.selectedGuild || req.query.guildId || req.body.guildId;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
-    const { avatar_url } = req.body;
+    const { avatar_url } = req.body || {};
 
     let wl = db.prepare('SELECT * FROM welcome_leave WHERE guild_id = ?').get(guildId);
     if (!wl) {
@@ -665,7 +669,7 @@ app.post('/api/config/permissions', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { admin_role_id, modo_role_id, dashboard_roles, admin_cmds_roles, modo_cmds_roles } = req.body;
+    const { admin_role_id, modo_role_id, dashboard_roles, admin_cmds_roles, modo_cmds_roles } = req.body || {};
     const { updatePermissionsConfig } = require('./database/db');
 
     updatePermissionsConfig(
@@ -694,7 +698,7 @@ app.post('/api/config/welcome-leave', (req, res) => {
       welcome_channel, leave_channel, welcome_title, welcome_desc,
       welcome_color, welcome_thumbnail, welcome_image, welcome_author_name, welcome_author_icon, welcome_footer, welcome_role_filter,
       leave_title, leave_desc, leave_color, leave_thumbnail, leave_image, leave_author_name, leave_author_icon, leave_footer
-    } = req.body;
+    } = req.body || {};
 
     db.prepare(`
       INSERT INTO welcome_leave (
@@ -741,7 +745,7 @@ app.post('/api/config/confessions', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { channels } = req.body; // Un tableau de { channel_id, confession_name, use_thread }
+    const { channels } = req.body || {}; // Un tableau de { channel_id, confession_name, use_thread }
     if (!Array.isArray(channels)) {
       return res.status(400).json({ error: 'Un tableau de salons est requis.' });
     }
@@ -780,7 +784,7 @@ app.post('/api/config/quarantine', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { role_id, channel_id } = req.body;
+    const { role_id, channel_id } = req.body || {};
 
     db.prepare(`
       INSERT OR REPLACE INTO quarantine_config (guild_id, role_id, channel_id)
@@ -800,7 +804,7 @@ app.post('/api/config/tribunal', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { category_id, judge_role_id, lawyer_role_id, accused_role_id, plaintiff_role_id, channel_prefix, access_roles, auto_delete_minutes } = req.body;
+    const { category_id, judge_role_id, lawyer_role_id, accused_role_id, plaintiff_role_id, channel_prefix, access_roles, auto_delete_minutes } = req.body || {};
     const tribunalDb = require('./utils/tribunal_db');
     tribunalDb.updateTribunalConfig(guildId, {
       categoryId: category_id || '',
@@ -828,7 +832,7 @@ app.post('/api/config/shop-settings', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { private_suite_category_id, suite_channel_prefix } = req.body;
+    const { private_suite_category_id, suite_channel_prefix } = req.body || {};
     const { updateShopConfig } = require('./database/db');
     updateShopConfig(guildId, private_suite_category_id || null, suite_channel_prefix || '👑┆suite-');
 
@@ -860,7 +864,7 @@ app.post('/api/config/logs', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { channel_id, events } = req.body;
+    const { channel_id, events } = req.body || {};
 
     db.prepare(`
       INSERT OR REPLACE INTO logs_config (guild_id, channel_id, events)
@@ -880,7 +884,7 @@ app.post('/api/config/shop/add', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { item_name, price, description, role_id, role_duration_ms, reward_xp, reward_karma } = req.body;
+    const { item_name, price, description, role_id, role_duration_ms, reward_xp, reward_karma } = req.body || {};
     if (!item_name || !price) {
       return res.status(400).json({ error: 'Nom et prix requis' });
     }
@@ -912,7 +916,7 @@ app.post('/api/config/shop/delete', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { item_name } = req.body;
+    const { item_name } = req.body || {};
     if (item_name && item_name.toLowerCase().startsWith('suite privée')) {
       return res.status(400).json({ error: 'Les suites privées ne peuvent pas être supprimées.' });
     }
@@ -931,7 +935,7 @@ app.post('/api/config/shop/update-price', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { item_name, price } = req.body;
+    const { item_name, price } = req.body || {};
     if (!item_name || price === undefined) {
       return res.status(400).json({ error: 'Nom et prix requis' });
     }
@@ -950,7 +954,7 @@ app.post('/api/config/level-rewards/add', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { level, role_id } = req.body;
+    const { level, role_id } = req.body || {};
     if (!level || !role_id) {
       return res.status(400).json({ error: 'Niveau et rôle requis' });
     }
@@ -973,7 +977,7 @@ app.post('/api/config/level-rewards/delete', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { level } = req.body;
+    const { level } = req.body || {};
 
     db.prepare('DELETE FROM level_rewards WHERE guild_id = ? AND level = ?').run(guildId, level);
     res.json({ success: true });
@@ -996,7 +1000,7 @@ app.post('/api/config/leveling', (req, res) => {
       nsfw_xp_reward, nsfw_money_reward, 
       announce_channel, announce_msg,
       xp_base, xp_factor
-    } = req.body;
+    } = req.body || {};
 
     db.prepare(`
       INSERT OR REPLACE INTO leveling_config (
@@ -1051,7 +1055,7 @@ app.post('/api/config/game', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { secret_phrase, reward_money, reward_xp, reward_role_id, reward_chance, is_active, reset_progress, appearance_chance, letter_emoji, announce_channel, ephemeral_letters } = req.body;
+    const { secret_phrase, reward_money, reward_xp, reward_role_id, reward_chance, is_active, reset_progress, appearance_chance, letter_emoji, announce_channel, ephemeral_letters } = req.body || {};
 
     const phraseUpper = (secret_phrase || '').toUpperCase();
 
@@ -1105,7 +1109,7 @@ app.post('/api/config/action-gifs/add', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { action_name, gif_url } = req.body;
+    const { action_name, gif_url } = req.body || {};
     if (!action_name || !gif_url) {
       return res.status(400).json({ error: 'Nom de l\'action et URL du GIF requis' });
     }
@@ -1124,7 +1128,7 @@ app.post('/api/config/action-gifs/delete', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { id } = req.body;
+    const { id } = req.body || {};
     if (!id) return res.status(400).json({ error: 'ID requis' });
 
     deleteActionGif(guildId, id);
@@ -1154,7 +1158,7 @@ app.post('/api/config/action-rewards', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { action_name, min_money, max_money, min_karma, max_karma } = req.body;
+    const { action_name, min_money, max_money, min_karma, max_karma } = req.body || {};
     if (!action_name) return res.status(400).json({ error: 'Nom de l\'action requis' });
 
     const { setActionReward } = require('./database/db');
@@ -1179,7 +1183,7 @@ app.post('/api/config/action-rewards/delete', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { action_name } = req.body;
+    const { action_name } = req.body || {};
     if (!action_name) return res.status(400).json({ error: 'Nom de l\'action requis' });
 
     const { db } = require('./database/db');
@@ -1200,7 +1204,7 @@ app.post('/api/config/automod', (req, res) => {
     const {
       anti_link, anti_spam, anti_massmention, anti_badwords,
       bypass_roles, badwords_list, spam_max_msgs, massmention_limit
-    } = req.body;
+    } = req.body || {};
 
     updateAutomodConfig(guildId, {
       anti_link: anti_link ? 1 : 0,
@@ -1228,7 +1232,7 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { channel_id, title, description, color, thumbnail, image_url, options, type = 'buttons', mode = 'normal', existing_message_id = null } = req.body;
+    const { channel_id, title, description, color, thumbnail, image_url, options, type = 'buttons', mode = 'normal', existing_message_id = null } = req.body || {};
     if (!channel_id) return res.status(400).json({ error: 'ID du salon requis' });
 
     // 1. Communiquer avec l'API locale du bot pour envoyer ou éditer le message
@@ -1291,7 +1295,7 @@ app.post('/api/config/autorole-embeds/delete', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { message_id, channel_id } = req.body;
+    const { message_id, channel_id } = req.body || {};
     if (!message_id) return res.status(400).json({ error: 'ID de message requis' });
 
     // 1. Essayer de supprimer le message sur Discord
@@ -1321,7 +1325,7 @@ app.post('/api/config/send-simple-embed', async (req, res) => {
       channel_id, title, description, color, thumbnail_url,
       image_url, author_name, author_icon, footer_text, footer_icon,
       ping_type, existing_message_id
-    } = req.body;
+    } = req.body || {};
 
     if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
 
@@ -1484,7 +1488,7 @@ app.post('/api/config/autoroles-on-join/add', (req, res) => {
   try {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
-    const { role_id } = req.body;
+    const { role_id } = req.body || {};
     if (!role_id) return res.status(400).json({ error: 'Rôle requis' });
 
     addAutoroleOnJoin(guildId, role_id);
@@ -1499,7 +1503,7 @@ app.post('/api/config/autoroles-on-join/delete', (req, res) => {
   try {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
-    const { role_id } = req.body;
+    const { role_id } = req.body || {};
     if (!role_id) return res.status(400).json({ error: 'Rôle requis' });
 
     deleteAutoroleOnJoin(guildId, role_id);
@@ -1515,7 +1519,7 @@ app.post('/api/config/autoroles-on-role/add', (req, res) => {
   try {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
-    const { trigger_role_id, target_role_id } = req.body;
+    const { trigger_role_id, target_role_id } = req.body || {};
     if (!trigger_role_id || !target_role_id) return res.status(400).json({ error: 'Rôles requis' });
 
     addAutoroleOnRole(guildId, trigger_role_id, target_role_id);
@@ -1530,7 +1534,7 @@ app.post('/api/config/autoroles-on-role/delete', (req, res) => {
   try {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
-    const { trigger_role_id, target_role_id } = req.body;
+    const { trigger_role_id, target_role_id } = req.body || {};
     if (!trigger_role_id || !target_role_id) return res.status(400).json({ error: 'Rôles requis' });
 
     deleteAutoroleOnRole(guildId, trigger_role_id, target_role_id);
@@ -1594,7 +1598,7 @@ app.post('/api/config/command-permissions', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
-    const { command_name, enabled, allowed_roles, denied_roles, allowed_users } = req.body;
+    const { command_name, enabled, allowed_roles, denied_roles, allowed_users } = req.body || {};
     if (!command_name) return res.status(400).json({ error: 'Nom de commande manquant' });
 
     const { setCommandPermission } = require('./database/db');
@@ -1654,7 +1658,7 @@ app.post('/api/config/quests/update', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
-    const { id, ...data } = req.body;
+    const { id, ...data } = req.body || {};
     if (!id) return res.status(400).json({ error: 'ID de quête manquant' });
 
     const { updateQuest } = require('./database/db');
@@ -1671,7 +1675,7 @@ app.post('/api/config/quests/delete', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
-    const { id } = req.body;
+    const { id } = req.body || {};
     if (!id) return res.status(400).json({ error: 'ID de quête manquant' });
 
     const { deleteQuest } = require('./database/db');
@@ -1735,7 +1739,7 @@ app.post('/api/config/counting/add', (req, res) => {
   try {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
-    const { channel_id, mode, start_number, emoji_success, emoji_error, emoji_highscore, emoji_chance } = req.body;
+    const { channel_id, mode, start_number, emoji_success, emoji_error, emoji_highscore, emoji_chance } = req.body || {};
     if (!channel_id || !mode) return res.status(400).json({ error: 'Informations incomplètes' });
 
     const num = start_number !== undefined ? parseFloat(start_number) : 0;
@@ -1761,7 +1765,7 @@ app.post('/api/config/counting/delete', (req, res) => {
   try {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
-    const { channel_id } = req.body;
+    const { channel_id } = req.body || {};
     if (!channel_id) return res.status(400).json({ error: 'ID requis' });
 
     deleteCountingChannel(guildId, channel_id);
@@ -1779,7 +1783,7 @@ app.post('/api/config/announce-features', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
-    const { channel_id } = req.body;
+    const { channel_id } = req.body || {};
     if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
 
     const guild = client.guilds.cache.get(guildId);
@@ -1836,7 +1840,7 @@ app.post('/api/config/announce-commands', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
-    const { channel_id } = req.body;
+    const { channel_id } = req.body || {};
     if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
 
     const guild = client.guilds.cache.get(guildId);
@@ -1968,7 +1972,7 @@ app.post('/api/config/map-locations/delete', async (req, res) => {
 
     if (!req.session.user) return res.status(401).json({ error: 'Non autorisé' });
 
-    const { user_id } = req.body;
+    const { user_id } = req.body || {};
     if (!user_id) return res.status(400).json({ error: 'ID requis' });
 
     // Si l'utilisateur supprime sa propre localisation, on autorise directement.
@@ -2041,7 +2045,7 @@ app.post('/api/config/karma', (req, res) => {
       threshold_3, 
       xp_mult_3, 
       discount_3 
-    } = req.body;
+    } = req.body || {};
 
     updateKarmaConfig(guildId, {
       is_active: is_active ? 1 : 0,
@@ -2084,7 +2088,7 @@ app.post('/api/config/unlimited-forums', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { channels } = req.body;
+    const { channels } = req.body || {};
     if (!Array.isArray(channels)) return res.status(400).json({ error: 'Channels must be an array' });
 
     updateUnlimitedForums(guildId, channels);
@@ -2120,7 +2124,7 @@ app.post('/api/config/autothread', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { channels } = req.body;
+    const { channels } = req.body || {};
     if (!Array.isArray(channels)) return res.status(400).json({ error: 'Channels must be an array' });
 
     updateAutoThreadChannels(guildId, channels);
@@ -2151,7 +2155,7 @@ app.post('/api/config/action-verite/add', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { type, category, content } = req.body;
+    const { type, category, content } = req.body || {};
     if (!type || !category || !content) return res.status(400).json({ error: 'Missing fields' });
 
     addActionVeriteItem(guildId, type, category, content.trim());
@@ -2167,7 +2171,7 @@ app.post('/api/config/action-verite/delete', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { id } = req.body;
+    const { id } = req.body || {};
     if (!id) return res.status(400).json({ error: 'ID requis' });
 
     deleteActionVeriteItem(guildId, id);
@@ -2196,7 +2200,7 @@ app.post('/api/config/action-verite/channels', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { sfw_channel_id, nsfw_channel_id } = req.body;
+    const { sfw_channel_id, nsfw_channel_id } = req.body || {};
 
     updateActionVeriteConfig(guildId, {
       sfw_channel_id: sfw_channel_id || null,
@@ -2231,7 +2235,7 @@ app.post('/api/config/tickets/panel/add', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { title, description, color, thumbnail, selector_type, channel_id, image_url, allowed_options } = req.body;
+    const { title, description, color, thumbnail, selector_type, channel_id, image_url, allowed_options } = req.body || {};
 
     const result = addTicketPanel(guildId, {
       title: title || '🎫 Support / Tickets',
@@ -2266,7 +2270,7 @@ app.post('/api/config/tickets/panel/update', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { id, title, description, color, thumbnail, selector_type, channel_id, image_url, allowed_options } = req.body;
+    const { id, title, description, color, thumbnail, selector_type, channel_id, image_url, allowed_options } = req.body || {};
     if (!id) return res.status(400).json({ error: 'Missing panel ID' });
 
     updateTicketPanelById(id, {
@@ -2301,7 +2305,7 @@ app.post('/api/config/tickets/panel/resend', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { id } = req.body;
+    const { id } = req.body || {};
     if (!id) return res.status(400).json({ error: 'ID de panel requis' });
 
     const { sendOrUpdateTicketPanel } = require('./utils/tickets');
@@ -2348,7 +2352,7 @@ app.post('/api/config/tickets/panel/delete', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { id } = req.body;
+    const { id } = req.body || {};
     if (!id) return res.status(400).json({ error: 'Missing panel ID' });
 
     const panel = getTicketPanelById(id);
@@ -2389,7 +2393,7 @@ app.get('/api/config/ai', (req, res) => {
 
 app.post('/api/config/ai/keys/add', (req, res) => {
   try {
-    const { provider, category, api_key, label } = req.body;
+    const { provider, category, api_key, label } = req.body || {};
     if (!provider || !api_key) {
       return res.status(400).json({ error: 'Fournisseur et Clé API requis' });
     }
@@ -2404,7 +2408,7 @@ app.post('/api/config/ai/keys/add', (req, res) => {
 
 app.post('/api/config/ai/keys/update', (req, res) => {
   try {
-    const { id, provider, category, api_key, label } = req.body;
+    const { id, provider, category, api_key, label } = req.body || {};
     if (!id) return res.status(400).json({ error: 'ID de clé manquant' });
 
     const updates = {};
@@ -2423,7 +2427,7 @@ app.post('/api/config/ai/keys/update', (req, res) => {
 
 app.post('/api/config/ai/keys/toggle', (req, res) => {
   try {
-    const { id, is_active } = req.body;
+    const { id, is_active } = req.body || {};
     if (!id) return res.status(400).json({ error: 'ID de clé manquant' });
 
     updateAiKey(id, { is_active: is_active ? 1 : 0 });
@@ -2436,7 +2440,7 @@ app.post('/api/config/ai/keys/toggle', (req, res) => {
 
 app.post('/api/config/ai/keys/delete', (req, res) => {
   try {
-    const { id } = req.body;
+    const { id } = req.body || {};
     if (!id) return res.status(400).json({ error: 'ID de clé manquant' });
 
     deleteAiKey(id);
@@ -2449,7 +2453,7 @@ app.post('/api/config/ai/keys/delete', (req, res) => {
 
 app.post('/api/config/ai/keys/test', async (req, res) => {
   try {
-    const { provider, api_key } = req.body;
+    const { provider, api_key } = req.body || {};
     if (!provider || !api_key) {
       return res.status(400).json({ error: 'Fournisseur et Clé API requis' });
     }
@@ -2468,7 +2472,7 @@ app.post('/api/config/ai/config/update', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { preferred_provider, groq_text_model, groq_vision_model, groq_server_model, gemini_model } = req.body;
+    const { preferred_provider, groq_text_model, groq_vision_model, groq_server_model, gemini_model } = req.body || {};
 
     updateAiConfig(guildId, {
       preferred_provider: preferred_provider || 'auto',
@@ -2513,7 +2517,7 @@ app.post('/api/config/action-rewards', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { action_name, min_money, max_money, min_karma, max_karma } = req.body;
+    const { action_name, min_money, max_money, min_karma, max_karma } = req.body || {};
     if (!action_name) return res.status(400).json({ error: 'Nom de l\'action requis' });
 
     const { updateActionReward } = require('./database/db');
@@ -2536,7 +2540,7 @@ app.post('/api/config/tickets/options/add', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button } = req.body;
+    const { id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button } = req.body || {};
     if (!label || !value) return res.status(400).json({ error: 'Libellé et valeur requis' });
 
     const optionData = {
@@ -2585,7 +2589,7 @@ app.post('/api/config/tickets/options/delete', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { id } = req.body;
+    const { id } = req.body || {};
     if (!id) return res.status(400).json({ error: 'ID requis' });
 
     deleteTicketOption(guildId, id);
@@ -2657,7 +2661,7 @@ app.post('/api/config/role-themes/add', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { role_id, theme_name } = req.body;
+    const { role_id, theme_name } = req.body || {};
     if (!role_id || !theme_name) return res.status(400).json({ error: 'Rôle et Thème requis' });
 
     const { addRoleTheme } = require('./database/db');
@@ -2674,7 +2678,7 @@ app.post('/api/config/role-themes/delete', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { role_id, theme_name } = req.body;
+    const { role_id, theme_name } = req.body || {};
     if (!role_id) return res.status(400).json({ error: 'Rôle requis' });
 
     const { deleteRoleTheme } = require('./database/db');
@@ -2724,7 +2728,7 @@ app.post('/api/ai/chat', async (req, res) => {
       return res.status(403).json({ error: "L'assistant IA est accessible uniquement aux Administrateurs et au Propriétaire du serveur." });
     }
 
-    const { message } = req.body;
+    const { message } = req.body || {};
     if (!message) return res.status(400).json({ error: 'Message requis' });
 
     // Initialiser et mettre à jour l'historique de conversation de l'IA pour cette session
@@ -2777,7 +2781,7 @@ app.post('/api/config/bump', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { reminder_channel, reminder_role } = req.body;
+    const { reminder_channel, reminder_role } = req.body || {};
     const { updateBumpConfig } = require('./database/db');
     
     updateBumpConfig(guildId, reminder_channel, reminder_role);
