@@ -143,7 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
       { id: 'tab-quarantine', label: 'Quarantaine Anti-Raid', icon: 'fa-shield-cat', color: '#ff3838' },
       { id: 'tab-automod', label: 'Auto-Modération', icon: 'fa-user-shield', color: '#ff9f1a' },
       { id: 'tab-cmd-permissions', label: 'Commandes & Permissions', icon: 'fa-key', color: '#00d2d3' },
-      { id: 'tab-tribunal', label: 'Tribunal Discord', icon: 'fa-gavel', color: '#ffb142' },
       { id: 'tab-tickets', label: 'Support & Tickets', icon: 'fa-ticket', color: '#3498db' },
       { id: 'tab-forums', label: 'Forums Illimités', icon: 'fa-comments', color: '#10ac84' }
     ],
@@ -151,6 +150,8 @@ document.addEventListener('DOMContentLoaded', () => {
       { id: 'tab-leveling', label: 'Niveaux, XP & Cartes', icon: 'fa-arrow-trend-up', color: '#2ed573' },
       { id: 'tab-shop', label: 'Boutique & Suites Privées', icon: 'fa-shop', color: '#ffa502' },
       { id: 'tab-karma', label: 'Système de Karma', icon: 'fa-star', color: '#eccc68' },
+      { id: 'tab-tribunal', label: 'Tribunal Discord', icon: 'fa-gavel', color: '#ffb142' },
+      { id: 'tab-star', label: 'Star de la Semaine', icon: 'fa-star', color: '#f1c40f' },
       { id: 'tab-quests', label: 'Système de Quêtes', icon: 'fa-scroll', color: '#f1c40f' },
       { id: 'tab-counting', label: 'Salons de Comptage', icon: 'fa-calculator', color: '#70a1ff' },
       { id: 'tab-game', label: 'Jeu Mot Caché', icon: 'fa-gamepad', color: '#ff4757' },
@@ -159,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
     ],
     ai: [
       { id: 'tab-assistant', label: 'Assistant IA Admin', icon: 'fa-robot', color: '#9b59b6' },
-      { id: 'tab-star', label: 'Star de la Semaine', icon: 'fa-star', color: '#f1c40f' },
       { id: 'tab-ai', label: 'Clés & Modèles IA', icon: 'fa-brain', color: '#1abc9c' }
     ],
     nsfw: [
@@ -525,7 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Populate Channels
     const channelSelects = document.querySelectorAll('.channel-select');
     channelSelects.forEach(select => {
-      const curVal = select.value;
+      const curVal = select.getAttribute('data-saved-value') || select.value || '';
       if (select.id === 'game_announce_channel') {
         select.innerHTML = '<option value="">Salon d\'origine de la discussion</option>';
       } else if (select.id === 'autothread-channel-select') {
@@ -534,7 +534,6 @@ document.addEventListener('DOMContentLoaded', () => {
         select.innerHTML = '<option value="">Désactivé</option>';
       }
       channelsList.forEach(ch => {
-        // Option text channels only (0: GuildText, 5: GuildAnnouncement)
         if (ch.type === 0 || ch.type === 5) {
           const option = document.createElement('option');
           option.value = ch.id;
@@ -544,13 +543,14 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (curVal) {
         select.value = curVal;
+        select.setAttribute('data-saved-value', curVal);
       }
     });
 
     // Populate Announce Channels
     const announceSelects = document.querySelectorAll('.announce-channel-select');
     announceSelects.forEach(select => {
-      const curVal = select.value;
+      const curVal = select.getAttribute('data-saved-value') || select.value || '';
       select.innerHTML = `
         <option value="current">Salon actuel (où le membre parle)</option>
         <option value="disabled">Désactiver les annonces</option>
@@ -565,13 +565,14 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (curVal) {
         select.value = curVal;
+        select.setAttribute('data-saved-value', curVal);
       }
     });
 
     // Populate Categories (type 4 is GuildCategory)
     const categorySelects = document.querySelectorAll('.category-select');
     categorySelects.forEach(select => {
-      const curVal = select.value;
+      const curVal = select.getAttribute('data-saved-value') || select.value || '';
       select.innerHTML = '<option value="">-- Créer automatiquement une catégorie --</option>';
       channelsList.forEach(ch => {
         if (ch.type === 4) {
@@ -583,6 +584,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (curVal) {
         select.value = curVal;
+        select.setAttribute('data-saved-value', curVal);
       }
     });
 
@@ -591,7 +593,6 @@ document.addEventListener('DOMContentLoaded', () => {
     multiChannelSelects.forEach(select => {
       select.innerHTML = '';
       channelsList.forEach(ch => {
-        // Option text channels (0: GuildText, 5: GuildAnnouncement) et salons Forum (15: GuildForum)
         if (ch.type === 0 || ch.type === 5 || ch.type === 15) {
           const option = document.createElement('option');
           option.value = ch.id;
@@ -605,10 +606,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Populate Roles
     const roleSelects = document.querySelectorAll('.role-select');
     roleSelects.forEach(select => {
-      const curVal = select.value;
+      const curVal = select.getAttribute('data-saved-value') || select.value || '';
       select.innerHTML = '<option value="">Sélectionner un rôle</option>';
       rolesList.forEach(role => {
-        // Exclude @everyone role which has the same ID as the guild
         if (role.name !== '@everyone') {
           const option = document.createElement('option');
           option.value = role.id;
@@ -618,6 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (curVal) {
         select.value = curVal;
+        select.setAttribute('data-saved-value', curVal);
       }
     });
 
