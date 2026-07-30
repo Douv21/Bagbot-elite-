@@ -21,10 +21,15 @@ module.exports = {
   description: "Drop de Karma pour le premier qui réagit (Admin uniquement)",
   
   async execute(interaction) {
-    const isAdmin = interaction.memberPermissions?.has(PermissionsBitField.Flags.Administrator);
-    if (!isAdmin) {
+    const perms = interaction.memberPermissions;
+    const isStaff = perms?.has(PermissionsBitField.Flags.Administrator) ||
+                    perms?.has(PermissionsBitField.Flags.KickMembers) ||
+                    perms?.has(PermissionsBitField.Flags.BanMembers) ||
+                    perms?.has(PermissionsBitField.Flags.ModerateMembers) ||
+                    perms?.has(PermissionsBitField.Flags.ManageMessages);
+    if (!isStaff) {
       return interaction.reply({ 
-        content: "❌ Vous devez être Administrateur du serveur pour créer un drop de Karma.", 
+        content: "❌ Vous devez disposer des autorisations de modération (Expulser, Bannir, Modérer ou Gérer les messages) pour créer un drop de Karma.", 
         ephemeral: true 
       });
     }
