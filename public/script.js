@@ -169,6 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(res => res.json())
       .then(guilds => {
         guildsList = guilds;
+        guildSelect.innerHTML = '<option value="">Sélectionnez un serveur...</option>';
         guilds.forEach(guild => {
           const option = document.createElement('option');
           option.value = guild.id;
@@ -240,15 +241,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       card.addEventListener('click', () => {
         guildSelect.value = guild.id;
-        // Trigger select-guild API
+        handleGuildSelection(guild.id);
         fetch('/api/select-guild', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ guildId: guild.id })
-        })
-        .then(res => res.json())
-        .then(() => handleGuildSelection(guild.id))
-        .catch(console.error);
+        }).catch(console.error);
       });
 
       grid.appendChild(card);
@@ -265,15 +263,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Save choice in session
+    handleGuildSelection(guildId);
     fetch('/api/select-guild', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ guildId })
-    })
-      .then(res => res.json())
-      .then(() => handleGuildSelection(guildId))
-      .catch(console.error);
+    }).catch(console.error);
   });
 
   const activeGuildTrigger = document.getElementById('active-guild-trigger');
@@ -325,24 +320,55 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function handleGuildSelection(guildId) {
+    if (!guildId) return;
     noGuildSelected.style.display = 'none';
     configForms.style.display = 'block';
     
+    // S'assurer qu'au moins un onglet est actif pour afficher les formulaires
+    const activeBtn = document.querySelector('.tab-btn.active');
+    const activeTabContent = document.querySelector('.tab-content.active');
+    if (!activeBtn || !activeTabContent) {
+      const welcomeBtn = document.querySelector('.tab-btn[data-tab="tab-welcome"]');
+      const welcomeTab = document.getElementById('tab-welcome');
+      if (welcomeBtn) welcomeBtn.classList.add('active');
+      if (welcomeTab) welcomeTab.classList.add('active');
+    }
+
     updateActiveGuildIcon(guildId);
 
-    // 1. Fetch channels, roles & members
-    await Promise.all([
-      fetch('/api/channels').then(res => res.json()).then(data => { channelsList = data; }),
-      fetch('/api/roles').then(res => res.json()).then(data => { rolesList = data; }),
-      fetch('/api/members').then(res => res.json()).then(data => { membersList = data; })
-    ]).catch(console.error);
+    // 1. Fetch channels, roles & members de façon sécurisée
+    try {
+      await Promise.all([
+        fetch('/api/channels').then(res => res.json()).then(data => { channelsList = Array.isArray(data) ? data : []; }),
+        fetch('/api/roles').then(res => res.json()).then(data => { rolesList = Array.isArray(data) ? data : []; }),
+        fetch('/api/members').then(res => res.json()).then(data => { membersList = Array.isArray(data) ? data : []; })
+      ]);
+    } catch (err) {
+      console.error('Erreur chargement ressources guilde:', err);
+      channelsList = [];
+      rolesList = [];
+      membersList = [];
+    }
 
-    // 2. Populate selects
-    populateDropdowns();
+    // 2. Remplir les dropdowns
+    try {
+      populateDropdowns();
+    } catch (e) {
+      console.error('Erreur remplissage dropdowns:', e);
+    }
 
-    // 3. Load guild config
-    loadGuildConfiguration();
-    loadStarConfigAndLeaderboard();
+    // 3. Charger la configuration
+    try {
+      loadGuildConfiguration();
+    } catch (e) {
+      console.error('Erreur chargement config guilde:', e);
+    }
+
+    try {
+      loadStarConfigAndLeaderboard();
+    } catch (e) {
+      console.error('Erreur chargement star config:', e);
+    }
   }
 
   function populateDropdowns() {
