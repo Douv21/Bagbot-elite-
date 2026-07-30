@@ -555,6 +555,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function safeSetVal(id, val) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.value = (val !== undefined && val !== null) ? val : '';
+      if (el.syncCustomSelect) el.syncCustomSelect();
+    }
+  }
+
+  function safeSetCheck(id, bool) {
+    const el = document.getElementById(id);
+    if (el) el.checked = !!bool;
+  }
+
   function loadGuildConfiguration() {
     fetch('/api/config')
       .then(res => res.json())
@@ -585,35 +598,34 @@ document.addEventListener('DOMContentLoaded', () => {
           author_icon: wl.leave_author_icon || '',
           footer: wl.leave_footer || ''
         };
-        updateInteractiveEditor();
+        try { updateInteractiveEditor(); } catch (e) {}
 
         // Confessions (salons multiples)
         confessionsListState = config.confessions || [];
-        renderConfessions(confessionsListState);
+        try { renderConfessions(confessionsListState); } catch (e) {}
 
         // Jeu Mot Caché
         const game = config.game_config || {};
-        document.getElementById('game_is_active').checked = !!game.is_active;
-        document.getElementById('game_secret_phrase').value = game.secret_phrase || '';
-        document.getElementById('game_reward_money').value = game.reward_money ?? 0;
-        document.getElementById('game_reward_xp').value = game.reward_xp ?? 0;
-        const gameRewardChanceEl = document.getElementById('game_reward_chance');
-        if (gameRewardChanceEl) gameRewardChanceEl.value = game.reward_chance ?? 0;
-        document.getElementById('game_reward_role_id').value = game.reward_role_id || '';
-        document.getElementById('game_appearance_chance').value = game.appearance_chance ?? 15;
-        document.getElementById('game_letter_emoji').value = game.letter_emoji || '🔍';
+        safeSetCheck('game_is_active', game.is_active);
+        safeSetVal('game_secret_phrase', game.secret_phrase);
+        safeSetVal('game_reward_money', game.reward_money ?? 0);
+        safeSetVal('game_reward_xp', game.reward_xp ?? 0);
+        safeSetVal('game_reward_chance', game.reward_chance ?? 0);
+        safeSetVal('game_reward_role_id', game.reward_role_id);
+        safeSetVal('game_appearance_chance', game.appearance_chance ?? 15);
+        safeSetVal('game_letter_emoji', game.letter_emoji || '🔍');
         const announceChanSel = document.getElementById('game_announce_channel');
         if (announceChanSel) {
           announceChanSel.value = (game.announce_channel === 'dm') ? '' : (game.announce_channel || '');
           if (announceChanSel.syncCustomSelect) announceChanSel.syncCustomSelect();
         }
-        document.getElementById('game_ephemeral_letters').checked = (game.ephemeral_letters === undefined || game.ephemeral_letters === null) ? true : !!game.ephemeral_letters;
-        document.getElementById('game_reset_progress').checked = false;
+        safeSetCheck('game_ephemeral_letters', (game.ephemeral_letters === undefined || game.ephemeral_letters === null) ? true : !!game.ephemeral_letters);
+        safeSetCheck('game_reset_progress', false);
 
         // Quarantaine
         const quar = config.quarantine || {};
-        document.getElementById('quarantine_role').value = quar.role_id || '';
-        document.getElementById('quarantine_channel').value = quar.channel_id || '';
+        safeSetVal('quarantine_role', quar.role_id);
+        safeSetVal('quarantine_channel', quar.channel_id);
 
         // Logs
         const logs = config.logs || {};
@@ -624,67 +636,44 @@ document.addEventListener('DOMContentLoaded', () => {
           } else if (logs.channel_id) {
             const legId = logs.channel_id;
             channelMap = {
-              messages: legId,
-              members: legId,
-              voice: legId,
-              moderation: legId,
-              structure: legId,
-              bots: legId,
-              confessions: legId
+              messages: legId, members: legId, voice: legId, moderation: legId, structure: legId, bots: legId, confessions: legId
             };
           }
-        } catch (e) {
-          console.error(e);
-        }
+        } catch (e) {}
 
         const activeCategories = logs.events ? logs.events.split(',') : [];
         const isLegacyAll = !logs.events || logs.events === 'all';
         const categories = ['messages', 'members', 'voice', 'moderation', 'structure', 'bots', 'confessions'];
         
         categories.forEach(cat => {
-          const enableCb = document.getElementById(`log_enable_${cat}`);
-          const channelSel = document.getElementById(`log_channel_${cat}`);
-          if (enableCb) {
-            enableCb.checked = isLegacyAll ? true : activeCategories.includes(cat);
-          }
-          if (channelSel) {
-            channelSel.value = channelMap[cat] || '';
-          }
+          safeSetCheck(`log_enable_${cat}`, isLegacyAll ? true : activeCategories.includes(cat));
+          safeSetVal(`log_channel_${cat}`, channelMap[cat]);
         });
 
-        // Shop Items
-        renderShopItems(config.shop || []);
-
-        // Level Rewards
-        renderLevelRewards(config.level_rewards || []);
+        // Shop Items & Level Rewards
+        try { renderShopItems(config.shop || []); } catch (e) {}
+        try { renderLevelRewards(config.level_rewards || []); } catch (e) {}
 
         // Leveling Config
         const lvl = config.leveling_config || {};
-        document.getElementById('xp_min').value = lvl.xp_min ?? 15;
-        document.getElementById('xp_max').value = lvl.xp_max ?? 25;
-        document.getElementById('xp_base').value = lvl.xp_base ?? 120;
-        document.getElementById('xp_factor').value = lvl.xp_factor ?? 1.35;
-        document.getElementById('karma_min').value = lvl.karma_min ?? 1;
-        document.getElementById('karma_max').value = lvl.karma_max ?? 3;
-        document.getElementById('money_min').value = lvl.money_min ?? 2;
-        document.getElementById('money_max').value = lvl.money_max ?? 5;
-        document.getElementById('nsfw_xp_reward').value = lvl.nsfw_xp_reward ?? 0;
-        document.getElementById('nsfw_money_reward').value = lvl.nsfw_money_reward ?? 0;
-        document.getElementById('announce_channel').value = lvl.announce_channel || 'current';
-        document.getElementById('announce_msg').value = lvl.announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !';
+        safeSetVal('xp_min', lvl.xp_min ?? 15);
+        safeSetVal('xp_max', lvl.xp_max ?? 25);
+        safeSetVal('xp_base', lvl.xp_base ?? 120);
+        safeSetVal('xp_factor', lvl.xp_factor ?? 1.35);
+        safeSetVal('karma_min', lvl.karma_min ?? 1);
+        safeSetVal('karma_max', lvl.karma_max ?? 3);
+        safeSetVal('money_min', lvl.money_min ?? 2);
+        safeSetVal('money_max', lvl.money_max ?? 5);
+        safeSetVal('nsfw_xp_reward', lvl.nsfw_xp_reward ?? 0);
+        safeSetVal('nsfw_money_reward', lvl.nsfw_money_reward ?? 0);
+        safeSetVal('announce_channel', lvl.announce_channel || 'current');
+        safeSetVal('announce_msg', lvl.announce_msg || 'Bravo {user} ! Tu passes au niveau {level} !');
         
-        // Tribunal Category & Roles & Prefix & Access Roles & Auto Delete
+        // Tribunal Category & Roles & Prefix
         const trib = config.tribunal_config || {};
-        const tribCategoryEl = document.getElementById('tribunal_category');
-        if (tribCategoryEl) {
-          tribCategoryEl.value = trib.categoryId || '';
-          if (tribCategoryEl.syncCustomSelect) tribCategoryEl.syncCustomSelect();
-        }
-        const tribPrefixEl = document.getElementById('tribunal_channel_prefix');
-        if (tribPrefixEl) tribPrefixEl.value = trib.channelPrefix || '⚖️┆procès-';
-
-        const tribAutoDeleteEl = document.getElementById('tribunal_auto_delete_minutes');
-        if (tribAutoDeleteEl) tribAutoDeleteEl.value = trib.autoDeleteMinutes ?? 5;
+        safeSetVal('tribunal_category', trib.categoryId);
+        safeSetVal('tribunal_channel_prefix', trib.channelPrefix || '⚖️┆procès-');
+        safeSetVal('tribunal_auto_delete_minutes', trib.autoDeleteMinutes ?? 5);
 
         const tribAccessRolesEl = document.getElementById('tribunal_access_roles');
         if (tribAccessRolesEl) {
@@ -695,73 +684,42 @@ document.addEventListener('DOMContentLoaded', () => {
           if (tribAccessRolesEl.syncCustomSelect) tribAccessRolesEl.syncCustomSelect();
         }
 
-        const judgeRoleEl = document.getElementById('tribunal_judge_role');
-        if (judgeRoleEl) {
-          judgeRoleEl.value = trib.judgeRoleId || '';
-          if (judgeRoleEl.syncCustomSelect) judgeRoleEl.syncCustomSelect();
-        }
-        const lawyerRoleEl = document.getElementById('tribunal_lawyer_role');
-        if (lawyerRoleEl) {
-          lawyerRoleEl.value = trib.lawyerRoleId || '';
-          if (lawyerRoleEl.syncCustomSelect) lawyerRoleEl.syncCustomSelect();
-        }
-        const accusedRoleEl = document.getElementById('tribunal_accused_role');
-        if (accusedRoleEl) {
-          accusedRoleEl.value = trib.accusedRoleId || '';
-          if (accusedRoleEl.syncCustomSelect) accusedRoleEl.syncCustomSelect();
-        }
-        const plaintiffRoleEl = document.getElementById('tribunal_plaintiff_role');
-        if (plaintiffRoleEl) {
-          plaintiffRoleEl.value = trib.plaintiffRoleId || '';
-          if (plaintiffRoleEl.syncCustomSelect) plaintiffRoleEl.syncCustomSelect();
-        }
+        safeSetVal('tribunal_judge_role', trib.judgeRoleId);
+        safeSetVal('tribunal_lawyer_role', trib.lawyerRoleId);
+        safeSetVal('tribunal_accused_role', trib.accusedRoleId);
+        safeSetVal('tribunal_plaintiff_role', trib.plaintiffRoleId);
 
-        // Shop Config (Suites privées category & prefix)
+        // Shop Config
         const shopCfg = config.shop_config || {};
-        const privateSuiteCategoryEl = document.getElementById('private_suite_category_id');
-        if (privateSuiteCategoryEl) {
-          privateSuiteCategoryEl.value = shopCfg.privateSuiteCategoryId || '';
-          if (privateSuiteCategoryEl.syncCustomSelect) privateSuiteCategoryEl.syncCustomSelect();
-        }
-        const suitePrefixEl = document.getElementById('suite_channel_prefix');
-        if (suitePrefixEl) suitePrefixEl.value = shopCfg.suiteChannelPrefix || '👑┆suite-';
+        safeSetVal('private_suite_category_id', shopCfg.privateSuiteCategoryId);
+        safeSetVal('suite_channel_prefix', shopCfg.suiteChannelPrefix || '👑┆suite-');
         
         if (typeof updateXpCurvePreview === 'function') {
-          updateXpCurvePreview();
+          try { updateXpCurvePreview(); } catch (e) {}
         }
 
         // Automod Config
         const am = config.automod_config || {};
-        document.getElementById('automod_anti_link').checked = am.anti_link === 1;
-        document.getElementById('automod_anti_spam').checked = am.anti_spam === 1;
-        document.getElementById('automod_anti_massmention').checked = am.anti_massmention === 1;
-        document.getElementById('automod_anti_badwords').checked = am.anti_badwords === 1;
-        document.getElementById('automod_spam_max_msgs').value = am.spam_max_msgs ?? 5;
-        document.getElementById('automod_massmention_limit').value = am.massmention_limit ?? 5;
-        document.getElementById('automod_badwords_list').value = am.badwords_list || '';
-        document.getElementById('automod_bypass_roles').value = am.bypass_roles || '';
+        safeSetCheck('automod_anti_link', am.anti_link === 1);
+        safeSetCheck('automod_anti_spam', am.anti_spam === 1);
+        safeSetCheck('automod_anti_massmention', am.anti_massmention === 1);
+        safeSetCheck('automod_anti_badwords', am.anti_badwords === 1);
+        safeSetVal('automod_spam_max_msgs', am.spam_max_msgs ?? 5);
+        safeSetVal('automod_massmention_limit', am.massmention_limit ?? 5);
+        safeSetVal('automod_badwords_list', am.badwords_list || '');
+        safeSetVal('automod_bypass_roles', am.bypass_roles || '');
 
         // Auto-rôles & Counting renders
-        renderAutoroleJoin(config.autoroles_on_join || []);
-        renderAutoroleRole(config.autoroles_on_role || []);
-        renderActiveAutoroles(config.autorole_embeds || []);
-        renderCountingChannels(config.counting_channels || []);
-        if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
+        try { renderAutoroleJoin(config.autoroles_on_join || []); } catch (e) {}
+        try { renderAutoroleRole(config.autoroles_on_role || []); } catch (e) {}
+        try { renderActiveAutoroles(config.autorole_embeds || []); } catch (e) {}
+        try { renderCountingChannels(config.counting_channels || []); } catch (e) {}
+        if (typeof updateAutorolePreview === 'function') try { updateAutorolePreview(); } catch (e) {}
 
-        // Permissions Configuration & Dérogations
+        // Permissions Configuration
         const perms = config.permissions_config || {};
-        const adminRoleSel = document.getElementById('perm_admin_role_id');
-        const modoRoleSel = document.getElementById('perm_modo_role_id');
-        if (adminRoleSel) {
-          adminRoleSel.value = perms.admin_role_id || '';
-          if (adminRoleSel.syncCustomSelect) adminRoleSel.syncCustomSelect();
-          adminRoleSel.dispatchEvent(new Event('change'));
-        }
-        if (modoRoleSel) {
-          modoRoleSel.value = perms.modo_role_id || '';
-          if (modoRoleSel.syncCustomSelect) modoRoleSel.syncCustomSelect();
-          modoRoleSel.dispatchEvent(new Event('change'));
-        }
+        safeSetVal('perm_admin_role_id', perms.admin_role_id);
+        safeSetVal('perm_modo_role_id', perms.modo_role_id);
 
         let dashRoles = [];
         let adminCmdsRoles = [];
@@ -785,28 +743,27 @@ document.addEventListener('DOMContentLoaded', () => {
         setMultiSelectValues('perm_modo_cmds_roles', modoCmdsRoles);
 
         if (typeof updatePermissionsRoleBadges === 'function') {
-          updatePermissionsRoleBadges();
+          try { updatePermissionsRoleBadges(); } catch (e) {}
         }
 
-        // Charger la configuration Karma
+        // Charger Karma, Forums, Auto-Thread, Action-Verite, Tickets, AI, etc.
         fetch('/api/config/karma')
           .then(res => res.json())
           .then(karma => {
-            document.getElementById('karma_is_active').checked = !!karma.is_active;
-            document.getElementById('karma_announce_rewards').checked = !!karma.announce_rewards;
-            document.getElementById('karma_threshold_1').value = karma.threshold_1 ?? 20;
-            document.getElementById('karma_xp_mult_1').value = karma.xp_mult_1 ?? 1.2;
-            document.getElementById('karma_discount_1').value = karma.discount_1 ?? 5;
-            document.getElementById('karma_threshold_2').value = karma.threshold_2 ?? 50;
-            document.getElementById('karma_xp_mult_2').value = karma.xp_mult_2 ?? 1.5;
-            document.getElementById('karma_discount_2').value = karma.discount_2 ?? 10;
-            document.getElementById('karma_threshold_3').value = karma.threshold_3 ?? 100;
-            document.getElementById('karma_xp_mult_3').value = karma.xp_mult_3 ?? 2.0;
-            document.getElementById('karma_discount_3').value = karma.discount_3 ?? 20;
+            safeSetCheck('karma_is_active', karma.is_active);
+            safeSetCheck('karma_announce_rewards', karma.announce_rewards);
+            safeSetVal('karma_threshold_1', karma.threshold_1 ?? 20);
+            safeSetVal('karma_xp_mult_1', karma.xp_mult_1 ?? 1.2);
+            safeSetVal('karma_discount_1', karma.discount_1 ?? 5);
+            safeSetVal('karma_threshold_2', karma.threshold_2 ?? 50);
+            safeSetVal('karma_xp_mult_2', karma.xp_mult_2 ?? 1.5);
+            safeSetVal('karma_discount_2', karma.discount_2 ?? 10);
+            safeSetVal('karma_threshold_3', karma.threshold_3 ?? 100);
+            safeSetVal('karma_xp_mult_3', karma.xp_mult_3 ?? 2.0);
+            safeSetVal('karma_discount_3', karma.discount_3 ?? 20);
           })
           .catch(console.error);
 
-        // Charger la configuration des Forums Illimités (Cases à cocher)
         fetch('/api/config/unlimited-forums')
           .then(res => res.json())
           .then(data => {
@@ -817,98 +774,78 @@ document.addEventListener('DOMContentLoaded', () => {
           })
           .catch(console.error);
 
-        // Charger la configuration Auto-Thread
         fetch('/api/config/autothread')
           .then(res => res.json())
           .then(data => {
-            renderAutoThreadChannels(data.channels || []);
+            try { renderAutoThreadChannels(data.channels || []); } catch (e) {}
           })
           .catch(console.error);
 
-        // Charger la configuration des Salons Action ou Vérité
         fetch('/api/config/action-verite/channels')
           .then(res => res.json())
           .then(config => {
-            document.getElementById('av_sfw_channel').value = config.sfw_channel_id || '';
-            document.getElementById('av_nsfw_channel').value = config.nsfw_channel_id || '';
-            
-            const sfwSelect = document.getElementById('av_sfw_channel');
-            const nsfwSelect = document.getElementById('av_nsfw_channel');
-            if (sfwSelect.syncCustomSelect) sfwSelect.syncCustomSelect();
-            if (nsfwSelect.syncCustomSelect) nsfwSelect.syncCustomSelect();
+            safeSetVal('av_sfw_channel', config.sfw_channel_id);
+            safeSetVal('av_nsfw_channel', config.nsfw_channel_id);
           })
           .catch(console.error);
 
-        // Charger la liste Action ou Vérité
         fetch('/api/config/action-verite')
           .then(res => res.json())
           .then(items => {
-            renderActionVerite(items);
+            try { renderActionVerite(items); } catch (e) {}
           })
           .catch(console.error);
 
-        // Charger la configuration des Tickets (Panneaux et Options)
         fetch('/api/config/tickets')
           .then(res => res.json())
           .then(data => {
             currentTicketPanels = data.panels || [];
             currentTicketOptions = data.options || [];
 
-            renderTicketPanelsList(currentTicketPanels, currentTicketOptions);
-            renderTicketOptions(currentTicketOptions);
+            try {
+              renderTicketPanelsList(currentTicketPanels, currentTicketOptions);
+              renderTicketOptions(currentTicketOptions);
+            } catch (e) {}
 
             const panelIdInput = document.getElementById('ticket_panel_id');
             if (panelIdInput && panelIdInput.value) {
               const currentEditing = currentTicketPanels.find(p => p.id == panelIdInput.value);
               if (currentEditing) {
-                loadPanelIntoForm(currentEditing, currentTicketOptions);
+                try { loadPanelIntoForm(currentEditing, currentTicketOptions); } catch (e) {}
               } else if (currentTicketPanels.length > 0) {
-                loadPanelIntoForm(currentTicketPanels[0], currentTicketOptions);
+                try { loadPanelIntoForm(currentTicketPanels[0], currentTicketOptions); } catch (e) {}
               } else {
-                resetPanelForm(currentTicketOptions);
+                try { resetPanelForm(currentTicketOptions); } catch (e) {}
               }
             } else if (currentTicketPanels.length > 0) {
-              loadPanelIntoForm(currentTicketPanels[0], currentTicketOptions);
+              try { loadPanelIntoForm(currentTicketPanels[0], currentTicketOptions); } catch (e) {}
             } else {
-              resetPanelForm(currentTicketOptions);
+              try { resetPanelForm(currentTicketOptions); } catch (e) {}
             }
           })
           .catch(console.error);
 
-        // Charger la configuration IA (Multi-Clés & Modèles)
         fetch('/api/config/ai')
           .then(res => res.json())
           .then(data => {
             const config = data.config || {};
             const keys = data.keys || [];
 
-            const pProv = document.getElementById('ai_preferred_provider');
-            const gText = document.getElementById('ai_groq_text_model');
-            const gVis = document.getElementById('ai_groq_vision_model');
-            const gServ = document.getElementById('ai_groq_server_model');
-            const gemMod = document.getElementById('ai_gemini_model');
+            safeSetVal('ai_preferred_provider', config.preferred_provider || 'auto');
+            safeSetVal('ai_groq_text_model', config.groq_text_model || 'llama-3.3-70b-versatile');
+            safeSetVal('ai_groq_vision_model', config.groq_vision_model || 'llama-3.2-11b-vision-preview');
+            safeSetVal('ai_groq_server_model', config.groq_server_model || 'llama-3.3-70b-versatile');
+            safeSetVal('ai_gemini_model', config.gemini_model || 'gemini-2.0-flash');
 
-            if (pProv) pProv.value = config.preferred_provider || 'auto';
-            if (gText) gText.value = config.groq_text_model || 'llama-3.3-70b-versatile';
-            if (gVis) gVis.value = config.groq_vision_model || 'llama-3.2-11b-vision-preview';
-            if (gServ) gServ.value = config.groq_server_model || 'llama-3.3-70b-versatile';
-            if (gemMod) gemMod.value = config.gemini_model || 'gemini-2.0-flash';
-
-            ['ai_preferred_provider', 'ai_groq_text_model', 'ai_groq_vision_model', 'ai_groq_server_model', 'ai_gemini_model'].forEach(id => {
-              const el = document.getElementById(id);
-              if (el && el.syncCustomSelect) el.syncCustomSelect();
-            });
-
-            renderAiKeys(keys);
+            try { renderAiKeys(keys); } catch (e) {}
           })
           .catch(console.error);
 
-        // Charger la configuration des Gains des Actions
         fetch('/api/config/action-rewards')
           .then(res => res.json())
           .then(rewards => {
             actionRewardsState = rewards;
-            updateActionRewardsForm();
+            try { renderActionRewards(actionRewardsState); } catch (e) {}
           })
           .catch(console.error);
 
