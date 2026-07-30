@@ -273,20 +273,25 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const activeGuildTrigger = document.getElementById('active-guild-trigger');
+  const btnChangeGuildBanner = document.getElementById('btn-change-guild-banner');
+  
+  const resetToGuildSelection = () => {
+    guildSelect.value = '';
+    noGuildSelected.style.display = 'block';
+    configForms.style.display = 'none';
+    updateActiveGuildIcon('');
+    fetch('/api/select-guild', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guildId: '' })
+    }).catch(console.error);
+  };
+
   if (activeGuildTrigger) {
-    activeGuildTrigger.addEventListener('click', () => {
-      guildSelect.value = '';
-      fetch('/api/select-guild', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ guildId: '' })
-      })
-      .then(res => res.json())
-      .then(() => {
-        guildSelect.dispatchEvent(new Event('change'));
-      })
-      .catch(console.error);
-    });
+    activeGuildTrigger.addEventListener('click', resetToGuildSelection);
+  }
+  if (btnChangeGuildBanner) {
+    btnChangeGuildBanner.addEventListener('click', resetToGuildSelection);
   }
 
   function updateActiveGuildIcon(guildId) {
@@ -336,6 +341,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     updateActiveGuildIcon(guildId);
+
+    const guildObj = guildsList.find(g => g.id === guildId);
+    const bannerName = document.getElementById('active-guild-name-banner');
+    if (bannerName && guildObj) {
+      bannerName.textContent = guildObj.name;
+    }
 
     // 1. Fetch channels, roles & members de façon sécurisée
     try {
