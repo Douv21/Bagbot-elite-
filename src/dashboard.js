@@ -394,11 +394,12 @@ app.get('/api/selected-guild', (req, res) => {
 // API pour obtenir les salons (via le bot)
 app.get('/api/channels', async (req, res) => {
   try {
-    if (!req.session.user || !req.session.selectedGuild) {
+    const guildId = req.session.selectedGuild || req.query.guildId;
+    if (!req.session.user || !guildId) {
       return res.json([]);
     }
     const botApiPort = process.env.BOT_API_PORT || 49602;
-    const response = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${req.session.selectedGuild}/channels`).catch(() => null);
+    const response = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/channels`).catch(() => null);
     if (response && response.ok) {
       const channels = await response.json();
       res.json(channels);
@@ -414,11 +415,12 @@ app.get('/api/channels', async (req, res) => {
 // API pour obtenir les rôles (via le bot)
 app.get('/api/roles', async (req, res) => {
   try {
-    if (!req.session.user || !req.session.selectedGuild) {
+    const guildId = req.session.selectedGuild || req.query.guildId;
+    if (!req.session.user || !guildId) {
       return res.json([]);
     }
     const botApiPort = process.env.BOT_API_PORT || 49602;
-    const response = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${req.session.selectedGuild}/roles`).catch(() => null);
+    const response = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/roles`).catch(() => null);
     if (response && response.ok) {
       const roles = await response.json();
       res.json(roles);
@@ -434,11 +436,12 @@ app.get('/api/roles', async (req, res) => {
 // API pour obtenir les membres (via le bot)
 app.get('/api/members', async (req, res) => {
   try {
-    if (!req.session.user || !req.session.selectedGuild) {
+    const guildId = req.session.selectedGuild || req.query.guildId;
+    if (!req.session.user || !guildId) {
       return res.json([]);
     }
     const botApiPort = process.env.BOT_API_PORT || 49602;
-    const response = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${req.session.selectedGuild}/members`).catch(() => null);
+    const response = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/members`).catch(() => null);
     if (response && response.ok) {
       const members = await response.json();
       res.json(members);
@@ -470,11 +473,10 @@ app.get('/api/bot/info', async (req, res) => {
 // Changer l'avatar du bot globalement
 app.post('/api/bot/avatar', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = req.session.selectedGuild || req.query.guildId || req.body.guildId;
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
     const { avatar_url } = req.body;
 
-    // Enregistrer l'avatar personnalisé dans welcome_leave pour cette guilde
     let wl = db.prepare('SELECT * FROM welcome_leave WHERE guild_id = ?').get(guildId);
     if (!wl) {
       db.prepare('INSERT INTO welcome_leave (guild_id, custom_bot_avatar) VALUES (?, ?)').run(guildId, avatar_url || null);
@@ -494,7 +496,7 @@ app.post('/api/bot/avatar', async (req, res) => {
 // 1. Obtenir toute la configuration d'un serveur
 app.get('/api/config', (req, res) => {
   try {
-    const guildId = req.session.selectedGuild;
+    const guildId = req.session.selectedGuild || req.query.guildId;
     if (!guildId) {
       return res.status(400).json({ error: 'No guild selected' });
     }

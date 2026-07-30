@@ -339,9 +339,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Fetch channels, roles & members de façon sécurisée
     try {
       await Promise.all([
-        fetch('/api/channels').then(res => res.json()).then(data => { channelsList = Array.isArray(data) ? data : []; }),
-        fetch('/api/roles').then(res => res.json()).then(data => { rolesList = Array.isArray(data) ? data : []; }),
-        fetch('/api/members').then(res => res.json()).then(data => { membersList = Array.isArray(data) ? data : []; })
+        fetch(`/api/channels?guildId=${guildId}`).then(res => res.json()).then(data => { channelsList = Array.isArray(data) ? data : []; }),
+        fetch(`/api/roles?guildId=${guildId}`).then(res => res.json()).then(data => { rolesList = Array.isArray(data) ? data : []; }),
+        fetch(`/api/members?guildId=${guildId}`).then(res => res.json()).then(data => { membersList = Array.isArray(data) ? data : []; })
       ]);
     } catch (err) {
       console.error('Erreur chargement ressources guilde:', err);
@@ -359,13 +359,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Charger la configuration
     try {
-      loadGuildConfiguration();
+      loadGuildConfiguration(guildId);
     } catch (e) {
       console.error('Erreur chargement config guilde:', e);
     }
 
     try {
-      loadStarConfigAndLeaderboard();
+      loadStarConfigAndLeaderboard(guildId);
     } catch (e) {
       console.error('Erreur chargement star config:', e);
     }
@@ -568,8 +568,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (el) el.checked = !!bool;
   }
 
-  function loadGuildConfiguration() {
-    fetch('/api/config')
+  function loadGuildConfiguration(guildId) {
+    const targetGuildId = guildId || (guildSelect ? guildSelect.value : '');
+    const url = targetGuildId ? `/api/config?guildId=${targetGuildId}` : '/api/config';
+    fetch(url)
       .then(res => res.json())
       .then(config => {
         // Welcome / Leave
