@@ -799,20 +799,37 @@ client.on('interactionCreate', async interaction => {
       console.error('Erreur lors du contrôle du rôle quarantaine:', e);
     }
 
+    const member = interaction.member;
+    const { PermissionsBitField } = require('discord.js');
+    let userPerms = member?.permissions;
+    if (!userPerms || typeof userPerms.has !== 'function') {
+      userPerms = interaction.memberPermissions;
+    }
+    if (!userPerms || typeof userPerms.has !== 'function') {
+      userPerms = new PermissionsBitField();
+    }
+
     const customPerm = getCommandPermission(guildId, interaction.commandName);
     if (customPerm) {
       if (customPerm.enabled === 0) {
         return interaction.reply({ content: `❌ La commande \`/${interaction.commandName}\` a été désactivée par les administrateurs sur ce serveur.`, ephemeral: true });
       }
 
-      const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
-      if (!isAdmin) {
+      const hasNativePerm = 
+        userPerms.has(PermissionsBitField.Flags.Administrator) ||
+        userPerms.has(PermissionsBitField.Flags.ManageGuild) ||
+        (['ban', 'unban', 'massban'].includes(interaction.commandName) && userPerms.has(PermissionsBitField.Flags.BanMembers)) ||
+        (['kick', 'masskick'].includes(interaction.commandName) && (userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.BanMembers))) ||
+        (['clear'].includes(interaction.commandName) && (userPerms.has(PermissionsBitField.Flags.ManageMessages) || userPerms.has(PermissionsBitField.Flags.ModerateMembers))) ||
+        (['warn', 'unwarn', 'mute', 'unmute', 'timeout', 'untimeout', 'quarantaine'].includes(interaction.commandName) && (userPerms.has(PermissionsBitField.Flags.ModerateMembers) || userPerms.has(PermissionsBitField.Flags.ManageMessages) || userPerms.has(PermissionsBitField.Flags.KickMembers) || userPerms.has(PermissionsBitField.Flags.BanMembers)));
+
+      if (!hasNativePerm) {
         let allowedRoles = [];
         let deniedRoles = [];
         try { allowedRoles = JSON.parse(customPerm.allowed_roles || '[]'); } catch (e) {}
         try { deniedRoles = JSON.parse(customPerm.denied_roles || '[]'); } catch (e) {}
 
-        const userRoleIds = interaction.member?.roles?.cache ? Array.from(interaction.member.roles.cache.keys()) : [];
+        const userRoleIds = member?.roles?.cache ? Array.from(member.roles.cache.keys()) : (Array.isArray(member?.roles) ? member.roles : []);
 
         if (deniedRoles.length > 0 && deniedRoles.some(rId => userRoleIds.includes(rId))) {
           return interaction.reply({ content: `❌ Votre rôle vous interdit d'utiliser la commande \`/${interaction.commandName}\`.`, ephemeral: true });
@@ -840,18 +857,6 @@ client.on('interactionCreate', async interaction => {
       ['action-verite', 'niveau', 'solde', 'karma', 'mapville', 'proche', 'boutique', 'leaderboard', 'confess', 'confesser', 'deposit', 'withdraw', 'lovecalc', 'mot-cache', 'tribunal', 'uno', 'star', 'gifle', 'patpat'].includes(interaction.commandName);
       
     if (!isAllowedForEveryone) {
-      const { PermissionsBitField } = require('discord.js');
-      const member = interaction.member;
-      
-      // Récupérer les permissions du membre de manière 100% sécurisée
-      let userPerms = interaction.memberPermissions;
-      if (!userPerms && member && member.permissions) {
-        userPerms = member.permissions;
-      }
-      if (!userPerms || typeof userPerms.has !== 'function') {
-        userPerms = new PermissionsBitField();
-      }
-
       const isUserAdmin = Boolean(userPerms.has(PermissionsBitField.Flags.Administrator));
       const userRoleIds = member?.roles?.cache ? Array.from(member.roles.cache.keys()) : (Array.isArray(member?.roles) ? member.roles : []);
 

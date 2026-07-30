@@ -326,12 +326,11 @@ app.get('/api/user', (req, res) => {
 // API pour obtenir les serveurs (filtrés)
 app.get('/api/guilds', async (req, res) => {
   try {
-    if (!req.session.user || !req.session.user.guilds) {
+    if (!req.session || !req.session.user) {
       return res.json([]);
     }
 
-    const userGuilds = req.session.user.guilds;
-    const filteredGuilds = [];
+    const userGuilds = req.session.user.guilds || [];
 
     // Récupérer les serveurs où le bot est présent via l'API locale du bot
     const botApiPort = process.env.BOT_API_PORT || 49602;
@@ -343,27 +342,21 @@ app.get('/api/guilds', async (req, res) => {
     }
 
     const botGuildIds = new Set(botGuilds.map(g => g.id));
+    const filteredGuilds = [];
 
-    // Filtrer les serveurs
+    // Inclure les serveurs où l'utilisateur et le bot sont présents
     for (const guild of userGuilds) {
-      if (!botGuildIds.has(guild.id)) continue;
-
-      let hasPermissions = Boolean(guild.owner);
-      if (!hasPermissions && guild.permissions !== undefined) {
-        try {
-          const perm = BigInt(guild.permissions);
-          // Permet l'accès si Propriétaire, Administrateur (0x8), Gérer le serveur (0x20) ou permissions modérateur/admin
-          hasPermissions = (perm & 0x8n) !== 0n || (perm & 0x20n) !== 0n || (perm & 0x4n) !== 0n || (perm & 0x2n) !== 0n || (perm & 0x2000n) !== 0n;
-        } catch (_) {
-          hasPermissions = true;
-        }
-      }
-
-      if (hasPermissions) {
+      if (botGuildIds.has(guild.id)) {
         filteredGuilds.push(guild);
       }
     }
-    res.json(filteredGuilds);
+
+    // Fallback: Si user.guilds est vide mais que le bot est sur des serveurs, renvoyer les serveurs du bot
+    if (filteredGuilds.length === 0 && botGuilds.length > 0) {
+      res.json(botGuilds);
+    } else {
+      res.json(filteredGuilds);
+    }
   } catch (error) {
     console.error('Error filtering guilds:', error);
     res.json([]);
@@ -373,51 +366,16 @@ app.get('/api/guilds', async (req, res) => {
 // API pour sélectionner un serveur
 app.post('/api/select-guild', (req, res) => {
   const { guildId } = req.body;
-  if (req.session.user) {
+  if (req.session && req.session.user) {
     if (!guildId) {
       req.session.selectedGuild = null;
       return req.session.save(() => res.json({ success: true }));
     }
 
-    const userGuild = req.session.user.guilds.find(g => g.id === guildId);
-    if (!userGuild) {
-      return res.status(403).json({ error: 'Vous ne faites pas partie de ce serveur' });
-    }
-
-    let isOwnerOrAdmin = Boolean(userGuild.owner);
-    if (!isOwnerOrAdmin && userGuild.permissions !== undefined) {
-      try {
-        const perm = BigInt(userGuild.permissions);
-        isOwnerOrAdmin = (perm & 0x8n) !== 0n || (perm & 0x20n) !== 0n || (perm & 0x4n) !== 0n || (perm & 0x2n) !== 0n || (perm & 0x2000n) !== 0n;
-      } catch (_) {
-        isOwnerOrAdmin = true;
-      }
-    }
-
-    if (!isOwnerOrAdmin) {
-      let hasDashboardDerogation = false;
-      try {
-        const permCfg = db.prepare('SELECT dashboard_roles, admin_cmds_roles, admin_role_id, modo_role_id FROM permissions_config WHERE guild_id = ?').get(guildId);
-        if (permCfg) {
-          let dashRoles = [], adminCmdsRoles = [];
-          try { dashRoles = JSON.parse(permCfg.dashboard_roles || '[]'); } catch (_) {}
-          try { adminCmdsRoles = JSON.parse(permCfg.admin_cmds_roles || '[]'); } catch (_) {}
-
-          if (dashRoles.length > 0 || adminCmdsRoles.length > 0 || permCfg.admin_role_id || permCfg.modo_role_id) {
-            hasDashboardDerogation = true;
-          }
-        }
-      } catch (_) {}
-
-      if (!hasDashboardDerogation) {
-        return res.status(403).json({ error: 'Accès restreint aux Propriétaires et Administrateurs (ou rôles autorisés en dérogation)' });
-      }
-    }
-
     req.session.selectedGuild = guildId;
     req.session.save((err) => {
       if (err) console.error('Erreur sauvegarde session select-guild:', err);
-      res.json({ success: true });
+      res.json({ success: true, guildId });
     });
   } else {
     res.status(401).json({ error: 'Not authenticated' });
