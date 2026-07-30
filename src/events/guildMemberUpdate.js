@@ -123,6 +123,75 @@ module.exports = {
       console.error('Erreur attribution auto-rôle sur obtention:', err);
     }
 
+    // --- SYSTÈME D'ANNONCE ET DE REMERCIEMENT POUR LES BOOSTS DE SERVEUR ---
+    const wasBoosting = Boolean(oldMember.premiumSince);
+    const isBoosting = Boolean(newMember.premiumSince);
+
+    if (!wasBoosting && isBoosting) {
+      console.log(`[Boost] 🚀 ${newMember.user.tag} vient de booster le serveur !`);
+      try {
+        const { getBoostConfig, getEconomy, updateEconomy } = require('../database/db');
+        const boostConf = getBoostConfig(guildId);
+
+        if (boostConf && boostConf.enabled !== 0 && boostConf.channel_id) {
+          const channel = newMember.guild.channels.cache.get(boostConf.channel_id);
+          if (channel) {
+            let msgText = boostConf.message || '🎉 Un grand MERCI à {user.mention} d\'avoir boosté **{server}** ! Grâce à toi, le serveur gagne en puissance ! 💖';
+            msgText = msgText
+              .replace(/{user}/g, newMember.user.tag)
+              .replace(/{user\.mention}/g, `<@${newMember.id}>`)
+              .replace(/{user\.name}/g, newMember.user.username)
+              .replace(/{server}/g, newMember.guild.name)
+              .replace(/{boosts\.count}/g, `${newMember.guild.premiumSubscriptionCount || 1}`)
+              .replace(/{boosts\.level}/g, `${newMember.guild.premiumTier || 0}`);
+
+            let titleText = boostConf.title || '🚀 Nouveau Boost de Serveur !';
+            titleText = titleText
+              .replace(/{user}/g, newMember.user.tag)
+              .replace(/{server}/g, newMember.guild.name);
+
+            const boostEmbed = new EmbedBuilder()
+              .setTitle(titleText)
+              .setDescription(msgText)
+              .setColor(boostConf.color || '#F47FFF')
+              .setThumbnail(newMember.user.displayAvatarURL({ dynamic: true }))
+              .setTimestamp();
+
+            if (boostConf.image_url) {
+              boostEmbed.setImage(boostConf.image_url);
+            }
+
+            const rewardMoney = parseInt(boostConf.reward_money) || 0;
+            const rewardKarma = parseInt(boostConf.reward_karma) || 0;
+            if (rewardMoney > 0 || rewardKarma > 0) {
+              const currentEco = getEconomy(guildId, newMember.id);
+              updateEconomy(guildId, newMember.id, {
+                wallet: (currentEco.wallet || 0) + rewardMoney,
+                karma: (currentEco.karma || 0) + rewardKarma
+              });
+
+              boostEmbed.addFields({
+                name: '🎁 Récompense VIP',
+                value: `+**${rewardMoney}** 🪙 pièces & +**${rewardKarma}** ✨ Karma ajoutés à ton portefeuille !`,
+                inline: false
+              });
+            }
+
+            channel.send({ content: `<@${newMember.id}>`, embeds: [boostEmbed] }).catch(console.error);
+
+            const logEmbed = new EmbedBuilder()
+              .setTitle('🚀 Nouveau Boost Réceptionné')
+              .setDescription(`**Booster :** ${newMember.user.tag} (<@${newMember.id}>)\n**Niveau du serveur :** Niveau ${newMember.guild.premiumTier} (${newMember.guild.premiumSubscriptionCount} boosts)`)
+              .setColor('#F47FFF')
+              .setTimestamp();
+            sendLog(newMember.guild, 'memberUpdate', logEmbed);
+          }
+        }
+      } catch (err) {
+        console.error('Erreur traitement boost serveur:', err);
+      }
+    }
+
     // --- LOGS COMPLETS DE MEMBRE (ROLES & PSEUDOS) ---
     // Log changement de pseudo / nickname
     if (oldMember.nickname !== newMember.nickname) {

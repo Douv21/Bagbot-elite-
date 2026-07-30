@@ -712,6 +712,17 @@ document.addEventListener('DOMContentLoaded', () => {
         safeSetVal('automod_badwords_list', am.badwords_list || '');
         safeSetVal('automod_bypass_roles', am.bypass_roles || '');
 
+        // Boost Config
+        const bst = config.boost_config || {};
+        safeSetCheck('boost_enabled', bst.enabled !== 0);
+        safeSetVal('boost_channel', bst.channel_id || '');
+        safeSetVal('boost_color', bst.color || '#F47FFF');
+        safeSetVal('boost_title', bst.title || '🚀 Nouveau Boost de Serveur !');
+        safeSetVal('boost_message', bst.message || '🎉 Un grand MERCI à {user.mention} d\'avoir boosté **{server}** ! Grâce à toi, le serveur gagne en puissance ! 💖');
+        safeSetVal('boost_reward_money', bst.reward_money ?? 5000);
+        safeSetVal('boost_reward_karma', bst.reward_karma ?? 50);
+        safeSetVal('boost_image_url', bst.image_url || '');
+
         // Auto-rôles & Counting renders
         try { renderAutoroleJoin(config.autoroles_on_join || []); } catch (e) {}
         try { renderAutoroleRole(config.autoroles_on_role || []); } catch (e) {}
@@ -1821,6 +1832,39 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(resData => {
         if (resData.success) {
           showToast('Configuration des rappels de bump enregistrée !');
+          loadGuildConfiguration();
+        } else {
+          showToast('Erreur: ' + resData.error, true);
+        }
+      })
+      .catch(err => showToast('Erreur: ' + err.message, true));
+    });
+  }
+
+  // Formulaire Boost Config
+  const formBoostConfig = document.getElementById('form-boost-config');
+  if (formBoostConfig) {
+    formBoostConfig.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const payload = {
+        enabled: document.getElementById('boost_enabled').checked ? 1 : 0,
+        channel_id: document.getElementById('boost_channel').value,
+        color: document.getElementById('boost_color').value,
+        title: document.getElementById('boost_title').value,
+        message: document.getElementById('boost_message').value,
+        reward_money: parseInt(document.getElementById('boost_reward_money').value) || 0,
+        reward_karma: parseInt(document.getElementById('boost_reward_karma').value) || 0,
+        image_url: document.getElementById('boost_image_url').value
+      };
+      fetch('/api/config/boost', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          showToast('Configuration des remerciements de Boost enregistrée avec succès !');
           loadGuildConfiguration();
         } else {
           showToast('Erreur: ' + resData.error, true);

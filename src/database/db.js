@@ -155,6 +155,20 @@ function initDatabase() {
     )
   `).run();
 
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS boost_config (
+      guild_id TEXT PRIMARY KEY,
+      channel_id TEXT,
+      title TEXT DEFAULT '🚀 Nouveau Boost de Serveur !',
+      message TEXT DEFAULT '🎉 Un grand MERCI à {user.mention} d''avoir boosté **{server}** ! Grâce à toi, le serveur gagne en puissance ! 💖',
+      color TEXT DEFAULT '#F47FFF',
+      reward_money INTEGER DEFAULT 5000,
+      reward_karma INTEGER DEFAULT 50,
+      image_url TEXT,
+      enabled INTEGER DEFAULT 1
+    )
+  `).run();
+
   try {
     db.prepare('ALTER TABLE welcome_leave ADD COLUMN welcome_image TEXT').run();
   } catch (e) {}
@@ -1819,6 +1833,8 @@ module.exports = {
   deleteConfession,
   getAutomodConfig,
   updateAutomodConfig,
+  getBoostConfig,
+  updateBoostConfig,
   getAutoroleEmbeds,
   getAutoroleOptions,
   addAutoroleEmbed,
@@ -2147,6 +2163,51 @@ function getCommandPermission(guildId, commandName) {
 
 function getAllCommandPermissions(guildId) {
   return db.prepare('SELECT * FROM command_permissions WHERE guild_id = ?').all(guildId);
+}
+
+function getBoostConfig(guildId) {
+  let row = db.prepare('SELECT * FROM boost_config WHERE guild_id = ?').get(guildId);
+  if (!row) {
+    row = {
+      guild_id: guildId,
+      channel_id: null,
+      title: '🚀 Nouveau Boost de Serveur !',
+      message: '🎉 Un grand MERCI à {user.mention} d\'avoir boosté **{server}** ! Grâce à toi, le serveur gagne en puissance ! 💖',
+      color: '#F47FFF',
+      reward_money: 5000,
+      reward_karma: 50,
+      image_url: '',
+      enabled: 1
+    };
+  }
+  return row;
+}
+
+function updateBoostConfig(guildId, data) {
+  const stmt = db.prepare(`
+    INSERT INTO boost_config (guild_id, channel_id, title, message, color, reward_money, reward_karma, image_url, enabled)
+    VALUES (@guild_id, @channel_id, @title, @message, @color, @reward_money, @reward_karma, @image_url, @enabled)
+    ON CONFLICT(guild_id) DO UPDATE SET
+      channel_id = excluded.channel_id,
+      title = excluded.title,
+      message = excluded.message,
+      color = excluded.color,
+      reward_money = excluded.reward_money,
+      reward_karma = excluded.reward_karma,
+      image_url = excluded.image_url,
+      enabled = excluded.enabled
+  `);
+  stmt.run({
+    guild_id: guildId,
+    channel_id: data.channel_id || null,
+    title: data.title || '🚀 Nouveau Boost de Serveur !',
+    message: data.message || '🎉 Un grand MERCI à {user.mention} d\'avoir boosté **{server}** ! Grâce à toi, le serveur gagne en puissance ! 💖',
+    color: data.color || '#F47FFF',
+    reward_money: parseInt(data.reward_money) || 0,
+    reward_karma: parseInt(data.reward_karma) || 0,
+    image_url: data.image_url || '',
+    enabled: data.enabled ? 1 : 0
+  });
 }
 
 function setCommandPermission(guildId, commandName, data) {

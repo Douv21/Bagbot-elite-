@@ -626,9 +626,10 @@ app.get('/api/config', (req, res) => {
       permissionsConfig = { admin_role_id: null, modo_role_id: null, dashboard_roles: '[]', admin_cmds_roles: '[]', modo_cmds_roles: '[]' };
     }
 
-    const { getBumpConfig, getShopConfig } = require('./database/db');
+    const { getBumpConfig, getShopConfig, getBoostConfig } = require('./database/db');
     const bumpConfig = getBumpConfig(guildId);
     const shopConfig = getShopConfig(guildId);
+    const boostConfig = getBoostConfig(guildId);
 
     // Tribunal Config
     const tribunalDb = require('./utils/tribunal_db');
@@ -638,6 +639,7 @@ app.get('/api/config', (req, res) => {
 
     res.json({
       welcome_leave: welcomeLeave,
+      boost_config: boostConfig,
       permissions_config: permissionsConfig,
       confession: { channel_id: confessionChannel },
       confessions: confessions,
@@ -735,6 +737,33 @@ app.post('/api/config/welcome-leave', (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 2.b Récupérer et Sauvegarder la configuration Boost
+app.get('/api/config/boost', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { getBoostConfig } = require('./database/db');
+    const config = getBoostConfig(guildId);
+    res.json(config);
+  } catch (error) {
+    console.error('Erreur lecture config boost:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/boost', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { updateBoostConfig } = require('./database/db');
+    updateBoostConfig(guildId, req.body || {});
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erreur sauvegarde config boost:', error);
     res.status(500).json({ error: error.message });
   }
 });

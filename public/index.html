@@ -106,6 +106,7 @@
         <div class="sidebar-category">
           <div class="category-title"><i class="fa-solid fa-sliders" style="color: #5865F2;"></i> GESTION DU SERVEUR</div>
           <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées & Départs</button>
+          <button class="tab-btn" data-tab="tab-boost"><i class="fa-solid fa-rocket" style="color: #F47FFF;"></i> Remerciements Boost <span class="nav-badge badge-purple">VIP</span></button>
           <button class="tab-btn" data-tab="tab-announcements"><i class="fa-solid fa-bullhorn" style="color: #e74c3c;"></i> Annonces & Guides <span class="nav-badge badge-gold">VIP</span></button>
           <button class="tab-btn" data-tab="tab-embed-sender"><i class="fa-solid fa-file-code" style="color: #9b59b6;"></i> Envoyeur d'Embeds <span class="nav-badge badge-purple">NOUVEAU</span></button>
           <button class="tab-btn" data-tab="tab-autoroles"><i class="fa-solid fa-user-plus"></i> Auto-Rôles à l'Arrivée</button>
@@ -212,6 +213,78 @@
                 </form>
               </div>
             </div>
+          </div>
+
+          <!-- Tab: Boost Annoucements -->
+          <div id="tab-boost" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-rocket" style="color: #F47FFF;"></i> Système de Remerciements des Boosts Nitro</h2>
+            <div class="card glass mb-4">
+              <p style="color: #b9bbbe; font-size: 0.9rem;">
+                Remerciez automatiquement chaque membre qui booste votre serveur avec un message Embed personnalisé et offrez-lui des pièces d'économie & du Karma en bonus VIP !
+              </p>
+            </div>
+
+            <form id="form-boost-config" class="inner-form">
+              <div class="card glass mb-4">
+                <h3 style="color: #fff; margin-bottom: 15px;">⚙️ Configuration de l'Annonce de Boost</h3>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                  <label class="custom-checkbox-container" style="color: #fff; font-weight: 600;">
+                    <input type="checkbox" id="boost_enabled" checked>
+                    <span class="checkmark"></span>
+                    Activer l'annonce et les remerciements de Boost de serveur
+                  </label>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="boost_channel"><i class="fa-solid fa-hashtag"></i> Salon d'annonce du Boost :</label>
+                    <select id="boost_channel" class="channel-select custom-select">
+                      <option value="">Sélectionner un salon...</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="boost_color"><i class="fa-solid fa-palette"></i> Couleur de l'Embed :</label>
+                    <input type="color" id="boost_color" value="#F47FFF" class="custom-input" style="height: 42px; padding: 2px; cursor: pointer;">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="boost_title"><i class="fa-solid fa-heading"></i> Titre de l'Embed :</label>
+                  <input type="text" id="boost_title" class="custom-input" placeholder="🚀 Nouveau Boost de Serveur !" value="🚀 Nouveau Boost de Serveur !">
+                </div>
+
+                <div class="form-group">
+                  <label for="boost_message"><i class="fa-solid fa-align-left"></i> Message de remerciement :</label>
+                  <textarea id="boost_message" class="custom-input" rows="4" placeholder="Message de remerciement...">🎉 Un grand MERCI à {user.mention} d'avoir boosté **{server}** ! Grâce à toi, le serveur gagne en puissance ! 💖</textarea>
+                  <small style="color: #8e9297; display: block; margin-top: 5px;">
+                    Variables disponibles : <code>{user}</code>, <code>{user.mention}</code>, <code>{user.name}</code>, <code>{server}</code>, <code>{boosts.count}</code>, <code>{boosts.level}</code>
+                  </small>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="boost_reward_money"><i class="fa-solid fa-coins" style="color: #f1c40f;"></i> Bonus Pièces d'économie :</label>
+                    <input type="number" id="boost_reward_money" class="custom-input" placeholder="5000" value="5000" min="0">
+                  </div>
+                  <div class="form-group">
+                    <label for="boost_reward_karma"><i class="fa-solid fa-star" style="color: #e74c3c;"></i> Bonus Karma :</label>
+                    <input type="number" id="boost_reward_karma" class="custom-input" placeholder="50" value="50" min="0">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="boost_image_url"><i class="fa-solid fa-image"></i> URL de l'image / GIF (optionnel) :</label>
+                  <input type="url" id="boost_image_url" class="custom-input" placeholder="https://media.giphy.com/media/...">
+                </div>
+
+                <div style="margin-top: 20px;">
+                  <button type="submit" class="btn btn-save" style="background: #F47FFF; color: #fff;">
+                    <i class="fa-solid fa-floppy-disk"></i> Enregistrer la configuration Boost
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
 
           <!-- Tab: Welcome / Leave -->
