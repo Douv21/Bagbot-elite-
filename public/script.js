@@ -189,6 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
           subSidebarBtnsList.querySelectorAll('.sub-sidebar-btn').forEach(b => b.classList.remove('active'));
           sBtn.classList.add('active');
           switchTab(st.id);
+          if (window.innerWidth <= 768 && subSidebarNav) {
+            subSidebarNav.classList.add('retracted');
+          }
         });
         subSidebarBtnsList.appendChild(sBtn);
       });
