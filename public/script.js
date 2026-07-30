@@ -97,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sidebar.classList.remove('open');
       sidebarOverlay.classList.remove('open');
     });
+  }
   // Accordion toggle for sidebar categories
   document.querySelectorAll('.sidebar-category .category-title').forEach(title => {
     title.addEventListener('click', (e) => {
