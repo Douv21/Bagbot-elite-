@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=4.0.0">
+  <link rel="stylesheet" href="style.css?v=5.0.0">
   <script>
     window.onerror = function(message, source, lineno, colno, error) {
       fetch('/api/log-error', {
@@ -97,12 +97,13 @@
           </div>
         </div>
 
-        <div class="sidebar-category">
+        <div class="sidebar-category" data-cat="ai">
           <div class="category-title"><i class="fa-solid fa-robot" style="color: #9b59b6;"></i> ASSISTANT & IA</div>
           <button class="tab-btn" data-tab="tab-assistant"><i class="fa-solid fa-robot"></i> Assistant IA Admin <span class="nav-badge badge-purple">IA VIP</span></button>
+          <button class="tab-btn" data-tab="tab-ai"><i class="fa-solid fa-brain"></i> Clés & Modèles IA</button>
         </div>
 
-        <div class="sidebar-category">
+        <div class="sidebar-category" data-cat="server">
           <div class="category-title"><i class="fa-solid fa-sliders" style="color: #5865F2;"></i> GESTION DU SERVEUR</div>
           <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées & Départs</button>
           <button class="tab-btn" data-tab="tab-boost"><i class="fa-solid fa-rocket" style="color: #F47FFF;"></i> Remerciements Boost <span class="nav-badge badge-purple">VIP</span></button>
@@ -114,14 +115,15 @@
           <button class="tab-btn" data-tab="tab-logs"><i class="fa-solid fa-list-check"></i> Logs d'Activité</button>
         </div>
 
-        <div class="sidebar-category">
+        <div class="sidebar-category" data-cat="security">
           <div class="category-title"><i class="fa-solid fa-shield-halved" style="color: #e74c3c;"></i> SÉCURITÉ & MODÉRATION</div>
           <button class="tab-btn" data-tab="tab-quarantine"><i class="fa-solid fa-shield-halved"></i> Quarantaine Anti-Raid</button>
           <button class="tab-btn" data-tab="tab-automod"><i class="fa-solid fa-user-shield"></i> Auto-Modération</button>
+          <button class="tab-btn" data-tab="tab-tickets"><i class="fa-solid fa-ticket"></i> Support & Tickets</button>
           <button class="tab-btn" data-tab="tab-forums"><i class="fa-solid fa-comments"></i> Forums Illimités</button>
         </div>
 
-        <div class="sidebar-category">
+        <div class="sidebar-category" data-cat="economy">
           <div class="category-title"><i class="fa-solid fa-chart-line" style="color: #e67e22;"></i> ÉCONOMIE & JEUX</div>
           <button class="tab-btn" data-tab="tab-leveling"><i class="fa-solid fa-arrow-trend-up"></i> Niveaux & XP</button>
           <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique & Suites</button>
@@ -135,17 +137,7 @@
           <button class="tab-btn" data-tab="tab-action-verite"><i class="fa-solid fa-dice"></i> Action ou Vérité</button>
           <button class="tab-btn" data-tab="tab-bump"><i class="fa-solid fa-bell"></i> Rappels de Bump</button>
           <button class="tab-btn" data-tab="tab-gifs"><i class="fa-solid fa-file-video"></i> GIFs d'action</button>
-        </div>
-
-        <div class="sidebar-category">
-          <div class="category-title"><i class="fa-solid fa-headset" style="color: #3498db;"></i> SUPPORT & MAPPING</div>
-          <button class="tab-btn" data-tab="tab-tickets"><i class="fa-solid fa-ticket"></i> Support & Tickets</button>
           <button class="tab-btn" data-tab="tab-map"><i class="fa-solid fa-map-location-dot"></i> Carte des Membres</button>
-        </div>
-
-        <div class="sidebar-category">
-          <div class="category-title"><i class="fa-solid fa-brain" style="color: #1abc9c;"></i> CLÉS & PARAMÈTRES IA</div>
-          <button class="tab-btn" data-tab="tab-ai"><i class="fa-solid fa-brain"></i> Clés & Modèles IA</button>
         </div>
       </aside>
 
@@ -3011,6 +3003,6 @@ Il/Elle remporte le rôle {role} et brille sur le serveur !</textarea>
 
   <div id="toast" class="toast glass">Configuration enregistrée !</div>
 
-  <script src="script.js?v=4.0.0"></script>
+  <script src="script.js?v=5.0.0"></script>
 </body>
 </html>

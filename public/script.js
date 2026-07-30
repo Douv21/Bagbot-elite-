@@ -156,9 +156,25 @@ document.addEventListener('DOMContentLoaded', () => {
     ai: 'tab-assistant'
   };
 
+  function filterSidebarByCategory(catKey) {
+    const categories = document.querySelectorAll('.sidebar-category');
+    if (!catKey || catKey === 'ALL') {
+      categories.forEach(cat => cat.style.display = 'block');
+    } else {
+      categories.forEach(cat => {
+        if (cat.getAttribute('data-cat') === catKey) {
+          cat.style.display = 'block';
+        } else {
+          cat.style.display = 'none';
+        }
+      });
+    }
+  }
+
   document.querySelectorAll('.nav-category-card').forEach(card => {
     card.addEventListener('click', () => {
       const catKey = card.getAttribute('data-hub-cat');
+      filterSidebarByCategory(catKey);
       const targetTabId = categoryCardTabMap[catKey] || 'tab-welcome';
       const targetBtn = document.querySelector(`.tab-btn[data-tab="${targetTabId}"]`);
       if (targetBtn) {
