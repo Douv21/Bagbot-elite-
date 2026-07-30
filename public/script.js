@@ -719,7 +719,18 @@ document.addEventListener('DOMContentLoaded', () => {
   function safeSetVal(id, val) {
     const el = document.getElementById(id);
     if (el) {
-      el.value = (val !== undefined && val !== null) ? val : '';
+      const sVal = (val !== undefined && val !== null) ? String(val) : '';
+      el.value = sVal;
+      if (el.tagName === 'SELECT') {
+        Array.from(el.options).forEach((opt, idx) => {
+          if (opt.value === sVal) {
+            opt.selected = true;
+            el.selectedIndex = idx;
+          } else {
+            opt.selected = false;
+          }
+        });
+      }
       if (el.syncCustomSelect) el.syncCustomSelect();
     }
   }
@@ -4225,7 +4236,15 @@ document.addEventListener('DOMContentLoaded', () => {
         item.dataset.value = opt.value;
 
         item.addEventListener('click', () => {
-          selectElement.selectedIndex = idx;
+          selectElement.value = opt.value;
+          Array.from(selectElement.options).forEach((o, i) => {
+            if (i === idx) {
+              o.selected = true;
+              selectElement.selectedIndex = i;
+            } else {
+              o.selected = false;
+            }
+          });
           triggerText.textContent = text;
           
           optionsList.querySelectorAll('.custom-select-option-item').forEach(el => el.classList.remove('selected'));
@@ -4272,11 +4291,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Synchronisation en cas de changement manuel
     selectElement.addEventListener('change', () => {
-      triggerText.textContent = selectElement.options[selectElement.selectedIndex]?.text || 'Sélectionner...';
+      const selOpt = selectElement.options[selectElement.selectedIndex] || Array.from(selectElement.options).find(o => o.value === selectElement.value || o.selected);
+      triggerText.textContent = selOpt ? selOpt.text : (selectElement.options[0]?.text || 'Désactivé');
     });
 
     selectElement.syncCustomSelect = () => {
-      triggerText.textContent = selectElement.options[selectElement.selectedIndex]?.text || 'Sélectionner...';
+      const selOpt = selectElement.options[selectElement.selectedIndex] || Array.from(selectElement.options).find(o => o.value === selectElement.value || o.selected);
+      triggerText.textContent = selOpt ? selOpt.text : (selectElement.options[0]?.text || 'Désactivé');
       if (wrapper.classList.contains('open')) {
         renderOptions();
       }
