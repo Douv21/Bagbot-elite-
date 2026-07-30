@@ -124,8 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     server: '⚙️ GESTION DU SERVEUR',
     security: '🛡️ SÉCURITÉ & MODÉRATION',
     economy: '📈 ÉCONOMIE & JEUX',
-    ai: '🤖 ASSISTANT & IA VIP',
-    nsfw: '🔞 ADULTES 18+ SENSUEL'
+    ai: '🤖 ASSISTANT & IA VIP'
   };
 
   const categorySubTabs = {
@@ -161,12 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
     ai: [
       { id: 'tab-assistant', label: 'Assistant IA Admin', icon: 'fa-robot', color: '#9b59b6' },
       { id: 'tab-ai', label: 'Clés & Modèles IA', icon: 'fa-brain', color: '#1abc9c' }
-    ],
-    nsfw: [
-      { id: 'tab-role-themes', label: 'Thèmes Érotiques 18+', icon: 'fa-venus-mars', color: '#ff2a6d' },
-      { id: 'tab-action-verite', label: 'Action ou Vérité Hot', icon: 'fa-fire', color: '#ff477e' },
-      { id: 'tab-gifs', label: 'GIFs & Interactions 18+', icon: 'fa-file-video', color: '#ff2a6d' },
-      { id: 'tab-confessions', label: 'Confessions 18+', icon: 'fa-mask', color: '#a29bfe' }
     ]
   };
 
@@ -328,11 +321,16 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .then(res => res.json())
       .then(data => {
-        // Toujours afficher l'écran de sélection de serveur à la connexion au dashboard
-        noGuildSelected.style.display = 'block';
-        configForms.style.display = 'none';
-        guildSelect.value = '';
-        updateActiveGuildIcon('');
+        const targetGuildId = (data && data.guildId) ? data.guildId : (guildsList.length > 0 ? guildsList[0].id : '');
+        if (targetGuildId && guildsList.some(g => g.id === targetGuildId)) {
+          guildSelect.value = targetGuildId;
+          handleGuildSelection(targetGuildId);
+        } else {
+          noGuildSelected.style.display = 'block';
+          configForms.style.display = 'none';
+          guildSelect.value = '';
+          updateActiveGuildIcon('');
+        }
       })
       .catch(console.error);
   }
@@ -4167,12 +4165,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getRoleName(roleId) {
-    const role = rolesList.find(r => r.id === roleId);
+    if (!roleId) return 'Aucun';
+    const role = rolesList.find(r => String(r.id) === String(roleId));
     return role ? role.name : roleId;
   }
 
   function getChannelName(channelId) {
-    const chan = channelsList.find(c => c.id === channelId);
+    if (!channelId) return 'Aucun';
+    const chan = channelsList.find(c => String(c.id) === String(channelId));
     return chan ? chan.name : channelId;
   }
 
