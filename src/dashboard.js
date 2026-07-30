@@ -181,7 +181,7 @@ app.use((req, res, next) => {
 });
 
 function getReqGuildId(req) {
-  return (req.session && req.session.selectedGuild) || (req.query && req.query.guildId) || (req.body && req.body.guildId) || null;
+  return (req.query && req.query.guildId) || (req.body && req.body.guildId) || (req.session && req.session.selectedGuild) || null;
 }
 
 app.use((req, res, next) => {
@@ -398,6 +398,18 @@ app.post('/api/select-guild', (req, res) => {
   }
 });
 
+function getReqGuildId(req) {
+  return (req.query && req.query.guildId) || (req.body && req.body.guildId) || (req.session && req.session.selectedGuild) || null;
+}
+
+app.use((req, res, next) => {
+  const gId = (req.query && req.query.guildId) || (req.body && req.body.guildId);
+  if (gId && req.session) {
+    req.session.selectedGuild = gId;
+  }
+  next();
+});
+
 // API pour obtenir le serveur sélectionné
 app.get('/api/selected-guild', (req, res) => {
   if (req.session.selectedGuild) {
@@ -410,8 +422,8 @@ app.get('/api/selected-guild', (req, res) => {
 // API pour obtenir les salons (via le bot)
 app.get('/api/channels', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild || req.query.guildId;
-    if (!req.session.user || !guildId) {
+    const guildId = req.query.guildId || (req.session && req.session.selectedGuild);
+    if (!guildId) {
       return res.json([]);
     }
     const botApiPort = process.env.BOT_API_PORT || 49602;
@@ -431,8 +443,8 @@ app.get('/api/channels', async (req, res) => {
 // API pour obtenir les rôles (via le bot)
 app.get('/api/roles', async (req, res) => {
   try {
-    const guildId = req.session.selectedGuild || req.query.guildId;
-    if (!req.session.user || !guildId) {
+    const guildId = req.query.guildId || (req.session && req.session.selectedGuild);
+    if (!guildId) {
       return res.json([]);
     }
     const botApiPort = process.env.BOT_API_PORT || 49602;
