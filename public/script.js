@@ -497,6 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Populate Channels
     const channelSelects = document.querySelectorAll('.channel-select');
     channelSelects.forEach(select => {
+      const curVal = select.value;
       if (select.id === 'game_announce_channel') {
         select.innerHTML = '<option value="">Salon d\'origine de la discussion</option>';
       } else if (select.id === 'autothread-channel-select') {
@@ -513,11 +514,15 @@ document.addEventListener('DOMContentLoaded', () => {
           select.appendChild(option);
         }
       });
+      if (curVal) {
+        select.value = curVal;
+      }
     });
 
     // Populate Announce Channels
     const announceSelects = document.querySelectorAll('.announce-channel-select');
     announceSelects.forEach(select => {
+      const curVal = select.value;
       select.innerHTML = `
         <option value="current">Salon actuel (où le membre parle)</option>
         <option value="disabled">Désactiver les annonces</option>
@@ -530,11 +535,15 @@ document.addEventListener('DOMContentLoaded', () => {
           select.appendChild(option);
         }
       });
+      if (curVal) {
+        select.value = curVal;
+      }
     });
 
     // Populate Categories (type 4 is GuildCategory)
     const categorySelects = document.querySelectorAll('.category-select');
     categorySelects.forEach(select => {
+      const curVal = select.value;
       select.innerHTML = '<option value="">-- Créer automatiquement une catégorie --</option>';
       channelsList.forEach(ch => {
         if (ch.type === 4) {
@@ -544,6 +553,9 @@ document.addEventListener('DOMContentLoaded', () => {
           select.appendChild(option);
         }
       });
+      if (curVal) {
+        select.value = curVal;
+      }
     });
 
     // Populate Multi-Select Channels (Selfie / Nude)
@@ -565,6 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Populate Roles
     const roleSelects = document.querySelectorAll('.role-select');
     roleSelects.forEach(select => {
+      const curVal = select.value;
       select.innerHTML = '<option value="">Sélectionner un rôle</option>';
       rolesList.forEach(role => {
         // Exclude @everyone role which has the same ID as the guild
@@ -575,6 +588,9 @@ document.addEventListener('DOMContentLoaded', () => {
           select.appendChild(option);
         }
       });
+      if (curVal) {
+        select.value = curVal;
+      }
     });
 
     // Populate Forums Checkboxes

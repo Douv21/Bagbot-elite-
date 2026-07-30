@@ -174,16 +174,17 @@ function slugifyChannelName(s) {
     .slice(0, 40) || 'proces';
 }
 
-async function assignTribunalRole(guild, userId, roleId) {
+async function addTribunalRole(guild, userId, roleId) {
   if (!guild || !userId || !roleId) return;
   try {
     const member = await guild.members.fetch(userId).catch(() => null);
-    const role = guild.roles.cache.get(roleId) || await guild.roles.fetch(roleId).catch(() => null);
-    if (member && role && !member.roles.cache.has(role.id)) {
-      await member.roles.add(role).catch(console.error);
+    if (member) {
+      await member.roles.add(roleId).catch(err => {
+        console.error(`[Tribunal] Erreur ajout rôle ${roleId} à ${userId}:`, err.message);
+      });
     }
   } catch (err) {
-    console.error('Erreur assignation rôle tribunal:', err);
+    console.error('[Tribunal] Erreur assignation rôle tribunal:', err);
   }
 }
 
@@ -191,12 +192,39 @@ async function removeTribunalRole(guild, userId, roleId) {
   if (!guild || !userId || !roleId) return;
   try {
     const member = await guild.members.fetch(userId).catch(() => null);
-    const role = guild.roles.cache.get(roleId) || await guild.roles.fetch(roleId).catch(() => null);
-    if (member && role && member.roles.cache.has(role.id)) {
-      await member.roles.remove(role).catch(console.error);
+    if (member) {
+      await member.roles.remove(roleId).catch(err => {
+        console.error(`[Tribunal] Erreur retrait rôle ${roleId} à ${userId}:`, err.message);
+      });
     }
   } catch (err) {
-    console.error('Erreur retrait rôle tribunal:', err);
+    console.error('[Tribunal] Erreur retrait rôle tribunal:', err);
+  }
+}
+
+async function removeAllCaseRoles(guild, record, storage) {
+  if (!guild || !record) return;
+  try {
+    const cfg = await storage.getTribunalConfig(guild.id);
+    if (!cfg) return;
+
+    if (cfg.plaintiffRoleId && record.plaintiffId) {
+      await removeTribunalRole(guild, record.plaintiffId, cfg.plaintiffRoleId);
+    }
+    if (cfg.accusedRoleId && record.accusedId) {
+      await removeTribunalRole(guild, record.accusedId, cfg.accusedRoleId);
+    }
+    if (cfg.lawyerRoleId && record.plaintiffLawyerId) {
+      await removeTribunalRole(guild, record.plaintiffLawyerId, cfg.lawyerRoleId);
+    }
+    if (cfg.lawyerRoleId && record.accusedLawyerId) {
+      await removeTribunalRole(guild, record.accusedLawyerId, cfg.lawyerRoleId);
+    }
+    if (cfg.judgeRoleId && record.judgeId) {
+      await removeTribunalRole(guild, record.judgeId, cfg.judgeRoleId);
+    }
+  } catch (err) {
+    console.error('[Tribunal] Erreur removeAllCaseRoles:', err);
   }
 }
 
@@ -681,11 +709,14 @@ module.exports = {
       const now = Date.now();
       for (const c of cases) {
         if (c.status === 'closed' && c.deleteAt > 0 && c.deleteAt <= now) {
-          const guild = client.guilds.cache.get(c.guildId);
-          if (guild && c.channelId) {
-            const chan = await guild.channels.fetch(c.channelId).catch(() => null);
-            if (chan) {
-              await chan.delete().catch(() => null);
+          const guild = client.guilds.cache.get(c.guildId) || await client.guilds.fetch(c.guildId).catch(() => null);
+          if (guild) {
+            await removeAllCaseRoles(guild, c, storage);
+            if (c.channelId) {
+              const chan = await guild.channels.fetch(c.channelId).catch(() => null);
+              if (chan) {
+                await chan.delete().catch(() => null);
+              }
             }
           }
           await storage.upsertTribunalCase(c.guildId, c.id, { deleteAt: 0 });
