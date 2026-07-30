@@ -80,8 +80,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (mobileHamburger && sidebar && sidebarOverlay) {
     mobileHamburger.addEventListener('click', () => {
-      sidebar.classList.add('open');
-      sidebarOverlay.classList.add('open');
+      const subNav = document.getElementById('sub-sidebar');
+      const catWorkspace = document.getElementById('category-workspace');
+      if (subNav && catWorkspace && catWorkspace.style.display !== 'none') {
+        subNav.classList.toggle('retracted');
+      } else {
+        sidebar.classList.add('open');
+        sidebarOverlay.classList.add('open');
+      }
     });
   }
 
@@ -255,6 +261,8 @@ document.addEventListener('DOMContentLoaded', () => {
       subSidebarNav.classList.toggle('retracted');
     });
   }
+
+
 
   // Tab switching logic
   const tabBtns = document.querySelectorAll('.tab-btn');
@@ -502,9 +510,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Fetch channels, roles & members de façon sécurisée
     try {
       await Promise.all([
-        fetch(`/api/channels?guildId=${guildId}`).then(res => res.json()).then(data => { channelsList = Array.isArray(data) ? data : []; }),
-        fetch(`/api/roles?guildId=${guildId}`).then(res => res.json()).then(data => { rolesList = Array.isArray(data) ? data : []; }),
-        fetch(`/api/members?guildId=${guildId}`).then(res => res.json()).then(data => { membersList = Array.isArray(data) ? data : []; })
+        fetch(`/api/channels?guildId=${guildId}`, { cache: 'no-store' }).then(res => res.json()).then(data => { channelsList = Array.isArray(data) ? data : []; }),
+        fetch(`/api/roles?guildId=${guildId}`, { cache: 'no-store' }).then(res => res.json()).then(data => { rolesList = Array.isArray(data) ? data : []; }),
+        fetch(`/api/members?guildId=${guildId}`, { cache: 'no-store' }).then(res => res.json()).then(data => { membersList = Array.isArray(data) ? data : []; })
       ]);
     } catch (err) {
       console.error('Erreur chargement ressources guilde:', err);
@@ -532,6 +540,11 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       console.error('Erreur chargement star config:', e);
     }
+
+    // 4. Ouvrir directement l'espace de travail sur la première catégorie pour afficher immédiatement les données
+    try {
+      openCategoryWorkspace('server');
+    } catch (e) {}
   }
 
   function populateDropdowns() {
