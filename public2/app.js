@@ -838,5 +838,128 @@ function showPanel(panelId) {
   }
 }
 
+// ─── EMBED MODAL CLICK-TO-EDIT ENGINE ─────────────────────────────────────────
+let activeModalType = '';
+
+function openEmbedModal(type) {
+  activeModalType = type;
+  const isWelcome = wlMode === 'welcome';
+
+  if (type === 'color') {
+    // Open native color picker by creating a temporary input
+    const tmp = document.createElement('input');
+    tmp.type = 'color';
+    tmp.value = getElVal(isWelcome ? 'wl-welcome_color' : 'wl-leave_color') || '#00FF00';
+    tmp.style.position = 'absolute';
+    tmp.style.opacity = '0';
+    document.body.appendChild(tmp);
+    tmp.addEventListener('input', e => {
+      const c = e.target.value;
+      setElVal(isWelcome ? 'wl-welcome_color' : 'wl-leave_color', c);
+      updateEmbedPreview();
+    });
+    tmp.addEventListener('change', () => { document.body.removeChild(tmp); });
+    tmp.click();
+    return;
+  }
+
+  const labels = {
+    author: '\u270f\ufe0f Modifier l\'Auteur',
+    title: '\u270f\ufe0f Modifier le Titre',
+    desc: '\u270f\ufe0f Modifier la Description',
+    thumbnail: '\ud83d\uddbc\ufe0f Modifier la Vignette (Thumbnail)',
+    image: '\ud83c\udf04 Modifier la Grande Banni\u00e8re',
+    footer: '\ud83d\udc5f Modifier le Footer'
+  };
+
+  let bodyHtml = '';
+  if (type === 'author') {
+    const n = getElVal(isWelcome ? 'wl-welcome_author_name' : 'wl-leave_author_name');
+    const i = getElVal(isWelcome ? 'wl-welcome_author_icon' : 'wl-leave_author_icon');
+    bodyHtml = `
+      <div class="form-group" style="margin-bottom:16px;">
+        <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-user-ninja"></i> Nom de l'Auteur</label>
+        <input type="text" id="modal-author_name" value="${n}" placeholder="Ex: Bagbot Elite" style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;">
+      </div>
+      <div class="form-group">
+        <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-image"></i> Icône Auteur (URL https://...)</label>
+        <input type="text" id="modal-author_icon" value="${i}" placeholder="https://cdn.discordapp.com/..." style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;">
+      </div>`;
+  } else if (type === 'title') {
+    const v = getElVal(isWelcome ? 'wl-welcome_title' : 'wl-leave_title');
+    bodyHtml = `<div class="form-group">
+      <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-heading"></i> Titre de l'Embed</label>
+      <input type="text" id="modal-title" value="${v}" placeholder="\ud83d\udc4b Bienvenue !" style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;">
+    </div>`;
+  } else if (type === 'desc') {
+    const v = getElVal(isWelcome ? 'wl-welcome_desc' : 'wl-leave_desc');
+    bodyHtml = `<div class="form-group">
+      <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-align-left"></i> Description</label>
+      <textarea id="modal-desc" rows="4" placeholder="Bienvenue {user}..." style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;resize:vertical;">${v}</textarea>
+      <p style="font-size:.78rem;color:var(--text-muted);margin-top:6px;">Variables : {user}, {server}, {membercount}</p>
+    </div>`;
+  } else if (type === 'thumbnail') {
+    const v = getElVal(isWelcome ? 'wl-welcome_thumbnail' : 'wl-leave_thumbnail');
+    bodyHtml = `<div class="form-group">
+      <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-file-image"></i> URL de la Vignette</label>
+      <input type="text" id="modal-thumbnail" value="${v}" placeholder="https://... (laissez vide pour masquer)" style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;">
+    </div>`;
+  } else if (type === 'image') {
+    const v = getElVal(isWelcome ? 'wl-welcome_image' : 'wl-leave_image');
+    bodyHtml = `<div class="form-group">
+      <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-panorama"></i> URL de la Banni\u00e8re</label>
+      <input type="text" id="modal-image" value="${v}" placeholder="https://... (image ou GIF)" style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;">
+    </div>`;
+  } else if (type === 'footer') {
+    const v = getElVal(isWelcome ? 'wl-welcome_footer' : 'wl-leave_footer');
+    bodyHtml = `<div class="form-group">
+      <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-shoe-prints"></i> Texte du Footer</label>
+      <input type="text" id="modal-footer" value="${v}" placeholder="Ex: Bagbot Elite \u2022 Serveur Officiel" style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;">
+    </div>`;
+  }
+
+  const titleEl = document.getElementById('embedModalTitle');
+  const bodyEl = document.getElementById('embedModalBody');
+  const backdrop = document.getElementById('embedModalBackdrop');
+  if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> ${labels[type] || 'Modifier'}`;
+  if (bodyEl) bodyEl.innerHTML = bodyHtml;
+  if (backdrop) backdrop.classList.add('active');
+}
+
+function closeEmbedModal(e) {
+  if (e && e.target !== document.getElementById('embedModalBackdrop')) return;
+  const backdrop = document.getElementById('embedModalBackdrop');
+  if (backdrop) backdrop.classList.remove('active');
+}
+
+function applyEmbedModalChanges() {
+  const isWelcome = wlMode === 'welcome';
+  if (activeModalType === 'author') {
+    const n = document.getElementById('modal-author_name');
+    const i = document.getElementById('modal-author_icon');
+    setElVal(isWelcome ? 'wl-welcome_author_name' : 'wl-leave_author_name', n ? n.value : '');
+    setElVal(isWelcome ? 'wl-welcome_author_icon' : 'wl-leave_author_icon', i ? i.value : '');
+  } else if (activeModalType === 'title') {
+    const v = document.getElementById('modal-title');
+    setElVal(isWelcome ? 'wl-welcome_title' : 'wl-leave_title', v ? v.value : '');
+  } else if (activeModalType === 'desc') {
+    const v = document.getElementById('modal-desc');
+    setElVal(isWelcome ? 'wl-welcome_desc' : 'wl-leave_desc', v ? v.value : '');
+  } else if (activeModalType === 'thumbnail') {
+    const v = document.getElementById('modal-thumbnail');
+    setElVal(isWelcome ? 'wl-welcome_thumbnail' : 'wl-leave_thumbnail', v ? v.value : '');
+  } else if (activeModalType === 'image') {
+    const v = document.getElementById('modal-image');
+    setElVal(isWelcome ? 'wl-welcome_image' : 'wl-leave_image', v ? v.value : '');
+  } else if (activeModalType === 'footer') {
+    const v = document.getElementById('modal-footer');
+    setElVal(isWelcome ? 'wl-welcome_footer' : 'wl-leave_footer', v ? v.value : '');
+  }
+  updateEmbedPreview();
+  const backdrop = document.getElementById('embedModalBackdrop');
+  if (backdrop) backdrop.classList.remove('active');
+}
+
 // ─── BOOTSTRAP ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', init);
+
