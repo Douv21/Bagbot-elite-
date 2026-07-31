@@ -277,8 +277,59 @@ async function loadDashboard(guild = null) {
     state.config = {};
   }
 
-  // Render first category
-  selectCategory('general', document.querySelector('.cat-btn[data-cat="general"]'));
+  // Render Category Hub cards & display hub
+  renderCategoryHub();
+  showCategoryHub();
+}
+
+// ─── CATEGORY HUB & WORKSPACE NAVIGATION ─────────────────────────────────────
+const CATEGORY_CARDS = [
+  { id: 'general', title: 'Général', icon: 'fa-house', desc: 'Bienvenue, Départs & Annonces du serveur' },
+  { id: 'moderation', title: 'Modération', icon: 'fa-shield-halved', desc: 'AutoMod, Logs, Tribunal & Quarantaine' },
+  { id: 'economie', title: 'Économie & Niveaux', icon: 'fa-star', desc: 'Système XP, Niveaux & Karma' },
+  { id: 'autoroles', title: 'Auto-Rôles', icon: 'fa-masks-theater', desc: "Rôles à l'arrivée & Rôles sur réaction" },
+  { id: 'divertissement', title: 'Divertissement', icon: 'fa-gamepad', desc: 'Jeux interactifs & Action ou Vérité' },
+  { id: 'ia', title: 'IA & Tickets', icon: 'fa-robot', desc: 'Assistant IA & Système de Tickets' },
+  { id: 'parametres', title: 'Paramètres', icon: 'fa-gear', desc: 'Boost, Bump & Permissions Dashboard' },
+];
+
+function renderCategoryHub() {
+  const grid = document.getElementById('categoryCardsGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  CATEGORY_CARDS.forEach(cat => {
+    const card = document.createElement('div');
+    card.className = 'category-card';
+    card.onclick = () => openCategoryWorkspace(cat.id);
+    card.innerHTML = `
+      <div class="category-card-icon">
+        <i class="fa-solid ${cat.icon}"></i>
+      </div>
+      <h3>${cat.title}</h3>
+      <p>${cat.desc}</p>
+      <div class="category-card-btn">
+        Accéder aux modules <i class="fa-solid fa-chevron-right"></i>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function showCategoryHub() {
+  const hub = document.getElementById('categoryHub');
+  const ws = document.getElementById('categoryWorkspace');
+  if (hub) hub.style.display = 'block';
+  if (ws) ws.style.display = 'none';
+}
+
+function openCategoryWorkspace(catId) {
+  const hub = document.getElementById('categoryHub');
+  const ws = document.getElementById('categoryWorkspace');
+  if (hub) hub.style.display = 'none';
+  if (ws) ws.style.display = 'flex';
+
+  const btn = document.querySelector(`.cat-btn[data-cat="${catId}"]`);
+  selectCategory(catId, btn);
 }
 
 // ─── CATEGORY / SIDEBAR ───────────────────────────────────────────────────────

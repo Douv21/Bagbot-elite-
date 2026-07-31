@@ -69,37 +69,57 @@
     <button class="btn-logout" onclick="window.location.href='/logout'"><i class="fa-solid fa-right-from-bracket"></i> Quitter</button>
   </header>
 
-  <!-- CATEGORIES ROW -->
-  <div class="cat-row" id="catRow">
-    <button class="cat-btn active" data-cat="general" onclick="selectCategory('general', this)">
-      <i class="fa-solid fa-house"></i><span class="cat-label">Général</span>
-    </button>
-    <button class="cat-btn" data-cat="moderation" onclick="selectCategory('moderation', this)">
-      <i class="fa-solid fa-shield-halved"></i><span class="cat-label">Modération</span>
-    </button>
-    <button class="cat-btn" data-cat="economie" onclick="selectCategory('economie', this)">
-      <i class="fa-solid fa-star"></i><span class="cat-label">Économie</span>
-    </button>
-    <button class="cat-btn" data-cat="autoroles" onclick="selectCategory('autoroles', this)">
-      <i class="fa-solid fa-masks-theater"></i><span class="cat-label">Auto-Rôles</span>
-    </button>
-    <button class="cat-btn" data-cat="divertissement" onclick="selectCategory('divertissement', this)">
-      <i class="fa-solid fa-gamepad"></i><span class="cat-label">Divertissement</span>
-    </button>
-    <button class="cat-btn" data-cat="ia" onclick="selectCategory('ia', this)">
-      <i class="fa-solid fa-robot"></i><span class="cat-label">IA & Tickets</span>
-    </button>
-    <button class="cat-btn" data-cat="parametres" onclick="selectCategory('parametres', this)">
-      <i class="fa-solid fa-gear"></i><span class="cat-label">Paramètres</span>
-    </button>
+  <!-- CATEGORY CARDS HUB -->
+  <div class="category-hub" id="categoryHub">
+    <div class="category-hub-header">
+      <h2><i class="fa-solid fa-layer-group" style="color:var(--gold3);margin-right:12px;"></i>Catégories de Configuration</h2>
+      <p>Sélectionnez une catégorie pour accéder à ses modules de gestion</p>
+    </div>
+    <div class="category-cards-grid" id="categoryCardsGrid">
+      <!-- Generated dynamically in app.js -->
+    </div>
   </div>
 
-  <div class="dash-body">
-    <!-- SIDEBAR -->
-    <aside class="dash-sidebar" id="dashSidebar"></aside>
+  <!-- CATEGORY WORKSPACE (SIDEBAR + MAIN CONTENT) -->
+  <div class="category-workspace" id="categoryWorkspace" style="display:none;">
+    
+    <!-- WORKSPACE NAV BAR -->
+    <div class="workspace-nav">
+      <button class="btn-return-hub" onclick="showCategoryHub()">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>Catégories</span>
+      </button>
+      <div class="cat-row" id="catRow">
+        <button class="cat-btn active" data-cat="general" onclick="selectCategory('general', this)">
+          <i class="fa-solid fa-house"></i><span class="cat-label">Général</span>
+        </button>
+        <button class="cat-btn" data-cat="moderation" onclick="selectCategory('moderation', this)">
+          <i class="fa-solid fa-shield-halved"></i><span class="cat-label">Modération</span>
+        </button>
+        <button class="cat-btn" data-cat="economie" onclick="selectCategory('economie', this)">
+          <i class="fa-solid fa-star"></i><span class="cat-label">Économie</span>
+        </button>
+        <button class="cat-btn" data-cat="autoroles" onclick="selectCategory('autoroles', this)">
+          <i class="fa-solid fa-masks-theater"></i><span class="cat-label">Auto-Rôles</span>
+        </button>
+        <button class="cat-btn" data-cat="divertissement" onclick="selectCategory('divertissement', this)">
+          <i class="fa-solid fa-gamepad"></i><span class="cat-label">Divertissement</span>
+        </button>
+        <button class="cat-btn" data-cat="ia" onclick="selectCategory('ia', this)">
+          <i class="fa-solid fa-robot"></i><span class="cat-label">IA & Tickets</span>
+        </button>
+        <button class="cat-btn" data-cat="parametres" onclick="selectCategory('parametres', this)">
+          <i class="fa-solid fa-gear"></i><span class="cat-label">Paramètres</span>
+        </button>
+      </div>
+    </div>
 
-    <!-- MAIN CONTENT -->
-    <main class="dash-main" id="dashMain">
+    <div class="dash-body">
+      <!-- LATERAL SIDEBAR -->
+      <aside class="dash-sidebar" id="dashSidebar"></aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="dash-main" id="dashMain">
 
       <!-- GÉNÉRAL > BIENVENUE / DÉPART -->
       <div class="content-panel" id="panel-welcome-leave">
@@ -771,6 +791,8 @@
     </main>
   </div>
 </div>
+</div>
+
 
 <script src="app.js"></script>
 </body>
