@@ -93,18 +93,18 @@
       <!-- FORM CONTENT AREA -->
       <main class="dash-main" id="dashMain">
 
-                        <!-- 1. ARRIVÉES & DÉPARTS (VRAI EMBED DISCORD HD) -->
+                                <!-- 1. ARRIVÉES & DÉPARTS (EMBED DISCORD INTERACTIF AVEC ÉDITION PAR CLIC) -->
         <div class="content-panel" id="panel-welcome-leave">
           <div class="panel-header">
-            <h2><i class="fa-solid fa-door-open" style="color:var(--gold3);margin-right:10px;"></i>Arrivées & Départs (Embeds Discord complets)</h2>
-            <p>Concevez de véritables Embeds Discord haute définition avec Auteur, Titre, Description, Vignette, Grande Bannière et Footer.</p>
+            <h2><i class="fa-solid fa-door-open" style="color:var(--gold3);margin-right:10px;"></i>Arrivées & Départs (Édition par clic sur l'Embed)</h2>
+            <p>Cliquez directement sur n'importe quelle partie de l'Embed Discord pour la modifier instantanément.</p>
             <div class="panel-line"></div>
           </div>
           <form onsubmit="savePanelConfig('welcome-leave', event)">
             
-            <!-- Global Config & Mode Switcher -->
+            <!-- Global Options & Mode Switcher -->
             <div class="config-card">
-              <h3><i class="fa-solid fa-sliders"></i> Configuration & Mode d'Édition</h3>
+              <h3><i class="fa-solid fa-sliders"></i> Mode & Salons d'envoi</h3>
               <div class="form-grid">
                 <div class="form-group">
                   <label><i class="fa-solid fa-pen-to-square"></i> Mode d'édition</label>
@@ -130,100 +130,75 @@
               </div>
             </div>
 
-            <!-- VRAI EMBED DISCORD LIVE PREVIEW & EDITOR -->
-            <div class="config-card discord-preview-card">
-              <h3><i class="fa-brands fa-discord" style="color:#5865F2;"></i> Éditeur Embed Discord HD</h3>
+            <!-- INTERACTIVE CLICK-TO-EDIT DISCORD EMBED CARD -->
+            <div class="config-card discord-wysiwyg-card">
+              <h3><i class="fa-brands fa-discord" style="color:#5865F2;"></i> Embed Discord Éditable par Clic <small style="color:var(--gold2);font-size:0.8rem;margin-left:10px;">(Cliquez sur les textes/images pour éditer)</small></h3>
               
               <div class="discord-message-box">
-                <img id="wl-embed-bot-avatar" class="discord-bot-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot">
+                
+                <!-- Bot Avatar Container -->
+                <div class="discord-avatar-wrap" title="Avatar du Bot">
+                  <img id="wl-bot-avatar-img" class="discord-bot-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot">
+                </div>
+
                 <div class="discord-message-body">
                   <div class="discord-author-line">
                     <span class="discord-name">Bagbot Elite</span>
                     <span class="discord-bot-badge">BOT</span>
-                    <span class="discord-time">Aujourd'hui à 16:05</span>
+                    <span class="discord-time">Aujourd'hui à 16:10</span>
                   </div>
 
-                  <!-- Discord Embed Container -->
+                  <!-- Real Discord Embed Card with Direct Inline Inputs -->
                   <div class="discord-embed-card" id="wl-discord-embed-card">
-                    <div class="discord-left-bar" id="wl-embed-bar-color" style="background:#00FF00;"></div>
+                    
+                    <!-- Left Accent Color Bar (Clickable) -->
+                    <div class="discord-left-bar" id="wl-embed-bar-color" title="Cliquez pour changer la couleur de bordure" onclick="document.getElementById('wl-active_color').click()">
+                      <input type="color" id="wl-active_color" value="#00FF00" style="opacity:0;width:1px;height:1px;position:absolute;" onchange="updateEmbedPreview()">
+                    </div>
+
                     <div class="discord-embed-content-wrap">
                       
-                      <!-- EMBED AUTHOR HEADER -->
-                      <div class="discord-embed-author" id="wl-preview-author-wrap">
-                        <img id="wl-preview-author-icon" src="" alt="" class="discord-embed-author-icon" style="display:none;">
-                        <span id="wl-preview-author-name" class="discord-embed-author-name"></span>
+                      <!-- Inline Author Input -->
+                      <div class="discord-inline-author-row">
+                        <i class="fa-solid fa-user-ninja" style="color:#72767d;font-size:0.8rem;"></i>
+                        <input type="text" id="wl-active_author_name" class="discord-inline-input author-name-input" placeholder="Auteur : Cliquez pour ajouter un nom d'auteur..." oninput="updateEmbedPreview()">
+                        <input type="text" id="wl-active_author_icon" class="discord-inline-input author-icon-input" placeholder="Icône Auteur (URL https://...)" oninput="updateEmbedPreview()">
                       </div>
 
                       <div class="discord-embed-middle-wrap">
                         <div class="discord-embed-main-text">
-                          <!-- EMBED TITLE -->
-                          <div id="wl-preview-title" class="discord-embed-title">👋 Bienvenue</div>
-                          <!-- EMBED DESCRIPTION -->
-                          <div id="wl-preview-desc" class="discord-embed-desc">Bienvenue {user} sur {server} !</div>
+                          <!-- Inline Title Input -->
+                          <div class="discord-inline-title-row">
+                            <input type="text" id="wl-active_title" class="discord-inline-input title-input" placeholder="Titre : Cliquez pour ajouter un titre d'embed..." oninput="updateEmbedPreview()">
+                          </div>
+                          <!-- Inline Description Textarea -->
+                          <div class="discord-inline-desc-row">
+                            <textarea id="wl-active_desc" class="discord-inline-textarea desc-input" rows="3" placeholder="Description : Cliquez pour écrire votre message ({user}, {server}, {membercount})..." oninput="updateEmbedPreview()"></textarea>
+                          </div>
                         </div>
 
-                        <!-- EMBED THUMBNAIL (SMALL RIGHT IMAGE) -->
-                        <div id="wl-preview-thumb-wrap" class="discord-embed-thumb" style="display:none;">
-                          <img id="wl-preview-thumb-img" src="" alt="">
+                        <!-- Inline Thumbnail Input -->
+                        <div class="discord-inline-thumb-row">
+                          <input type="text" id="wl-active_thumbnail" class="discord-inline-input thumb-input" placeholder="🖼️ Vignette (URL image)" oninput="updateEmbedPreview()">
                         </div>
                       </div>
 
-                      <!-- EMBED LARGE BANNER IMAGE -->
-                      <div id="wl-preview-banner-wrap" class="discord-embed-banner" style="display:none;">
-                        <img id="wl-preview-banner-img" src="" alt="">
+                      <!-- Inline Large Banner Image Input -->
+                      <div class="discord-inline-banner-row">
+                        <input type="text" id="wl-active_image" class="discord-inline-input banner-input" placeholder="🌄 Grande Bannière Image/GIF (URL https://...)" oninput="updateEmbedPreview()">
                       </div>
 
-                      <!-- EMBED FOOTER -->
-                      <div class="discord-embed-footer" id="wl-preview-footer-wrap">
-                        <span id="wl-preview-footer-text"></span>
-                        <span class="discord-embed-footer-bullet">•</span>
-                        <span>Aujourd'hui à 16:05</span>
+                      <!-- Inline Footer Input -->
+                      <div class="discord-inline-footer-row">
+                        <i class="fa-solid fa-shoe-prints" style="color:#72767d;font-size:0.75rem;"></i>
+                        <input type="text" id="wl-active_footer" class="discord-inline-input footer-input" placeholder="Footer : Cliquez pour ajouter un texte de bas de page..." oninput="updateEmbedPreview()">
+                        <span class="discord-footer-bullet">•</span>
+                        <span class="discord-footer-time">Aujourd'hui à 16:10</span>
                       </div>
 
                     </div>
                   </div>
 
-                </div>
-              </div>
-
-              <!-- EMBED FORM CONTROLS -->
-              <div class="embed-controls-grid" style="margin-top:20px;">
-                <div class="form-group">
-                  <label><i class="fa-solid fa-user-ninja"></i> Nom de l'Auteur</label>
-                  <input type="text" id="wl-active_author_name" placeholder="Ex: Bagbot Elite / Nom du serveur" oninput="updateEmbedPreview()">
-                </div>
-                <div class="form-group">
-                  <label><i class="fa-solid fa-image"></i> Icône de l'Auteur (URL)</label>
-                  <input type="text" id="wl-active_author_icon" placeholder="https://..." oninput="updateEmbedPreview()">
-                </div>
-
-                <div class="form-group">
-                  <label><i class="fa-solid fa-heading"></i> Titre de l'Embed</label>
-                  <input type="text" id="wl-active_title" placeholder="👋 Bienvenue sur le serveur !" oninput="updateEmbedPreview()">
-                </div>
-                <div class="form-group">
-                  <label><i class="fa-solid fa-palette"></i> Couleur de la barre</label>
-                  <input type="color" id="wl-active_color" value="#00FF00" oninput="updateEmbedPreview()">
-                </div>
-
-                <div class="form-group" style="grid-column:1/-1;">
-                  <label><i class="fa-solid fa-align-left"></i> Description de l'Embed</label>
-                  <textarea id="wl-active_desc" rows="4" placeholder="Bienvenue {user} sur {server} !" oninput="updateEmbedPreview()"></textarea>
-                  <p class="form-hint">Variables : {user}, {server}, {membercount}</p>
-                </div>
-
-                <div class="form-group">
-                  <label><i class="fa-solid fa-file-image"></i> Vignette / Thumbnail (URL)</label>
-                  <input type="text" id="wl-active_thumbnail" placeholder="https://... (Petite image en haut à droite)" oninput="updateEmbedPreview()">
-                </div>
-                <div class="form-group">
-                  <label><i class="fa-solid fa-panorama"></i> Grande Bannière / Image (URL)</label>
-                  <input type="text" id="wl-active_image" placeholder="https://... (Grande image centrale)" oninput="updateEmbedPreview()">
-                </div>
-
-                <div class="form-group" style="grid-column:1/-1;">
-                  <label><i class="fa-solid fa-shoe-prints"></i> Texte du Footer</label>
-                  <input type="text" id="wl-active_footer" placeholder="Ex: Bagbot Elite • Serveur Officiel" oninput="updateEmbedPreview()">
                 </div>
               </div>
 
