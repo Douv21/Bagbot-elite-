@@ -298,6 +298,62 @@ function populateAllDropdowns() {
   });
 }
 
+
+// ─── WELCOME / LEAVE DISCORD EMBED LIVE PREVIEW ──────────────────────────────
+let wlMode = 'welcome';
+
+function switchWelcomeLeaveMode(mode) {
+  wlMode = mode;
+  const isWelcome = mode === 'welcome';
+  const wGroup = document.getElementById('wl-welcome-chan-group');
+  const lGroup = document.getElementById('wl-leave-chan-group');
+  const rGroup = document.getElementById('wl-role-filter-group');
+  if (wGroup) wGroup.style.display = isWelcome ? 'block' : 'none';
+  if (lGroup) lGroup.style.display = isWelcome ? 'none' : 'block';
+  if (rGroup) rGroup.style.display = isWelcome ? 'block' : 'none';
+
+  const wl = state.config.welcome_leave || {};
+  const elTitle = document.getElementById('wl-active_title');
+  const elDesc = document.getElementById('wl-active_desc');
+  const elColor = document.getElementById('wl-active_color');
+
+  if (isWelcome) {
+    if (elTitle) elTitle.value = wl.welcome_title || document.getElementById('wl-welcome_title').value || '👋 Bienvenue';
+    if (elDesc) elDesc.value = wl.welcome_desc || document.getElementById('wl-welcome_desc').value || 'Bienvenue {user} sur le serveur !';
+    if (elColor) elColor.value = wl.welcome_color || document.getElementById('wl-welcome_color').value || '#00FF00';
+  } else {
+    if (elTitle) elTitle.value = wl.leave_title || document.getElementById('wl-leave_title').value || '👋 Au revoir';
+    if (elDesc) elDesc.value = wl.leave_desc || document.getElementById('wl-leave_desc').value || 'Au revoir {user} !';
+    if (elColor) elColor.value = wl.leave_color || document.getElementById('wl-leave_color').value || '#FF0000';
+  }
+  updateEmbedPreview();
+}
+
+function updateEmbedPreview() {
+  const elTitle = document.getElementById('wl-active_title');
+  const elDesc = document.getElementById('wl-active_desc');
+  const elColor = document.getElementById('wl-active_color');
+  if (!elTitle || !elDesc || !elColor) return;
+
+  const title = elTitle.value;
+  const desc = elDesc.value;
+  const color = elColor.value;
+
+  const bar = document.getElementById('wl-embed-bar-color');
+  if (bar) bar.style.background = color;
+
+  if (wlMode === 'welcome') {
+    setElVal('wl-welcome_title', title);
+    setElVal('wl-welcome_desc', desc);
+    setElVal('wl-welcome_color', color);
+  } else {
+    setElVal('wl-leave_title', title);
+    setElVal('wl-leave_desc', desc);
+    setElVal('wl-leave_color', color);
+  }
+}
+
+
 function hydrateForms() {
   const config = state.config || {};
 
@@ -312,6 +368,7 @@ function hydrateForms() {
   setElVal('wl-leave_title', wl.leave_title || '👋 Au revoir');
   setElVal('wl-leave_desc', wl.leave_desc || 'Au revoir {user} !');
   setElVal('wl-leave_color', wl.leave_color || '#ff0000');
+  switchWelcomeLeaveMode('welcome');
 
   // 2. Boost
   const bst = config.boost_config || {};
