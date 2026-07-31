@@ -12,57 +12,84 @@ let state = {
   botInfo: {},
 };
 
-// ─── CATEGORY DEFINITIONS ─────────────────────────────────────────────────────
+// ─── CATEGORY DEFINITIONS (DASHBOARD 1 COMPLETE MATCH) ────────────────────────
 const CATEGORIES = {
   general: {
-    label: 'Général',
+    label: 'GESTION DU SERVEUR',
+    icon: 'fa-sliders',
+    desc: 'Arrivées, Départs, Boost, Annonces, Embeds, Auto-Rôles & Logs',
     items: [
-      { id: 'welcome-leave', label: 'Bienvenue & Départ', icon: 'fa-hand-wave' },
+      { id: 'welcome-leave', label: 'Arrivées & Départs', icon: 'fa-door-open' },
+      { id: 'boost', label: 'Remerciements Boost', icon: 'fa-rocket', badge: 'VIP' },
+      { id: 'announcements', label: 'Annonces & Guides', icon: 'fa-bullhorn', badge: 'VIP' },
+      { id: 'autoroles-join', label: "Auto-Rôles à l'Arrivée", icon: 'fa-user-plus' },
+      { id: 'autoroles-role', label: 'Rôles Réaction', icon: 'fa-rectangle-list' },
+      { id: 'autothread', label: 'Auto-Thread', icon: 'fa-hashtag' },
+      { id: 'logs', label: "Logs d'Activité", icon: 'fa-scroll' },
     ]
   },
   moderation: {
-    label: 'Modération',
+    label: 'SÉCURITÉ & MODÉRATION',
+    icon: 'fa-shield-halved',
+    desc: 'Quarantaine, AutoMod, Forums, Permissions & Tribunal',
     items: [
-      { id: 'automod', label: 'Auto-Modération', icon: 'fa-shield-halved' },
-      { id: 'logs', label: 'Logs', icon: 'fa-scroll' },
-      { id: 'tribunal', label: 'Tribunal', icon: 'fa-gavel' },
-      { id: 'quarantine', label: 'Quarantaine', icon: 'fa-lock' },
+      { id: 'quarantine', label: 'Quarantaine Anti-Raid', icon: 'fa-shield-cat' },
+      { id: 'automod', label: 'Auto-Modération', icon: 'fa-user-shield' },
+      { id: 'forums', label: 'Forums Illimités', icon: 'fa-comments' },
+      { id: 'permissions', label: 'Commandes & Permissions', icon: 'fa-terminal', badge: 'NOUVEAU' },
+      { id: 'tribunal', label: 'Tribunal Discord', icon: 'fa-gavel' },
     ]
   },
   economie: {
-    label: 'Économie',
+    label: 'NIVEAUX & ÉCONOMIE',
+    icon: 'fa-chart-line',
+    desc: 'Niveaux & XP, Quêtes, Karma, Boutique & Suites',
     items: [
-      { id: 'leveling', label: 'Niveaux & XP', icon: 'fa-chart-line' },
-      { id: 'karma', label: 'Karma', icon: 'fa-heart-pulse' },
-    ]
-  },
-  autoroles: {
-    label: 'Auto-Rôles',
-    items: [
-      { id: 'autoroles-join', label: "À l'Arrivée", icon: 'fa-user-plus' },
-      { id: 'autoroles-role', label: 'Sur Rôle', icon: 'fa-arrows-rotate' },
+      { id: 'leveling', label: 'Niveaux & XP', icon: 'fa-arrow-trend-up' },
+      { id: 'quests', label: 'Système de Quêtes', icon: 'fa-scroll', badge: 'NEW' },
+      { id: 'karma', label: 'Configuration Karma', icon: 'fa-star' },
+      { id: 'shop', label: 'Boutique & Suites', icon: 'fa-shop' },
     ]
   },
   divertissement: {
-    label: 'Divertissement',
+    label: 'DIVERTISSEMENT & JEUX',
+    icon: 'fa-gamepad',
+    desc: 'Confessions, Comptage, Mot Caché, Action-Vérité, Bump & GIFs',
     items: [
+      { id: 'confessions', label: 'Confessions Anonymes', icon: 'fa-mask' },
+      { id: 'counting', label: 'Salons de Comptage', icon: 'fa-calculator' },
+      { id: 'game', label: 'Jeu Mot Caché', icon: 'fa-gamepad' },
       { id: 'action-verite', label: 'Action ou Vérité', icon: 'fa-dice' },
+      { id: 'bump', label: 'Rappels de Bump', icon: 'fa-bell' },
+      { id: 'gifs', label: "GIFs d'action", icon: 'fa-file-video' },
     ]
   },
-  ia: {
-    label: 'IA & Tickets',
+  support: {
+    label: 'SUPPORT & TICKETS',
+    icon: 'fa-headset',
+    desc: 'Support, Tickets & Carte des Membres',
     items: [
-      { id: 'ai', label: 'Config IA', icon: 'fa-brain' },
+      { id: 'tickets', label: 'Support & Tickets', icon: 'fa-ticket' },
+      { id: 'map', label: 'Carte des Membres', icon: 'fa-map-location-dot' },
     ]
   },
-  parametres: {
-    label: 'Paramètres',
+  assistant: {
+    label: 'ASSISTANT & STAR',
+    icon: 'fa-robot',
+    desc: 'Assistant IA Admin & Star de la Semaine',
     items: [
-      { id: 'boost', label: 'Boost', icon: 'fa-rocket' },
-      { id: 'bump', label: 'Bump Reminders', icon: 'fa-bell' },
-      { id: 'permissions', label: 'Permissions', icon: 'fa-shield-check' },
+      { id: 'assistant', label: 'Assistant IA Admin', icon: 'fa-robot', badge: 'IA VIP' },
+      { id: 'star', label: 'Star de la Semaine', icon: 'fa-star', badge: 'TOP' },
     ]
   },
+  ai: {
+    label: 'CLÉS & PARAMÈTRES IA',
+    icon: 'fa-brain',
+    desc: 'Clés & Modèles IA',
+    items: [
+      { id: 'ai', label: 'Clés & Modèles IA', icon: 'fa-brain' },
+    ]
+  }
 };
 
 // ─── UTILS ────────────────────────────────────────────────────────────────────
@@ -284,13 +311,13 @@ async function loadDashboard(guild = null) {
 
 // ─── CATEGORY HUB & WORKSPACE NAVIGATION ─────────────────────────────────────
 const CATEGORY_CARDS = [
-  { id: 'general', title: 'Général', icon: 'fa-house', desc: 'Bienvenue, Départs & Annonces du serveur' },
-  { id: 'moderation', title: 'Modération', icon: 'fa-shield-halved', desc: 'AutoMod, Logs, Tribunal & Quarantaine' },
-  { id: 'economie', title: 'Économie & Niveaux', icon: 'fa-star', desc: 'Système XP, Niveaux & Karma' },
-  { id: 'autoroles', title: 'Auto-Rôles', icon: 'fa-masks-theater', desc: "Rôles à l'arrivée & Rôles sur réaction" },
-  { id: 'divertissement', title: 'Divertissement', icon: 'fa-gamepad', desc: 'Jeux interactifs & Action ou Vérité' },
-  { id: 'ia', title: 'IA & Tickets', icon: 'fa-robot', desc: 'Assistant IA & Système de Tickets' },
-  { id: 'parametres', title: 'Paramètres', icon: 'fa-gear', desc: 'Boost, Bump & Permissions Dashboard' },
+  { id: 'general', title: 'GESTION DU SERVEUR', icon: 'fa-sliders', desc: 'Arrivées, Départs, Boost, Annonces, Embeds, Auto-Rôles & Logs' },
+  { id: 'moderation', title: 'SÉCURITÉ & MODÉRATION', icon: 'fa-shield-halved', desc: 'Quarantaine, AutoMod, Forums, Permissions & Tribunal' },
+  { id: 'economie', title: 'NIVEAUX & ÉCONOMIE', icon: 'fa-chart-line', desc: 'Niveaux & XP, Quêtes, Karma & Boutique' },
+  { id: 'divertissement', title: 'DIVERTISSEMENT & JEUX', icon: 'fa-gamepad', desc: 'Confessions, Comptage, Mot Caché, Action-Vérité, Bump & GIFs' },
+  { id: 'support', title: 'SUPPORT & TICKETS', icon: 'fa-headset', desc: 'Support, Panneaux de Tickets & Carte des Membres' },
+  { id: 'assistant', title: 'ASSISTANT & STAR', icon: 'fa-robot', desc: 'Assistant IA Admin & Élection Star de la Semaine' },
+  { id: 'ai', title: 'CLÉS & PARAMÈTRES IA', icon: 'fa-brain', desc: 'Clés & Modèles IA' },
 ];
 
 function renderCategoryHub() {
