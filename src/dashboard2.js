@@ -1,6 +1,6 @@
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
-const SQLiteStore = require('connect-sqlite3')(session);
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
@@ -71,7 +71,7 @@ function getGuildId(req) {
 app.get('/login', (req, res) => {
   const redirectUri = encodeURIComponent('http://82.65.75.176:49602/callback');
   const scope = encodeURIComponent('identify guilds');
-  const clientId = process.env.DISCORD_CLIENT_ID || '1318281313627082874';
+  const clientId = process.env.DISCORD_CLIENT_ID || '1523016917588115566';
   res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`);
 });
 
@@ -79,7 +79,7 @@ app.get('/callback', async (req, res) => {
   const code = req.query.code;
   if (!code) return res.redirect('/login');
   try {
-    const clientId = process.env.DISCORD_CLIENT_ID || '1318281313627082874';
+    const clientId = process.env.DISCORD_CLIENT_ID || '1523016917588115566';
     const clientSecret = process.env.DISCORD_CLIENT_SECRET;
     const redirectUri = 'http://82.65.75.176:49602/callback';
 
