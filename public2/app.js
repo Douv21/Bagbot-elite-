@@ -900,15 +900,29 @@ function openEmbedModal(type) {
     </div>`;
   } else if (type === 'thumbnail') {
     const v = getElVal(isWelcome ? 'wl-welcome_thumbnail' : 'wl-leave_thumbnail');
+    const hasImg = v && v.length > 0;
     bodyHtml = `<div class="form-group">
-      <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-file-image"></i> URL de la Vignette</label>
-      <input type="text" id="modal-thumbnail" value="${v}" placeholder="https://... (laissez vide pour masquer)" style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;">
+      <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-link"></i> URL de la Vignette</label>
+      <input type="text" id="modal-thumbnail" value="${v}" placeholder="https://... (laissez vide pour masquer)" oninput="modalImgPreview('modal-thumbnail','modal-thumb-preview')" style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;">
+      <div class="upload-or-divider">ou t\u00e9l\u00e9verser directement</div>
+      <label class="btn-upload-img">
+        <i class="fa-solid fa-upload"></i> Choisir une image (JPG, PNG, GIF, WEBP)
+        <input type="file" accept="image/*" onchange="handleImgUpload(event,'modal-thumbnail','modal-thumb-preview')">
+      </label>
+      <img id="modal-thumb-preview" class="modal-img-preview" src="${v}" style="${hasImg ? 'display:block' : 'display:none'}">
     </div>`;
   } else if (type === 'image') {
     const v = getElVal(isWelcome ? 'wl-welcome_image' : 'wl-leave_image');
+    const hasImg = v && v.length > 0;
     bodyHtml = `<div class="form-group">
-      <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-panorama"></i> URL de la Banni\u00e8re</label>
-      <input type="text" id="modal-image" value="${v}" placeholder="https://... (image ou GIF)" style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;">
+      <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-link"></i> URL de la Banni\u00e8re (image ou GIF)</label>
+      <input type="text" id="modal-image" value="${v}" placeholder="https://... (image ou GIF)" oninput="modalImgPreview('modal-image','modal-banner-preview')" style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;">
+      <div class="upload-or-divider">ou t\u00e9l\u00e9verser directement</div>
+      <label class="btn-upload-img">
+        <i class="fa-solid fa-upload"></i> Choisir une image / GIF (JPG, PNG, GIF, WEBP)
+        <input type="file" accept="image/*" onchange="handleImgUpload(event,'modal-image','modal-banner-preview')">
+      </label>
+      <img id="modal-banner-preview" class="modal-img-preview" src="${v}" style="${hasImg ? 'display:block' : 'display:none'}">
     </div>`;
   } else if (type === 'footer') {
     const v = getElVal(isWelcome ? 'wl-welcome_footer' : 'wl-leave_footer');
@@ -960,6 +974,38 @@ function applyEmbedModalChanges() {
   if (backdrop) backdrop.classList.remove('active');
 }
 
+// ─── IMAGE UPLOAD HELPERS ──────────────────────────────────────────────────────
+// Called when user picks a file — reads it as base64 and sets URL input + preview
+function handleImgUpload(event, inputId, previewId) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    const inputEl = document.getElementById(inputId);
+    const previewEl = document.getElementById(previewId);
+    if (inputEl) inputEl.value = dataUrl;
+    if (previewEl) { previewEl.src = dataUrl; previewEl.style.display = 'block'; }
+  };
+  reader.readAsDataURL(file);
+}
+
+// Called when user types a URL — live-previews the image
+function modalImgPreview(inputId, previewId) {
+  const inputEl = document.getElementById(inputId);
+  const previewEl = document.getElementById(previewId);
+  if (!inputEl || !previewEl) return;
+  const url = inputEl.value.trim();
+  if (url) {
+    previewEl.src = url;
+    previewEl.style.display = 'block';
+    previewEl.onerror = () => { previewEl.style.display = 'none'; };
+  } else {
+    previewEl.style.display = 'none';
+  }
+}
+
 // ─── BOOTSTRAP ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', init);
+
 
