@@ -438,25 +438,48 @@ function showPanel(panelId) {
 // ─── PANEL FILLERS ────────────────────────────────────────────────────────────
 function fillPanel(panelId) {
   const fn = panelFillers[panelId];
-  if (fn) fn();
+  if (fn) {
+    fn();
+  } else {
+    fillGenericPanel(panelId);
+  }
 }
 
 const panelFillers = {
   'welcome-leave': fillWelcomeLeave,
-  'automod': fillAutomod,
-  'logs': fillLogs,
-  'tribunal': fillTribunal,
-  'quarantine': fillQuarantine,
-  'leveling': fillLeveling,
-  'karma': fillKarma,
+  'boost': fillBoost,
   'autoroles-join': fillAutorolesJoin,
   'autoroles-role': fillAutorolesRole,
-  'action-verite': fillActionVerite,
-  'ai': fillAi,
-  'boost': fillBoost,
-  'bump': fillBump,
+  'logs': fillLogs,
+  
+  'quarantine': fillQuarantine,
+  'automod': fillAutomod,
   'permissions': fillPermissions,
+  'tribunal': fillTribunal,
+  
+  'leveling': fillLeveling,
+  'karma': fillKarma,
+  
+  'action-verite': fillActionVerite,
+  'bump': fillBump,
+  
+  'ai': fillAi,
 };
+
+function fillGenericPanel(panelId) {
+  const panel = document.getElementById('panel-' + panelId);
+  if (!panel) return;
+  panel.querySelectorAll('select').forEach(select => {
+    const val = select.value;
+    if (select.id.includes('channel') || select.name.includes('channel')) {
+      buildChannelOptions(select, state.channels, val);
+    } else if (select.id.includes('role') || select.name.includes('role')) {
+      buildRoleOptions(select, state.roles, val);
+    } else if (select.id.includes('cat') || select.name.includes('cat')) {
+      buildCategoryOptions(select, state.channels, val);
+    }
+  });
+}
 
 function fillWelcomeLeave() {
   const wl = state.config.welcome_leave || {};
