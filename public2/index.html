@@ -92,24 +92,23 @@
       <!-- FORM CONTENT AREA -->
       <main class="dash-main" id="dashMain">
 
-                <!-- 1. ARRIVÉES & DÉPARTS (EMBED DISCORD COMPLET HD) -->
+                        <!-- 1. ARRIVÉES & DÉPARTS (EMBED DISCORD INTERACTIF ET CLICABLE SUR MESURE FOR DASHBOARD 2) -->
         <div class="content-panel" id="panel-welcome-leave">
           <div class="panel-header">
-            <h2><i class="fa-solid fa-door-open" style="color:var(--gold3);margin-right:10px;"></i>Arrivées & Départs (Embed Discord Complet)</h2>
-            <p>Concevez et prévisualisez un Embed Discord complet avec Auteur, Titre, Description, Vignette, Grande Bannière et Footer.</p>
+            <h2><i class="fa-solid fa-door-open" style="color:var(--gold3);margin-right:10px;"></i>Éditeur d'Embed Discord Clicable (Bienvenue & Départ)</h2>
+            <p>Cliquez directement sur l'Auteur, le Titre, la Description, la Vignette, la Bannière ou le Footer pour éditer chaque élément en temps réel.</p>
             <div class="panel-line"></div>
           </div>
           <form onsubmit="savePanelConfig('welcome-leave', event)">
             
-            <!-- Salons & Mode Selector -->
+            <!-- Category Controls Bar -->
             <div class="config-card">
-              <h3><i class="fa-solid fa-sliders"></i> Configuration des Salons & Mode</h3>
-              <div class="form-grid">
+              <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); align-items: end;">
                 <div class="form-group">
-                  <label><i class="fa-solid fa-pen-to-square"></i> Mode d'édition</label>
+                  <label><i class="fa-solid fa-sliders"></i> Mode à éditer</label>
                   <select id="wl-edit_mode" onchange="switchWelcomeLeaveMode(this.value)">
-                    <option value="welcome" selected>Message de Bienvenue (Arrivée)</option>
-                    <option value="leave">Message de Départ (Départ)</option>
+                    <option value="welcome" selected>📥 Message de Bienvenue (Arrivée)</option>
+                    <option value="leave">📤 Message de Départ (Au revoir)</option>
                   </select>
                 </div>
                 <div class="form-group" id="wl-welcome-chan-group">
@@ -121,7 +120,7 @@
                   <select id="wl-leave_channel" name="leave_channel" data-type="channel"></select>
                 </div>
                 <div class="form-group" id="wl-role-filter-group">
-                  <label><i class="fa-solid fa-user-tag"></i> Rôle d'annonce d'arrivée (Optionnel)</label>
+                  <label><i class="fa-solid fa-user-tag"></i> Rôle d'annonce (Optionnel)</label>
                   <select id="wl-welcome_role_filter" name="welcome_role_filter" data-type="role">
                     <option value="">— Immédiat (Tous les membres) —</option>
                   </select>
@@ -129,54 +128,77 @@
               </div>
             </div>
 
-            <!-- DISCORD EMBED LIVE PREVIEW CARD (PIXEL PERFECT DISCORD CLIENT) -->
-            <div class="config-card discord-preview-card">
-              <h3><i class="fa-brands fa-discord" style="color:#5865F2;"></i> Aperçu Embed Discord Complet</h3>
+            <!-- BRAND NEW CLICKABLE DISCORD EMBED EDITOR CARD -->
+            <div class="config-card discord-client-editor-card">
+              <div class="editor-badge-bar">
+                <span class="badge-gold"><i class="fa-solid fa-hand-pointer"></i> Cliquez sur n'importe quel texte ou image de l'Embed ci-dessous pour modifier</span>
+              </div>
               
-              <div class="discord-message-box">
-                <img id="wl-embed-bot-avatar" class="discord-bot-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot">
-                <div class="discord-message-body">
-                  <div class="discord-author-line">
-                    <span class="discord-name">Bagbot Elite</span>
-                    <span class="discord-bot-badge">BOT</span>
-                    <span class="discord-time">Aujourd'hui à 16:35</span>
+              <div class="discord-client-message">
+                <img id="wl-bot-avatar-img" class="discord-client-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot">
+                
+                <div class="discord-client-content">
+                  <div class="discord-client-header">
+                    <span class="discord-bot-username">Bagbot Elite</span>
+                    <span class="discord-bot-tag">BOT</span>
+                    <span class="discord-client-date">Aujourd'hui à 16:40</span>
                   </div>
 
-                  <!-- Discord Embed Card -->
-                  <div class="discord-embed-card" id="wl-discord-embed-card">
-                    <div class="discord-left-bar" id="wl-embed-bar-color" style="background:#00FF00;"></div>
-                    <div class="discord-embed-content-wrap">
+                  <!-- Complete Clickable Discord Embed -->
+                  <div class="discord-client-embed" id="wl-discord-embed-box">
+                    
+                    <!-- Color Bar Clicker -->
+                    <div class="discord-color-bar" id="wl-embed-color-bar" title="Cliquez pour changer la couleur" onclick="openEmbedModal('color')">
+                      <input type="color" id="wl-active_color" value="#00FF00" style="opacity:0;width:0;height:0;position:absolute;" onchange="updateEmbedPreview()">
+                    </div>
+
+                    <div class="discord-embed-inner-body">
                       
-                      <!-- EMBED AUTHOR HEADER -->
-                      <div class="discord-embed-author" id="wl-preview-author-wrap" style="display:none;">
-                        <img id="wl-preview-author-icon" src="" alt="" class="discord-embed-author-icon" style="display:none;">
-                        <span id="wl-preview-author-name" class="discord-embed-author-name"></span>
+                      <!-- Clickable Author Section -->
+                      <div class="clickable-embed-element clickable-author-wrap" onclick="openEmbedModal('author')" title="Cliquez pour modifier l'Auteur">
+                        <img id="wl-preview-author-icon" src="" alt="" class="discord-author-icon" style="display:none;">
+                        <span id="wl-preview-author-name" class="discord-author-text">Cliquez pour ajouter un Auteur...</span>
+                        <i class="fa-solid fa-pen-to-square click-icon"></i>
                       </div>
 
-                      <div class="discord-embed-middle-wrap">
-                        <div class="discord-embed-main-text">
-                          <!-- EMBED TITLE -->
-                          <div id="wl-preview-title" class="discord-embed-title">👋 Bienvenue sur le serveur !</div>
-                          <!-- EMBED DESCRIPTION -->
-                          <div id="wl-preview-desc" class="discord-embed-desc">Bienvenue {user} sur {server} !</div>
+                      <div class="discord-embed-main-row">
+                        <div class="discord-embed-text-col">
+                          <!-- Clickable Title Section -->
+                          <div class="clickable-embed-element clickable-title-wrap" onclick="openEmbedModal('title')" title="Cliquez pour modifier le Titre">
+                            <h4 id="wl-preview-title" class="discord-embed-title-text">👋 Bienvenue sur le serveur !</h4>
+                            <i class="fa-solid fa-pen-to-square click-icon"></i>
+                          </div>
+
+                          <!-- Clickable Description Section -->
+                          <div class="clickable-embed-element clickable-desc-wrap" onclick="openEmbedModal('desc')" title="Cliquez pour modifier la Description">
+                            <div id="wl-preview-desc" class="discord-embed-desc-text">Bienvenue {user} sur {server} !</div>
+                            <i class="fa-solid fa-pen-to-square click-icon"></i>
+                          </div>
                         </div>
 
-                        <!-- EMBED THUMBNAIL (SMALL RIGHT IMAGE) -->
-                        <div id="wl-preview-thumb-wrap" class="discord-embed-thumb" style="display:none;">
-                          <img id="wl-preview-thumb-img" src="" alt="">
+                        <!-- Clickable Thumbnail Image Section -->
+                        <div class="clickable-embed-element clickable-thumb-wrap" onclick="openEmbedModal('thumbnail')" title="Cliquez pour ajouter/modifier la Vignette (Thumbnail)">
+                          <img id="wl-preview-thumb-img" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Thumbnail" class="discord-thumb-img">
+                          <div class="image-hover-overlay"><i class="fa-solid fa-camera"></i></div>
                         </div>
                       </div>
 
-                      <!-- EMBED LARGE BANNER IMAGE -->
-                      <div id="wl-preview-banner-wrap" class="discord-embed-banner" style="display:none;">
-                        <img id="wl-preview-banner-img" src="" alt="">
+                      <!-- Clickable Banner Image Section -->
+                      <div class="clickable-embed-element clickable-banner-wrap" onclick="openEmbedModal('image')" title="Cliquez pour ajouter/modifier la Grande Bannière Image">
+                        <div id="wl-banner-placeholder" class="banner-placeholder-box">
+                          <i class="fa-solid fa-image" style="font-size:1.5rem;color:var(--gold3);margin-bottom:4px;"></i>
+                          <span>Cliquez pour ajouter une grande bannière image/GIF</span>
+                        </div>
+                        <img id="wl-preview-banner-img" src="" alt="Bannière" class="discord-banner-img" style="display:none;">
+                        <div class="image-hover-overlay"><i class="fa-solid fa-camera"></i> Bannière</div>
                       </div>
 
-                      <!-- EMBED FOOTER -->
-                      <div class="discord-embed-footer" id="wl-preview-footer-wrap" style="display:none;">
-                        <span id="wl-preview-footer-text"></span>
-                        <span class="discord-embed-footer-bullet">•</span>
-                        <span>Aujourd'hui à 16:35</span>
+                      <!-- Clickable Footer Section -->
+                      <div class="clickable-embed-element clickable-footer-wrap" onclick="openEmbedModal('footer')" title="Cliquez pour modifier le Footer">
+                        <span id="wl-preview-footer-text" class="discord-footer-text">Cliquez pour ajouter un Footer...</span>
+                        <span class="discord-footer-dot">•</span>
+                        <span>Aujourd'hui à 16:40</span>
+                        <i class="fa-solid fa-pen-to-square click-icon"></i>
                       </div>
 
                     </div>
@@ -184,50 +206,7 @@
 
                 </div>
               </div>
-            </div>
 
-            <!-- EMBED FORM FIELDS CARD -->
-            <div class="config-card">
-              <h3><i class="fa-solid fa-pen-nib"></i> Édition des Champs de l'Embed</h3>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label><i class="fa-solid fa-user-ninja"></i> Nom de l'Auteur</label>
-                  <input type="text" id="wl-active_author_name" placeholder="Ex: Bagbot Elite / Nom du serveur" oninput="updateEmbedPreview()">
-                </div>
-                <div class="form-group">
-                  <label><i class="fa-solid fa-image"></i> Icône Auteur (URL image)</label>
-                  <input type="text" id="wl-active_author_icon" placeholder="https://..." oninput="updateEmbedPreview()">
-                </div>
-
-                <div class="form-group">
-                  <label><i class="fa-solid fa-heading"></i> Titre de l'Embed</label>
-                  <input type="text" id="wl-active_title" placeholder="👋 Bienvenue sur le serveur !" oninput="updateEmbedPreview()">
-                </div>
-                <div class="form-group">
-                  <label><i class="fa-solid fa-palette"></i> Couleur de la barre</label>
-                  <input type="color" id="wl-active_color" value="#00FF00" style="padding:2px;height:42px;width:100%;" oninput="updateEmbedPreview()">
-                </div>
-
-                <div class="form-group" style="grid-column:1/-1;">
-                  <label><i class="fa-solid fa-align-left"></i> Description de l'Embed</label>
-                  <textarea id="wl-active_desc" rows="4" placeholder="Bienvenue {user} sur {server} !" oninput="updateEmbedPreview()"></textarea>
-                  <p class="form-hint">Variables disponibles : {user}, {server}, {membercount}</p>
-                </div>
-
-                <div class="form-group">
-                  <label><i class="fa-solid fa-file-image"></i> Vignette / Thumbnail (URL image)</label>
-                  <input type="text" id="wl-active_thumbnail" placeholder="https://... (Petite image en haut à droite)" oninput="updateEmbedPreview()">
-                </div>
-                <div class="form-group">
-                  <label><i class="fa-solid fa-panorama"></i> Grande Bannière / Image (URL image)</label>
-                  <input type="text" id="wl-active_image" placeholder="https://... (Grande image centrale)" oninput="updateEmbedPreview()">
-                </div>
-
-                <div class="form-group" style="grid-column:1/-1;">
-                  <label><i class="fa-solid fa-shoe-prints"></i> Texte du Footer</label>
-                  <input type="text" id="wl-active_footer" placeholder="Ex: Bagbot Elite • Serveur Officiel" oninput="updateEmbedPreview()">
-                </div>
-              </div>
             </div>
 
             <!-- Hidden Inputs to submit correct values to SQLite based on mode -->
@@ -253,6 +232,23 @@
               <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les Embeds Bienvenue & Départ</button>
             </div>
           </form>
+        </div>
+
+        <!-- LUXURY NOIR & OR EMBED EDIT MODAL -->
+        <div class="embed-modal-backdrop" id="embedModalBackdrop" onclick="closeEmbedModal(event)">
+          <div class="embed-modal-content card glass" onclick="event.stopPropagation()">
+            <div class="embed-modal-header">
+              <h3 id="embedModalTitle"><i class="fa-solid fa-pen-to-square"></i> Modifier l'Élément</h3>
+              <button type="button" class="btn-close-modal" onclick="closeEmbedModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="embed-modal-body" id="embedModalBody">
+              <!-- Dynamically filled by JS -->
+            </div>
+            <div class="embed-modal-footer">
+              <button type="button" class="btn btn-secondary" onclick="closeEmbedModal()">Annuler</button>
+              <button type="button" class="btn btn-primary" onclick="applyEmbedModalChanges()"><i class="fa-solid fa-check"></i> Valider</button>
+            </div>
+          </div>
         </div>
 
         <!-- 2. REMERCIEMENTS BOOST -->
