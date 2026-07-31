@@ -327,37 +327,75 @@ function openCategoryWorkspace(catId) {
   const ws = document.getElementById('categoryWorkspace');
   if (hub) hub.style.display = 'none';
   if (ws) ws.style.display = 'flex';
-
-  const btn = document.querySelector(`.cat-btn[data-cat="${catId}"]`);
-  selectCategory(catId, btn);
+  selectCategory(catId);
 }
 
 // ─── CATEGORY / SIDEBAR ───────────────────────────────────────────────────────
-function selectCategory(catId, btnEl) {
+function selectCategory(catId) {
   state.currentCat = catId;
-  // Update cat buttons
-  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-  if (btnEl) btnEl.classList.add('active');
-
-  // Render sidebar
   const sidebar = document.getElementById('dashSidebar');
   const cat = CATEGORIES[catId];
-  if (!cat) return;
-  sidebar.innerHTML = '<div class="sidebar-cat-label">' + cat.label + '</div>';
+  if (!cat || !sidebar) return;
+
+  const cardMeta = CATEGORY_CARDS.find(c => c.id === catId) || { icon: 'fa-layer-group', title: cat.label };
+
+  let html = `
+    <div class="sidebar-top-bar">
+      <button class="btn-sidebar-hub" onclick="showCategoryHub()">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>Menu Catégories</span>
+      </button>
+    </div>
+    <div class="sidebar-cat-header">
+      <i class="fa-solid ${cardMeta.icon}"></i>
+      <span>${cat.label}</span>
+    </div>
+    <div class="sidebar-items-group">
+  `;
+
   cat.items.forEach((item, i) => {
-    const el = document.createElement('div');
-    el.className = 'sidebar-item' + (i === 0 ? ' active' : '');
-    el.innerHTML = '<i class="fa-solid ' + item.icon + '"></i> ' + item.label;
-    el.onclick = () => {
-      sidebar.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
-      el.classList.add('active');
-      showPanel(item.id);
-    };
-    sidebar.appendChild(el);
+    html += `
+      <div class="sidebar-item ${i === 0 ? 'active' : ''}" data-panel="${item.id}" onclick="clickSidebarItem('${item.id}', this)">
+        <i class="fa-solid ${item.icon}"></i>
+        <span>${item.label}</span>
+      </div>
+    `;
   });
 
-  // Show first panel
+  html += `</div>`;
+
+  // Quick category links at bottom of lateral sidebar
+  html += `
+    <div class="sidebar-quick-cats">
+      <div class="sidebar-quick-label">SWITCH DE CATÉGORIE</div>
+  `;
+
+  CATEGORY_CARDS.forEach(c => {
+    if (c.id !== catId) {
+      html += `
+        <div class="sidebar-quick-item" onclick="openCategoryWorkspace('${c.id}')">
+          <i class="fa-solid ${c.icon}"></i>
+          <span>${c.title}</span>
+        </div>
+      `;
+    }
+  });
+
+  html += `</div>`;
+
+  sidebar.innerHTML = html;
+
+  // Show first panel of the active category
   if (cat.items.length > 0) showPanel(cat.items[0].id);
+}
+
+function clickSidebarItem(panelId, el) {
+  const sidebar = document.getElementById('dashSidebar');
+  if (sidebar) {
+    sidebar.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+  }
+  if (el) el.classList.add('active');
+  showPanel(panelId);
 }
 
 function showPanel(panelId) {
