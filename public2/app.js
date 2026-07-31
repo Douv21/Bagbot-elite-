@@ -19,6 +19,7 @@ const CATEGORIES = {
     desc: 'Arrivées, Départs, Boost, Annonces, Embeds, Auto-Rôles & Logs',
     items: [
       { id: 'welcome-leave', label: 'Arrivées & Départs', icon: 'fa-door-open' },
+      { id: 'announce-role', label: 'Annonce sur Rôle', icon: 'fa-bullhorn', badge: 'NEW' },
       { id: 'boost', label: 'Remerciements Boost', icon: 'fa-rocket', badge: 'VIP' },
       { id: 'announcements', label: 'Annonces & Guides', icon: 'fa-bullhorn', badge: 'VIP' },
       { id: 'embed-sender', label: "Envoyeur d'Embeds", icon: 'fa-file-code', badge: 'NOUVEAU' },
@@ -412,6 +413,15 @@ function hydrateForms() {
   wlMode = 'welcome';
   updateEmbedPreview();
 
+  // Announce on Role
+  const aor = config.announce_on_role || {};
+  setElVal('ar-trigger_role_id', aor.trigger_role_id);
+  setElVal('ar-channel_id', aor.channel_id);
+  setElVal('ar-embed_title', aor.embed_title || '🎉 Nouveau rôle attribué !');
+  setElVal('ar-embed_desc', aor.embed_desc || 'Félicitations {user} ! Tu as reçu le rôle {role} !');
+  setElVal('ar-embed_color', aor.embed_color || '#d4af37');
+  setElCheck('ar-enabled', aor.enabled === 1);
+
   // 2. Boost
   const bst = config.boost_config || {};
   setElVal('boost-channel_id', bst.channel_id);
@@ -745,6 +755,9 @@ function selectCategory(catId) {
       <button class="btn-sidebar-hub" onclick="showCategoryHub()">
         <i class="fa-solid fa-arrow-left"></i>
         <span>Menu Catégories</span>
+      </button>
+      <button id="sidebarClose" onclick="toggleMobileSidebar(false)" style="position:absolute; right:15px; top:18px; background:none; border:none; color:var(--text-muted); font-size:1.5rem; cursor:pointer;" class="mobile-only-close">
+        <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
     <div class="sidebar-cat-header">

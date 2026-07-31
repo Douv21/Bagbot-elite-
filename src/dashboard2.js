@@ -37,6 +37,17 @@ const {
 
 db.exec('CREATE TABLE IF NOT EXISTS user_sessions2 (sid TEXT PRIMARY KEY, sess TEXT NOT NULL, expired INTEGER NOT NULL)');
 
+db.exec(`CREATE TABLE IF NOT EXISTS announce_on_role (
+  guild_id TEXT NOT NULL,
+  trigger_role_id TEXT,
+  channel_id TEXT,
+  embed_title TEXT DEFAULT '',
+  embed_desc TEXT DEFAULT '',
+  embed_color TEXT DEFAULT '#d4af37',
+  enabled INTEGER DEFAULT 0,
+  PRIMARY KEY (guild_id)
+)`);
+
 class SQLiteSessionStore extends session.Store {
   constructor() {
     super();
@@ -141,7 +152,8 @@ app.get('/api/config', (req, res) => {
     const lr = db.prepare('SELECT * FROM level_rewards WHERE guild_id = ? ORDER BY level ASC').all(guildId);
     const bumpCfg = db.prepare('SELECT * FROM bump_config WHERE guild_id = ?').get(guildId) || {};
     const conf = db.prepare('SELECT * FROM confessions WHERE guild_id = ?').all(guildId);
-    res.json({ welcome_leave: wl, leveling_config: lc, automod_config: amc, logs: logsC, quarantine: quar, autoroles_on_join: arj, autoroles_on_role: arr, karma_config: kc, ai_config: aic, ai_keys: aiK, boost_config: bc, bump_config: bumpCfg, action_verite: av, ticket_panels: tp, ticket_options: to, permissions_config: perm, tribunal_config: trib, level_rewards: lr, confessions: conf });
+    const aor = db.prepare('SELECT * FROM announce_on_role WHERE guild_id = ?').get(guildId) || {};
+    res.json({ welcome_leave: wl, leveling_config: lc, automod_config: amc, logs: logsC, quarantine: quar, autoroles_on_join: arj, autoroles_on_role: arr, karma_config: kc, ai_config: aic, ai_keys: aiK, boost_config: bc, bump_config: bumpCfg, action_verite: av, ticket_panels: tp, ticket_options: to, permissions_config: perm, tribunal_config: trib, level_rewards: lr, confessions: conf, announce_on_role: aor });
   } catch(err) { console.error(err); res.status(500).json({ error: err.message }); }
 });
 
@@ -170,6 +182,20 @@ app.post('/api/config/welcome-leave', (req, res) => {
       welcome_title||'', welcome_desc||'', welcome_color||'#00FF00', welcome_author_name||'', welcome_author_icon||'', welcome_image||'', welcome_footer||'', welcome_role_filter||null,
       leave_title||'', leave_desc||'', leave_color||'#FF0000', leave_author_name||'', leave_author_icon||'', leave_image||'', leave_footer||''
     );
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/config/announce-role', (req, res) => {
+  const g = getGuildId(req); if (!g) return res.status(400).json({ error: 'No guild' });
+  try {
+    const { trigger_role_id, channel_id, embed_title, embed_desc, embed_color, enabled } = req.body || {};
+    db.prepare(`INSERT INTO announce_on_role (guild_id, trigger_role_id, channel_id, embed_title, embed_desc, embed_color, enabled)
+      VALUES (?,?,?,?,?,?,?) ON CONFLICT(guild_id) DO UPDATE SET
+      trigger_role_id=excluded.trigger_role_id, channel_id=excluded.channel_id,
+      embed_title=excluded.embed_title, embed_desc=excluded.embed_desc,
+      embed_color=excluded.embed_color, enabled=excluded.enabled`
+    ).run(g, trigger_role_id||null, channel_id||null, embed_title||'', embed_desc||'', embed_color||'#d4af37', enabled?1:0);
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });

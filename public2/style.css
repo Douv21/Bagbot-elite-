@@ -563,25 +563,21 @@ select option { background: #111118; color: #e8e0f0; }
   :root { --sidebar-w: 0px; }
   .dash-sidebar {
     position: fixed !important;
-    left: -330px !important;
+    left: -280px !important;
     top: 0 !important;
     bottom: 0 !important;
-    width: 300px !important;
+    width: 280px !important;
     height: 100vh !important;
     z-index: 9999 !important;
-    background: #0d0d15 !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    filter: none !important;
+    background: var(--black2) !important;
     opacity: 1 !important;
     box-shadow: 10px 0 50px rgba(0,0,0,0.98) !important;
     transition: left 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
     border-right: 2px solid var(--gold) !important;
     overflow-y: auto !important;
-    text-rendering: optimizeLegibility !important;
-    -webkit-font-smoothing: antialiased !important;
   }
   .dash-sidebar.open {
+
     left: 0 !important;
   }
   .category-cards-grid {
@@ -596,6 +592,16 @@ select option { background: #111118; color: #e8e0f0; }
   }
 }
 
+@media (max-width: 768px) {
+  .panel-header h2 { font-size: 1.3rem; }
+  .config-card h3 { font-size: 0.95rem; }
+  .discord-embed-title-text { font-size: 0.9rem; }
+  .discord-client-message { flex-direction: column; }
+  .discord-embed-main-row { flex-direction: column; }
+  .discord-embed-inner-body { padding: 10px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .btn { width: 100%; justify-content: center; }
+}
 
 
 
