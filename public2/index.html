@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bagbot Elite — Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ═══ LOGIN PAGE ═══ -->
+<div class="page active" id="page-login">
+  <div class="login-card">
+    <div class="login-bot-icon" id="loginBotIcon">
+      <i class="fa-solid fa-robot icon-fallback"></i>
+    </div>
+    <h1 class="login-title" id="loginBotName">Bagbot Elite</h1>
+    <p class="login-subtitle">Panneau de configuration premium</p>
+    <div class="login-divider"></div>
+    <a href="/login" class="btn-discord">
+      <i class="fa-brands fa-discord"></i>
+      Connexion avec Discord
+    </a>
+  </div>
+</div>
+
+<!-- ═══ GUILD SELECTION PAGE ═══ -->
+<div class="page" id="page-guilds">
+  <div class="guilds-header">
+    <h1><i class="fa-solid fa-crown" style="color:var(--gold3);font-size:1.8rem;margin-right:12px;"></i>Sélectionner un serveur</h1>
+    <p>Choisissez le serveur que vous souhaitez configurer</p>
+    <div class="guilds-user-info" id="guildsUserInfo" style="display:none;">
+      <img id="guildsUserAvatar" src="" alt="">
+      <span>Connecté en tant que <strong id="guildsUserName"></strong></span>
+    </div>
+  </div>
+  <div class="guilds-grid" id="guildsGrid">
+    <div class="loading-wrap"><div class="loading-spinner"></div><p>Chargement des serveurs...</p></div>
+  </div>
+  <button class="btn-logout-guild" id="btnLogoutGuild" onclick="window.location.href='/logout'">
+    <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
+  </button>
+</div>
+
+<!-- ═══ DASHBOARD PAGE ═══ -->
+<div class="page" id="page-dashboard">
+
+  <!-- HEADER -->
+  <header class="dash-header">
+    <div class="header-bot">
+      <img id="headerBotAvatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot">
+      <span class="header-bot-name" id="headerBotName">Bagbot Elite</span>
+    </div>
+    <div class="header-divider"></div>
+    <div class="header-guild">
+      <div class="header-guild-icon" id="headerGuildIcon"></div>
+      <span class="header-guild-name" id="headerGuildName">Serveur</span>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="header-user">
+      <img id="headerUserAvatar" src="" alt="">
+      <span class="header-user-name" id="headerUserName"></span>
+    </div>
+    <button class="btn-sm-gold" onclick="changeGuild()"><i class="fa-solid fa-shuffle"></i> Changer</button>
+    <button class="btn-logout" onclick="window.location.href='/logout'"><i class="fa-solid fa-right-from-bracket"></i> Quitter</button>
+  </header>
+
+  <!-- CATEGORIES ROW -->
+  <div class="cat-row" id="catRow">
+    <button class="cat-btn active" data-cat="general" onclick="selectCategory('general', this)">
+      <i class="fa-solid fa-house"></i><span class="cat-label">Général</span>
+    </button>
+    <button class="cat-btn" data-cat="moderation" onclick="selectCategory('moderation', this)">
+      <i class="fa-solid fa-shield-halved"></i><span class="cat-label">Modération</span>
+    </button>
+    <button class="cat-btn" data-cat="economie" onclick="selectCategory('economie', this)">
+      <i class="fa-solid fa-star"></i><span class="cat-label">Économie</span>
+    </button>
+    <button class="cat-btn" data-cat="autoroles" onclick="selectCategory('autoroles', this)">
+      <i class="fa-solid fa-masks-theater"></i><span class="cat-label">Auto-Rôles</span>
+    </button>
+    <button class="cat-btn" data-cat="divertissement" onclick="selectCategory('divertissement', this)">
+      <i class="fa-solid fa-gamepad"></i><span class="cat-label">Divertissement</span>
+    </button>
+    <button class="cat-btn" data-cat="ia" onclick="selectCategory('ia', this)">
+      <i class="fa-solid fa-robot"></i><span class="cat-label">IA & Tickets</span>
+    </button>
+    <button class="cat-btn" data-cat="parametres" onclick="selectCategory('parametres', this)">
+      <i class="fa-solid fa-gear"></i><span class="cat-label">Paramètres</span>
+    </button>
+  </div>
+
+  <div class="dash-body">
+    <!-- SIDEBAR -->
+    <aside class="dash-sidebar" id="dashSidebar"></aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="dash-main" id="dashMain">
+
+      <!-- GÉNÉRAL > BIENVENUE / DÉPART -->
+      <div class="content-panel" id="panel-welcome-leave">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-hand-wave" style="color:var(--gold3);margin-right:10px;"></i>Bienvenue & Départ</h2>
+          <p>Configurez les messages de bienvenue et de départ pour votre serveur.</p>
+          <div class="panel-line"></div>
+        </div>
+        <form id="form-welcome-leave" onsubmit="saveWelcomeLeave(event)">
+          <div class="config-card">
+            <h3><i class="fa-solid fa-door-open"></i> Message de Bienvenue</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fa-solid fa-hashtag"></i> Salon de bienvenue</label>
+                <select id="wl-welcome_channel" name="welcome_channel">
+                  <option value="">— Aucun —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-heading"></i> Titre</label>
+                <input type="text" id="wl-welcome_title" name="welcome_title" placeholder="👋 Bienvenue">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label><i class="fa-solid fa-align-left"></i> Description</label>
+                <textarea id="wl-welcome_desc" name="welcome_desc" placeholder="Bienvenue {user} sur le serveur !"></textarea>
+                <p class="form-hint">Variables : {user}, {server}, {membercount}</p>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-palette"></i> Couleur</label>
+                <div class="color-row">
+                  <input type="color" id="wl-welcome_color" name="welcome_color" value="#00FF00" oninput="document.getElementById('wl-welcome_color_preview').style.background=this.value">
+                  <div class="color-preview-box" id="wl-welcome_color_preview" style="background:#00FF00;"></div>
+                  <span id="wl-welcome_color_val" style="font-size:0.8rem;color:var(--text-muted);">#00FF00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-door-closed"></i> Message de Départ</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fa-solid fa-hashtag"></i> Salon de départ</label>
+                <select id="wl-leave_channel" name="leave_channel">
+                  <option value="">— Aucun —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-heading"></i> Titre</label>
+                <input type="text" id="wl-leave_title" name="leave_title" placeholder="👋 Au revoir">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label><i class="fa-solid fa-align-left"></i> Description</label>
+                <textarea id="wl-leave_desc" name="leave_desc" placeholder="Au revoir {user} !"></textarea>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-palette"></i> Couleur</label>
+                <div class="color-row">
+                  <input type="color" id="wl-leave_color" name="leave_color" value="#FF0000" oninput="document.getElementById('wl-leave_color_preview').style.background=this.value">
+                  <div class="color-preview-box" id="wl-leave_color_preview" style="background:#FF0000;"></div>
+                  <span id="wl-leave_color_val" style="font-size:0.8rem;color:var(--text-muted);">#FF0000</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- MODÉRATION > AUTOMOD -->
+      <div class="content-panel" id="panel-automod">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-shield-halved" style="color:var(--gold3);margin-right:10px;"></i>Auto-Modération</h2>
+          <p>Configurez la modération automatique de votre serveur.</p>
+          <div class="panel-line"></div>
+        </div>
+        <form id="form-automod" onsubmit="saveAutomod(event)">
+          <div class="config-card">
+            <h3><i class="fa-solid fa-toggle-on"></i> Modules Actifs</h3>
+            <div class="toggle-row">
+              <div class="toggle-info"><strong>Anti-Liens</strong><small>Supprime les liens non autorisés</small></div>
+              <label class="toggle"><input type="checkbox" id="am-anti_link" name="anti_link"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info"><strong>Anti-Spam</strong><small>Détecte et supprime le spam de messages</small></div>
+              <label class="toggle"><input type="checkbox" id="am-anti_spam" name="anti_spam"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info"><strong>Anti-Mass-Mention</strong><small>Limite les mentions excessives</small></div>
+              <label class="toggle"><input type="checkbox" id="am-anti_massmention" name="anti_massmention"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info"><strong>Anti-Mauvais Mots</strong><small>Filtre les mots interdits</small></div>
+              <label class="toggle"><input type="checkbox" id="am-anti_badwords" name="anti_badwords"><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-sliders"></i> Paramètres Avancés</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fa-solid fa-gauge"></i> Max messages (spam)</label>
+                <input type="number" id="am-spam_max_msgs" name="spam_max_msgs" min="1" max="50" value="5">
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-at"></i> Limite mentions</label>
+                <input type="number" id="am-massmention_limit" name="massmention_limit" min="1" max="30" value="5">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label><i class="fa-solid fa-ban"></i> Mots interdits (séparés par des virgules)</label>
+                <textarea id="am-badwords_list" name="badwords_list" placeholder="mot1, mot2, mot3..."></textarea>
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label><i class="fa-solid fa-shield"></i> Rôles ignorés (IDs séparés par virgule)</label>
+                <input type="text" id="am-bypass_roles" name="bypass_roles" placeholder="ID1, ID2...">
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- MODÉRATION > LOGS -->
+      <div class="content-panel" id="panel-logs">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-scroll" style="color:var(--gold3);margin-right:10px;"></i>Logs d'Activité</h2>
+          <p>Configurez les journaux d'activité de votre serveur.</p>
+          <div class="panel-line"></div>
+        </div>
+        <form id="form-logs" onsubmit="saveLogs(event)">
+          <div class="config-card">
+            <h3><i class="fa-solid fa-hashtag"></i> Configuration des Logs</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fa-solid fa-hashtag"></i> Salon des logs</label>
+                <select id="logs-channel_id" name="channel_id">
+                  <option value="">— Aucun —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-filter"></i> Événements</label>
+                <select id="logs-events" name="events">
+                  <option value="all">Tous les événements</option>
+                  <option value="messages">Messages seulement</option>
+                  <option value="members">Membres seulement</option>
+                  <option value="moderation">Modération seulement</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- MODÉRATION > TRIBUNAL -->
+      <div class="content-panel" id="panel-tribunal">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-gavel" style="color:var(--gold3);margin-right:10px;"></i>Tribunal</h2>
+          <p>Configurez le système de tribunal de votre serveur.</p>
+          <div class="panel-line"></div>
+        </div>
+        <form id="form-tribunal" onsubmit="saveTribunal(event)">
+          <div class="config-card">
+            <h3><i class="fa-solid fa-scale-balanced"></i> Configuration du Tribunal</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fa-solid fa-folder"></i> Catégorie du tribunal</label>
+                <select id="trib-category_id" name="category_id">
+                  <option value="">— Aucune —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-user-tie"></i> Rôle Juge</label>
+                <select id="trib-judge_role_id" name="judge_role_id">
+                  <option value="">— Aucun —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-briefcase"></i> Rôle Avocat</label>
+                <select id="trib-lawyer_role_id" name="lawyer_role_id">
+                  <option value="">— Aucun —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-user-xmark"></i> Rôle Accusé</label>
+                <select id="trib-accused_role_id" name="accused_role_id">
+                  <option value="">— Aucun —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-user-injured"></i> Rôle Plaignant</label>
+                <select id="trib-plaintiff_role_id" name="plaintiff_role_id">
+                  <option value="">— Aucun —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-tag"></i> Préfixe des salons</label>
+                <input type="text" id="trib-channel_prefix" name="channel_prefix" placeholder="⚖️┆procès-">
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-clock"></i> Suppression auto (minutes)</label>
+                <input type="number" id="trib-auto_delete_minutes" name="auto_delete_minutes" min="1" value="5">
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- MODÉRATION > QUARANTAINE -->
+      <div class="content-panel" id="panel-quarantine">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-lock" style="color:var(--gold3);margin-right:10px;"></i>Quarantaine</h2>
+          <p>Configurez le système de quarantaine pour isoler les membres problématiques.</p>
+          <div class="panel-line"></div>
+        </div>
+        <form id="form-quarantine" onsubmit="saveQuarantine(event)">
+          <div class="config-card">
+            <h3><i class="fa-solid fa-user-lock"></i> Configuration</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fa-solid fa-user-tag"></i> Rôle de quarantaine</label>
+                <select id="quar-role_id" name="role_id">
+                  <option value="">— Aucun —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-hashtag"></i> Salon de quarantaine</label>
+                <select id="quar-channel_id" name="channel_id">
+                  <option value="">— Aucun —</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- ÉCONOMIE > NIVEAUX -->
+      <div class="content-panel" id="panel-leveling">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-chart-line" style="color:var(--gold3);margin-right:10px;"></i>Système de Niveaux</h2>
+          <p>Configurez le système d'XP et les annonces de montée de niveau.</p>
+          <div class="panel-line"></div>
+        </div>
+        <form id="form-leveling" onsubmit="saveLeveling(event)">
+          <div class="config-card">
+            <h3><i class="fa-solid fa-bolt"></i> XP par Message</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fa-solid fa-arrow-down"></i> XP minimum</label>
+                <input type="number" id="lv-xp_min" name="xp_min" min="1" max="1000" value="15">
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-arrow-up"></i> XP maximum</label>
+                <input type="number" id="lv-xp_max" name="xp_max" min="1" max="1000" value="25">
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-layer-group"></i> XP de base (formule)</label>
+                <input type="number" id="lv-xp_base" name="xp_base" min="10" value="120">
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-multiply"></i> Facteur de croissance</label>
+                <input type="number" id="lv-xp_factor" name="xp_factor" step="0.01" min="1" value="1.35">
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-coins"></i> Karma min par message</label>
+                <input type="number" id="lv-karma_min" name="karma_min" min="0" value="1">
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-coins"></i> Karma max par message</label>
+                <input type="number" id="lv-karma_max" name="karma_max" min="0" value="3">
+              </div>
+            </div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-bullhorn"></i> Annonces de Niveau</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fa-solid fa-hashtag"></i> Salon d'annonce</label>
+                <select id="lv-announce_channel" name="announce_channel">
+                  <option value="current">Salon actuel</option>
+                  <option value="">— Aucun —</option>
+                </select>
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label><i class="fa-solid fa-message"></i> Message d'annonce</label>
+                <textarea id="lv-announce_msg" name="announce_msg" placeholder="Bravo {user} ! Tu passes au niveau {level} !"></textarea>
+                <p class="form-hint">Variables : {user}, {level}, {xp}</p>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- ÉCONOMIE > KARMA -->
+      <div class="content-panel" id="panel-karma">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-heart-pulse" style="color:var(--gold3);margin-right:10px;"></i>Système de Karma</h2>
+          <p>Configurez les paliers de karma et leurs récompenses.</p>
+          <div class="panel-line"></div>
+        </div>
+        <form id="form-karma" onsubmit="saveKarma(event)">
+          <div class="config-card">
+            <h3><i class="fa-solid fa-toggle-on"></i> Activation</h3>
+            <div class="toggle-row">
+              <div class="toggle-info"><strong>Système de Karma actif</strong><small>Active les bonus et avantages liés au karma</small></div>
+              <label class="toggle"><input type="checkbox" id="km-is_active" name="is_active"><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-layer-group"></i> Paliers de Karma</h3>
+            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:18px;">Configurez 3 paliers avec des multiplicateurs d'XP et remises.</p>
+            <div class="section-div"></div>
+            <p style="font-family:'Cinzel',serif;font-size:0.82rem;color:var(--gold3);margin-bottom:14px;">PALIER 1</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Seuil karma</label>
+                <input type="number" id="km-threshold_1" name="threshold_1" value="20">
+              </div>
+              <div class="form-group">
+                <label>Multiplicateur XP</label>
+                <input type="number" id="km-xp_mult_1" name="xp_mult_1" step="0.1" value="1.2">
+              </div>
+              <div class="form-group">
+                <label>Remise boutique (%)</label>
+                <input type="number" id="km-discount_1" name="discount_1" step="0.5" value="5">
+              </div>
+            </div>
+            <div class="section-div"></div>
+            <p style="font-family:'Cinzel',serif;font-size:0.82rem;color:var(--gold3);margin-bottom:14px;">PALIER 2</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Seuil karma</label>
+                <input type="number" id="km-threshold_2" name="threshold_2" value="50">
+              </div>
+              <div class="form-group">
+                <label>Multiplicateur XP</label>
+                <input type="number" id="km-xp_mult_2" name="xp_mult_2" step="0.1" value="1.5">
+              </div>
+              <div class="form-group">
+                <label>Remise boutique (%)</label>
+                <input type="number" id="km-discount_2" name="discount_2" step="0.5" value="10">
+              </div>
+            </div>
+            <div class="section-div"></div>
+            <p style="font-family:'Cinzel',serif;font-size:0.82rem;color:var(--gold3);margin-bottom:14px;">PALIER 3</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Seuil karma</label>
+                <input type="number" id="km-threshold_3" name="threshold_3" value="100">
+              </div>
+              <div class="form-group">
+                <label>Multiplicateur XP</label>
+                <input type="number" id="km-xp_mult_3" name="xp_mult_3" step="0.1" value="2.0">
+              </div>
+              <div class="form-group">
+                <label>Remise boutique (%)</label>
+                <input type="number" id="km-discount_3" name="discount_3" step="0.5" value="20">
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- AUTOROLES > ARRIVÉE -->
+      <div class="content-panel" id="panel-autoroles-join">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-user-plus" style="color:var(--gold3);margin-right:10px;"></i>Auto-Rôles à l'Arrivée</h2>
+          <p>Rôles automatiquement attribués quand un membre rejoint le serveur.</p>
+          <div class="panel-line"></div>
+        </div>
+        <div class="config-card">
+          <h3><i class="fa-solid fa-plus-circle"></i> Ajouter un rôle</h3>
+          <div class="add-form-inset">
+            <div class="add-form-row">
+              <div class="form-group">
+                <label>Rôle à ajouter</label>
+                <select id="arj-role_id">
+                  <option value="">— Choisir un rôle —</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-primary" onclick="addAutoroleJoin()"><i class="fa-solid fa-plus"></i> Ajouter</button>
+            </div>
+          </div>
+          <div class="item-list" id="arj-list">
+            <div class="empty-state"><i class="fa-solid fa-user-tag"></i><p>Aucun rôle configuré</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUTOROLES > SUR RÔLE -->
+      <div class="content-panel" id="panel-autoroles-role">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-arrows-rotate" style="color:var(--gold3);margin-right:10px;"></i>Auto-Rôles sur Rôle</h2>
+          <p>Attribuez automatiquement un rôle quand un membre reçoit un rôle spécifique.</p>
+          <div class="panel-line"></div>
+        </div>
+        <div class="config-card">
+          <h3><i class="fa-solid fa-plus-circle"></i> Ajouter une règle</h3>
+          <div class="add-form-inset">
+            <div class="add-form-row">
+              <div class="form-group">
+                <label>Si reçoit le rôle</label>
+                <select id="arr-trigger_role_id">
+                  <option value="">— Déclencheur —</option>
+                </select>
+              </div>
+              <div style="display:flex;align-items:flex-end;padding-bottom:2px;"><i class="fa-solid fa-arrow-right" style="color:var(--gold3);font-size:1.1rem;"></i></div>
+              <div class="form-group">
+                <label>Alors attribuer</label>
+                <select id="arr-target_role_id">
+                  <option value="">— Cible —</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-primary" onclick="addAutoroleRole()"><i class="fa-solid fa-plus"></i> Ajouter</button>
+            </div>
+          </div>
+          <div class="item-list" id="arr-list">
+            <div class="empty-state"><i class="fa-solid fa-arrows-rotate"></i><p>Aucune règle configurée</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIVERTISSEMENT > ACTION VÉRITÉ -->
+      <div class="content-panel" id="panel-action-verite">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-dice" style="color:var(--gold3);margin-right:10px;"></i>Action ou Vérité</h2>
+          <p>Gérez les questions et actions pour le jeu Action ou Vérité.</p>
+          <div class="panel-line"></div>
+        </div>
+        <div class="config-card">
+          <h3><i class="fa-solid fa-plus-circle"></i> Ajouter un élément</h3>
+          <div class="add-form-inset">
+            <div class="add-form-row">
+              <div class="form-group">
+                <label>Type</label>
+                <select id="av-type">
+                  <option value="verite">Vérité</option>
+                  <option value="action">Action</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Catégorie</label>
+                <select id="av-category">
+                  <option value="sfw">SFW</option>
+                  <option value="nsfw">NSFW</option>
+                </select>
+              </div>
+              <div class="form-group" style="flex:2;min-width:240px;">
+                <label>Contenu</label>
+                <input type="text" id="av-content" placeholder="Entrez la question ou action...">
+              </div>
+              <button type="button" class="btn btn-primary" onclick="addActionVerite()"><i class="fa-solid fa-plus"></i> Ajouter</button>
+            </div>
+          </div>
+          <div id="av-list-wrap">
+            <div class="loading-wrap"><div class="loading-spinner"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IA & TICKETS > CONFIG IA -->
+      <div class="content-panel" id="panel-ai">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-brain" style="color:var(--gold3);margin-right:10px;"></i>Configuration IA</h2>
+          <p>Configurez les modèles d'intelligence artificielle utilisés par le bot.</p>
+          <div class="panel-line"></div>
+        </div>
+        <form id="form-ai" onsubmit="saveAi(event)">
+          <div class="config-card">
+            <h3><i class="fa-solid fa-sliders"></i> Modèles & Fournisseurs</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fa-solid fa-server"></i> Fournisseur préféré</label>
+                <select id="ai-preferred_provider" name="preferred_provider">
+                  <option value="auto">Auto</option>
+                  <option value="groq">Groq</option>
+                  <option value="gemini">Gemini</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-comment"></i> Modèle Groq (Texte)</label>
+                <input type="text" id="ai-groq_text_model" name="groq_text_model" placeholder="llama-3.3-70b-versatile">
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-eye"></i> Modèle Groq (Vision)</label>
+                <input type="text" id="ai-groq_vision_model" name="groq_vision_model" placeholder="llama-3.2-11b-vision-preview">
+              </div>
+              <div class="form-group">
+                <label><i class="fa-brands fa-google"></i> Modèle Gemini</label>
+                <input type="text" id="ai-gemini_model" name="gemini_model" placeholder="gemini-2.0-flash">
+              </div>
+            </div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-key"></i> Clés API</h3>
+            <div class="add-form-inset">
+              <div class="add-form-row">
+                <div class="form-group">
+                  <label>Fournisseur</label>
+                  <select id="aikey-provider">
+                    <option value="groq">Groq</option>
+                    <option value="gemini">Gemini</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Catégorie</label>
+                  <select id="aikey-category">
+                    <option value="all">Tout</option>
+                    <option value="text">Texte</option>
+                    <option value="vision">Vision</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex:2;min-width:200px;">
+                  <label>Clé API</label>
+                  <input type="text" id="aikey-key" placeholder="sk-...">
+                </div>
+                <div class="form-group">
+                  <label>Label</label>
+                  <input type="text" id="aikey-label" placeholder="Ma clé principale">
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addAiKey()"><i class="fa-solid fa-plus"></i> Ajouter</button>
+              </div>
+            </div>
+            <div id="aikeys-list">
+              <div class="loading-wrap"><div class="loading-spinner"></div></div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer Config IA</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- PARAMÈTRES > BOOST -->
+      <div class="content-panel" id="panel-boost">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-rocket" style="color:var(--gold3);margin-right:10px;"></i>Configuration Boost</h2>
+          <p>Récompensez les membres qui boostent votre serveur.</p>
+          <div class="panel-line"></div>
+        </div>
+        <form id="form-boost" onsubmit="saveBoost(event)">
+          <div class="config-card">
+            <h3><i class="fa-solid fa-hashtag"></i> Annonce de Boost</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fa-solid fa-hashtag"></i> Salon d'annonce boost</label>
+                <select id="boost-channel_id" name="channel_id">
+                  <option value="">— Aucun —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-heading"></i> Titre du message</label>
+                <input type="text" id="boost-title" name="title" placeholder="🚀 Nouveau Boost !">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label><i class="fa-solid fa-align-left"></i> Message</label>
+                <textarea id="boost-message" name="message" placeholder="Merci {user.mention} pour le boost !"></textarea>
+                <p class="form-hint">Variables : {user.mention}, {server}</p>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-palette"></i> Couleur</label>
+                <div class="color-row">
+                  <input type="color" id="boost-color" name="color" value="#F47FFF" oninput="document.getElementById('boost-color-preview').style.background=this.value">
+                  <div class="color-preview-box" id="boost-color-preview" style="background:#F47FFF;"></div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-coins"></i> Récompense pièces</label>
+                <input type="number" id="boost-reward_money" name="reward_money" min="0" value="5000">
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-heart"></i> Récompense karma</label>
+                <input type="number" id="boost-reward_karma" name="reward_karma" min="0" value="50">
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- PARAMÈTRES > BUMP -->
+      <div class="content-panel" id="panel-bump">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-bell" style="color:var(--gold3);margin-right:10px;"></i>Reminders de Bump</h2>
+          <p>Configurez les rappels automatiques pour bumper votre serveur.</p>
+          <div class="panel-line"></div>
+        </div>
+        <form id="form-bump" onsubmit="saveBump(event)">
+          <div class="config-card">
+            <h3><i class="fa-solid fa-bell"></i> Paramètres de Rappel</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fa-solid fa-hashtag"></i> Salon de rappel</label>
+                <select id="bump-reminder_channel" name="reminder_channel">
+                  <option value="">— Aucun —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-user-tag"></i> Rôle à mentionner</label>
+                <select id="bump-reminder_role" name="reminder_role">
+                  <option value="">— Aucun —</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- PARAMÈTRES > PERMISSIONS -->
+      <div class="content-panel" id="panel-permissions">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-shield-check" style="color:var(--gold3);margin-right:10px;"></i>Permissions du Dashboard</h2>
+          <p>Définissez qui peut accéder et administrer le dashboard.</p>
+          <div class="panel-line"></div>
+        </div>
+        <form id="form-permissions" onsubmit="savePermissions(event)">
+          <div class="config-card">
+            <h3><i class="fa-solid fa-crown"></i> Rôles Administrateurs</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fa-solid fa-user-shield"></i> Rôle Admin principal</label>
+                <select id="perm-admin_role_id" name="admin_role_id">
+                  <option value="">— Aucun —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-gavel"></i> Rôle Modérateur</label>
+                <select id="perm-modo_role_id" name="modo_role_id">
+                  <option value="">— Aucun —</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-door-open"></i> Accès au Dashboard</h3>
+            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px;">Rôles pouvant accéder à ce dashboard de configuration.</p>
+            <div class="form-group">
+              <label><i class="fa-solid fa-key"></i> Rôles autorisés (IDs séparés par virgule)</label>
+              <input type="text" id="perm-dashboard_roles" name="dashboard_roles" placeholder="ID1, ID2...">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+          </div>
+        </form>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
