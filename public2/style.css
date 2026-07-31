@@ -656,3 +656,8 @@ select option { background: #111118; color: #e8e0f0; }
     z-index: 9998 !important;
   }
 }
+
+
+#page-dashboard.active {
+  transform: none !important;
+}

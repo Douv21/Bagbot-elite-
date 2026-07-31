@@ -242,6 +242,8 @@ async function loadDashboard(guild = null) {
     state.channels = channels;
     state.roles = roles;
     state.config = config;
+    window.channelsList = channels;
+    window.rolesList = roles;
   } catch(e) {
     state.channels = [];
     state.roles = [];

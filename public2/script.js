@@ -1,4 +1,18 @@
 
+// Sync with app.js state
+function getChannelsList() {
+  if (typeof state !== 'undefined' && state.channels && state.channels.length > 0) return state.channels;
+  if (window.state && window.state.channels && window.state.channels.length > 0) return window.state.channels;
+  return channelsList || [];
+}
+
+function getRolesList() {
+  if (typeof state !== 'undefined' && state.roles && state.roles.length > 0) return state.roles;
+  if (window.state && window.state.roles && window.state.roles.length > 0) return window.state.roles;
+  return rolesList || [];
+}
+
+
 function getActiveGuildId() {
   if (typeof state !== 'undefined' && state.selectedGuild) return state.selectedGuild;
   if (window.state && window.state.selectedGuild) return window.state.selectedGuild;
@@ -396,7 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         select.innerHTML = '<option value="">Désactivé</option>';
       }
-      channelsList.forEach(ch => {
+      getChannelsList().forEach(ch => {
         // Option text channels only (0: GuildText, 5: GuildAnnouncement)
         if (ch.type === 0 || ch.type === 5) {
           const option = document.createElement('option');
@@ -414,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <option value="current">Salon actuel (où le membre parle)</option>
         <option value="disabled">Désactiver les annonces</option>
       `;
-      channelsList.forEach(ch => {
+      getChannelsList().forEach(ch => {
         if (ch.type === 0 || ch.type === 5) {
           const option = document.createElement('option');
           option.value = ch.id;
@@ -428,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const categorySelects = document.querySelectorAll('.category-select');
     categorySelects.forEach(select => {
       select.innerHTML = '<option value="">-- Créer automatiquement une catégorie --</option>';
-      channelsList.forEach(ch => {
+      getChannelsList().forEach(ch => {
         if (ch.type === 4) {
           const option = document.createElement('option');
           option.value = ch.id;
@@ -442,7 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const multiChannelSelects = document.querySelectorAll('.channel-select-multi');
     multiChannelSelects.forEach(select => {
       select.innerHTML = '';
-      channelsList.forEach(ch => {
+      getChannelsList().forEach(ch => {
         // Option text channels (0: GuildText, 5: GuildAnnouncement) et salons Forum (15: GuildForum)
         if (ch.type === 0 || ch.type === 5 || ch.type === 15) {
           const option = document.createElement('option');
@@ -458,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const roleSelects = document.querySelectorAll('.role-select');
     roleSelects.forEach(select => {
       select.innerHTML = '<option value="">Sélectionner un rôle</option>';
-      rolesList.forEach(role => {
+      getRolesList().forEach(role => {
         // Exclude @everyone role which has the same ID as the guild
         if (role.name !== '@everyone') {
           const option = document.createElement('option');
@@ -473,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const forumContainer = document.getElementById('unlimited_forum_checkboxes_container');
     if (forumContainer) {
       forumContainer.innerHTML = '';
-      const forums = channelsList.filter(ch => ch.type === 15);
+      const forums = getChannelsList().filter(ch => ch.type === 15);
       if (forums.length === 0) {
         forumContainer.innerHTML = '<p style="color: #8e9297; margin: 0; font-size: 0.9rem;">Aucun salon Forum trouvé sur ce serveur.</p>';
       } else {
@@ -508,7 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ticketCatSelect = document.getElementById('ticket_opt_category');
     if (ticketCatSelect) {
       ticketCatSelect.innerHTML = '<option value="">-- Aucune catégorie (Racine) --</option>';
-      channelsList.forEach(ch => {
+      getChannelsList().forEach(ch => {
         if (ch.type === 4) {
           const option = document.createElement('option');
           option.value = ch.id;
@@ -543,7 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
     selectToPopulate.forEach(selectEl => {
       if (selectEl) {
         selectEl.innerHTML = '';
-        rolesList.forEach(r => {
+        getRolesList().forEach(r => {
           const option = document.createElement('option');
           option.value = r.id;
           option.textContent = r.name;
@@ -1242,7 +1256,7 @@ document.addEventListener('DOMContentLoaded', () => {
       select.className = 'inner-select channel-select';
       select.required = true;
       select.innerHTML = '<option value="">Sélectionner un salon</option>';
-      channelsList.forEach(c => {
+      getChannelsList().forEach(c => {
         if (c.type === 0 || c.type === 5) {
           const option = document.createElement('option');
           option.value = c.id;
@@ -1305,7 +1319,7 @@ document.addEventListener('DOMContentLoaded', () => {
       selectValChan.className = 'inner-select channel-select';
       selectValChan.disabled = ch.require_validation !== 1;
       selectValChan.innerHTML = '<option value="">Salon par défaut (ou public)</option>';
-      channelsList.forEach(c => {
+      getChannelsList().forEach(c => {
         if (c.type === 0 || c.type === 5) {
           const option = document.createElement('option');
           option.value = c.id;
@@ -1325,7 +1339,7 @@ document.addEventListener('DOMContentLoaded', () => {
       selectPingRole.className = 'inner-select role-select';
       selectPingRole.disabled = ch.require_validation !== 1;
       selectPingRole.innerHTML = '<option value="">Aucun ping rôle</option>';
-      rolesList.forEach(r => {
+      getRolesList().forEach(r => {
         if (r.name !== '@everyone') {
           const option = document.createElement('option');
           option.value = r.id;
@@ -2846,7 +2860,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       let roleDetails = 'Aucun';
       if (item.role_id) {
-        const foundName = rolesList.find(r => r.id === item.role_id)?.name || `<@&${item.role_id}>`;
+        const foundName = getRolesList().find(r => r.id === item.role_id)?.name || `<@&${item.role_id}>`;
         if (item.role_duration_ms > 0) {
           const durationMins = Math.round(item.role_duration_ms / 60000);
           let durationStr = `${durationMins}m`;
@@ -2983,7 +2997,7 @@ document.addEventListener('DOMContentLoaded', () => {
     levelRewardsList.innerHTML = '';
     rewards.forEach(rew => {
       const tr = document.createElement('tr');
-      const roleName = rolesList.find(r => r.id === rew.role_id)?.name || `<@&${rew.role_id}>`;
+      const roleName = getRolesList().find(r => r.id === rew.role_id)?.name || `<@&${rew.role_id}>`;
 
       tr.innerHTML = `
         <td><strong>Niveau ${rew.level}</strong></td>
@@ -3990,7 +4004,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getRoleName(roleId) {
-    const role = rolesList.find(r => r.id === roleId);
+    const role = getRolesList().find(r => r.id === roleId);
     return role ? role.name : roleId;
   }
 
@@ -4599,7 +4613,7 @@ document.addEventListener('DOMContentLoaded', () => {
     roleThemesList.innerHTML = '';
     themes.forEach(item => {
       const tr = document.createElement('tr');
-      const roleName = rolesList.find(r => r.id === item.role_id)?.name || `<@&${item.role_id}>`;
+      const roleName = getRolesList().find(r => r.id === item.role_id)?.name || `<@&${item.role_id}>`;
 
       tr.innerHTML = `
         <td><span class="role-badge">${roleName}</span></td>
