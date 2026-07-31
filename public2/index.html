@@ -83,8 +83,15 @@
     <div class="category-cards-grid" id="categoryCardsGrid"></div>
   </div>
 
-  <!-- CATEGORY WORKSPACE (LATERAL SIDEBAR + FORM CONTENT AREA) -->
+    <!-- CATEGORY WORKSPACE (LATERAL SIDEBAR + FORM CONTENT AREA) -->
   <div class="category-workspace" id="categoryWorkspace" style="display:none;">
+    <div class="mobile-subcat-nav" id="mobileSubcatNav">
+      <button type="button" class="mobile-menu-btn" onclick="toggleMobileSidebar()">
+        <i class="fa-solid fa-bars"></i>
+        <span id="mobileActiveSubcatName">Sous-catégorie</span>
+      </button>
+      <span class="mobile-active-cat-name" id="mobileActiveCatName">Catégorie</span>
+    </div>
     <div class="dash-body">
       <!-- LATERAL SIDEBAR -->
       <aside class="dash-sidebar" id="dashSidebar"></aside>

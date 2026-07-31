@@ -633,6 +633,9 @@ function openCategoryWorkspace(catId) {
 }
 
 function selectCategory(catId) {
+  const mobileCat = document.getElementById('mobileActiveCatName');
+  const catObj = CATEGORIES[catId];
+  if (mobileCat && catObj) mobileCat.textContent = catObj.label;
   state.currentCat = catId;
   const sidebar = document.getElementById('dashSidebar');
   const cat = CATEGORIES[catId];
@@ -715,6 +718,9 @@ function clickSidebarItem(panelId, el) {
 }
 
 function showPanel(panelId) {
+  const mobileSub = document.getElementById('mobileActiveSubcatName');
+  const activeItem = document.querySelector(`.sidebar-item[data-panel="${panelId}"] span`);
+  if (mobileSub && activeItem) mobileSub.textContent = activeItem.textContent;
   state.currentPanel = panelId;
   document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
   const panel = document.getElementById('panel-' + panelId);
