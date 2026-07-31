@@ -12,96 +12,62 @@ let state = {
 };
 
 // ─── CATEGORY DEFINITIONS ─────────────────────────────────────────────────────
-const CATEGORIES = {
-  general: {
-    label: 'GESTION DU SERVEUR',
-    icon: 'fa-sliders',
-    desc: 'Arrivées, Départs, Boost, Annonces, Embeds, Auto-Rôles & Logs',
+const categories = [
+  {
+    id: 'general', icon: 'fa-house', label: 'Général',
     items: [
-      { id: 'welcome-leave', label: 'Arrivées & Départs', icon: 'fa-door-open' },
-      { id: 'announce-role', label: 'Annonce sur Rôle', icon: 'fa-bullhorn', badge: 'NEW' },
-      { id: 'boost', label: 'Remerciements Boost', icon: 'fa-rocket', badge: 'VIP' },
-      { id: 'announcements', label: 'Annonces & Guides', icon: 'fa-bullhorn', badge: 'VIP' },
-      { id: 'embed-sender', label: "Envoyeur d'Embeds", icon: 'fa-file-code', badge: 'NOUVEAU' },
-      { id: 'autoroles-join', label: "Auto-Rôles à l'Arrivée", icon: 'fa-user-plus' },
-      { id: 'autoroles-role', label: 'Rôles Réaction', icon: 'fa-rectangle-list' },
-      { id: 'autothread', label: 'Auto-Thread', icon: 'fa-hashtag' },
-      { id: 'logs', label: "Logs d'Activité", icon: 'fa-scroll' },
+      { id: 'welcome-leave', icon: 'fa-door-open', label: 'Arrivées & Départs' },
+      { id: 'boost-embed', icon: 'fa-rocket', label: 'Boost Serveur' },
+      { id: 'announce-role', icon: 'fa-bullhorn', label: 'Annonce sur Rôle' },
+      { id: 'bump', icon: 'fa-bell', label: 'Rappel Bump' },
     ]
   },
-  moderation: {
-    label: 'SÉCURITÉ & MODÉRATION',
-    icon: 'fa-shield-halved',
-    desc: 'Quarantaine, AutoMod, Rappels de Bump, Forums & Permissions',
+  {
+    id: 'moderation', icon: 'fa-shield-halved', label: 'Modération',
     items: [
-      { id: 'quarantine', label: 'Quarantaine Anti-Raid', icon: 'fa-shield-cat' },
-      { id: 'automod', label: 'Auto-Modération', icon: 'fa-user-shield' },
-      { id: 'bump', label: 'Rappels de Bump', icon: 'fa-bell', badge: 'AUTO' },
-      { id: 'forums', label: 'Forums Illimités', icon: 'fa-comments' },
-      { id: 'permissions', label: 'Commandes & Permissions', icon: 'fa-terminal', badge: 'NOUVEAU' },
+      { id: 'automod', icon: 'fa-robot', label: 'AutoMod' },
+      { id: 'logs', icon: 'fa-file-lines', label: 'Logs' },
+      { id: 'quarantine', icon: 'fa-lock', label: 'Quarantaine' },
+      { id: 'tribunal', icon: 'fa-gavel', label: 'Tribunal' },
     ]
   },
-  economie: {
-    label: 'NIVEAUX & ÉCONOMIE',
-    icon: 'fa-chart-line',
-    desc: 'Niveaux & XP, Quêtes, Karma, Boutique & Suites',
+  {
+    id: 'economy', icon: 'fa-coins', label: 'Économie',
     items: [
-      { id: 'leveling', label: 'Niveaux & XP', icon: 'fa-arrow-trend-up' },
-      { id: 'quests', label: 'Système de Quêtes', icon: 'fa-scroll', badge: 'NEW' },
-      { id: 'karma', label: 'Configuration Karma', icon: 'fa-star' },
-      { id: 'shop', label: 'Boutique & Suites', icon: 'fa-shop' },
+      { id: 'leveling', icon: 'fa-chart-line', label: 'Niveaux & XP' },
+      { id: 'karma', icon: 'fa-heart', label: 'Karma' },
+      { id: 'rewards', icon: 'fa-trophy', label: 'Récompenses Niveaux' },
     ]
   },
-  divertissement: {
-    label: 'DIVERTISSEMENT & JEUX',
-    icon: 'fa-gamepad',
-    desc: 'Tribunal, Star de la Semaine, Confessions, Mot Caché, UNO, Action-Vérité, GIFs',
+  {
+    id: 'autoroles', icon: 'fa-user-tag', label: 'Auto-Rôles',
     items: [
-      { id: 'tribunal', label: 'Tribunal Discord', icon: 'fa-gavel', badge: 'JEU' },
-      { id: 'star', label: 'Star de la Semaine', icon: 'fa-star', badge: 'TOP' },
-      { id: 'uno', label: 'Jeu UNO Canvas', icon: 'fa-layer-group', badge: 'JEU' },
-      { id: 'confessions', label: 'Confessions Anonymes', icon: 'fa-mask' },
-      { id: 'counting', label: 'Salons de Comptage', icon: 'fa-calculator' },
-      { id: 'game', label: 'Jeu Mot Caché', icon: 'fa-gamepad' },
-      { id: 'action-verite', label: 'Action ou Vérité', icon: 'fa-dice', badge: '18+' },
-      { id: 'gifs', label: "GIFs d'action", icon: 'fa-file-video', badge: 'NSFW' },
+      { id: 'autoroles-join', icon: 'fa-user-plus', label: 'Sur Arrivée' },
+      { id: 'autoroles-role', icon: 'fa-rotate', label: 'Sur Attribution de Rôle' },
     ]
   },
-  support: {
-    label: 'SUPPORT & TICKETS',
-    icon: 'fa-headset',
-    desc: 'Support, Tickets & Carte des Membres',
+  {
+    id: 'entertainment', icon: 'fa-gamepad', label: 'Divertissement',
     items: [
-      { id: 'tickets', label: 'Support & Tickets', icon: 'fa-ticket' },
-      { id: 'map', label: 'Carte des Membres', icon: 'fa-map-location-dot' },
+      { id: 'action-verite', icon: 'fa-dice', label: 'Action-Vérité' },
+      { id: 'confessions', icon: 'fa-comment-dots', label: 'Confessions' },
+      { id: 'uno', icon: 'fa-cards-blank', label: 'Jeu UNO' },
     ]
   },
-  assistant: {
-    label: 'ASSISTANT IA',
-    icon: 'fa-robot',
-    desc: 'Assistant IA Admin VIP',
+  {
+    id: 'ai-tickets', icon: 'fa-robot', label: 'IA & Tickets',
     items: [
-      { id: 'assistant', label: 'Assistant IA Admin', icon: 'fa-robot', badge: 'IA VIP' },
+      { id: 'ai-config', icon: 'fa-brain', label: 'Config IA' },
+      { id: 'tickets', icon: 'fa-ticket', label: 'Tickets' },
     ]
   },
-  ai: {
-    label: 'CLÉS & PARAMÈTRES IA',
-    icon: 'fa-brain',
-    desc: 'Clés & Modèles IA',
+  {
+    id: 'settings', icon: 'fa-gear', label: 'Paramètres',
     items: [
-      { id: 'ai', label: 'Clés & Modèles IA', icon: 'fa-brain' },
+      { id: 'permissions', icon: 'fa-key', label: 'Permissions Dashboard' },
+      { id: 'suites', icon: 'fa-star', label: 'Suites Privées' },
     ]
-  }
-};
-
-const CATEGORY_CARDS = [
-  { id: 'general', title: 'GESTION DU SERVEUR', icon: 'fa-sliders', desc: 'Arrivées, Départs, Boost, Annonces, Embeds, Auto-Rôles & Logs' },
-  { id: 'moderation', title: 'SÉCURITÉ & MODÉRATION', icon: 'fa-shield-halved', desc: 'Quarantaine, AutoMod, Rappels de Bump, Forums & Permissions' },
-  { id: 'economie', title: 'NIVEAUX & ÉCONOMIE', icon: 'fa-chart-line', desc: 'Niveaux & XP, Quêtes, Karma & Boutique' },
-  { id: 'divertissement', title: 'DIVERTISSEMENT & JEUX', icon: 'fa-gamepad', desc: 'Tribunal, Star de la Semaine, Confessions, Mot Caché, Action-Vérité (18+)' },
-  { id: 'support', title: 'SUPPORT & TICKETS', icon: 'fa-headset', desc: 'Support, Panneaux de Tickets & Carte des Membres' },
-  { id: 'assistant', title: 'ASSISTANT IA', icon: 'fa-robot', desc: 'Assistant IA Admin VIP' },
-  { id: 'ai', title: 'CLÉS & PARAMÈTRES IA', icon: 'fa-brain', desc: 'Clés & Modèles IA' },
+  },
 ];
 
 // ─── UTILS & API ──────────────────────────────────────────────────────────────
@@ -359,10 +325,14 @@ function updateEmbedPreview() {
   if (pDesc) pDesc.textContent = desc || (isWelcome ? 'Bienvenue {user} sur {server} !' : 'Au revoir {user} !');
 
   // Thumbnail
+  const pThumbPlaceholder = document.getElementById('wl-thumb-placeholder');
   const pThumbImg = document.getElementById('wl-preview-thumb-img');
-  if (pThumbImg) {
-    if (thumb) { pThumbImg.src = thumb; pThumbImg.style.display = 'block'; }
-    else { pThumbImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; }
+  if (thumb) {
+    if (pThumbImg) { pThumbImg.src = thumb; pThumbImg.style.display = 'block'; }
+    if (pThumbPlaceholder) pThumbPlaceholder.style.display = 'none';
+  } else {
+    if (pThumbImg) pThumbImg.style.display = 'none';
+    if (pThumbPlaceholder) pThumbPlaceholder.style.display = 'flex';
   }
 
   // Banner
@@ -424,12 +394,19 @@ function hydrateForms() {
 
   // 2. Boost
   const bst = config.boost_config || {};
-  setElVal('boost-channel_id', bst.channel_id);
-  setElVal('boost-title', bst.title || '🚀 Nouveau Boost de Serveur !');
-  setElVal('boost-message', bst.message || '');
-  setElVal('boost-reward_money', bst.reward_money ?? 5000);
-  setElVal('boost-reward_karma', bst.reward_karma ?? 50);
-  setElVal('boost-color', bst.color || '#F47FFF');
+  setElVal('bst-channel_id', bst.channel_id);
+  setElVal('bst-reward_money', bst.reward_money ?? 5000);
+  setElVal('bst-reward_karma', bst.reward_karma ?? 50);
+  setElVal('bst-title', bst.title || '🚀 Nouveau Boost de Serveur !');
+  setElVal('bst-message', bst.message || "Merci {user} d'avoir boosté le serveur !");
+  setElVal('bst-color', bst.color || '#F47FFF');
+  setElVal('bst-author_name', bst.author_name || '');
+  setElVal('bst-author_icon', bst.author_icon || '');
+  setElVal('bst-thumbnail', bst.thumbnail || '');
+  setElVal('bst-image', bst.image || '');
+  setElVal('bst-footer', bst.footer || '');
+  
+  if (typeof updateBoostEmbedPreview === 'function') updateBoostEmbedPreview();
 
   // 3. Logs
   const logs = config.logs || {};
@@ -709,7 +686,7 @@ function renderCategoryHub() {
   const grid = document.getElementById('categoryCardsGrid');
   if (!grid) return;
   grid.innerHTML = '';
-  CATEGORY_CARDS.forEach(cat => {
+  categories.forEach(cat => {
     const card = document.createElement('div');
     card.className = 'category-card';
     card.onclick = () => openCategoryWorkspace(cat.id);
@@ -717,8 +694,8 @@ function renderCategoryHub() {
       <div class="category-card-icon">
         <i class="fa-solid ${cat.icon}"></i>
       </div>
-      <h3>${cat.title}</h3>
-      <p>${cat.desc}</p>
+      <h3>${cat.label}</h3>
+      <p>Configurez les paramètres de ${cat.label.toLowerCase()}</p>
       <div class="category-card-btn">
         Accéder aux modules <i class="fa-solid fa-chevron-right"></i>
       </div>
@@ -745,10 +722,8 @@ function openCategoryWorkspace(catId) {
 function selectCategory(catId) {
   state.currentCat = catId;
   const sidebar = document.getElementById('dashSidebar');
-  const cat = CATEGORIES[catId];
+  const cat = categories.find(c => c.id === catId);
   if (!cat || !sidebar) return;
-
-  const cardMeta = CATEGORY_CARDS.find(c => c.id === catId) || { icon: 'fa-layer-group', title: cat.label };
 
   let html = `
     <div class="sidebar-top-bar">
@@ -761,7 +736,7 @@ function selectCategory(catId) {
       </button>
     </div>
     <div class="sidebar-cat-header">
-      <i class="fa-solid ${cardMeta.icon}"></i>
+      <i class="fa-solid ${cat.icon}"></i>
       <span>${cat.label}</span>
     </div>
     <div class="sidebar-items-group">
@@ -785,12 +760,12 @@ function selectCategory(catId) {
       <div class="sidebar-quick-label">SWITCH DE CATÉGORIE</div>
   `;
 
-  CATEGORY_CARDS.forEach(c => {
+  categories.forEach(c => {
     if (c.id !== catId) {
       html += `
         <div class="sidebar-quick-item" onclick="openCategoryWorkspace('${c.id}')">
           <i class="fa-solid ${c.icon}"></i>
-          <span>${c.title}</span>
+          <span>${c.label}</span>
         </div>
       `;
     }
@@ -843,20 +818,26 @@ let activeModalType = '';
 
 function openEmbedModal(type) {
   activeModalType = type;
-  const isWelcome = wlMode === 'welcome';
+  const isBoost = type.startsWith('bst-');
+  const bareType = isBoost ? type.replace('bst-', '') : type;
+  const isWelcome = !isBoost && wlMode === 'welcome';
+  
+  const getFieldId = (t) => {
+    if (isBoost) return 'bst-' + (t === 'desc' ? 'message' : t);
+    return isWelcome ? 'wl-welcome_' + t : 'wl-leave_' + t;
+  };
 
-  if (type === 'color') {
-    // Open native color picker by creating a temporary input
+  if (bareType === 'color') {
     const tmp = document.createElement('input');
     tmp.type = 'color';
-    tmp.value = getElVal(isWelcome ? 'wl-welcome_color' : 'wl-leave_color') || '#00FF00';
+    tmp.value = getElVal(getFieldId('color')) || (isBoost ? '#F47FFF' : (isWelcome ? '#00FF00' : '#FF0000'));
     tmp.style.position = 'absolute';
     tmp.style.opacity = '0';
     document.body.appendChild(tmp);
     tmp.addEventListener('input', e => {
       const c = e.target.value;
-      setElVal(isWelcome ? 'wl-welcome_color' : 'wl-leave_color', c);
-      updateEmbedPreview();
+      setElVal(getFieldId('color'), c);
+      if (isBoost) updateBoostEmbedPreview(); else updateEmbedPreview();
     });
     tmp.addEventListener('change', () => { document.body.removeChild(tmp); });
     tmp.click();
@@ -873,9 +854,9 @@ function openEmbedModal(type) {
   };
 
   let bodyHtml = '';
-  if (type === 'author') {
-    const n = getElVal(isWelcome ? 'wl-welcome_author_name' : 'wl-leave_author_name');
-    const i = getElVal(isWelcome ? 'wl-welcome_author_icon' : 'wl-leave_author_icon');
+  if (bareType === 'author') {
+    const n = getElVal(getFieldId('author_name'));
+    const i = getElVal(getFieldId('author_icon'));
     bodyHtml = `
       <div class="form-group" style="margin-bottom:16px;">
         <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-user-ninja"></i> Nom de l'Auteur</label>
@@ -885,21 +866,21 @@ function openEmbedModal(type) {
         <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-image"></i> Icône Auteur (URL https://...)</label>
         <input type="text" id="modal-author_icon" value="${i}" placeholder="https://cdn.discordapp.com/..." style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;">
       </div>`;
-  } else if (type === 'title') {
-    const v = getElVal(isWelcome ? 'wl-welcome_title' : 'wl-leave_title');
+  } else if (bareType === 'title') {
+    const v = getElVal(getFieldId('title'));
     bodyHtml = `<div class="form-group">
       <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-heading"></i> Titre de l'Embed</label>
-      <input type="text" id="modal-title" value="${v}" placeholder="\ud83d\udc4b Bienvenue !" style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;">
+      <input type="text" id="modal-title" value="${v}" placeholder="Titre..." style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;">
     </div>`;
-  } else if (type === 'desc') {
-    const v = getElVal(isWelcome ? 'wl-welcome_desc' : 'wl-leave_desc');
+  } else if (bareType === 'desc') {
+    const v = getElVal(getFieldId('desc'));
     bodyHtml = `<div class="form-group">
       <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-align-left"></i> Description</label>
-      <textarea id="modal-desc" rows="4" placeholder="Bienvenue {user}..." style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;resize:vertical;">${v}</textarea>
-      <p style="font-size:.78rem;color:var(--text-muted);margin-top:6px;">Variables : {user}, {server}, {membercount}</p>
+      <textarea id="modal-desc" rows="4" placeholder="Description..." style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;resize:vertical;">${v}</textarea>
+      <p style="font-size:.78rem;color:var(--text-muted);margin-top:6px;">Variables : {user}, {server}</p>
     </div>`;
-  } else if (type === 'thumbnail') {
-    const v = getElVal(isWelcome ? 'wl-welcome_thumbnail' : 'wl-leave_thumbnail');
+  } else if (bareType === 'thumbnail') {
+    const v = getElVal(getFieldId('thumbnail'));
     const hasImg = v && v.length > 0;
     bodyHtml = `<div class="form-group">
       <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-link"></i> URL de la Vignette</label>
@@ -911,8 +892,8 @@ function openEmbedModal(type) {
       </label>
       <img id="modal-thumb-preview" class="modal-img-preview" src="${v}" style="${hasImg ? 'display:block' : 'display:none'}">
     </div>`;
-  } else if (type === 'image') {
-    const v = getElVal(isWelcome ? 'wl-welcome_image' : 'wl-leave_image');
+  } else if (bareType === 'image') {
+    const v = getElVal(getFieldId('image'));
     const hasImg = v && v.length > 0;
     bodyHtml = `<div class="form-group">
       <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-link"></i> URL de la Banni\u00e8re (image ou GIF)</label>
@@ -924,8 +905,8 @@ function openEmbedModal(type) {
       </label>
       <img id="modal-banner-preview" class="modal-img-preview" src="${v}" style="${hasImg ? 'display:block' : 'display:none'}">
     </div>`;
-  } else if (type === 'footer') {
-    const v = getElVal(isWelcome ? 'wl-welcome_footer' : 'wl-leave_footer');
+  } else if (bareType === 'footer') {
+    const v = getElVal(getFieldId('footer'));
     bodyHtml = `<div class="form-group">
       <label style="color:var(--gold3);font-size:.85rem;margin-bottom:6px;display:block;"><i class="fa-solid fa-shoe-prints"></i> Texte du Footer</label>
       <input type="text" id="modal-footer" value="${v}" placeholder="Ex: Bagbot Elite \u2022 Serveur Officiel" style="width:100%;padding:10px 14px;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Outfit,sans-serif;font-size:.9rem;">
@@ -935,7 +916,7 @@ function openEmbedModal(type) {
   const titleEl = document.getElementById('embedModalTitle');
   const bodyEl = document.getElementById('embedModalBody');
   const backdrop = document.getElementById('embedModalBackdrop');
-  if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> ${labels[type] || 'Modifier'}`;
+  if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> ${labels[bareType] || 'Modifier'}`;
   if (bodyEl) bodyEl.innerHTML = bodyHtml;
   if (backdrop) backdrop.classList.add('active');
 }
@@ -947,47 +928,119 @@ function closeEmbedModal(e) {
 }
 
 function applyEmbedModalChanges() {
-  const isWelcome = wlMode === 'welcome';
-  if (activeModalType === 'author') {
+  const isBoost = activeModalType.startsWith('bst-');
+  const bareType = isBoost ? activeModalType.replace('bst-', '') : activeModalType;
+  const isWelcome = !isBoost && wlMode === 'welcome';
+  
+  const getFieldId = (t) => {
+    if (isBoost) return 'bst-' + (t === 'desc' ? 'message' : t);
+    return isWelcome ? 'wl-welcome_' + t : 'wl-leave_' + t;
+  };
+
+  if (bareType === 'author') {
     const n = document.getElementById('modal-author_name');
     const i = document.getElementById('modal-author_icon');
-    setElVal(isWelcome ? 'wl-welcome_author_name' : 'wl-leave_author_name', n ? n.value : '');
-    setElVal(isWelcome ? 'wl-welcome_author_icon' : 'wl-leave_author_icon', i ? i.value : '');
-  } else if (activeModalType === 'title') {
+    setElVal(getFieldId('author_name'), n ? n.value : '');
+    setElVal(getFieldId('author_icon'), i ? i.value : '');
+  } else if (bareType === 'title') {
     const v = document.getElementById('modal-title');
-    setElVal(isWelcome ? 'wl-welcome_title' : 'wl-leave_title', v ? v.value : '');
-  } else if (activeModalType === 'desc') {
+    setElVal(getFieldId('title'), v ? v.value : '');
+  } else if (bareType === 'desc') {
     const v = document.getElementById('modal-desc');
-    setElVal(isWelcome ? 'wl-welcome_desc' : 'wl-leave_desc', v ? v.value : '');
-  } else if (activeModalType === 'thumbnail') {
+    setElVal(getFieldId('desc'), v ? v.value : '');
+  } else if (bareType === 'thumbnail') {
     const v = document.getElementById('modal-thumbnail');
-    setElVal(isWelcome ? 'wl-welcome_thumbnail' : 'wl-leave_thumbnail', v ? v.value : '');
-  } else if (activeModalType === 'image') {
+    setElVal(getFieldId('thumbnail'), v ? v.value : '');
+  } else if (bareType === 'image') {
     const v = document.getElementById('modal-image');
-    setElVal(isWelcome ? 'wl-welcome_image' : 'wl-leave_image', v ? v.value : '');
-  } else if (activeModalType === 'footer') {
+    setElVal(getFieldId('image'), v ? v.value : '');
+  } else if (bareType === 'footer') {
     const v = document.getElementById('modal-footer');
-    setElVal(isWelcome ? 'wl-welcome_footer' : 'wl-leave_footer', v ? v.value : '');
+    setElVal(getFieldId('footer'), v ? v.value : '');
   }
-  updateEmbedPreview();
+  
+  if (isBoost) updateBoostEmbedPreview(); else updateEmbedPreview();
   const backdrop = document.getElementById('embedModalBackdrop');
   if (backdrop) backdrop.classList.remove('active');
 }
 
+function updateBoostEmbedPreview() {
+  const title       = getElVal('bst-title');
+  const desc        = getElVal('bst-message');
+  const color       = getElVal('bst-color');
+  const authorName  = getElVal('bst-author_name');
+  const authorIcon  = getElVal('bst-author_icon');
+  const thumb       = getElVal('bst-thumbnail');
+  const image       = getElVal('bst-image');
+  const footer      = getElVal('bst-footer');
+
+  const botAvatarImg = document.getElementById('bst-bot-avatar-img');
+  if (botAvatarImg && state.botInfo && state.botInfo.avatarURL) botAvatarImg.src = state.botInfo.avatarURL;
+
+  const bar = document.getElementById('bst-embed-color-bar');
+  if (bar) bar.style.background = color || '#F47FFF';
+
+  const pAuthorName = document.getElementById('bst-preview-author-name');
+  const pAuthorIcon = document.getElementById('bst-preview-author-icon');
+  if (pAuthorName) pAuthorName.textContent = authorName || 'Cliquez pour ajouter un Auteur...';
+  if (pAuthorIcon) {
+    if (authorIcon) { pAuthorIcon.src = authorIcon; pAuthorIcon.style.display = 'block'; }
+    else { pAuthorIcon.style.display = 'none'; }
+  }
+
+  const pTitle = document.getElementById('bst-preview-title');
+  if (pTitle) pTitle.textContent = title || '🚀 Nouveau Boost de Serveur !';
+
+  const pDesc = document.getElementById('bst-preview-desc');
+  if (pDesc) pDesc.textContent = desc || "Merci {user} d'avoir boosté le serveur !";
+
+  const pThumbPlaceholder = document.getElementById('bst-thumb-placeholder');
+  const pThumbImg = document.getElementById('bst-preview-thumb-img');
+  if (thumb) {
+    if (pThumbImg) { pThumbImg.src = thumb; pThumbImg.style.display = 'block'; }
+    if (pThumbPlaceholder) pThumbPlaceholder.style.display = 'none';
+  } else {
+    if (pThumbImg) pThumbImg.style.display = 'none';
+    if (pThumbPlaceholder) pThumbPlaceholder.style.display = 'flex';
+  }
+
+  const pBannerPlaceholder = document.getElementById('bst-banner-placeholder');
+  const pBannerImg = document.getElementById('bst-preview-banner-img');
+  if (image) {
+    if (pBannerImg) { pBannerImg.src = image; pBannerImg.style.display = 'block'; }
+    if (pBannerPlaceholder) pBannerPlaceholder.style.display = 'none';
+  } else {
+    if (pBannerImg) pBannerImg.style.display = 'none';
+    if (pBannerPlaceholder) pBannerPlaceholder.style.display = 'flex';
+  }
+
+  const pFooterText = document.getElementById('bst-preview-footer-text');
+  if (pFooterText) pFooterText.textContent = footer || 'Cliquez pour ajouter un Footer...';
+}
+
 // ─── IMAGE UPLOAD HELPERS ──────────────────────────────────────────────────────
 // Called when user picks a file — reads it as base64 and sets URL input + preview
-function handleImgUpload(event, inputId, previewId) {
+async function handleImgUpload(event, inputId, previewId) {
   const file = event.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const dataUrl = e.target.result;
-    const inputEl = document.getElementById(inputId);
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
     const previewEl = document.getElementById(previewId);
-    if (inputEl) inputEl.value = dataUrl;
-    if (previewEl) { previewEl.src = dataUrl; previewEl.style.display = 'block'; }
-  };
-  reader.readAsDataURL(file);
+    const inputEl = document.getElementById(inputId);
+    if (previewEl) { previewEl.src = URL.createObjectURL(file); previewEl.style.display = 'block'; }
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.url) {
+      if (inputEl) inputEl.value = data.url;
+      if (previewEl) previewEl.src = data.url;
+      toast('Image uploadée avec succès !', 'success');
+    } else {
+      toast('Erreur upload: ' + (data.error || 'inconnu'), 'error');
+    }
+  } catch(e) {
+    toast('Erreur upload: ' + e.message, 'error');
+  }
 }
 
 // Called when user types a URL — live-previews the image

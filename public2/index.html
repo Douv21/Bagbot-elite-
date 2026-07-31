@@ -178,7 +178,11 @@
 
                         <!-- Clickable Thumbnail Image Section -->
                         <div class="clickable-embed-element clickable-thumb-wrap" onclick="openEmbedModal('thumbnail')" title="Cliquez pour ajouter/modifier la Vignette (Thumbnail)">
-                          <img id="wl-preview-thumb-img" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Thumbnail" class="discord-thumb-img">
+                          <div id="wl-thumb-placeholder" class="thumb-placeholder-box">
+                            <i class="fa-solid fa-camera" style="font-size:1.2rem;color:var(--gold3);"></i>
+                            <span style="font-size:0.65rem;color:var(--text-muted);display:block;margin-top:2px;">Vignette</span>
+                          </div>
+                          <img id="wl-preview-thumb-img" src="" alt="Thumbnail" class="discord-thumb-img" style="display:none;">
                           <div class="image-hover-overlay"><i class="fa-solid fa-camera"></i></div>
                         </div>
                       </div>
@@ -298,75 +302,123 @@
         </div>
 
         <!-- 2. REMERCIEMENTS BOOST -->
-        <div class="content-panel" id="panel-boost">
+        <!-- 2. REMERCIEMENTS BOOST (EMBED DISCORD INTERACTIF) -->
+        <div class="content-panel" id="panel-boost-embed">
           <div class="panel-header">
             <h2><i class="fa-solid fa-rocket" style="color:var(--gold3);margin-right:10px;"></i>Remerciements Boost</h2>
-            <p>Remerciez automatiquement les membres qui boostent votre serveur Discord.</p>
+            <p>Remerciez automatiquement les membres qui boostent votre serveur avec un bel Embed interactif.</p>
             <div class="panel-line"></div>
           </div>
           <form onsubmit="savePanelConfig('boost', event)">
+            
             <div class="config-card">
-              <h3><i class="fa-solid fa-rocket"></i> Configuration du Boost</h3>
-              <div class="form-grid">
+              <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); align-items: end;">
                 <div class="form-group">
                   <label><i class="fa-solid fa-hashtag"></i> Salon des remerciements</label>
-                  <select id="boost-channel_id" name="channel_id" data-type="channel"></select>
-                </div>
-                <div class="form-group">
-                  <label><i class="fa-solid fa-heading"></i> Titre de l'embed</label>
-                  <input type="text" id="boost-title" name="title" placeholder="🚀 Nouveau Boost de Serveur !">
-                </div>
-                <div class="form-group" style="grid-column:1/-1">
-                  <label><i class="fa-solid fa-message"></i> Message de remerciement</label>
-                  <textarea id="boost-message" name="message" placeholder="Merci {user} d'avoir boosté le serveur !"></textarea>
+                  <select id="bst-channel_id" name="channel_id" data-type="channel"></select>
                 </div>
                 <div class="form-group">
                   <label><i class="fa-solid fa-coins"></i> Pièces offertes</label>
-                  <input type="number" id="boost-reward_money" name="reward_money" value="5000">
+                  <input type="number" id="bst-reward_money" name="reward_money" value="5000">
                 </div>
                 <div class="form-group">
                   <label><i class="fa-solid fa-star"></i> Karma offert</label>
-                  <input type="number" id="boost-reward_karma" name="reward_karma" value="50">
-                </div>
-                <div class="form-group">
-                  <label><i class="fa-solid fa-palette"></i> Couleur</label>
-                  <input type="color" id="boost-color" name="color" value="#F47FFF">
+                  <input type="number" id="bst-reward_karma" name="reward_karma" value="50">
                 </div>
               </div>
             </div>
+
+            <!-- BRAND NEW CLICKABLE DISCORD EMBED EDITOR CARD FOR BOOST -->
+            <div class="config-card discord-client-editor-card">
+              <div class="editor-badge-bar">
+                <span class="badge-gold"><i class="fa-solid fa-hand-pointer"></i> Cliquez sur n'importe quel texte ou image de l'Embed ci-dessous pour modifier</span>
+              </div>
+              
+              <div class="discord-client-message">
+                <img id="bst-bot-avatar-img" class="discord-client-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot">
+                
+                <div class="discord-client-content">
+                  <div class="discord-client-header">
+                    <span class="discord-bot-username">Bagbot Elite</span>
+                    <span class="discord-bot-tag">BOT</span>
+                    <span class="discord-client-date">Aujourd'hui à 16:40</span>
+                  </div>
+
+                  <div class="discord-client-embed" id="bst-discord-embed-box">
+                    
+                    <div class="discord-color-bar" id="bst-embed-color-bar" title="Cliquez pour changer la couleur" onclick="openEmbedModal('bst-color')">
+                      <input type="color" id="bst-active_color" value="#F47FFF" style="opacity:0;width:0;height:0;position:absolute;" onchange="updateBoostEmbedPreview()">
+                    </div>
+
+                    <div class="discord-embed-inner-body">
+                      
+                      <div class="clickable-embed-element clickable-author-wrap" onclick="openEmbedModal('bst-author')" title="Cliquez pour modifier l'Auteur">
+                        <img id="bst-preview-author-icon" src="" alt="" class="discord-author-icon" style="display:none;">
+                        <span id="bst-preview-author-name" class="discord-author-text">Cliquez pour ajouter un Auteur...</span>
+                        <i class="fa-solid fa-pen-to-square click-icon"></i>
+                      </div>
+
+                      <div class="discord-embed-main-row">
+                        <div class="discord-embed-text-col">
+                          <div class="clickable-embed-element clickable-title-wrap" onclick="openEmbedModal('bst-title')" title="Cliquez pour modifier le Titre">
+                            <h4 id="bst-preview-title" class="discord-embed-title-text">🚀 Nouveau Boost de Serveur !</h4>
+                            <i class="fa-solid fa-pen-to-square click-icon"></i>
+                          </div>
+
+                          <div class="clickable-embed-element clickable-desc-wrap" onclick="openEmbedModal('bst-desc')" title="Cliquez pour modifier la Description">
+                            <div id="bst-preview-desc" class="discord-embed-desc-text">Merci {user} d'avoir boosté le serveur !</div>
+                            <i class="fa-solid fa-pen-to-square click-icon"></i>
+                          </div>
+                        </div>
+
+                        <div class="clickable-embed-element clickable-thumb-wrap" onclick="openEmbedModal('bst-thumbnail')" title="Cliquez pour ajouter/modifier la Vignette (Thumbnail)">
+                          <div id="bst-thumb-placeholder" class="thumb-placeholder-box">
+                            <i class="fa-solid fa-camera" style="font-size:1.2rem;color:var(--gold3);"></i>
+                            <span style="font-size:0.65rem;color:var(--text-muted);display:block;margin-top:2px;">Vignette</span>
+                          </div>
+                          <img id="bst-preview-thumb-img" src="" alt="Thumbnail" class="discord-thumb-img" style="display:none;">
+                          <div class="image-hover-overlay"><i class="fa-solid fa-camera"></i></div>
+                        </div>
+                      </div>
+
+                      <div class="clickable-embed-element clickable-banner-wrap" onclick="openEmbedModal('bst-image')" title="Cliquez pour ajouter/modifier la Grande Bannière Image">
+                        <div id="bst-banner-placeholder" class="banner-placeholder-box">
+                          <i class="fa-solid fa-image" style="font-size:1.5rem;color:var(--gold3);margin-bottom:4px;"></i>
+                          <span>Cliquez pour ajouter une grande bannière image/GIF</span>
+                        </div>
+                        <img id="bst-preview-banner-img" src="" alt="Bannière" class="discord-banner-img" style="display:none;">
+                        <div class="image-hover-overlay"><i class="fa-solid fa-camera"></i> Bannière</div>
+                      </div>
+
+                      <div class="clickable-embed-element clickable-footer-wrap" onclick="openEmbedModal('bst-footer')" title="Cliquez pour modifier le Footer">
+                        <span id="bst-preview-footer-text" class="discord-footer-text">Cliquez pour ajouter un Footer...</span>
+                        <span class="discord-footer-dot">•</span>
+                        <span>Aujourd'hui à 16:40</span>
+                        <i class="fa-solid fa-pen-to-square click-icon"></i>
+                      </div>
+
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Hidden Inputs -->
+            <input type="hidden" id="bst-title" name="title">
+            <input type="hidden" id="bst-message" name="message">
+            <input type="hidden" id="bst-color" name="color">
+            <input type="hidden" id="bst-author_name" name="author_name">
+            <input type="hidden" id="bst-author_icon" name="author_icon">
+            <input type="hidden" id="bst-thumbnail" name="thumbnail">
+            <input type="hidden" id="bst-image" name="image">
+            <input type="hidden" id="bst-footer" name="footer">
+
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer l'Embed Boost</button>
             </div>
           </form>
-        </div>
-
-        <!-- 3. ANNONCES & GUIDES -->
-        <div class="content-panel" id="panel-announcements">
-          <div class="panel-header">
-            <h2><i class="fa-solid fa-bullhorn" style="color:var(--gold3);margin-right:10px;"></i>Annonces & Guides</h2>
-            <p>Publiez et planifiez des annonces structurées avec embeds.</p>
-            <div class="panel-line"></div>
-          </div>
-          <div class="config-card">
-            <h3><i class="fa-solid fa-bullhorn"></i> Créer une Annonce</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label><i class="fa-solid fa-hashtag"></i> Salon de destination</label>
-                <select id="ann-channel" data-type="channel"></select>
-              </div>
-              <div class="form-group">
-                <label><i class="fa-solid fa-heading"></i> Titre de l'annonce</label>
-                <input type="text" id="ann-title" placeholder="📢 Grande Annonce">
-              </div>
-              <div class="form-group" style="grid-column:1/-1">
-                <label><i class="fa-solid fa-align-left"></i> Contenu</label>
-                <textarea id="ann-content" placeholder="Rédigez votre annonce ici..."></textarea>
-              </div>
-            </div>
-            <div class="form-actions">
-              <button type="button" class="btn btn-primary" onclick="toast('Annonce publiée avec succès !')"><i class="fa-solid fa-paper-plane"></i> Publier l'Annonce</button>
-            </div>
-          </div>
         </div>
 
         <!-- 4. ENVOYEUR D'EMBEDS -->
