@@ -1,3 +1,11 @@
+
+function getActiveGuildId() {
+  if (typeof state !== 'undefined' && state.selectedGuild) return state.selectedGuild;
+  if (window.state && window.state.selectedGuild) return window.state.selectedGuild;
+  const el = document.getElementById('guild-select');
+  return el ? el.value : '';
+}
+
 // script.js
 document.addEventListener('DOMContentLoaded', () => {
   // Elements
@@ -125,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (tabId === 'tab-gifs') {
         fetchAndRenderGifs();
       } else if (tabId === 'tab-map') {
-        const guildId = guildSelect ? guildSelect.value : '';
+        const guildId = getActiveGuildId();
         const mapIframe = document.getElementById('map-iframe');
         if (mapIframe) mapIframe.src = `map.html?guild=${guildId}`;
       }
@@ -187,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Toujours afficher l'écran de sélection de serveur à la connexion au dashboard
         noGuildSelected.style.display = 'block';
         configForms.style.display = 'none';
-        guildSelect.value = '';
+        getActiveGuildId() = '';
         updateActiveGuildIcon('');
       })
       .catch(console.error);
@@ -230,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
       card.appendChild(name);
 
       card.addEventListener('click', () => {
-        guildSelect.value = guild.id;
+        getActiveGuildId() = guild.id;
         handleGuildSelection(guild.id);
         fetch('/api/select-guild', {
           method: 'POST',
@@ -245,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Guild selection
   guildSelect.addEventListener('change', () => {
-    const guildId = guildSelect.value;
+    const guildId = getActiveGuildId();
     if (!guildId) {
       noGuildSelected.style.display = 'block';
       configForms.style.display = 'none';
@@ -265,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnChangeGuildBanner = document.getElementById('btn-change-guild-banner');
   
   const resetToGuildSelection = () => {
-    guildSelect.value = '';
+    getActiveGuildId() = '';
     noGuildSelected.style.display = 'block';
     configForms.style.display = 'none';
     updateActiveGuildIcon('');
@@ -570,7 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function loadGuildConfiguration(guildId) {
-    const targetGuildId = guildId || (guildSelect ? guildSelect.value : '');
+    const targetGuildId = guildId || (getActiveGuildId());
     const url = targetGuildId ? `/api/config?guildId=${targetGuildId}` : '/api/config';
     fetch(url)
       .then(res => res.json())
@@ -1638,10 +1646,10 @@ document.addEventListener('DOMContentLoaded', () => {
     embedEl.style.borderLeftColor = panel.color || '#5865F2';
 
     // Thumbnail
-    if (panel.thumbnail && guildSelect.value) {
+    if (panel.thumbnail && getActiveGuildId()) {
       const selectedOpt = guildSelect.options[guildSelect.selectedIndex];
       const iconHash = selectedOpt?.dataset?.icon;
-      const guildId = guildSelect.value;
+      const guildId = getActiveGuildId();
       if (iconHash && iconHash !== 'null') {
         thumbImgEl.src = `https://cdn.discordapp.com/icons/${guildId}/${iconHash}.png`;
         thumbImgEl.style.display = 'block';
@@ -3553,7 +3561,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('autorole-discord-embed').style.borderLeftColor = color;
 
     const thumbnailImg = document.getElementById('autorole-preview-thumbnail');
-    const guildId = guildSelect.value;
+    const guildId = getActiveGuildId();
     const selectedGuildInfo = guildsList.find(g => g.id === guildId);
     
     if (thumbnailOpt === '1' && selectedGuildInfo && selectedGuildInfo.icon) {
@@ -4371,7 +4379,7 @@ document.addEventListener('DOMContentLoaded', () => {
           // Mettre à jour l'état local
           const index = actionRewardsState.findIndex(r => r.action_name === action_name);
           const updatedReward = {
-            guild_id: guildSelect.value,
+            guild_id: getActiveGuildId(),
             action_name,
             min_money: parseInt(data.min_money),
             max_money: parseInt(data.max_money),

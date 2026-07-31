@@ -250,6 +250,9 @@ async function loadDashboard(guild = null) {
 
   populateAllDropdowns();
   hydrateForms();
+  if (typeof loadGuildConfiguration === 'function') {
+    try { loadGuildConfiguration(state.selectedGuild); } catch(e) {}
+  }
   renderCategoryHub();
   showCategoryHub();
 }
@@ -728,6 +731,9 @@ function showPanel(panelId) {
     panel.classList.add('active');
     populateAllDropdowns();
     hydrateForms();
+    if (typeof loadGuildConfiguration === 'function') {
+      try { loadGuildConfiguration(state.selectedGuild); } catch(e) {}
+    }
   }
 }
 
