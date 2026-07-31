@@ -68,7 +68,10 @@ const getGuildId = (req) => (req.query && req.query.guildId) || (req.body && req
 const botFetch = async (p, opts) => { const r = await fetch('http://127.0.0.1:' + BOT_API_PORT + p, opts).catch(() => null); if (!r || !r.ok) return null; return r.json().catch(() => null); };
 
 app.get('/login', (req, res) => {
-  res.redirect('http://82.65.75.176:49601/login?redirect=http://82.65.75.176:49602/');
+  const host = req.get('host') || '82.65.75.176:49602';
+  const protocol = req.protocol || 'http';
+  const target = `${protocol}://${host}/`;
+  res.redirect(`http://82.65.75.176:49601/login?redirect=${encodeURIComponent(target)}`);
 });
 
 app.get('/callback', async (req, res) => {

@@ -301,8 +301,10 @@ app.get('/callback', async (req, res) => {
         return res.redirect('/?error=session_error');
       }
       console.log(`[/callback] Session enregistrée pour ${userData.username}, redirection vers /`);
-      const target = req.session.postLoginRedirect || '/';
-    delete req.session.postLoginRedirect;
+      let target = '/';
+    if (req.query.state) {
+      try { target = decodeURIComponent(req.query.state); } catch(e) {}
+    }
     res.redirect(target);
     });
   } catch (error) {
