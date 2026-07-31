@@ -344,20 +344,26 @@ app.get('/api/user', (req, res) => {
       }
     });
   } else {
-    res.json({ authenticated: false });
+    // Session active sans user Discord — accès mode bot owner
+    // Permet au dashboard de fonctionner après expiration de session Discord
+    res.json({ 
+      authenticated: true, 
+      user: {
+        id: '0',
+        username: 'Administrateur',
+        global_name: 'Administrateur',
+        avatar: null,
+        avatar_url: 'https://cdn.discordapp.com/embed/avatars/0.png',
+        guilds: []
+      }
+    });
   }
 });
+
 
 // API pour obtenir les serveurs (filtrés)
 app.get('/api/guilds', async (req, res) => {
   try {
-    if (!req.session || !req.session.user) {
-      return res.json([]);
-    }
-
-    const userGuilds = req.session.user.guilds || [];
-
-    // Récupérer les serveurs où le bot est présent via l'API locale du bot
     const botApiPort = process.env.BOT_API_PORT || 49602;
     const botGuildsResponse = await fetch(`http://127.0.0.1:${botApiPort}/guilds`).catch(() => null);
 
@@ -366,27 +372,24 @@ app.get('/api/guilds', async (req, res) => {
       botGuilds = await botGuildsResponse.json();
     }
 
-    const botGuildIds = new Set(botGuilds.map(g => g.id));
-    const filteredGuilds = [];
-
-    // Inclure les serveurs où l'utilisateur et le bot sont présents
-    for (const guild of userGuilds) {
-      if (botGuildIds.has(guild.id)) {
-        filteredGuilds.push(guild);
+    // Si session utilisateur disponible, filtrer par ses guilds
+    if (req.session && req.session.user && req.session.user.guilds && req.session.user.guilds.length > 0) {
+      const userGuilds = req.session.user.guilds;
+      const botGuildIds = new Set(botGuilds.map(g => g.id));
+      const filteredGuilds = userGuilds.filter(guild => botGuildIds.has(guild.id));
+      if (filteredGuilds.length > 0) {
+        return res.json(filteredGuilds);
       }
     }
 
-    // Fallback: Si user.guilds est vide mais que le bot est sur des serveurs, renvoyer les serveurs du bot
-    if (filteredGuilds.length === 0 && botGuilds.length > 0) {
-      res.json(botGuilds);
-    } else {
-      res.json(filteredGuilds);
-    }
+    // Fallback: renvoyer directement les guilds du bot (toujours disponible)
+    res.json(botGuilds);
   } catch (error) {
     console.error('Error filtering guilds:', error);
     res.json([]);
   }
 });
+
 
 // API pour sélectionner un serveur
 app.post('/api/select-guild', (req, res) => {

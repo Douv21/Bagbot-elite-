@@ -510,9 +510,15 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Erreur remplissage dropdowns:', e);
     }
 
-    // 3. Charger la configuration
+    // 3. Charger la configuration puis re-synchroniser les dropdowns
     try {
-      loadGuildConfiguration(guildId);
+      await loadGuildConfiguration(guildId);
+      // Re-remplir les dropdowns APRES que safeSetVal ait posé les data-saved-value
+      try {
+        populateDropdowns();
+      } catch (e) {
+        console.error('Erreur re-remplissage dropdowns post-config:', e);
+      }
     } catch (e) {
       console.error('Erreur chargement config guilde:', e);
     }
