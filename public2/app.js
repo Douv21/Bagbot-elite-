@@ -304,6 +304,7 @@ function hydrateForms() {
   // 1. Welcome / Leave
   const wl = config.welcome_leave || {};
   setElVal('wl-welcome_channel', wl.welcome_channel);
+  setElVal('wl-welcome_role_filter', wl.welcome_role_filter);
   setElVal('wl-welcome_title', wl.welcome_title || '👋 Bienvenue');
   setElVal('wl-welcome_desc', wl.welcome_desc || 'Bienvenue {user} sur le serveur !');
   setElVal('wl-welcome_color', wl.welcome_color || '#00ff00');
@@ -630,6 +631,9 @@ function openCategoryWorkspace(catId) {
   if (hub) hub.style.display = 'none';
   if (ws) ws.style.display = 'flex';
   selectCategory(catId);
+  if (window.innerWidth <= 900) {
+    toggleMobileSidebar(true);
+  }
 }
 
 function selectCategory(catId) {
