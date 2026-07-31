@@ -468,4 +468,55 @@ select option { background: #111118; color: #e8e0f0; }
   color: var(--gold3);
 }
 
+/* SIDEBAR BADGES & ULTRA PREMIUM ACCENTS */
+.sidebar-item {
+  position: relative;
+}
+.sidebar-badge {
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-family: "Cinzel", serif;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+.badge-18\+ { background: rgba(231, 76, 60, 0.25); color: #ff5252; border: 1px solid rgba(231, 76, 60, 0.5); box-shadow: 0 0 12px rgba(255,82,82,0.4); }
+.badge-nsfw { background: rgba(155, 89, 182, 0.25); color: #e056fd; border: 1px solid rgba(155, 89, 182, 0.5); box-shadow: 0 0 12px rgba(224,86,253,0.4); }
+.badge-vip { background: rgba(212, 175, 55, 0.25); color: var(--gold2); border: 1px solid var(--gold); box-shadow: 0 0 12px rgba(212,175,55,0.4); }
+.badge-jeu { background: rgba(41, 128, 185, 0.25); color: #3498db; border: 1px solid rgba(52, 152, 219, 0.5); box-shadow: 0 0 12px rgba(52,152,219,0.4); }
+.badge-top { background: rgba(241, 196, 15, 0.25); color: #f39c12; border: 1px solid rgba(243, 156, 18, 0.5); box-shadow: 0 0 12px rgba(243,156,18,0.4); }
+.badge-nouveau, .badge-new { background: rgba(46, 204, 113, 0.25); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.5); }
+.badge-auto { background: rgba(142, 68, 173, 0.25); color: #9b59b6; border: 1px solid rgba(155, 89, 182, 0.5); }
+
+/* LUXURY ANIMATED GLOW & SHINE EFFECTS */
+.category-card {
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(212,175,55,0.12);
+}
+.category-card:hover {
+  box-shadow: 0 20px 60px rgba(212,175,55,0.25), 0 0 40px rgba(155,89,182,0.15), inset 0 1px 0 rgba(255,215,0,0.3);
+}
+
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(60deg, transparent, rgba(255,255,255,0.35), transparent);
+  transform: rotate(30deg) translateY(-100%);
+  transition: transform 0.65s ease;
+}
+.btn-primary:hover::after {
+  transform: rotate(30deg) translateY(100%);
+}
+
+
 

@@ -12,7 +12,7 @@ let state = {
   botInfo: {},
 };
 
-// ─── CATEGORY DEFINITIONS (DASHBOARD 1 COMPLETE MATCH) ────────────────────────
+// ─── CATEGORY DEFINITIONS (REORGANIZED ACCORDING TO USER DIRECTIVE) ────────────
 const CATEGORIES = {
   general: {
     label: 'GESTION DU SERVEUR',
@@ -22,6 +22,7 @@ const CATEGORIES = {
       { id: 'welcome-leave', label: 'Arrivées & Départs', icon: 'fa-door-open' },
       { id: 'boost', label: 'Remerciements Boost', icon: 'fa-rocket', badge: 'VIP' },
       { id: 'announcements', label: 'Annonces & Guides', icon: 'fa-bullhorn', badge: 'VIP' },
+      { id: 'embed-sender', label: "Envoyeur d'Embeds", icon: 'fa-file-code', badge: 'NOUVEAU' },
       { id: 'autoroles-join', label: "Auto-Rôles à l'Arrivée", icon: 'fa-user-plus' },
       { id: 'autoroles-role', label: 'Rôles Réaction', icon: 'fa-rectangle-list' },
       { id: 'autothread', label: 'Auto-Thread', icon: 'fa-hashtag' },
@@ -31,13 +32,13 @@ const CATEGORIES = {
   moderation: {
     label: 'SÉCURITÉ & MODÉRATION',
     icon: 'fa-shield-halved',
-    desc: 'Quarantaine, AutoMod, Forums, Permissions & Tribunal',
+    desc: 'Quarantaine, AutoMod, Rappels de Bump, Forums & Permissions',
     items: [
       { id: 'quarantine', label: 'Quarantaine Anti-Raid', icon: 'fa-shield-cat' },
       { id: 'automod', label: 'Auto-Modération', icon: 'fa-user-shield' },
+      { id: 'bump', label: 'Rappels de Bump', icon: 'fa-bell', badge: 'AUTO' },
       { id: 'forums', label: 'Forums Illimités', icon: 'fa-comments' },
       { id: 'permissions', label: 'Commandes & Permissions', icon: 'fa-terminal', badge: 'NOUVEAU' },
-      { id: 'tribunal', label: 'Tribunal Discord', icon: 'fa-gavel' },
     ]
   },
   economie: {
@@ -54,14 +55,15 @@ const CATEGORIES = {
   divertissement: {
     label: 'DIVERTISSEMENT & JEUX',
     icon: 'fa-gamepad',
-    desc: 'Confessions, Comptage, Mot Caché, Action-Vérité, Bump & GIFs',
+    desc: 'Tribunal, Star de la Semaine, Confessions, Mot Caché, Action-Vérité, GIFs',
     items: [
+      { id: 'tribunal', label: 'Tribunal Discord', icon: 'fa-gavel', badge: 'JEU' },
+      { id: 'star', label: 'Star de la Semaine', icon: 'fa-star', badge: 'TOP' },
       { id: 'confessions', label: 'Confessions Anonymes', icon: 'fa-mask' },
       { id: 'counting', label: 'Salons de Comptage', icon: 'fa-calculator' },
       { id: 'game', label: 'Jeu Mot Caché', icon: 'fa-gamepad' },
-      { id: 'action-verite', label: 'Action ou Vérité', icon: 'fa-dice' },
-      { id: 'bump', label: 'Rappels de Bump', icon: 'fa-bell' },
-      { id: 'gifs', label: "GIFs d'action", icon: 'fa-file-video' },
+      { id: 'action-verite', label: 'Action ou Vérité', icon: 'fa-dice', badge: '18+' },
+      { id: 'gifs', label: "GIFs d'action", icon: 'fa-file-video', badge: 'NSFW' },
     ]
   },
   support: {
@@ -74,12 +76,11 @@ const CATEGORIES = {
     ]
   },
   assistant: {
-    label: 'ASSISTANT & STAR',
+    label: 'ASSISTANT IA',
     icon: 'fa-robot',
-    desc: 'Assistant IA Admin & Star de la Semaine',
+    desc: 'Assistant IA Admin VIP',
     items: [
       { id: 'assistant', label: 'Assistant IA Admin', icon: 'fa-robot', badge: 'IA VIP' },
-      { id: 'star', label: 'Star de la Semaine', icon: 'fa-star', badge: 'TOP' },
     ]
   },
   ai: {
@@ -312,11 +313,11 @@ async function loadDashboard(guild = null) {
 // ─── CATEGORY HUB & WORKSPACE NAVIGATION ─────────────────────────────────────
 const CATEGORY_CARDS = [
   { id: 'general', title: 'GESTION DU SERVEUR', icon: 'fa-sliders', desc: 'Arrivées, Départs, Boost, Annonces, Embeds, Auto-Rôles & Logs' },
-  { id: 'moderation', title: 'SÉCURITÉ & MODÉRATION', icon: 'fa-shield-halved', desc: 'Quarantaine, AutoMod, Forums, Permissions & Tribunal' },
+  { id: 'moderation', title: 'SÉCURITÉ & MODÉRATION', icon: 'fa-shield-halved', desc: 'Quarantaine, AutoMod, Rappels de Bump, Forums & Permissions' },
   { id: 'economie', title: 'NIVEAUX & ÉCONOMIE', icon: 'fa-chart-line', desc: 'Niveaux & XP, Quêtes, Karma & Boutique' },
-  { id: 'divertissement', title: 'DIVERTISSEMENT & JEUX', icon: 'fa-gamepad', desc: 'Confessions, Comptage, Mot Caché, Action-Vérité, Bump & GIFs' },
+  { id: 'divertissement', title: 'DIVERTISSEMENT & JEUX', icon: 'fa-gamepad', desc: 'Tribunal, Star de la Semaine, Confessions, Mot Caché, Action-Vérité (18+)' },
   { id: 'support', title: 'SUPPORT & TICKETS', icon: 'fa-headset', desc: 'Support, Panneaux de Tickets & Carte des Membres' },
-  { id: 'assistant', title: 'ASSISTANT & STAR', icon: 'fa-robot', desc: 'Assistant IA Admin & Élection Star de la Semaine' },
+  { id: 'assistant', title: 'ASSISTANT IA', icon: 'fa-robot', desc: 'Assistant IA Admin VIP' },
   { id: 'ai', title: 'CLÉS & PARAMÈTRES IA', icon: 'fa-brain', desc: 'Clés & Modèles IA' },
 ];
 
@@ -381,10 +382,12 @@ function selectCategory(catId) {
   `;
 
   cat.items.forEach((item, i) => {
+    const badgeHtml = item.badge ? `<span class="sidebar-badge badge-${item.badge.toLowerCase()}">${item.badge}</span>` : '';
     html += `
       <div class="sidebar-item ${i === 0 ? 'active' : ''}" data-panel="${item.id}" onclick="clickSidebarItem('${item.id}', this)">
         <i class="fa-solid ${item.icon}"></i>
         <span>${item.label}</span>
+        ${badgeHtml}
       </div>
     `;
   });
