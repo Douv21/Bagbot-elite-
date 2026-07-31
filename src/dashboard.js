@@ -311,9 +311,13 @@ app.get('/callback', async (req, res) => {
 
 // Déconnexion
 app.get('/logout', (req, res) => {
-  req.session.destroy();
-  res.redirect('/');
+  req.session.destroy((err) => {
+    if (err) console.error('Erreur destruction session:', err);
+    res.clearCookie('bagbot-elite.sid');
+    res.redirect('/login');
+  });
 });
+
 
 app.post('/api/log-error', (req, res) => {
   console.error('❌ [CLIENT-SIDE ERROR]', req.body);
@@ -435,7 +439,7 @@ app.get('/api/selected-guild', (req, res) => {
 app.get('/api/channels', async (req, res) => {
   try {
     const guildId = (req.query && req.query.guildId) || (req.session && req.session.selectedGuild);
-    if (!req.session || !req.session.user || !guildId) {
+    if (!guildId) {
       return res.json([]);
     }
     const botApiPort = process.env.BOT_API_PORT || 49602;
@@ -456,7 +460,7 @@ app.get('/api/channels', async (req, res) => {
 app.get('/api/roles', async (req, res) => {
   try {
     const guildId = (req.query && req.query.guildId) || (req.session && req.session.selectedGuild);
-    if (!req.session || !req.session.user || !guildId) {
+    if (!guildId) {
       return res.json([]);
     }
     const botApiPort = process.env.BOT_API_PORT || 49602;
@@ -477,7 +481,7 @@ app.get('/api/roles', async (req, res) => {
 app.get('/api/members', async (req, res) => {
   try {
     const guildId = (req.query && req.query.guildId) || (req.body && req.body.guildId) || (req.session && req.session.selectedGuild);
-    if (!req.session.user || !guildId) {
+    if (!guildId) {
       return res.json([]);
     }
     const botApiPort = process.env.BOT_API_PORT || 49602;
