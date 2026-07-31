@@ -301,11 +301,7 @@ app.get('/callback', async (req, res) => {
         return res.redirect('/?error=session_error');
       }
       console.log(`[/callback] Session enregistrée pour ${userData.username}, redirection vers /`);
-      let target = '/';
-    if (req.query.state) {
-      try { target = decodeURIComponent(req.query.state); } catch(e) {}
-    }
-    res.redirect(target);
+      res.redirect('/');
     });
   } catch (error) {
     console.error('[/callback] Erreur OAuth2 globale:', error);
