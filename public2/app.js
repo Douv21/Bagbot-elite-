@@ -242,8 +242,6 @@ async function loadDashboard(guild = null) {
     state.channels = channels;
     state.roles = roles;
     state.config = config;
-    window.channelsList = channels;
-    window.rolesList = roles;
   } catch(e) {
     state.channels = [];
     state.roles = [];
@@ -252,9 +250,6 @@ async function loadDashboard(guild = null) {
 
   populateAllDropdowns();
   hydrateForms();
-  if (typeof loadGuildConfiguration === 'function') {
-    try { loadGuildConfiguration(state.selectedGuild); } catch(e) {}
-  }
   renderCategoryHub();
   showCategoryHub();
 }
@@ -638,9 +633,6 @@ function openCategoryWorkspace(catId) {
 }
 
 function selectCategory(catId) {
-  const mobileCat = document.getElementById('mobileActiveCatName');
-  const catObj = CATEGORIES[catId];
-  if (mobileCat && catObj) mobileCat.textContent = catObj.label;
   state.currentCat = catId;
   const sidebar = document.getElementById('dashSidebar');
   const cat = CATEGORIES[catId];
@@ -723,9 +715,6 @@ function clickSidebarItem(panelId, el) {
 }
 
 function showPanel(panelId) {
-  const mobileSub = document.getElementById('mobileActiveSubcatName');
-  const activeItem = document.querySelector(`.sidebar-item[data-panel="${panelId}"] span`);
-  if (mobileSub && activeItem) mobileSub.textContent = activeItem.textContent;
   state.currentPanel = panelId;
   document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
   const panel = document.getElementById('panel-' + panelId);
@@ -733,9 +722,6 @@ function showPanel(panelId) {
     panel.classList.add('active');
     populateAllDropdowns();
     hydrateForms();
-    if (typeof loadGuildConfiguration === 'function') {
-      try { loadGuildConfiguration(state.selectedGuild); } catch(e) {}
-    }
   }
 }
 
