@@ -45,7 +45,6 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use(session({
-  store: new SQLiteStore({ table: 'user_sessions2', dir: '.' }),
   secret: process.env.SESSION_SECRET || 'bagbot_elite_secret_key_2026',
   resave: false,
   saveUninitialized: false,
