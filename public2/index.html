@@ -93,168 +93,128 @@
       <!-- FORM CONTENT AREA -->
       <main class="dash-main" id="dashMain">
 
-                                        <!-- 1. ARRIVÉES & DÉPARTS (DISCORD EMBED PREVIEW HD) -->
+                                                <!-- 1. ARRIVÉES & DÉPARTS (EXACT EMBED INTERACTIF DASHBOARD 1) -->
         <div class="content-panel" id="panel-welcome-leave">
-          <div class="panel-header">
-            <h2><i class="fa-solid fa-door-open" style="color:var(--gold3);margin-right:10px;"></i>Arrivées & Départs (Embed Discord)</h2>
-            <p>Personnalisez vos messages d'accueil et de départ avec aperçu Embed Discord en direct.</p>
-            <div class="panel-line"></div>
-          </div>
-          <form onsubmit="savePanelConfig('welcome-leave', event)">
-            
-            <!-- Global Options & Mode Switcher -->
-            <div class="config-card">
-              <h3><i class="fa-solid fa-sliders"></i> Mode & Salons d'envoi</h3>
-              <div class="form-grid">
+          <h2 class="section-title"><i class="fa-solid fa-door-open" style="color:var(--gold3);margin-right:10px;"></i> Éditeur interactif d'Arrivées & Départs (Embed Discord)</h2>
+          <form id="form-welcome-leave" class="glass-form">
+              <!-- Selection and Global Config -->
+              <div class="card glass form-row" style="margin-bottom: 20px;">
                 <div class="form-group">
-                  <label><i class="fa-solid fa-pen-to-square"></i> Mode d'édition</label>
-                  <select id="wl-edit_mode" onchange="switchWelcomeLeaveMode(this.value)">
-                    <option value="welcome" selected>Message de Bienvenue (Arrivée)</option>
-                    <option value="leave">Message de Départ (Départ)</option>
+                  <label for="edit-mode-select"><i class="fa-solid fa-pen-to-square"></i> Mode d'édition :</label>
+                  <select id="edit-mode-select">
+                    <option value="welcome" selected>Message de Bienvenue (Welcome)</option>
+                    <option value="leave">Message de Départ (Leave)</option>
                   </select>
                 </div>
-                <div class="form-group" id="wl-welcome-chan-group">
-                  <label><i class="fa-solid fa-hashtag"></i> Salon de bienvenue</label>
-                  <select id="wl-welcome_channel" name="welcome_channel" data-type="channel"></select>
-                </div>
-                <div class="form-group" id="wl-leave-chan-group" style="display:none;">
-                  <label><i class="fa-solid fa-hashtag"></i> Salon de départ</label>
-                  <select id="wl-leave_channel" name="leave_channel" data-type="channel"></select>
-                </div>
-                <div class="form-group" id="wl-role-filter-group">
-                  <label><i class="fa-solid fa-user-tag"></i> Rôle d'annonce d'arrivée (Optionnel)</label>
-                  <select id="wl-welcome_role_filter" name="welcome_role_filter" data-type="role">
-                    <option value="">— Immédiat (Tous les membres) —</option>
+                <div class="form-group">
+                  <label for="target-channel-select"><i class="fa-solid fa-hashtag"></i> Salon d'envoi :</label>
+                  <select id="target-channel-select" class="channel-select">
+                    <option value="">Désactivé</option>
                   </select>
                 </div>
-              </div>
-            </div>
-
-            <!-- FORM CONTROLS CARD -->
-            <div class="config-card">
-              <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Contenu de l'Embed</h3>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label><i class="fa-solid fa-user-ninja"></i> Nom de l'Auteur</label>
-                  <input type="text" id="wl-active_author_name" placeholder="Ex: Bagbot Elite / Nom du serveur" oninput="updateEmbedPreview()">
+                <div class="form-group" id="welcome-role-filter-group">
+                  <label for="welcome-role-filter-select"><i class="fa-solid fa-user-tag"></i> Annoncer sur rôle (Optionnel) :</label>
+                  <select id="welcome-role-filter-select" class="role-select">
+                    <option value="">Immédiat (Tous les membres)</option>
+                  </select>
                 </div>
                 <div class="form-group">
-                  <label><i class="fa-solid fa-image"></i> Icône Auteur (Lien URL)</label>
-                  <input type="text" id="wl-active_author_icon" placeholder="https://..." oninput="updateEmbedPreview()">
-                </div>
-
-                <div class="form-group">
-                  <label><i class="fa-solid fa-heading"></i> Titre de l'Embed</label>
-                  <input type="text" id="wl-active_title" placeholder="👋 Bienvenue sur le serveur !" oninput="updateEmbedPreview()">
-                </div>
-                <div class="form-group">
-                  <label><i class="fa-solid fa-palette"></i> Couleur de la barre</label>
-                  <input type="color" id="wl-active_color" value="#00FF00" style="padding:2px;height:42px;width:100%;" oninput="updateEmbedPreview()">
-                </div>
-
-                <div class="form-group" style="grid-column:1/-1;">
-                  <label><i class="fa-solid fa-align-left"></i> Description du message</label>
-                  <textarea id="wl-active_desc" rows="4" placeholder="Bienvenue {user} sur {server} !" oninput="updateEmbedPreview()"></textarea>
-                  <p class="form-hint">Variables : {user}, {server}, {membercount}</p>
-                </div>
-
-                <div class="form-group">
-                  <label><i class="fa-solid fa-file-image"></i> Vignette / Thumbnail (Lien URL image)</label>
-                  <input type="text" id="wl-active_thumbnail" placeholder="https://... (Petite image en haut à droite)" oninput="updateEmbedPreview()">
-                </div>
-                <div class="form-group">
-                  <label><i class="fa-solid fa-panorama"></i> Grande Bannière / Image (Lien URL image)</label>
-                  <input type="text" id="wl-active_image" placeholder="https://... (Grande image centrale)" oninput="updateEmbedPreview()">
-                </div>
-
-                <div class="form-group" style="grid-column:1/-1;">
-                  <label><i class="fa-solid fa-shoe-prints"></i> Texte du Footer</label>
-                  <input type="text" id="wl-active_footer" placeholder="Ex: Bagbot Elite • Serveur Officiel" oninput="updateEmbedPreview()">
+                  <label for="embed-color-picker"><i class="fa-solid fa-palette"></i> Couleur de la barre :</label>
+                  <input type="color" id="embed-color-picker" value="#00ff00" style="padding: 2px; height: 42px; width: 100%;">
                 </div>
               </div>
-            </div>
 
-            <!-- AUTHENTIC DISCORD EMBED LIVE PREVIEW -->
-            <div class="config-card discord-preview-card">
-              <h3><i class="fa-brands fa-discord" style="color:#5865F2;"></i> Aperçu en Direct (Rendu Client Discord)</h3>
-              
-              <div class="discord-message-box">
-                <img id="wl-embed-bot-avatar" class="discord-bot-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot">
-                <div class="discord-message-body">
-                  <div class="discord-author-line">
-                    <span class="discord-name" id="wl-header-bot-name">Bagbot Elite</span>
-                    <span class="discord-bot-badge">BOT</span>
-                    <span class="discord-time">Aujourd'hui à 16:15</span>
+              <!-- Interactive Discord Embed Preview -->
+              <div class="card glass discord-preview-container">
+                <div class="discord-message">
+                  <div class="discord-avatar-container" id="discord-avatar-click-container" title="Cliquez pour changer l'avatar du bot">
+                    <img class="discord-avatar" id="bot-avatar-preview" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot Avatar">
                   </div>
+                  <div class="discord-message-content">
+                    <div class="discord-message-header">
+                      <span class="discord-bot-name">Bagbot Elite</span>
+                      <span class="discord-bot-tag">BOT</span>
+                      <button type="button" id="btn-change-bot-avatar" class="discord-header-btn" title="Modifier l'image globale du bot"><i class="fa-solid fa-camera"></i> Changer l'image</button>
+                      <div class="url-upload-wrapper" id="bot-avatar-wrapper" style="display:none; align-items: center; margin-left: 8px;">
+                        <input type="text" id="bot-avatar-url-input" class="discord-bot-avatar-input" placeholder="Lien de la nouvelle image du bot..." style="margin-left: 0; width: 160px !important;">
+                        <label class="btn-upload-label" title="Téléverser un avatar" style="padding: 2px 8px;">
+                          <i class="fa-solid fa-cloud-arrow-up" style="font-size: 0.75rem;"></i>
+                          <input type="file" id="bot-avatar-file-input" accept="image/*" style="display:none;">
+                        </label>
+                      </div>
+                      <span class="discord-timestamp">Aujourd'hui à 08:31</span>
+                    </div>
 
-                  <!-- Discord Embed Container -->
-                  <div class="discord-embed-card" id="wl-discord-embed-card">
-                    <div class="discord-left-bar" id="wl-embed-bar-color" style="background:#00FF00;"></div>
-                    <div class="discord-embed-content-wrap">
+                    <!-- Embed Card -->
+                    <div class="discord-embed" id="discord-embed-card">
+                      <!-- Left color bar -->
+                      <div class="discord-embed-left-bar" id="discord-left-bar"></div>
                       
-                      <!-- EMBED AUTHOR HEADER -->
-                      <div class="discord-embed-author" id="wl-preview-author-wrap" style="display:none;">
-                        <img id="wl-preview-author-icon" src="" alt="" class="discord-embed-author-icon" style="display:none;">
-                        <span id="wl-preview-author-name" class="discord-embed-author-name"></span>
+                      <!-- Embed Author Area -->
+                      <div class="discord-embed-author-container" id="discord-author-box">
+                        <img id="embed-author-icon-img" src="" alt="" style="display:none;">
+                        <input type="text" id="embed-author-name-input" class="discord-embed-author-name-field" placeholder="Auteur (Nom du serveur, etc)...">
+                        <div class="url-upload-wrapper" id="author-icon-wrapper" style="display:none; position: absolute; top: 100%; left: 0; z-index: 10;">
+                          <input type="text" id="embed-author-icon-input" class="discord-embed-author-icon-field" placeholder="Lien de l'icône de l'auteur (URL)..." style="position: static; width: 220px !important;">
+                          <label class="btn-upload-label" title="Téléverser une icône" style="padding: 4px 8px; background: rgba(0,0,0,0.9); border-color: #5865f2;">
+                            <i class="fa-solid fa-cloud-arrow-up" style="font-size: 0.75rem;"></i>
+                            <input type="file" class="file-upload-input" data-target="embed-author-icon-input" accept="image/*" style="display:none;">
+                          </label>
+                        </div>
                       </div>
 
-                      <div class="discord-embed-middle-wrap">
+                      <div class="discord-embed-body-content">
                         <div class="discord-embed-main-text">
-                          <!-- EMBED TITLE -->
-                          <div id="wl-preview-title" class="discord-embed-title">👋 Bienvenue sur le serveur !</div>
-                          <!-- EMBED DESCRIPTION -->
-                          <div id="wl-preview-desc" class="discord-embed-desc">Bienvenue {user} sur {server} !</div>
+                          <!-- Title Input -->
+                          <div class="discord-embed-title-container">
+                            <input type="text" id="embed-title-input" class="discord-embed-title-field" placeholder="Cliquez pour ajouter un titre..." value="👋 Bienvenue">
+                          </div>
+                          <!-- Description Textarea -->
+                          <div class="discord-embed-desc-container">
+                            <textarea id="embed-desc-field" class="discord-embed-desc-field" placeholder="Cliquez pour écrire le message..." rows="3">Bienvenue {user} sur le serveur !</textarea>
+                          </div>
                         </div>
 
-                        <!-- EMBED THUMBNAIL -->
-                        <div id="wl-preview-thumb-wrap" class="discord-embed-thumb" style="display:none;">
-                          <img id="wl-preview-thumb-img" src="" alt="">
+                        <!-- Thumbnail Area -->
+                        <div class="discord-embed-thumbnail" id="discord-thumbnail-box">
+                          <img id="discord-thumbnail-img" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Avatar">
+                          <div class="thumbnail-toggle-overlay">
+                            <input type="checkbox" id="embed-thumbnail-checkbox" checked style="display:none;">
+                            <span id="thumbnail-toggle-text">Photo Active</span>
+                          </div>
                         </div>
                       </div>
 
-                      <!-- EMBED LARGE BANNER IMAGE -->
-                      <div id="wl-preview-banner-wrap" class="discord-embed-banner" style="display:none;">
-                        <img id="wl-preview-banner-img" src="" alt="">
+                      <!-- Large Image Area -->
+                      <div class="discord-embed-image-box" id="discord-image-box">
+                        <img id="discord-image-img" src="" alt="" style="display:none;">
+                        <div class="discord-image-input-overlay" id="discord-image-overlay">
+                          <i class="fa-solid fa-image"></i>
+                          <span>Cliquez pour définir une grande image (URL)</span>
+                        </div>
+                        <div class="url-upload-wrapper" id="image-url-wrapper" style="display:none; margin-top: 8px;">
+                          <input type="text" id="embed-image-input" placeholder="Lien de la grande image (optionnel)..." class="discord-embed-image-url-field" style="display:block; flex: 1;">
+                          <label class="btn-upload-label" title="Téléverser une image" style="flex-shrink: 0; padding: 8px 12px; background: rgba(0,0,0,0.5);">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <input type="file" class="file-upload-input" data-target="embed-image-input" accept="image/*" style="display:none;">
+                          </label>
+                        </div>
                       </div>
 
-                      <!-- EMBED FOOTER -->
-                      <div class="discord-embed-footer" id="wl-preview-footer-wrap" style="display:none;">
-                        <span id="wl-preview-footer-text"></span>
-                        <span class="discord-embed-footer-bullet">•</span>
-                        <span>Aujourd'hui à 16:15</span>
+                      <!-- Embed Footer Area -->
+                      <div class="discord-embed-footer-container">
+                        <input type="text" id="embed-footer-input" class="discord-embed-footer-field" placeholder="Bas de page (Footer)...">
                       </div>
-
                     </div>
                   </div>
-
                 </div>
               </div>
 
-            </div>
-
-            <!-- Hidden Inputs to submit correct values to SQLite based on mode -->
-            <input type="hidden" id="wl-welcome_title" name="welcome_title">
-            <input type="hidden" id="wl-welcome_desc" name="welcome_desc">
-            <input type="hidden" id="wl-welcome_color" name="welcome_color">
-            <input type="hidden" id="wl-welcome_author_name" name="welcome_author_name">
-            <input type="hidden" id="wl-welcome_author_icon" name="welcome_author_icon">
-            <input type="hidden" id="wl-welcome_thumbnail" name="welcome_thumbnail">
-            <input type="hidden" id="wl-welcome_image" name="welcome_image">
-            <input type="hidden" id="wl-welcome_footer" name="welcome_footer">
-
-            <input type="hidden" id="wl-leave_title" name="leave_title">
-            <input type="hidden" id="wl-leave_desc" name="leave_desc">
-            <input type="hidden" id="wl-leave_color" name="leave_color">
-            <input type="hidden" id="wl-leave_author_name" name="leave_author_name">
-            <input type="hidden" id="wl-leave_author_icon" name="leave_author_icon">
-            <input type="hidden" id="wl-leave_thumbnail" name="leave_thumbnail">
-            <input type="hidden" id="wl-leave_image" name="leave_image">
-            <input type="hidden" id="wl-leave_footer" name="leave_footer">
-
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les Embeds Bienvenue & Départ</button>
-            </div>
-          </form>
+              <!-- Save button -->
+              <div class="actions-bar">
+                <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk"></i> Enregistrer cette configuration</button>
+              </div>
+            </form>
         </div>
 
         <!-- 2. REMERCIEMENTS BOOST -->
