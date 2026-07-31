@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=6.0.0">
+  <link rel="stylesheet" href="style.css?v=7.0.0">
   <script>
     window.onerror = function(message, source, lineno, colno, error) {
       fetch('/api/log-error', {
@@ -56,15 +56,9 @@
       <div style="display: flex; align-items: center; gap: 15px;">
         <button id="mobile-hamburger" class="mobile-toggle-btn"><i class="fa-solid fa-bars"></i></button>
         <div class="nav-brand">
-          <i class="fa-solid fa-crown logo-icon-nav"></i>
+          <i class="fa-solid fa-crown"></i>
           <span>Bagbot Elite</span>
         </div>
-      </div>
-
-      <!-- Statut Rétro-Éclairé en direct du Bot -->
-      <div class="backlit-status">
-        <span class="status-dot"></span>
-        <span class="status-text">BOT B&G ELITE EN LIGNE</span>
       </div>
       
       <!-- Bouton d'icône de serveur cliquable -->
@@ -84,136 +78,104 @@
       <div class="user-profile">
         <img id="user-avatar" src="" alt="Avatar">
         <span id="user-name">Username</span>
-        <a href="/logout" id="btn-logout-link" class="btn btn-logout" title="Se déconnecter" onclick="return confirm('Se déconnecter du dashboard ?')"><i class="fa-solid fa-right-from-bracket"></i> <span style="font-size:0.8rem;">Déconnexion</span></a>
+        <a href="/logout" class="btn btn-logout" title="Se déconnecter"><i class="fa-solid fa-right-from-bracket"></i></a>
       </div>
     </header>
 
     <!-- Main Content Area -->
-    <main class="dashboard-main console-layout">
+    <main class="dashboard-main">
+      <!-- Sidebar Tabs -->
+      <aside class="sidebar glass">
+        <!-- Close button for mobile sidebar -->
+        <button id="mobile-sidebar-close" class="mobile-sidebar-close-btn"><i class="fa-solid fa-xmark"></i></button>
 
-      <!-- Form Content Area -->
-      <section class="content-area full-width">
-        <!-- Serveur non sélectionné -->
-        <div id="no-guild-selected" class="card glass text-center gold-contour" style="padding: 40px 30px;">
-          <i class="fa-solid fa-crown logo-icon-gold" style="margin-bottom: 20px; font-size: 3.5rem;"></i>
-          <h2 class="title-gold">Sélectionnez votre serveur Discord</h2>
-          <p style="color: var(--text-muted); margin-bottom: 30px; font-size: 1rem;">Choisissez le serveur que vous souhaitez gérer avec l'expérience Bagbot Elite VIP.</p>
+        <!-- Recherche rapide d'onglet -->
+        <div style="padding: 0 5px 15px 5px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 15px;">
+          <div style="position: relative;">
+            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #8e9297; font-size: 0.85rem;"></i>
+            <input type="text" id="sidebar-tab-search" placeholder="🔍 Rechercher une fonction..." style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 8px 10px 8px 32px; color: #fff; font-size: 0.85rem; outline: none;">
+          </div>
+        </div>
+
+        <div class="sidebar-category">
+          <div class="category-title"><i class="fa-solid fa-robot" style="color: #9b59b6;"></i> ASSISTANT & STAR</div>
+          <button class="tab-btn" data-tab="tab-assistant"><i class="fa-solid fa-robot"></i> Assistant IA Admin <span class="nav-badge badge-purple">IA VIP</span></button>
+          <button class="tab-btn" data-tab="tab-star"><i class="fa-solid fa-star" style="color: #f1c40f;"></i> Star de la Semaine <span class="nav-badge badge-gold">TOP</span></button>
+        </div>
+
+        <div class="sidebar-category">
+          <div class="category-title"><i class="fa-solid fa-sliders" style="color: #5865F2;"></i> GESTION DU SERVEUR</div>
+          <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées & Départs</button>
+          <button class="tab-btn" data-tab="tab-boost"><i class="fa-solid fa-rocket" style="color: #F47FFF;"></i> Remerciements Boost <span class="nav-badge badge-purple">VIP</span></button>
+          <button class="tab-btn" data-tab="tab-announcements"><i class="fa-solid fa-bullhorn" style="color: #e74c3c;"></i> Annonces & Guides <span class="nav-badge badge-gold">VIP</span></button>
+          <button class="tab-btn" data-tab="tab-embed-sender"><i class="fa-solid fa-file-code" style="color: #9b59b6;"></i> Envoyeur d'Embeds <span class="nav-badge badge-purple">NOUVEAU</span></button>
+          <button class="tab-btn" data-tab="tab-autoroles"><i class="fa-solid fa-user-plus"></i> Auto-Rôles à l'Arrivée</button>
+          <button class="tab-btn" data-tab="tab-reactionroles"><i class="fa-solid fa-rectangle-list"></i> Rôles Réaction</button>
+          <button class="tab-btn" data-tab="tab-autothread"><i class="fa-solid fa-hashtag"></i> Auto-Thread</button>
+          <button class="tab-btn" data-tab="tab-logs"><i class="fa-solid fa-list-check"></i> Logs d'Activité</button>
+        </div>
+
+        <div class="sidebar-category">
+          <div class="category-title"><i class="fa-solid fa-shield-halved" style="color: #e74c3c;"></i> SÉCURITÉ & MODÉRATION</div>
+          <button class="tab-btn" data-tab="tab-quarantine"><i class="fa-solid fa-shield-halved"></i> Quarantaine Anti-Raid</button>
+          <button class="tab-btn" data-tab="tab-automod"><i class="fa-solid fa-user-shield"></i> Auto-Modération</button>
+          <button class="tab-btn" data-tab="tab-forums"><i class="fa-solid fa-comments"></i> Forums Illimités</button>
+          <button class="tab-btn" data-tab="tab-cmd-permissions"><i class="fa-solid fa-terminal" style="color: #00d2d3;"></i> Commandes & Accès <span class="nav-badge badge-blue">NOUVEAU</span></button>
+          <button class="tab-btn" data-tab="tab-tribunal"><i class="fa-solid fa-gavel"></i> Tribunal Discord</button>
+        </div>
+
+        <div class="sidebar-category">
+          <div class="category-title"><i class="fa-solid fa-gamepad" style="color: #2ecc71;"></i> DIVERTISSEMENT & JEUX</div>
+          <button class="tab-btn" data-tab="tab-confessions"><i class="fa-solid fa-mask"></i> Confessions Anonymes</button>
+          <button class="tab-btn" data-tab="tab-counting"><i class="fa-solid fa-calculator"></i> Salons de Comptage</button>
+          <button class="tab-btn" data-tab="tab-game"><i class="fa-solid fa-gamepad"></i> Jeu Mot Caché</button>
+          <button class="tab-btn" data-tab="tab-action-verite"><i class="fa-solid fa-dice"></i> Action ou Vérité</button>
+          <button class="tab-btn" data-tab="tab-bump"><i class="fa-solid fa-bell"></i> Rappels de Bump</button>
+          <button class="tab-btn" data-tab="tab-gifs"><i class="fa-solid fa-file-video"></i> GIFs d'action</button>
+        </div>
+
+        <div class="sidebar-category">
+          <div class="category-title"><i class="fa-solid fa-chart-line" style="color: #e67e22;"></i> NIVEAUX & ÉCONOMIE</div>
+          <button class="tab-btn" data-tab="tab-leveling"><i class="fa-solid fa-arrow-trend-up"></i> Niveaux & XP</button>
+          <button class="tab-btn" data-tab="tab-quests"><i class="fa-solid fa-scroll" style="color: #f1c40f;"></i> Système de Quêtes <span class="nav-badge badge-gold">NEW</span></button>
+          <button class="tab-btn" data-tab="tab-karma"><i class="fa-solid fa-star"></i> Configuration Karma</button>
+          <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique & Suites</button>
+        </div>
+
+        <div class="sidebar-category">
+          <div class="category-title"><i class="fa-solid fa-headset" style="color: #3498db;"></i> SUPPORT & MAPPING</div>
+          <button class="tab-btn" data-tab="tab-tickets"><i class="fa-solid fa-ticket"></i> Support & Tickets</button>
+          <button class="tab-btn" data-tab="tab-map"><i class="fa-solid fa-map-location-dot"></i> Carte des Membres</button>
+        </div>
+
+        <div class="sidebar-category">
+          <div class="category-title"><i class="fa-solid fa-brain" style="color: #1abc9c;"></i> CLÉS & PARAMÈTRES IA</div>
+          <button class="tab-btn" data-tab="tab-ai"><i class="fa-solid fa-brain"></i> Clés & Modèles IA</button>
+        </div>
+      </aside>
+
+      <!-- Form Content -->
+      <section class="content-area">
+        <div id="no-guild-selected" class="card glass text-center" style="padding: 40px 30px;">
+          <i class="fa-solid fa-server select-arrow-icon" style="margin-bottom: 20px; font-size: 3rem; color: #5865F2;"></i>
+          <h2>Sélectionnez un serveur à configurer</h2>
+          <p style="color: #8e9297; margin-bottom: 30px; font-size: 0.95rem;">Choisissez un serveur Discord ci-dessous pour gérer et configurer votre bot B&G Elite.</p>
           <div id="servers-grid" class="servers-grid">
             <!-- Rempli dynamiquement en JS -->
           </div>
         </div>
 
         <div id="config-forms" style="display: none;">
-          <!-- Barre d'information du serveur actif avec contours Or -->
-          <div class="active-guild-banner-card gold-contour">
-            <div style="display: flex; align-items: center; gap: 14px;">
-              <i class="fa-solid fa-server" style="color: #ffd700; font-size: 1.4rem; filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6));"></i>
-              <div>
-                <span id="active-guild-name-banner" style="font-weight: 800; color: #fff; font-size: 1.1rem; letter-spacing: 0.5px;">Serveur sélectionné</span>
-                <div style="font-size: 0.78rem; color: #ffd700; font-weight: 600;">Panel de Configuration Premium VIP</div>
-              </div>
+          <!-- Barre d'information du serveur actif avec bouton de changement -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 12px 20px; background: rgba(88, 101, 242, 0.1); border: 1px solid rgba(88, 101, 242, 0.3); border-radius: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <i class="fa-solid fa-server" style="color: #5865F2; font-size: 1.3rem;"></i>
+              <span id="active-guild-name-banner" style="font-weight: 700; color: #fff; font-size: 1.05rem;">Serveur sélectionné</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <button type="button" id="btn-return-hub" class="btn btn-hub-return" style="display: none;">
-                <i class="fa-solid fa-grid-2" style="color: #ffd700;"></i> 🏛️ Hub des Catégories
-              </button>
-              <button type="button" id="btn-change-guild-banner" class="btn btn-change-server">
-                <i class="fa-solid fa-server" style="margin-right: 6px;"></i> Changer de serveur
-              </button>
-            </div>
+            <button type="button" id="btn-change-guild-banner" class="btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; padding: 8px 16px; font-size: 0.85rem; border-radius: 8px; cursor: pointer; font-weight: 600;">
+              <i class="fa-solid fa-server" style="margin-right: 6px;"></i> Changer de serveur
+            </button>
           </div>
-
-          <!-- HUB PRINCIPAL DES CATÉGORIES (CARTES & BOUTONS VISUELS) -->
-          <div id="main-navigation-hub" class="navigation-hub-container">
-            <div class="hub-header">
-              <h2 class="hub-title"><i class="fa-solid fa-crown" style="color: #ffd700;"></i> HUB DE CONFIGURATION DISCORD</h2>
-              <p class="hub-subtitle">Cliquez sur une catégorie visuelle pour accéder instantanément à ses fonctionnalités.</p>
-            </div>
-
-            <!-- Grille de Cartes de Navigation -->
-            <div class="nav-cards-grid">
-
-              <!-- CARTE 1: GESTION DU SERVEUR -->
-              <div class="nav-category-card gold-contour" data-hub-cat="server">
-                <div class="card-hub-badge badge-purple">SERVEUR ⚙️</div>
-                <div class="card-hub-icon-box icon-violet">
-                  <i class="fa-solid fa-sliders"></i>
-                </div>
-                <h3 class="card-hub-title">GESTION DU SERVEUR</h3>
-                <p class="card-hub-desc">Arrivées/Départs, Remerciements Boost, Annonces, Éditeur Embeds & Auto-Rôles.</p>
-                <div class="card-hub-footer">
-                  <span class="btn-open-cat">Gérer le serveur ⚙️ <i class="fa-solid fa-arrow-right"></i></span>
-                </div>
-              </div>
-
-              <!-- CARTE 2: SÉCURITÉ & MODÉRATION -->
-              <div class="nav-category-card gold-contour" data-hub-cat="security">
-                <div class="card-hub-badge badge-red">MODÉRATION 🛡️</div>
-                <div class="card-hub-icon-box icon-red">
-                  <i class="fa-solid fa-shield-halved"></i>
-                </div>
-                <h3 class="card-hub-title">SÉCURITÉ & MODÉRATION</h3>
-                <p class="card-hub-desc">Quarantaine Anti-raid, Auto-modération, Tribunal Discord & Panneaux Tickets.</p>
-                <div class="card-hub-footer">
-                  <span class="btn-open-cat">Sécuriser le serveur 🛡️ <i class="fa-solid fa-arrow-right"></i></span>
-                </div>
-              </div>
-
-              <!-- CARTE 3: ÉCONOMIE & JEUX -->
-              <div class="nav-category-card gold-contour" data-hub-cat="economy">
-                <div class="card-hub-badge badge-gold">ÉCONOMIE 📈</div>
-                <div class="card-hub-icon-box icon-gold">
-                  <i class="fa-solid fa-chart-line"></i>
-                </div>
-                <h3 class="card-hub-title">ÉCONOMIE, NIVEAUX & JEUX</h3>
-                <p class="card-hub-desc">Niveaux XP, Boutique & Suites Privées, Karma, Quêtes quotidiennes & Jeux.</p>
-                <div class="card-hub-footer">
-                  <span class="btn-open-cat">Accéder à l'économie 📈 <i class="fa-solid fa-arrow-right"></i></span>
-                </div>
-              </div>
-
-              <!-- CARTE 4: ASSISTANT & IA VIP -->
-              <div class="nav-category-card gold-contour" data-hub-cat="ai">
-                <div class="card-hub-badge badge-purple">IA VIP 🤖</div>
-                <div class="card-hub-icon-box icon-teal">
-                  <i class="fa-solid fa-robot"></i>
-                </div>
-                <h3 class="card-hub-title">ASSISTANT & IA VIP</h3>
-                <p class="card-hub-desc">Assistant IA Administrateur, Star de la semaine & Clés de Modèles IA.</p>
-                <div class="card-hub-footer">
-                  <span class="btn-open-cat">Ouvrir l'IA Admin 🤖 <i class="fa-solid fa-arrow-right"></i></span>
-                </div>
-              </div>
-
-
-
-            </div>
-          </div>
-
-          <!-- ESPACE DE TRAVAIL AVEC SIDEBAR LATÉRALE RÉTRACTABLE (SUB-SIDEBAR) -->
-          <div id="category-workspace" class="category-workspace-layout" style="display: none;">
-            <!-- Sub-Sidebar Latérale Rétractable -->
-            <aside id="sub-sidebar" class="sub-sidebar-nav gold-contour">
-              <div class="sub-sidebar-top-bar">
-                <button type="button" id="btn-return-hub-side" class="btn btn-hub-return" title="Retour au Hub des Catégories">
-                  <i class="fa-solid fa-grid-2"></i> <span class="side-text">Hub</span>
-                </button>
-                <button type="button" id="btn-toggle-sub-sidebar" class="btn-toggle-sub-side" title="Rétracter / Déployer le menu">
-                  <i class="fa-solid fa-angles-left"></i>
-                </button>
-              </div>
-
-              <div id="sub-sidebar-cat-title" class="sub-sidebar-cat-title">
-                <i class="fa-solid fa-layer-group"></i> <span class="side-text">CATÉGORIE</span>
-              </div>
-
-              <div id="sub-sidebar-buttons-list" class="sub-sidebar-btns-list">
-                <!-- Rempli dynamiquement en JS lors du clic sur une carte de catégorie -->
-              </div>
-            </aside>
-
-            <!-- Zone de Formulaire Principale -->
-            <div class="sub-sidebar-form-container">
 
           <!-- Tab: AI Assistant -->
           <div id="tab-assistant" class="tab-content">
@@ -2992,6 +2954,6 @@ Il/Elle remporte le rôle {role} et brille sur le serveur !</textarea>
 
   <div id="toast" class="toast glass">Configuration enregistrée !</div>
 
-  <script src="script.js?v=6.0.0"></script>
+  <script src="script.js?v=7.0.0"></script>
 </body>
 </html>
