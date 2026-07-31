@@ -676,12 +676,27 @@ function selectCategory(catId) {
   if (cat.items.length > 0) showPanel(cat.items[0].id);
 }
 
+function toggleMobileSidebar(forceState) {
+  const sidebar = document.getElementById('dashSidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  if (!sidebar) return;
+  const isOpen = forceState !== undefined ? forceState : !sidebar.classList.contains('open');
+  if (isOpen) {
+    sidebar.classList.add('open');
+    if (overlay) overlay.classList.add('active');
+  } else {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+  }
+}
+
 function clickSidebarItem(panelId, el) {
   const sidebar = document.getElementById('dashSidebar');
   if (sidebar) {
     sidebar.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
   }
   if (el) el.classList.add('active');
+  toggleMobileSidebar(false);
   showPanel(panelId);
 }
 

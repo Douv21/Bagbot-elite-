@@ -12,6 +12,7 @@
 
 <div class="bg-glow"></div>
 <div class="toast-container" id="toastContainer"></div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileSidebar(false)"></div>
 
 <!-- ═══ 1. LOGIN PAGE ═══ -->
 <div class="page active" id="page-login">
@@ -52,6 +53,9 @@
 
   <!-- HEADER -->
   <header class="dash-header">
+    <button class="btn-toggle-sidebar" id="btnToggleSidebar" onclick="toggleMobileSidebar()">
+      <i class="fa-solid fa-bars"></i> <span>Menu</span>
+    </button>
     <div class="header-bot">
       <img id="headerBotAvatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot">
       <span class="header-bot-name" id="headerBotName">Bagbot Elite</span>
@@ -66,7 +70,7 @@
       <img id="headerUserAvatar" src="" alt="">
       <span class="header-user-name" id="headerUserName"></span>
     </div>
-    <button class="btn-sm-gold" onclick="changeGuild()"><i class="fa-solid fa-shuffle"></i> Changer de serveur</button>
+    <button class="btn-sm-gold" onclick="changeGuild()"><i class="fa-solid fa-shuffle"></i> Changer</button>
     <button class="btn-logout" onclick="window.location.href='/logout'"><i class="fa-solid fa-right-from-bracket"></i> Quitter</button>
   </header>
 
@@ -110,7 +114,7 @@
                 <div class="form-group" style="grid-column:1/-1">
                   <label><i class="fa-solid fa-align-left"></i> Description du message</label>
                   <textarea id="wl-welcome_desc" name="welcome_desc" placeholder="Bienvenue {user} sur {server} !"></textarea>
-                  <p class="form-hint">Variables disponibles : {user}, {server}, {membercount}</p>
+                  <p class="form-hint">Variables : {user}, {server}, {membercount}</p>
                 </div>
                 <div class="form-group">
                   <label><i class="fa-solid fa-palette"></i> Couleur de l'embed</label>
@@ -212,7 +216,7 @@
               </div>
             </div>
             <div class="form-actions">
-              <button type="button" class="btn btn-primary" onclick="toast('Annonce envoyée !')"><i class="fa-solid fa-paper-plane"></i> Publier l'Annonce</button>
+              <button type="button" class="btn btn-primary" onclick="toast('Annonce publiée avec succès !')"><i class="fa-solid fa-paper-plane"></i> Publier l'Annonce</button>
             </div>
           </div>
         </div>
@@ -311,6 +315,10 @@
               <div class="form-group">
                 <label><i class="fa-solid fa-hashtag"></i> Salon concerné</label>
                 <select id="ath-channel" data-type="channel"></select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-heading"></i> Nom par défaut du fil</label>
+                <input type="text" id="ath-prefix" value="💬┆Discussion-{user}">
               </div>
             </div>
             <div class="form-actions">
