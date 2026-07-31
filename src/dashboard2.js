@@ -56,7 +56,7 @@ app.use(session({
   resave: true,
   saveUninitialized: true,
   cookie: { secure: false, maxAge: 30*24*60*60*1000, sameSite: 'lax', httpOnly: true },
-  name: 'connect.sid'
+  name: 'bagbot-elite.sid'
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
