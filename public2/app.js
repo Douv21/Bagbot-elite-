@@ -54,10 +54,11 @@ const CATEGORIES = {
   divertissement: {
     label: 'DIVERTISSEMENT & JEUX',
     icon: 'fa-gamepad',
-    desc: 'Tribunal, Star de la Semaine, Confessions, Mot Caché, Action-Vérité, GIFs',
+    desc: 'Tribunal, Star de la Semaine, Confessions, Mot Caché, UNO, Action-Vérité, GIFs',
     items: [
       { id: 'tribunal', label: 'Tribunal Discord', icon: 'fa-gavel', badge: 'JEU' },
       { id: 'star', label: 'Star de la Semaine', icon: 'fa-star', badge: 'TOP' },
+      { id: 'uno', label: 'Jeu UNO Canvas', icon: 'fa-layer-group', badge: 'JEU' },
       { id: 'confessions', label: 'Confessions Anonymes', icon: 'fa-mask' },
       { id: 'counting', label: 'Salons de Comptage', icon: 'fa-calculator' },
       { id: 'game', label: 'Jeu Mot Caché', icon: 'fa-gamepad' },
@@ -386,6 +387,19 @@ function hydrateForms() {
   setElVal('ai-preferred_provider', aic.preferred_provider || 'groq');
   setElVal('ai-groq_text_model', aic.groq_text_model || 'llama-3.3-70b-versatile');
   setElVal('ai-gemini_model', aic.gemini_model || 'gemini-2.5-flash');
+
+  // UNO Config
+  const uno = config.uno_config || {};
+  setElCheck('uno-is_active', uno.is_active === 1);
+  setElVal('uno-announce_channel', uno.announce_channel);
+  setElVal('uno-win_xp', uno.win_xp ?? 100);
+  setElVal('uno-win_money', uno.win_money ?? 500);
+
+  // Suites Privées
+  const shopCfg = config.shop_config || {};
+  setElVal('suites-private_suite_category_id', shopCfg.privateSuiteCategoryId);
+  setElVal('suites-suite_channel_prefix', shopCfg.suiteChannelPrefix || '👑┆suite-');
+  setElVal('suites-suite_price', shopCfg.suitePrice ?? 15000);
 
   // Render lists
   renderAutorolesJoinList();
