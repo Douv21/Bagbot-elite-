@@ -35,14 +35,14 @@ const {
   getTicketOptions,
 } = require('./database/db');
 
-db.exec('CREATE TABLE IF NOT EXISTS user_sessions2 (sid TEXT PRIMARY KEY, sess TEXT NOT NULL, expired INTEGER NOT NULL)');
+db.exec('CREATE TABLE IF NOT EXISTS user_sessions (sid TEXT PRIMARY KEY, sess TEXT NOT NULL, expired INTEGER NOT NULL)');
 
 class SQLiteSessionStore extends session.Store {
   constructor() {
     super();
-    this.getStmt = db.prepare('SELECT sess FROM user_sessions2 WHERE sid = ? AND expired > ?');
-    this.setStmt = db.prepare('INSERT INTO user_sessions2 (sid, sess, expired) VALUES (?, ?, ?) ON CONFLICT(sid) DO UPDATE SET sess = excluded.sess, expired = excluded.expired');
-    this.destroyStmt = db.prepare('DELETE FROM user_sessions2 WHERE sid = ?');
+    this.getStmt = db.prepare('SELECT sess FROM user_sessions WHERE sid = ? AND expired > ?');
+    this.setStmt = db.prepare('INSERT INTO user_sessions (sid, sess, expired) VALUES (?, ?, ?) ON CONFLICT(sid) DO UPDATE SET sess = excluded.sess, expired = excluded.expired');
+    this.destroyStmt = db.prepare('DELETE FROM user_sessions WHERE sid = ?');
   }
   get(sid, cb) { try { const r = this.getStmt.get(sid, Date.now()); if (!r) return cb(null, null); cb(null, JSON.parse(r.sess)); } catch(e) { cb(e); } }
   set(sid, sess, cb) { try { const ma = sess && sess.cookie && sess.cookie.maxAge ? sess.cookie.maxAge : 30*24*60*60*1000; this.setStmt.run(sid, JSON.stringify(sess), Date.now()+ma); if(cb) cb(null); } catch(e) { if(cb) cb(e); } }
@@ -50,7 +50,14 @@ class SQLiteSessionStore extends session.Store {
 }
 
 app.set('trust proxy', 1);
-app.use(session({ store: new SQLiteSessionStore(), secret: process.env.SESSION_SECRET || 'bagbot2secret', resave: true, saveUninitialized: true, cookie: { secure: false, maxAge: 30*24*60*60*1000, sameSite: 'lax', httpOnly: true }, name: 'bagbot-elite2.sid' }));
+app.use(session({
+  store: new SQLiteSessionStore(),
+  secret: process.env.SESSION_SECRET || 'bagbot-elite-secret-key-change-in-production',
+  resave: true,
+  saveUninitialized: true,
+  cookie: { secure: false, maxAge: 30*24*60*60*1000, sameSite: 'lax', httpOnly: true },
+  name: 'bagbot-elite.sid'
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
@@ -61,9 +68,7 @@ const getGuildId = (req) => (req.query && req.query.guildId) || (req.body && req
 const botFetch = async (p, opts) => { const r = await fetch('http://127.0.0.1:' + BOT_API_PORT + p, opts).catch(() => null); if (!r || !r.ok) return null; return r.json().catch(() => null); };
 
 app.get('/login', (req, res) => {
-  const id = process.env.DISCORD_CLIENT_ID;
-  const ru = encodeURIComponent(CALLBACK_URL);
-  res.redirect('https://discord.com/api/oauth2/authorize?client_id=' + id + '&redirect_uri=' + ru + '&response_type=code&scope=identify%20guilds');
+  res.redirect('http://82.65.75.176:49601/login?redirect=http://82.65.75.176:49602/');
 });
 
 app.get('/callback', async (req, res) => {
