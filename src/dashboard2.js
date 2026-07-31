@@ -68,10 +68,9 @@ const getGuildId = (req) => (req.query && req.query.guildId) || (req.body && req
 const botFetch = async (p, opts) => { const r = await fetch('http://127.0.0.1:' + BOT_API_PORT + p, opts).catch(() => null); if (!r || !r.ok) return null; return r.json().catch(() => null); };
 
 app.get('/login', (req, res) => {
-  const host = req.get('host') || '82.65.75.176:49602';
-  const protocol = req.protocol || 'http';
-  const target = encodeURIComponent(`${protocol}://${host}/`);
-  res.redirect(`http://82.65.75.176:49601/login?redirect=${target}`);
+  const id = process.env.DISCORD_CLIENT_ID;
+  const redirectUri = encodeURIComponent('http://82.65.75.176:49601/callback');
+  res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${id}&redirect_uri=${redirectUri}&response_type=code&scope=identify%20guilds&state=port49602`);
 });
 
 app.get('/callback', async (req, res) => {
