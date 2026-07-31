@@ -325,7 +325,7 @@ function switchWelcomeLeaveMode(mode) {
   if (isWelcome) {
     if (elAuthorName) elAuthorName.value = wl.welcome_author_name || '';
     if (elAuthorIcon) elAuthorIcon.value = wl.welcome_author_icon || '';
-    if (elTitle) elTitle.value = wl.welcome_title || '👋 Bienvenue';
+    if (elTitle) elTitle.value = wl.welcome_title || '👋 Bienvenue sur le serveur !';
     if (elDesc) elDesc.value = wl.welcome_desc || 'Bienvenue {user} sur {server} !';
     if (elColor) elColor.value = wl.welcome_color || '#00FF00';
     if (elThumb) elThumb.value = wl.welcome_thumbnail || '';
@@ -364,6 +364,9 @@ function updateEmbedPreview() {
   const image = elImage ? elImage.value : '';
   const footer = elFooter ? elFooter.value : '';
 
+  const botAvatarImg = document.getElementById('wl-embed-bot-avatar');
+  if (botAvatarImg && state.botInfo.avatarURL) botAvatarImg.src = state.botInfo.avatarURL;
+
   const bar = document.getElementById('wl-embed-bar-color');
   if (bar) bar.style.background = color;
 
@@ -382,10 +385,10 @@ function updateEmbedPreview() {
   }
 
   const pTitle = document.getElementById('wl-preview-title');
-  if (pTitle) pTitle.textContent = title || '👋 Bienvenue';
+  if (pTitle) pTitle.textContent = title || (wlMode === 'welcome' ? '👋 Bienvenue sur le serveur !' : '👋 Au revoir');
 
   const pDesc = document.getElementById('wl-preview-desc');
-  if (pDesc) pDesc.textContent = desc || 'Message...';
+  if (pDesc) pDesc.textContent = desc || (wlMode === 'welcome' ? 'Bienvenue {user} sur {server} !' : 'Au revoir {user} !');
 
   const pThumbWrap = document.getElementById('wl-preview-thumb-wrap');
   const pThumbImg = document.getElementById('wl-preview-thumb-img');
