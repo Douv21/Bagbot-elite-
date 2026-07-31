@@ -69,10 +69,7 @@ function getGuildId(req) {
 
 // ─── AUTH & SESSION ROUTES ──────────────────────────────────────────────────
 app.get('/login', (req, res) => {
-  const redirectUri = encodeURIComponent('http://82.65.75.176:49602/callback');
-  const scope = encodeURIComponent('identify guilds');
-  const clientId = process.env.DISCORD_CLIENT_ID || '1523016917588115566';
-  res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`);
+  res.redirect('http://82.65.75.176:49601/login?port=49602');
 });
 
 app.get('/callback', async (req, res) => {
@@ -118,26 +115,45 @@ app.get('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/'));
 });
 
-app.get('/api/user', (req, res) => {
-  if (!req.session || !req.session.user) return res.json({ authenticated: false });
-  res.json({ authenticated: true, user: req.session.user, selectedGuild: req.session.selectedGuild });
+app.get('/api/user', async (req, res) => {
+  if (req.session && req.session.user) {
+    return res.json({ authenticated: true, user: req.session.user, selectedGuild: req.session.selectedGuild });
+  }
+  // Try fetching session from Dashboard 1 (shared cookies on same host)
+  try {
+    const cookieHeader = req.headers.cookie || '';
+    const d1Res = await fetch('http://127.0.0.1:49601/api/user', {
+      headers: { cookie: cookieHeader }
+    });
+    if (d1Res.ok) {
+      const d1Data = await d1Res.json();
+      if (d1Data && d1Data.authenticated && d1Data.user) {
+        req.session.user = d1Data.user;
+        if (d1Data.selectedGuild) req.session.selectedGuild = d1Data.selectedGuild;
+        return res.json({ authenticated: true, user: d1Data.user, selectedGuild: req.session.selectedGuild });
+      }
+    }
+  } catch(e) {}
+  res.json({ authenticated: false });
 });
 
 app.get('/api/guilds', async (req, res) => {
-  if (!req.session || !req.session.accessToken) return res.json([]);
+  const cookieHeader = req.headers.cookie || '';
   try {
-    const userGuildsRes = await fetch('https://discord.com/api/users/@me/guilds', {
-      headers: { Authorization: `Bearer ${req.session.accessToken}` }
+    const d1Res = await fetch('http://127.0.0.1:49601/api/guilds', {
+      headers: { cookie: cookieHeader }
     });
-    const userGuilds = await userGuildsRes.json();
-    if (!Array.isArray(userGuilds)) return res.json([]);
-
+    if (d1Res.ok) {
+      const guilds = await d1Res.json();
+      if (Array.isArray(guilds) && guilds.length > 0) return res.json(guilds);
+    }
+  } catch(e) {}
+  // Fallback to bot guilds if authenticated
+  if (req.session && req.session.user) {
     const botGuilds = await botFetch('/guilds') || [];
-    const botGuildIds = new Set(botGuilds.map(g => g.id));
-
-    const common = userGuilds.filter(g => (g.permissions & 0x8) === 0x8 && botGuildIds.has(g.id));
-    res.json(common);
-  } catch(e) { res.json([]); }
+    return res.json(botGuilds);
+  }
+  res.json([]);
 });
 
 app.post('/api/select-guild', (req, res) => {

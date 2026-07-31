@@ -226,9 +226,12 @@ const getRedirectUri = (req) => {
   return `${protocol}://${host}/callback`;
 };
 
-// Route de connexion Discord OAuth2
+// Route de connexion Discord OAuth2 (supports port delegation)
 app.get('/login', (req, res) => {
-  const clientId = process.env.DISCORD_CLIENT_ID;
+  if (req.query.port) {
+    req.session.targetPort = req.query.port;
+  }
+  const clientId = process.env.DISCORD_CLIENT_ID || '1523016917588115566';
   const redirectUri = encodeURIComponent(getRedirectUri(req));
   const scope = encodeURIComponent('identify guilds guilds.members.read');
   res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`);
@@ -300,7 +303,12 @@ app.get('/callback', async (req, res) => {
         console.error('[/callback] Erreur sauvegarde session:', err);
         return res.redirect('/?error=session_error');
       }
-      console.log(`[/callback] Session enregistrée pour ${userData.username}, redirection vers /`);
+      console.log(`[/callback] Session enregistrée pour ${userData.username}`);
+      const tPort = req.session.targetPort;
+      delete req.session.targetPort;
+      if (tPort === '49602') {
+        return res.redirect('http://82.65.75.176:49602/?auth_success=1');
+      }
       res.redirect('/');
     });
   } catch (error) {
