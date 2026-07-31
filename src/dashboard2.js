@@ -35,14 +35,14 @@ const {
   getTicketOptions,
 } = require('./database/db');
 
-db.exec('CREATE TABLE IF NOT EXISTS user_sessions (sid TEXT PRIMARY KEY, sess TEXT NOT NULL, expired INTEGER NOT NULL)');
+db.exec('CREATE TABLE IF NOT EXISTS user_sessions2 (sid TEXT PRIMARY KEY, sess TEXT NOT NULL, expired INTEGER NOT NULL)');
 
 class SQLiteSessionStore extends session.Store {
   constructor() {
     super();
-    this.getStmt = db.prepare('SELECT sess FROM user_sessions WHERE sid = ? AND expired > ?');
-    this.setStmt = db.prepare('INSERT INTO user_sessions (sid, sess, expired) VALUES (?, ?, ?) ON CONFLICT(sid) DO UPDATE SET sess = excluded.sess, expired = excluded.expired');
-    this.destroyStmt = db.prepare('DELETE FROM user_sessions WHERE sid = ?');
+    this.getStmt = db.prepare('SELECT sess FROM user_sessions2 WHERE sid = ? AND expired > ?');
+    this.setStmt = db.prepare('INSERT INTO user_sessions2 (sid, sess, expired) VALUES (?, ?, ?) ON CONFLICT(sid) DO UPDATE SET sess = excluded.sess, expired = excluded.expired');
+    this.destroyStmt = db.prepare('DELETE FROM user_sessions2 WHERE sid = ?');
   }
   get(sid, cb) { try { const r = this.getStmt.get(sid, Date.now()); if (!r) return cb(null, null); cb(null, JSON.parse(r.sess)); } catch(e) { cb(e); } }
   set(sid, sess, cb) { try { const ma = sess && sess.cookie && sess.cookie.maxAge ? sess.cookie.maxAge : 30*24*60*60*1000; this.setStmt.run(sid, JSON.stringify(sess), Date.now()+ma); if(cb) cb(null); } catch(e) { if(cb) cb(e); } }
@@ -50,14 +50,7 @@ class SQLiteSessionStore extends session.Store {
 }
 
 app.set('trust proxy', 1);
-app.use(session({
-  store: new SQLiteSessionStore(),
-  secret: process.env.SESSION_SECRET || 'bagbot-elite-secret-key-change-in-production',
-  resave: true,
-  saveUninitialized: true,
-  cookie: { secure: false, maxAge: 30*24*60*60*1000, sameSite: 'lax', httpOnly: true },
-  name: 'bagbot-elite.sid'
-}));
+app.use(session({ store: new SQLiteSessionStore(), secret: process.env.SESSION_SECRET || 'bagbot2secret', resave: true, saveUninitialized: true, cookie: { secure: false, maxAge: 30*24*60*60*1000, sameSite: 'lax', httpOnly: true }, name: 'bagbot-elite2.sid' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
@@ -70,47 +63,7 @@ const botFetch = async (p, opts) => { const r = await fetch('http://127.0.0.1:' 
 app.get('/login', (req, res) => {
   const id = process.env.DISCORD_CLIENT_ID;
   const ru = encodeURIComponent(CALLBACK_URL);
-  res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${id}&redirect_uri=${ru}&response_type=code&scope=identify%20guilds`);
-});
-
-app.get('/callback', async (req, res) => {
-  const code = req.query.code;
-  if (!code) return res.redirect('/?error=no_code');
-  try {
-    const tr = await fetch('https://discord.com/api/oauth2/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: process.env.DISCORD_CLIENT_ID,
-        client_secret: process.env.DISCORD_CLIENT_SECRET,
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: CALLBACK_URL
-      })
-    });
-    const td = await tr.json();
-    if (td.error) throw new Error(td.error);
-    const [ur, gr] = await Promise.all([
-      fetch('https://discord.com/api/users/@me', { headers: { Authorization: 'Bearer ' + td.access_token } }),
-      fetch('https://discord.com/api/users/@me/guilds', { headers: { Authorization: 'Bearer ' + td.access_token } })
-    ]);
-    const ud = await ur.json();
-    const gd = await gr.json();
-    req.session.user = {
-      id: ud.id,
-      username: ud.username,
-      global_name: ud.global_name || ud.username,
-      avatar: ud.avatar,
-      accessToken: td.access_token,
-      guilds: gd
-    };
-    req.session.save(err => {
-      res.redirect('/');
-    });
-  } catch(e) {
-    console.error('[Dashboard2 OAuth Error]', e);
-    res.redirect('/?error=oauth_failed');
-  }
+  res.redirect('https://discord.com/api/oauth2/authorize?client_id=' + id + '&redirect_uri=' + ru + '&response_type=code&scope=identify%20guilds');
 });
 
 app.get('/callback', async (req, res) => {
@@ -196,26 +149,26 @@ app.post('/api/config/welcome-leave', (req, res) => {
   const g = getGuildId(req); if (!g) return res.status(400).json({ error: 'No guild' });
   try {
     const {
-      welcome_channel, welcome_title, welcome_desc, welcome_color, welcome_author_name, welcome_author_icon, welcome_thumbnail, welcome_image, welcome_footer, welcome_role_filter,
-      leave_channel, leave_title, leave_desc, leave_color, leave_author_name, leave_author_icon, leave_thumbnail, leave_image, leave_footer
+      welcome_channel, welcome_title, welcome_desc, welcome_color, welcome_author_name, welcome_author_icon, welcome_image, welcome_footer, welcome_role_filter,
+      leave_channel, leave_title, leave_desc, leave_color, leave_author_name, leave_author_icon, leave_image, leave_footer
     } = req.body || {};
 
     db.prepare(`INSERT INTO welcome_leave (
-      guild_id, welcome_channel, leave_channel, welcome_title, welcome_desc, welcome_color, welcome_author_name, welcome_author_icon, welcome_thumbnail, welcome_image, welcome_footer, welcome_role_filter,
-      leave_title, leave_desc, leave_color, leave_author_name, leave_author_icon, leave_thumbnail, leave_image, leave_footer
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      guild_id, welcome_channel, leave_channel, welcome_title, welcome_desc, welcome_color, welcome_author_name, welcome_author_icon, welcome_image, welcome_footer, welcome_role_filter,
+      leave_title, leave_desc, leave_color, leave_author_name, leave_author_icon, leave_image, leave_footer
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(guild_id) DO UPDATE SET
       welcome_channel=excluded.welcome_channel, leave_channel=excluded.leave_channel,
       welcome_title=excluded.welcome_title, welcome_desc=excluded.welcome_desc, welcome_color=excluded.welcome_color,
       welcome_author_name=excluded.welcome_author_name, welcome_author_icon=excluded.welcome_author_icon,
-      welcome_thumbnail=excluded.welcome_thumbnail, welcome_image=excluded.welcome_image, welcome_footer=excluded.welcome_footer, welcome_role_filter=excluded.welcome_role_filter,
+      welcome_image=excluded.welcome_image, welcome_footer=excluded.welcome_footer, welcome_role_filter=excluded.welcome_role_filter,
       leave_title=excluded.leave_title, leave_desc=excluded.leave_desc, leave_color=excluded.leave_color,
       leave_author_name=excluded.leave_author_name, leave_author_icon=excluded.leave_author_icon,
-      leave_thumbnail=excluded.leave_thumbnail, leave_image=excluded.leave_image, leave_footer=excluded.leave_footer`
+      leave_image=excluded.leave_image, leave_footer=excluded.leave_footer`
     ).run(
       g, welcome_channel||null, leave_channel||null,
-      welcome_title||'', welcome_desc||'', welcome_color||'#00FF00', welcome_author_name||'', welcome_author_icon||'', welcome_thumbnail||'', welcome_image||'', welcome_footer||'', welcome_role_filter||null,
-      leave_title||'', leave_desc||'', leave_color||'#FF0000', leave_author_name||'', leave_author_icon||'', leave_thumbnail||'', leave_image||'', leave_footer||''
+      welcome_title||'', welcome_desc||'', welcome_color||'#00FF00', welcome_author_name||'', welcome_author_icon||'', welcome_image||'', welcome_footer||'', welcome_role_filter||null,
+      leave_title||'', leave_desc||'', leave_color||'#FF0000', leave_author_name||'', leave_author_icon||'', leave_image||'', leave_footer||''
     );
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }

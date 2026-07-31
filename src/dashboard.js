@@ -301,11 +301,7 @@ app.get('/callback', async (req, res) => {
         return res.redirect('/?error=session_error');
       }
       console.log(`[/callback] Session enregistrée pour ${userData.username}, redirection vers /`);
-      if (req.query.state === 'port49602') {
-      res.redirect('http://82.65.75.176:49602/');
-    } else {
       res.redirect('/');
-    }
     });
   } catch (error) {
     console.error('[/callback] Erreur OAuth2 globale:', error);
