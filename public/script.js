@@ -523,6 +523,13 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Erreur chargement config guilde:', e);
     }
 
+    // Ouvrir automatiquement l'espace de travail avec la catégorie serveur pour afficher immédiatement les données configurées
+    try {
+      openCategoryWorkspace('server');
+    } catch (e) {
+      console.error('Erreur ouverture workspace catégorie:', e);
+    }
+
     try {
       loadStarConfigAndLeaderboard(guildId);
     } catch (e) {
