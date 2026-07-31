@@ -299,7 +299,7 @@ function populateAllDropdowns() {
 }
 
 
-// ─── WELCOME / LEAVE DISCORD EMBED LIVE PREVIEW ──────────────────────────────
+// ─── DASHBOARD 2 EMBED PREVIEW ────────────────────────────────────────────────
 let wlMode = 'welcome';
 
 function switchWelcomeLeaveMode(mode) {
@@ -311,147 +311,106 @@ function switchWelcomeLeaveMode(mode) {
   if (wGroup) wGroup.style.display = isWelcome ? 'block' : 'none';
   if (lGroup) lGroup.style.display = isWelcome ? 'none' : 'block';
   if (rGroup) rGroup.style.display = isWelcome ? 'block' : 'none';
-
-  const wl = state.config.welcome_leave || {};
-  const elAuthorName = document.getElementById('wl-active_author_name');
-  const elAuthorIcon = document.getElementById('wl-active_author_icon');
-  const elTitle = document.getElementById('wl-active_title');
-  const elDesc = document.getElementById('wl-active_desc');
-  const elColor = document.getElementById('wl-active_color');
-  const elThumb = document.getElementById('wl-active_thumbnail');
-  const elImage = document.getElementById('wl-active_image');
-  const elFooter = document.getElementById('wl-active_footer');
-
-  if (isWelcome) {
-    if (elAuthorName) elAuthorName.value = wl.welcome_author_name || '';
-    if (elAuthorIcon) elAuthorIcon.value = wl.welcome_author_icon || '';
-    if (elTitle) elTitle.value = wl.welcome_title || '👋 Bienvenue sur le serveur !';
-    if (elDesc) elDesc.value = wl.welcome_desc || 'Bienvenue {user} sur {server} !';
-    if (elColor) elColor.value = wl.welcome_color || '#00FF00';
-    if (elThumb) elThumb.value = wl.welcome_thumbnail || '';
-    if (elImage) elImage.value = wl.welcome_image || '';
-    if (elFooter) elFooter.value = wl.welcome_footer || '';
-  } else {
-    if (elAuthorName) elAuthorName.value = wl.leave_author_name || '';
-    if (elAuthorIcon) elAuthorIcon.value = wl.leave_author_icon || '';
-    if (elTitle) elTitle.value = wl.leave_title || '👋 Au revoir';
-    if (elDesc) elDesc.value = wl.leave_desc || 'Au revoir {user} !';
-    if (elColor) elColor.value = wl.leave_color || '#FF0000';
-    if (elThumb) elThumb.value = wl.leave_thumbnail || '';
-    if (elImage) elImage.value = wl.leave_image || '';
-    if (elFooter) elFooter.value = wl.leave_footer || '';
-  }
   updateEmbedPreview();
 }
 
+function getElVal(id) {
+  const el = document.getElementById(id);
+  return el ? el.value : '';
+}
+
 function updateEmbedPreview() {
-  const elAuthorName = document.getElementById('wl-active_author_name');
-  const elAuthorIcon = document.getElementById('wl-active_author_icon');
-  const elTitle = document.getElementById('wl-active_title');
-  const elDesc = document.getElementById('wl-active_desc');
-  const elColor = document.getElementById('wl-active_color');
-  const elThumb = document.getElementById('wl-active_thumbnail');
-  const elImage = document.getElementById('wl-active_image');
-  const elFooter = document.getElementById('wl-active_footer');
-  if (!elTitle || !elDesc || !elColor) return;
+  const isWelcome = wlMode === 'welcome';
 
-  const authorName = elAuthorName ? elAuthorName.value : '';
-  const authorIcon = elAuthorIcon ? elAuthorIcon.value : '';
-  const title = elTitle.value;
-  const desc = elDesc.value;
-  const color = elColor.value;
-  const thumb = elThumb ? elThumb.value : '';
-  const image = elImage ? elImage.value : '';
-  const footer = elFooter ? elFooter.value : '';
+  // Read from hidden inputs (which were populated from DB via hydrateForms)
+  const title       = isWelcome ? getElVal('wl-welcome_title')       : getElVal('wl-leave_title');
+  const desc        = isWelcome ? getElVal('wl-welcome_desc')        : getElVal('wl-leave_desc');
+  const color       = isWelcome ? getElVal('wl-welcome_color')       : getElVal('wl-leave_color');
+  const authorName  = isWelcome ? getElVal('wl-welcome_author_name') : getElVal('wl-leave_author_name');
+  const authorIcon  = isWelcome ? getElVal('wl-welcome_author_icon') : getElVal('wl-leave_author_icon');
+  const thumb       = isWelcome ? getElVal('wl-welcome_thumbnail')   : getElVal('wl-leave_thumbnail');
+  const image       = isWelcome ? getElVal('wl-welcome_image')       : getElVal('wl-leave_image');
+  const footer      = isWelcome ? getElVal('wl-welcome_footer')      : getElVal('wl-leave_footer');
 
-  const botAvatarImg = document.getElementById('wl-embed-bot-avatar');
+  // Bot avatar
+  const botAvatarImg = document.getElementById('wl-bot-avatar-img');
   if (botAvatarImg && state.botInfo && state.botInfo.avatarURL) botAvatarImg.src = state.botInfo.avatarURL;
 
-  const bar = document.getElementById('wl-embed-bar-color');
-  if (bar) bar.style.background = color;
+  // Color bar
+  const bar = document.getElementById('wl-embed-color-bar');
+  if (bar) bar.style.background = color || (isWelcome ? '#00FF00' : '#FF0000');
 
-  const pAuthorWrap = document.getElementById('wl-preview-author-wrap');
+  // Author
   const pAuthorName = document.getElementById('wl-preview-author-name');
   const pAuthorIcon = document.getElementById('wl-preview-author-icon');
-  if (authorName || authorIcon) {
-    if (pAuthorWrap) pAuthorWrap.style.display = 'flex';
-    if (pAuthorName) pAuthorName.textContent = authorName;
-    if (pAuthorIcon) {
-      if (authorIcon) { pAuthorIcon.src = authorIcon; pAuthorIcon.style.display = 'block'; }
-      else { pAuthorIcon.style.display = 'none'; }
-    }
-  } else {
-    if (pAuthorWrap) pAuthorWrap.style.display = 'none';
+  if (pAuthorName) pAuthorName.textContent = authorName || 'Cliquez pour ajouter un Auteur...';
+  if (pAuthorIcon) {
+    if (authorIcon) { pAuthorIcon.src = authorIcon; pAuthorIcon.style.display = 'block'; }
+    else { pAuthorIcon.style.display = 'none'; }
   }
 
+  // Title
   const pTitle = document.getElementById('wl-preview-title');
-  if (pTitle) pTitle.textContent = title || (wlMode === 'welcome' ? '👋 Bienvenue sur le serveur !' : '👋 Au revoir');
+  if (pTitle) pTitle.textContent = title || (isWelcome ? '👋 Bienvenue sur le serveur !' : '👋 Au revoir');
 
+  // Description
   const pDesc = document.getElementById('wl-preview-desc');
-  if (pDesc) pDesc.textContent = desc || (wlMode === 'welcome' ? 'Bienvenue {user} sur {server} !' : 'Au revoir {user} !');
+  if (pDesc) pDesc.textContent = desc || (isWelcome ? 'Bienvenue {user} sur {server} !' : 'Au revoir {user} !');
 
-  const pThumbWrap = document.getElementById('wl-preview-thumb-wrap');
+  // Thumbnail
   const pThumbImg = document.getElementById('wl-preview-thumb-img');
-  if (thumb) {
-    if (pThumbWrap) pThumbWrap.style.display = 'block';
-    if (pThumbImg) pThumbImg.src = thumb;
-  } else {
-    if (pThumbWrap) pThumbWrap.style.display = 'none';
+  if (pThumbImg) {
+    if (thumb) { pThumbImg.src = thumb; pThumbImg.style.display = 'block'; }
+    else { pThumbImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; }
   }
 
-  const pBannerWrap = document.getElementById('wl-preview-banner-wrap');
+  // Banner
+  const pBannerPlaceholder = document.getElementById('wl-banner-placeholder');
   const pBannerImg = document.getElementById('wl-preview-banner-img');
   if (image) {
-    if (pBannerWrap) pBannerWrap.style.display = 'block';
-    if (pBannerImg) pBannerImg.src = image;
+    if (pBannerImg) { pBannerImg.src = image; pBannerImg.style.display = 'block'; }
+    if (pBannerPlaceholder) pBannerPlaceholder.style.display = 'none';
   } else {
-    if (pBannerWrap) pBannerWrap.style.display = 'none';
+    if (pBannerImg) pBannerImg.style.display = 'none';
+    if (pBannerPlaceholder) pBannerPlaceholder.style.display = 'flex';
   }
 
-  const pFooterWrap = document.getElementById('wl-preview-footer-wrap');
+  // Footer
   const pFooterText = document.getElementById('wl-preview-footer-text');
-  if (footer) {
-    if (pFooterWrap) pFooterWrap.style.display = 'flex';
-    if (pFooterText) pFooterText.textContent = footer;
-  } else {
-    if (pFooterWrap) pFooterWrap.style.display = 'none';
-  }
-
-  if (wlMode === 'welcome') {
-    setElVal('wl-welcome_author_name', authorName);
-    setElVal('wl-welcome_author_icon', authorIcon);
-    setElVal('wl-welcome_title', title);
-    setElVal('wl-welcome_desc', desc);
-    setElVal('wl-welcome_color', color);
-    setElVal('wl-welcome_thumbnail', thumb);
-    setElVal('wl-welcome_image', image);
-    setElVal('wl-welcome_footer', footer);
-  } else {
-    setElVal('wl-leave_author_name', authorName);
-    setElVal('wl-leave_author_icon', authorIcon);
-    setElVal('wl-leave_title', title);
-    setElVal('wl-leave_desc', desc);
-    setElVal('wl-leave_color', color);
-    setElVal('wl-leave_thumbnail', thumb);
-    setElVal('wl-leave_image', image);
-    setElVal('wl-leave_footer', footer);
-  }
+  if (pFooterText) pFooterText.textContent = footer || 'Cliquez pour ajouter un Footer...';
 }
 
 
 function hydrateForms() {
   const config = state.config || {};
 
-  // 1. Welcome / Leave
+  // 1. Welcome / Leave — hydrate ALL fields (channels, hidden inputs, and embed preview)
   const wl = config.welcome_leave || {};
   setElVal('wl-welcome_channel', wl.welcome_channel);
-  setElVal('wl-welcome_title', wl.welcome_title || '👋 Bienvenue');
-  setElVal('wl-welcome_desc', wl.welcome_desc || 'Bienvenue {user} sur le serveur !');
-  setElVal('wl-welcome_color', wl.welcome_color || '#00ff00');
   setElVal('wl-leave_channel', wl.leave_channel);
+  setElVal('wl-welcome_role_filter', wl.welcome_role_filter);
+  // Hidden form inputs (synced with embed data store)
+  setElVal('wl-welcome_title', wl.welcome_title || '👋 Bienvenue sur le serveur !');
+  setElVal('wl-welcome_desc', wl.welcome_desc || 'Bienvenue {user} sur {server} !');
+  setElVal('wl-welcome_color', wl.welcome_color || '#00FF00');
+  setElVal('wl-welcome_author_name', wl.welcome_author_name || '');
+  setElVal('wl-welcome_author_icon', wl.welcome_author_icon || '');
+  setElVal('wl-welcome_thumbnail', wl.welcome_thumbnail || '');
+  setElVal('wl-welcome_image', wl.welcome_image || '');
+  setElVal('wl-welcome_footer', wl.welcome_footer || '');
   setElVal('wl-leave_title', wl.leave_title || '👋 Au revoir');
   setElVal('wl-leave_desc', wl.leave_desc || 'Au revoir {user} !');
-  setElVal('wl-leave_color', wl.leave_color || '#ff0000');
+  setElVal('wl-leave_color', wl.leave_color || '#FF0000');
+  setElVal('wl-leave_author_name', wl.leave_author_name || '');
+  setElVal('wl-leave_author_icon', wl.leave_author_icon || '');
+  setElVal('wl-leave_thumbnail', wl.leave_thumbnail || '');
+  setElVal('wl-leave_image', wl.leave_image || '');
+  setElVal('wl-leave_footer', wl.leave_footer || '');
+  // Reset mode selector to welcome and refresh embed visual preview
+  const modeEl = document.getElementById('wl-edit_mode');
+  if (modeEl) modeEl.value = 'welcome';
+  wlMode = 'welcome';
+  updateEmbedPreview();
 
   // 2. Boost
   const bst = config.boost_config || {};
