@@ -4,7 +4,6 @@ const multer = require('multer');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
-const fetch = require('node-fetch');
 
 const app = express();
 const PORT = 49602;
