@@ -3,7 +3,13 @@ const express = require('express');
 const session = require('express-session');
 const path = require('path');
 const { PermissionFlagsBits, EmbedBuilder } = require('discord.js');
-const { client } = require('./index');
+// Safe mock client for Dashboard 2 (runs as standalone process on port 49602)
+const client = {
+  user: { displayAvatarURL: () => 'https://cdn.discordapp.com/embed/avatars/0.png', id: '1523016917588115566' },
+  commands: new Map(),
+  guilds: { cache: { get: () => null } },
+  syncExistingChannels: () => {}
+};
 const { 
   db, 
   getAllActionGifs, 
