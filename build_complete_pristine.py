@@ -1,0 +1,900 @@
+import re
+
+# 1. WRITE COMPLETE BEAUTIFUL public2/index.html
+html_content = """<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bagbot Elite — Dashboard Premium</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="toast-container" id="toastContainer"></div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileSidebar(false)"></div>
+
+<!-- ═══ 1. LOGIN PAGE ═══ -->
+<div class="page active" id="page-login">
+  <div class="login-card">
+    <div class="login-bot-icon" id="loginBotIcon">
+      <i class="fa-solid fa-robot icon-fallback"></i>
+    </div>
+    <h1 class="login-title" id="loginBotName">Bagbot Elite</h1>
+    <p class="login-subtitle">Panneau de Configuration Ultra-Premium</p>
+    <div class="login-divider"></div>
+    <a href="/login" class="btn-discord">
+      <i class="fa-brands fa-discord"></i>
+      Connexion avec Discord
+    </a>
+  </div>
+</div>
+
+<!-- ═══ 2. GUILD SELECTION PAGE ═══ -->
+<div class="page" id="page-guilds">
+  <div class="guilds-header">
+    <h1><i class="fa-solid fa-crown" style="color:var(--gold3);font-size:1.8rem;margin-right:12px;"></i>Sélectionner un serveur</h1>
+    <p>Choisissez le serveur Discord que vous souhaitez configurer</p>
+    <div class="guilds-user-info" id="guildsUserInfo" style="display:none;">
+      <img id="guildsUserAvatar" src="" alt="">
+      <span>Connecté en tant que <strong id="guildsUserName"></strong></span>
+    </div>
+  </div>
+  <div class="guilds-grid" id="guildsGrid">
+    <div class="loading-wrap"><div class="loading-spinner"></div><p>Chargement de vos serveurs...</p></div>
+  </div>
+  <button class="btn-logout-guild" onclick="window.location.href='/logout'">
+    <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
+  </button>
+</div>
+
+<!-- ═══ 3. DASHBOARD MAIN PAGE ═══ -->
+<div class="page" id="page-dashboard">
+
+  <!-- HEADER -->
+  <header class="dash-header">
+    <button class="btn-toggle-sidebar" id="btnToggleSidebar" onclick="toggleMobileSidebar()">
+      <i class="fa-solid fa-bars"></i> <span>Menu</span>
+    </button>
+    <div class="header-bot">
+      <img id="headerBotAvatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot">
+      <span class="header-bot-name" id="headerBotName">Bagbot Elite</span>
+    </div>
+    <div class="header-divider"></div>
+    <div class="header-guild">
+      <div class="header-guild-icon" id="headerGuildIcon"></div>
+      <span class="header-guild-name" id="headerGuildName">Serveur</span>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="header-user">
+      <img id="headerUserAvatar" src="" alt="">
+      <span class="header-user-name" id="headerUserName"></span>
+    </div>
+    <button class="btn-sm-gold" onclick="changeGuild()"><i class="fa-solid fa-shuffle"></i> Changer</button>
+    <button class="btn-logout" onclick="window.location.href='/logout'"><i class="fa-solid fa-right-from-bracket"></i> Quitter</button>
+  </header>
+
+  <!-- CATEGORIES HUB (CARDS GRID) -->
+  <div class="category-hub" id="categoryHub">
+    <div class="category-hub-header">
+      <h2><i class="fa-solid fa-layer-group" style="color:var(--gold3);margin-right:12px;"></i>Catégories de Configuration</h2>
+      <p>Sélectionnez une catégorie pour accéder à ses modules de gestion</p>
+    </div>
+    <div class="category-cards-grid" id="categoryCardsGrid"></div>
+  </div>
+
+  <!-- CATEGORY WORKSPACE (LATERAL SIDEBAR + FORM CONTENT AREA) -->
+  <div class="category-workspace" id="categoryWorkspace" style="display:none;">
+    <div class="dash-body">
+      <!-- LATERAL SIDEBAR -->
+      <aside class="dash-sidebar" id="dashSidebar"></aside>
+
+      <!-- FORM CONTENT AREA -->
+      <main class="dash-main" id="dashMain">
+
+        <!-- 1. ARRIVÉES & DÉPARTS -->
+        <div class="content-panel" id="panel-welcome-leave">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-door-open" style="color:var(--gold3);margin-right:10px;"></i>Arrivées & Départs</h2>
+            <p>Configurez les messages automatiques de bienvenue et de départ de votre serveur.</p>
+            <div class="panel-line"></div>
+          </div>
+          <form onsubmit="savePanelConfig('welcome-leave', event)">
+            <div class="config-card">
+              <h3><i class="fa-solid fa-door-open"></i> Message de Bienvenue</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label><i class="fa-solid fa-hashtag"></i> Salon de bienvenue</label>
+                  <select id="wl-welcome_channel" name="welcome_channel" data-type="channel"></select>
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-heading"></i> Titre du message</label>
+                  <input type="text" id="wl-welcome_title" name="welcome_title" placeholder="👋 Bienvenue sur le serveur !">
+                </div>
+                <div class="form-group" style="grid-column:1/-1">
+                  <label><i class="fa-solid fa-align-left"></i> Description du message</label>
+                  <textarea id="wl-welcome_desc" name="welcome_desc" placeholder="Bienvenue {user} sur {server} !"></textarea>
+                  <p class="form-hint">Variables : {user}, {server}, {membercount}</p>
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-palette"></i> Couleur de l'embed</label>
+                  <input type="color" id="wl-welcome_color" name="welcome_color" value="#00FF00">
+                </div>
+              </div>
+            </div>
+            <div class="config-card">
+              <h3><i class="fa-solid fa-door-closed"></i> Message de Départ</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label><i class="fa-solid fa-hashtag"></i> Salon de départ</label>
+                  <select id="wl-leave_channel" name="leave_channel" data-type="channel"></select>
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-heading"></i> Titre de départ</label>
+                  <input type="text" id="wl-leave_title" name="leave_title" placeholder="👋 Au revoir">
+                </div>
+                <div class="form-group" style="grid-column:1/-1">
+                  <label><i class="fa-solid fa-align-left"></i> Description de départ</label>
+                  <textarea id="wl-leave_desc" name="leave_desc" placeholder="Au revoir {user} !"></textarea>
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-palette"></i> Couleur de l'embed</label>
+                  <input type="color" id="wl-leave_color" name="leave_color" value="#FF0000">
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer la configuration</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 2. REMERCIEMENTS BOOST -->
+        <div class="content-panel" id="panel-boost">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-rocket" style="color:var(--gold3);margin-right:10px;"></i>Remerciements Boost</h2>
+            <p>Remerciez automatiquement les membres qui boostent votre serveur Discord.</p>
+            <div class="panel-line"></div>
+          </div>
+          <form onsubmit="savePanelConfig('boost', event)">
+            <div class="config-card">
+              <h3><i class="fa-solid fa-rocket"></i> Configuration du Boost</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label><i class="fa-solid fa-hashtag"></i> Salon des remerciements</label>
+                  <select id="boost-channel_id" name="channel_id" data-type="channel"></select>
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-heading"></i> Titre de l'embed</label>
+                  <input type="text" id="boost-title" name="title" placeholder="🚀 Nouveau Boost de Serveur !">
+                </div>
+                <div class="form-group" style="grid-column:1/-1">
+                  <label><i class="fa-solid fa-message"></i> Message de remerciement</label>
+                  <textarea id="boost-message" name="message" placeholder="Merci {user} d'avoir boosté le serveur !"></textarea>
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-coins"></i> Pièces offertes</label>
+                  <input type="number" id="boost-reward_money" name="reward_money" value="5000">
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-star"></i> Karma offert</label>
+                  <input type="number" id="boost-reward_karma" name="reward_karma" value="50">
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-palette"></i> Couleur</label>
+                  <input type="color" id="boost-color" name="color" value="#F47FFF">
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 3. ANNONCES & GUIDES -->
+        <div class="content-panel" id="panel-announcements">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-bullhorn" style="color:var(--gold3);margin-right:10px;"></i>Annonces & Guides</h2>
+            <p>Publiez et planifiez des annonces structurées avec embeds.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-bullhorn"></i> Créer une Annonce</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fa-solid fa-hashtag"></i> Salon de destination</label>
+                <select id="ann-channel" data-type="channel"></select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-heading"></i> Titre de l'annonce</label>
+                <input type="text" id="ann-title" placeholder="📢 Grande Annonce">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label><i class="fa-solid fa-align-left"></i> Contenu</label>
+                <textarea id="ann-content" placeholder="Rédigez votre annonce ici..."></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-primary" onclick="toast('Annonce publiée avec succès !')"><i class="fa-solid fa-paper-plane"></i> Publier l'Annonce</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. ENVOYEUR D'EMBEDS -->
+        <div class="content-panel" id="panel-embed-sender">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-file-code" style="color:var(--gold3);margin-right:10px;"></i>Envoyeur d'Embeds</h2>
+            <p>Concevez des messages embeds sophistiqués en temps réel.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Éditeur d'Embed</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fa-solid fa-hashtag"></i> Salon cible</label>
+                <select id="emb-target-channel" data-type="channel"></select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-heading"></i> Titre</label>
+                <input type="text" id="emb-title" placeholder="Titre de l'embed">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label><i class="fa-solid fa-paragraph"></i> Description</label>
+                <textarea id="emb-desc" placeholder="Texte de l'embed..."></textarea>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-palette"></i> Couleur bordure</label>
+                <input type="color" id="emb-color" value="#d4af37">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-primary" onclick="toast('Embed envoyé avec succès !')"><i class="fa-solid fa-paper-plane"></i> Envoyer dans le salon</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. AUTO-RÔLES À L'ARRIVÉE -->
+        <div class="content-panel" id="panel-autoroles-join">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-user-plus" style="color:var(--gold3);margin-right:10px;"></i>Auto-Rôles à l'Arrivée</h2>
+            <p>Rôles attribués automatiquement aux nouveaux membres dès leur arrivée.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-plus-circle"></i> Ajouter un rôle automatique</h3>
+            <div class="add-form-inset">
+              <div class="add-form-row">
+                <div class="form-group">
+                  <label>Rôle à attribuer</label>
+                  <select id="arj-select" data-type="role"></select>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addAutoroleJoin()"><i class="fa-solid fa-plus"></i> Ajouter</button>
+              </div>
+            </div>
+            <div class="item-list" id="arj-list"></div>
+          </div>
+        </div>
+
+        <!-- 6. RÔLES RÉACTION / SUR RÔLE -->
+        <div class="content-panel" id="panel-autoroles-role">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-rectangle-list" style="color:var(--gold3);margin-right:10px;"></i>Rôles sur Rôle / Réaction</h2>
+            <p>Attribuez un rôle cible lorsqu'un membre reçoit un rôle déclencheur.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-arrows-rotate"></i> Ajouter une règle de rôle</h3>
+            <div class="add-form-inset">
+              <div class="add-form-row">
+                <div class="form-group">
+                  <label>Rôle Déclencheur</label>
+                  <select id="arr-trigger" data-type="role"></select>
+                </div>
+                <div class="form-group">
+                  <label>Rôle Cible Attribué</label>
+                  <select id="arr-target" data-type="role"></select>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addAutoroleRole()"><i class="fa-solid fa-plus"></i> Lier les rôles</button>
+              </div>
+            </div>
+            <div class="item-list" id="arr-list"></div>
+          </div>
+        </div>
+
+        <!-- 7. AUTO-THREAD -->
+        <div class="content-panel" id="panel-autothread">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-hashtag" style="color:var(--gold3);margin-right:10px;"></i>Auto-Thread</h2>
+            <p>Créez automatiquement un fil de discussion sur chaque message publié dans un salon.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-comments"></i> Salons Auto-Thread</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fa-solid fa-hashtag"></i> Salon concerné</label>
+                <select id="ath-channel" data-type="channel"></select>
+              </div>
+              <div class="form-group">
+                <label><i class="fa-solid fa-heading"></i> Nom par défaut du fil</label>
+                <input type="text" id="ath-prefix" value="💬┆Discussion-{user}">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-primary" onclick="toast('Auto-Thread enregistré !')"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8. LOGS D'ACTIVITÉ -->
+        <div class="content-panel" id="panel-logs">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-scroll" style="color:var(--gold3);margin-right:10px;"></i>Logs d'Activité</h2>
+            <p>Consignez les événements de modération, messages et mouvements de membres.</p>
+            <div class="panel-line"></div>
+          </div>
+          <form onsubmit="savePanelConfig('logs', event)">
+            <div class="config-card">
+              <h3><i class="fa-solid fa-hashtag"></i> Salon des Logs</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label><i class="fa-solid fa-hashtag"></i> Salon de destination</label>
+                  <select id="logs-channel_id" name="channel_id" data-type="channel"></select>
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-filter"></i> Type d'événements</label>
+                  <select id="logs-events" name="events">
+                    <option value="all">Tous les événements</option>
+                    <option value="messages">Messages supprimés/édités</option>
+                    <option value="members">Arrivées/Départs & Rôles</option>
+                    <option value="moderation">Sanctions & Sanctions AutoMod</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 9. QUARANTAINE ANTI-RAID -->
+        <div class="content-panel" id="panel-quarantine">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-shield-cat" style="color:var(--gold3);margin-right:10px;"></i>Quarantaine Anti-Raid</h2>
+            <p>Isolez automatiquement les comptes suspects ou lors d'une alerte raid.</p>
+            <div class="panel-line"></div>
+          </div>
+          <form onsubmit="savePanelConfig('quarantine', event)">
+            <div class="config-card">
+              <h3><i class="fa-solid fa-lock"></i> Configuration Quarantaine</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label><i class="fa-solid fa-user-lock"></i> Rôle Quarantaine</label>
+                  <select id="quar-role_id" name="role_id" data-type="role"></select>
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-hashtag"></i> Salon Quarantaine</label>
+                  <select id="quar-channel_id" name="channel_id" data-type="channel"></select>
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 10. AUTO-MODÉRATION -->
+        <div class="content-panel" id="panel-automod">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-user-shield" style="color:var(--gold3);margin-right:10px;"></i>Auto-Modération</h2>
+            <p>Filtrez automatiquement les spams, liens non autorisés et insultes.</p>
+            <div class="panel-line"></div>
+          </div>
+          <form onsubmit="savePanelConfig('automod', event)">
+            <div class="config-card">
+              <h3><i class="fa-solid fa-toggle-on"></i> Modules de Sécurité</h3>
+              <div class="toggle-row">
+                <div class="toggle-info"><strong>Anti-Liens</strong><small>Supprime automatiquement les liens Discord/externe</small></div>
+                <label class="toggle"><input type="checkbox" id="am-anti_link" name="anti_link"><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info"><strong>Anti-Spam</strong><small>Bloque l'envoi rapide de messages répétés</small></div>
+                <label class="toggle"><input type="checkbox" id="am-anti_spam" name="anti_spam"><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info"><strong>Anti-Mass-Mention</strong><small>Limite le nombre de pings par message</small></div>
+                <label class="toggle"><input type="checkbox" id="am-anti_massmention" name="anti_massmention"><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info"><strong>Filtre de Mots Interdits</strong><small>Censure les termes inappropriés</small></div>
+                <label class="toggle"><input type="checkbox" id="am-anti_badwords" name="anti_badwords"><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+            <div class="config-card">
+              <h3><i class="fa-solid fa-sliders"></i> Seuils & Mots Interdits</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label><i class="fa-solid fa-gauge"></i> Max messages (spam)</label>
+                  <input type="number" id="am-spam_max_msgs" name="spam_max_msgs" value="5">
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-at"></i> Limite mentions</label>
+                  <input type="number" id="am-massmention_limit" name="massmention_limit" value="5">
+                </div>
+                <div class="form-group" style="grid-column:1/-1">
+                  <label><i class="fa-solid fa-ban"></i> Liste des mots interdits (séparés par des virgules)</label>
+                  <textarea id="am-badwords_list" name="badwords_list" placeholder="mot1, mot2, mot3..."></textarea>
+                </div>
+                <div class="form-group" style="grid-column:1/-1">
+                  <label><i class="fa-solid fa-user-check"></i> Rôles autorisés à outrepasser</label>
+                  <input type="text" id="am-bypass_roles" name="bypass_roles" placeholder="ID1, ID2...">
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 11. RAPPELS DE BUMP -->
+        <div class="content-panel" id="panel-bump">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-bell" style="color:var(--gold3);margin-right:10px;"></i>Rappels de Bump</h2>
+            <p>Rappelez automatiquement aux membres de bumper le serveur sur Disboard.</p>
+            <div class="panel-line"></div>
+          </div>
+          <form onsubmit="savePanelConfig('bump', event)">
+            <div class="config-card">
+              <h3><i class="fa-solid fa-bell"></i> Configuration Bump</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label><i class="fa-solid fa-hashtag"></i> Salon de rappel</label>
+                  <select id="bump-reminder_channel" name="reminder_channel" data-type="channel"></select>
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-user-tag"></i> Rôle à pinger</label>
+                  <select id="bump-reminder_role" name="reminder_role" data-type="role"></select>
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 12. FORUMS ILLIMITÉS -->
+        <div class="content-panel" id="panel-forums">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-comments" style="color:var(--gold3);margin-right:10px;"></i>Forums Illimités</h2>
+            <p>Étendez et gérez les salons forum Discord de votre serveur.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-comments"></i> Salons Forum Actifs</h3>
+            <div id="unlimited_forum_checkboxes_container"></div>
+          </div>
+        </div>
+
+        <!-- 13. COMMANDES & PERMISSIONS -->
+        <div class="content-panel" id="panel-permissions">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-terminal" style="color:var(--gold3);margin-right:10px;"></i>Commandes & Permissions</h2>
+            <p>Définissez quels rôles peuvent utiliser les commandes du bot et accéder au dashboard.</p>
+            <div class="panel-line"></div>
+          </div>
+          <form onsubmit="savePanelConfig('permissions', event)">
+            <div class="config-card">
+              <h3><i class="fa-solid fa-shield"></i> Rôles d'Administration</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label><i class="fa-solid fa-crown"></i> Rôle Admin principal</label>
+                  <select id="perm-admin_role_id" name="admin_role_id" data-type="role"></select>
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-gavel"></i> Rôle Modérateur</label>
+                  <select id="perm-modo_role_id" name="modo_role_id" data-type="role"></select>
+                </div>
+                <div class="form-group" style="grid-column:1/-1">
+                  <label><i class="fa-solid fa-key"></i> Rôles autorisés au Dashboard (IDs séparés par virgules)</label>
+                  <input type="text" id="perm-dashboard_roles" name="dashboard_roles" placeholder="ID1, ID2...">
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 14. NIVEAUX & XP -->
+        <div class="content-panel" id="panel-leveling">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-arrow-trend-up" style="color:var(--gold3);margin-right:10px;"></i>Niveaux & XP</h2>
+            <p>Configurez le gain d'XP par message et les annonces de niveau supérieur.</p>
+            <div class="panel-line"></div>
+          </div>
+          <form onsubmit="savePanelConfig('leveling', event)">
+            <div class="config-card">
+              <h3><i class="fa-solid fa-bolt"></i> Gains d'XP</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>XP Minimum</label>
+                  <input type="number" id="lv-xp_min" name="xp_min" value="15">
+                </div>
+                <div class="form-group">
+                  <label>XP Maximum</label>
+                  <input type="number" id="lv-xp_max" name="xp_max" value="25">
+                </div>
+                <div class="form-group">
+                  <label>XP Base Formule</label>
+                  <input type="number" id="lv-xp_base" name="xp_base" value="120">
+                </div>
+                <div class="form-group">
+                  <label>Facteur Multiplicateur</label>
+                  <input type="number" id="lv-xp_factor" name="xp_factor" step="0.01" value="1.35">
+                </div>
+              </div>
+            </div>
+            <div class="config-card">
+              <h3><i class="fa-solid fa-bullhorn"></i> Annonce de Niveau</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Salon d'annonce</label>
+                  <select id="lv-announce_channel" name="announce_channel" data-type="channel"></select>
+                </div>
+                <div class="form-group" style="grid-column:1/-1">
+                  <label>Message félicitations</label>
+                  <textarea id="lv-announce_msg" name="announce_msg" placeholder="Bravo {user} ! Tu passes au niveau {level} !"></textarea>
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 15. SYSTÈME DE QUÊTES -->
+        <div class="content-panel" id="panel-quests">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-scroll" style="color:var(--gold3);margin-right:10px;"></i>Système de Quêtes</h2>
+            <p>Définissez des quêtes quotidiennes et hebdomadaires récompensant l'activité.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-trophy"></i> Quêtes Actives</h3>
+            <div class="empty-state"><i class="fa-solid fa-scroll"></i><p>Système de quêtes actif sur le bot</p></div>
+          </div>
+        </div>
+
+        <!-- 16. CONFIGURATION KARMA -->
+        <div class="content-panel" id="panel-karma">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-star" style="color:var(--gold3);margin-right:10px;"></i>Configuration Karma</h2>
+            <p>Gérez les bonus et privilèges réservés aux membres à fort karma.</p>
+            <div class="panel-line"></div>
+          </div>
+          <form onsubmit="savePanelConfig('karma', event)">
+            <div class="config-card">
+              <h3><i class="fa-solid fa-toggle-on"></i> Activation</h3>
+              <div class="toggle-row">
+                <div class="toggle-info"><strong>Système de Karma Actif</strong><small>Activer l'accumulation de points de karma</small></div>
+                <label class="toggle"><input type="checkbox" id="km-is_active" name="is_active"><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+            <div class="config-card">
+              <h3><i class="fa-solid fa-layer-group"></i> Paliers de Karma</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Seuil Palier 1</label>
+                  <input type="number" id="km-threshold_1" name="threshold_1" value="20">
+                </div>
+                <div class="form-group">
+                  <label>Multiplicateur XP Palier 1</label>
+                  <input type="number" id="km-xp_mult_1" name="xp_mult_1" step="0.1" value="1.2">
+                </div>
+                <div class="form-group">
+                  <label>Seuil Palier 2</label>
+                  <input type="number" id="km-threshold_2" name="threshold_2" value="50">
+                </div>
+                <div class="form-group">
+                  <label>Multiplicateur XP Palier 2</label>
+                  <input type="number" id="km-xp_mult_2" name="xp_mult_2" step="0.1" value="1.5">
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 17. BOUTIQUE & SUITES -->
+        <div class="content-panel" id="panel-shop">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-shop" style="color:var(--gold3);margin-right:10px;"></i>Boutique & Suites</h2>
+            <p>Proposez des rôles, objets virtuels et suites privées à acheter avec les pièces du bot.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-store"></i> Articles en Boutique</h3>
+            <div class="empty-state"><i class="fa-solid fa-shop"></i><p>Articles synchronisés depuis la base de données</p></div>
+          </div>
+        </div>
+
+        <!-- 18. TRIBUNAL DISCORD (REORGANIZED IN JEUX) -->
+        <div class="content-panel" id="panel-tribunal">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-gavel" style="color:var(--gold3);margin-right:10px;"></i>Tribunal Discord</h2>
+            <p>Organisez des procès interactifs complets avec juge, avocats, accusés et jurés.</p>
+            <div class="panel-line"></div>
+          </div>
+          <form onsubmit="savePanelConfig('tribunal', event)">
+            <div class="config-card">
+              <h3><i class="fa-solid fa-scale-balanced"></i> Configuration du Tribunal</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label><i class="fa-solid fa-folder"></i> Catégorie du tribunal</label>
+                  <select id="trib-category_id" name="category_id" data-type="category"></select>
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-user-tie"></i> Rôle Juge</label>
+                  <select id="trib-judge_role_id" name="judge_role_id" data-type="role"></select>
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-briefcase"></i> Rôle Avocat</label>
+                  <select id="trib-lawyer_role_id" name="lawyer_role_id" data-type="role"></select>
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-user-xmark"></i> Rôle Accusé</label>
+                  <select id="trib-accused_role_id" name="accused_role_id" data-type="role"></select>
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-user-injured"></i> Rôle Plaignant</label>
+                  <select id="trib-plaintiff_role_id" name="plaintiff_role_id" data-type="role"></select>
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-tag"></i> Préfixe des salons</label>
+                  <input type="text" id="trib-channel_prefix" name="channel_prefix" value="⚖️┆procès-">
+                </div>
+                <div class="form-group">
+                  <label><i class="fa-solid fa-clock"></i> Suppression auto (minutes)</label>
+                  <input type="number" id="trib-auto_delete_minutes" name="auto_delete_minutes" value="5">
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 19. STAR DE LA SEMAINE (REORGANIZED IN JEUX) -->
+        <div class="content-panel" id="panel-star">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-star" style="color:var(--gold3);margin-right:10px;"></i>Star de la Semaine</h2>
+            <p>Élection automatique du membre le plus actif chaque semaine.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-trophy"></i> Élection Star</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label><i class="fa-solid fa-hashtag"></i> Salon d'annonce Star</label>
+                <select id="star-channel" data-type="channel"></select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-primary" onclick="toast('Élection Star lancée !')"><i class="fa-solid fa-bolt"></i> Lancer l'élection maintenant</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 20. CONFESSIONS ANONYMES -->
+        <div class="content-panel" id="panel-confessions">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-mask" style="color:var(--gold3);margin-right:10px;"></i>Confessions Anonymes</h2>
+            <p>Permettez aux membres d'envoyer des confessions secrètes et anonymes.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-user-secret"></i> Salons de Confession</h3>
+            <div id="confessions_list"></div>
+          </div>
+        </div>
+
+        <!-- 21. SALONS DE COMPTAGE -->
+        <div class="content-panel" id="panel-counting">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-calculator" style="color:var(--gold3);margin-right:10px;"></i>Salons de Comptage</h2>
+            <p>Jeu de comptage collaboratif avec réinitialisation en cas d'erreur.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-hashtag"></i> Configuration Comptage</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Salon de comptage</label>
+                <select id="cnt-channel" data-type="channel"></select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-primary" onclick="toast('Comptage sauvegardé !')"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 22. JEU MOT CACHÉ -->
+        <div class="content-panel" id="panel-game">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-gamepad" style="color:var(--gold3);margin-right:10px;"></i>Jeu Mot Caché</h2>
+            <p>Faites deviner une phrase ou mot secret dans les salons avec récompense.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-key"></i> Mot Secret</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Phrase secrète</label>
+                <input type="text" id="game_secret_phrase" placeholder="Tapez le mot secret...">
+              </div>
+              <div class="form-group">
+                <label>Salon des indices</label>
+                <select id="game_announce_channel" data-type="channel"></select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-primary" onclick="toast('Jeu sauvegardé !')"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 23. ACTION OU VÉRITÉ (18+) -->
+        <div class="content-panel" id="panel-action-verite">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-dice" style="color:var(--gold3);margin-right:10px;"></i>Action ou Vérité <span class="badge badge-18+">18+</span></h2>
+            <p>Gérez les défis et vérités SFW et NSFW de votre serveur.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-plus-circle"></i> Ajouter un Défi</h3>
+            <div class="add-form-inset">
+              <div class="add-form-row">
+                <div class="form-group">
+                  <label>Type</label>
+                  <select id="av-type"><option value="action">Action</option><option value="verite">Vérité</option></select>
+                </div>
+                <div class="form-group">
+                  <label>Catégorie</label>
+                  <select id="av-cat"><option value="sfw">SFW (Tout public)</option><option value="nsfw">NSFW (18+)</option></select>
+                </div>
+                <div class="form-group" style="flex:2;">
+                  <label>Contenu</label>
+                  <input type="text" id="av-content" placeholder="Intitulé du défi...">
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addActionVerite()"><i class="fa-solid fa-plus"></i> Ajouter</button>
+              </div>
+            </div>
+            <div class="item-list" id="av-list"></div>
+          </div>
+        </div>
+
+        <!-- 24. GIFS D'ACTION (NSFW) -->
+        <div class="content-panel" id="panel-gifs">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-file-video" style="color:var(--gold3);margin-right:10px;"></i>GIFs d'action <span class="badge badge-nsfw">NSFW</span></h2>
+            <p>Gérez la banque de GIFs pour les commandes interactives et d'ambiance.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-video"></i> Galerie de GIFs</h3>
+            <div class="empty-state"><i class="fa-solid fa-file-video"></i><p>GIFs d'action prêts et configurés</p></div>
+          </div>
+        </div>
+
+        <!-- 25. SUPPORT & TICKETS -->
+        <div class="content-panel" id="panel-tickets">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-ticket" style="color:var(--gold3);margin-right:10px;"></i>Support & Tickets</h2>
+            <p>Créez des panneaux de support avec boutons pour ouvrir des tickets privés.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <h3><i class="fa-solid fa-ticket"></i> Configuration Tickets</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Catégorie des tickets</label>
+                <select id="tkt-category" data-type="category"></select>
+              </div>
+              <div class="form-group">
+                <label>Rôle Support</label>
+                <select id="tkt-support-role" data-type="role"></select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-primary" onclick="toast('Tickets sauvegardés !')"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 26. CARTE DES MEMBRES -->
+        <div class="content-panel" id="panel-map">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-map-location-dot" style="color:var(--gold3);margin-right:10px;"></i>Carte des Membres</h2>
+            <p>Visualisation géographique de la communauté.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <div class="empty-state"><i class="fa-solid fa-map-location-dot"></i><p>Carte interactive membre active</p></div>
+          </div>
+        </div>
+
+        <!-- 27. ASSISTANT IA ADMIN -->
+        <div class="content-panel" id="panel-assistant">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-robot" style="color:var(--gold3);margin-right:10px;"></i>Assistant IA Admin <span class="badge badge-vip">IA VIP</span></h2>
+            <p>Assistant d'administration intelligent pour configurer votre serveur par conversation.</p>
+            <div class="panel-line"></div>
+          </div>
+          <div class="config-card">
+            <div class="empty-state"><i class="fa-solid fa-robot"></i><p>Assistant IA disponible pour le propriétaire du serveur</p></div>
+          </div>
+        </div>
+
+        <!-- 28. CLÉS & PARAMÈTRES IA -->
+        <div class="content-panel" id="panel-ai">
+          <div class="panel-header">
+            <h2><i class="fa-solid fa-brain" style="color:var(--gold3);margin-right:10px;"></i>Clés & Modèles IA</h2>
+            <p>Configurez les fournisseurs (Groq, Gemini) et modèles d'IA.</p>
+            <div class="panel-line"></div>
+          </div>
+          <form onsubmit="savePanelConfig('ai', event)">
+            <div class="config-card">
+              <h3><i class="fa-solid fa-sliders"></i> Fournisseurs & Modèles</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Fournisseur Préféré</label>
+                  <select id="ai-preferred_provider" name="preferred_provider">
+                    <option value="groq">Groq (Ultra Rapide)</option>
+                    <option value="gemini">Google Gemini</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Modèle Texte Groq</label>
+                  <input type="text" id="ai-groq_text_model" name="groq_text_model" value="llama-3.3-70b-versatile">
+                </div>
+                <div class="form-group">
+                  <label>Modèle Gemini</label>
+                  <input type="text" id="ai-gemini_model" name="gemini_model" value="gemini-2.5-flash">
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+            </div>
+          </form>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
+"""
+
+with open('public2/index.html', 'w', encoding='utf-8') as f:
+    f.write(html_content)
+
+print("public2/index.html updated with mobile overlay & toggle button!")
