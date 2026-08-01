@@ -646,19 +646,14 @@ async function checkIsTicketStaff(interaction) {
   const member = interaction.member;
   if (!guild || !member) return false;
 
-  // Récupérer le ticket actif depuis la BDD
-  const activeTicket = getActiveTicket(interaction.channelId);
-  if (!activeTicket) return false;
-
-  // L'auteur du ticket ne peut JAMAIS utiliser les boutons d'action du staff sur son propre ticket
-  if (member.id === activeTicket.user_id) {
-    return false;
-  }
-
-  // Propriétaire du serveur et administrateurs
+  // Propriétaire du serveur et administrateurs (toujours autorisés, même sur leur propre ticket)
   if (member.id === guild.ownerId || member.permissions.has(PermissionFlagsBits.Administrator)) {
     return true;
   }
+
+  // Récupérer le ticket actif depuis la BDD
+  const activeTicket = getActiveTicket(interaction.channelId);
+  if (!activeTicket) return false;
 
   const option = db.prepare('SELECT * FROM ticket_options WHERE guild_id = ? AND id = ?').get(guild.id, activeTicket.option_id);
   if (!option) return false;
@@ -673,6 +668,7 @@ async function checkIsTicketStaff(interaction) {
     pingRoles = JSON.parse(option.ping_users || '[]');
   } catch (e) {}
 
+  // Si le membre possède un rôle support/staff, il est autorisé même s'il a ouvert le ticket
   const allStaffRoles = new Set([...supportRoles, ...pingRoles]);
   return member.roles.cache.some(role => allStaffRoles.has(role.id));
 }

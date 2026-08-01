@@ -4,15 +4,13 @@
 
 const { createCanvas, loadImage } = require('@napi-rs/canvas');
 
-// ─── Safe text helper (strips chars that crash canvas fillText) ───────────────
+// ─── Safe text helper (keeps all unicode symbols, special characters & fonts) ───
 function safeText(str) {
   if (!str && str !== 0) return '';
   return String(str)
-    .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
-    .replace(/[\u{E000}-\u{F8FF}]/gu, '')
-    .replace(/\uFFFD/g, '')
-    .replace(/[^\x00-\xFF\u00C0-\u024F\u1E00-\u1EFF\u2000-\u206F\u20A0-\u20CF]/g, '')
-    .replace(/\s{2,}/g, ' ').trim();
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
 
