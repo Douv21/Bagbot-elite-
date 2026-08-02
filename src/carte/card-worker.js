@@ -24,7 +24,7 @@ function registerSystemFonts(dir) {
 
 registerSystemFonts('/usr/share/fonts');
 
-const FONT_FAMILY = `${FONT_FAMILY}, "Noto Color Emoji", "Symbola", "DejaVu Math TeX Gyre", "DejaVu Sans", sans-serif`;
+const FONT_FAMILY = 'Arial, "Noto Color Emoji", "Symbola", "DejaVu Math TeX Gyre", "DejaVu Sans", sans-serif';
 
 // ─── Safe text helper (keeps all unicode symbols, special characters & fonts) ───
 function safeText(str) {
