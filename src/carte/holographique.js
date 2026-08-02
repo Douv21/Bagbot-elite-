@@ -14,7 +14,7 @@ module.exports = async (member, data, theme) => {
     const avatarUrl = member.user.displayAvatarURL({ extension: 'png', size: 512 });
 
     const payload = JSON.stringify({
-      username:      member.displayName || member.user.username,
+      username:      member.user.username,
       discriminator: member.user.discriminator,
       avatarUrl,
       data,

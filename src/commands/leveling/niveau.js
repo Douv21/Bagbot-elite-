@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getLeveling, getEconomy, getLevelingConfig, db } = require('../../database/db');
+const { getLeveling, getEconomy, db } = require('../../database/db');
 const genCard = require('../../carte/holographique');
 
 module.exports = {
@@ -16,12 +16,8 @@ module.exports = {
     const leveling = getLeveling(guildId, targetUser.id);
     const economy = getEconomy(guildId, targetUser.id);
     
-    const lvlConfig = getLevelingConfig(guildId);
-    const xpBase = lvlConfig.xp_base ?? 120;
-    const xpFactor = lvlConfig.xp_factor ?? 1.35;
-
-    // Formule exponentielle de Bagbot-lite configurable
-    const xpRequired = Math.max(1, Math.round(xpBase * Math.pow(xpFactor, Math.max(0, leveling.level))));
+    // Formule exponentielle de Bagbot-lite : 100 * 1.2^lvl
+    const xpRequired = Math.max(1, Math.round(100 * Math.pow(1.2, Math.max(0, leveling.level))));
     const xpLeft = Math.max(0, xpRequired - leveling.xp);
     const pct = Math.min(100, Math.round((leveling.xp / xpRequired) * 100));
 
@@ -44,9 +40,9 @@ module.exports = {
       level:        leveling.level,
       xp:           leveling.xp,
       required:     xpRequired,
-      messages:     leveling.total_messages || 0,
-      voiceMinutes: leveling.voice_minutes || 0,
-      streak:       leveling.nsfw_messages || 0, // Mappé sur FEU dans card-worker.js
+      messages:     0,
+      voiceMinutes: 0,
+      streak:       0,
       karma:        economy.karma,
       roleName:     roleRewardName || 'AUCUN'
     };
@@ -55,8 +51,8 @@ module.exports = {
       ? (interaction.guild.members.cache.get(targetUser.id) || await interaction.guild.members.fetch(targetUser.id).catch(() => null))
       : { user: targetUser };
 
-    const { getMemberCardTheme } = require('../../utils/themeHelper');
-    const theme = getMemberCardTheme(interaction.guild, member);
+    const ALL_THEMES = ['holographique','gaming','love','sensuel','cosmos','nature','dark','gold','argent','bleu','rose'];
+    const theme = ALL_THEMES[Math.floor(Math.random() * ALL_THEMES.length)];
 
     if (member) {
       const card = await genCard(member, cardData, theme);
@@ -70,12 +66,10 @@ module.exports = {
       }
     }
 
-    const targetName = member ? member.displayName : targetUser.username;
-
     // Fallback embed si la génération de la carte échoue
     const embed = new EmbedBuilder()
       .setColor('#2ECC71')
-      .setTitle(`✨ Niveau de ${targetName}`)
+      .setTitle(`✨ Niveau de ${targetUser.username}`)
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
       .addFields(
         { name: '📈 Niveau', value: `**${leveling.level}**`, inline: true },

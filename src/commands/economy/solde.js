@@ -1,14 +1,14 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getEconomy, getLeveling } = require('../../database/db');
+const { getEconomy } = require('../../database/db');
 const genCard = require('../../carte/holographique');
 
 const WEALTH_RANKS = [
-  { min: 200000, name: '💎 DIEU DE LA LUXURE', next: Infinity, nextName: 'MAX' },
-  { min: 50000,  name: '🏆 STAR DU X',      next: 200000,   nextName: '💎 DIEU DE LA LUXURE' },
-  { min: 10000,  name: '👑 SEXTOY ADDICT',         next: 50000,    nextName: '🏆 STAR DU X' },
-  { min: 2000,   name: '💰 ESCORTE AMATEUR',          next: 10000,    nextName: '👑 SEXTOY ADDICT' },
-  { min: 500,    name: '📈 CURIEUX COQUIN',       next: 2000,     nextName: '💰 ESCORTE AMATEUR' },
-  { min: 0,      name: '🌱 ESCLAVE DU CUL',        next: 500,      nextName: '📈 CURIEUX COQUIN' },
+  { min: 200000, name: '💎 MILLIARDAIRE', next: Infinity, nextName: 'MAX' },
+  { min: 50000,  name: '🏆 FORTUNE',      next: 200000,   nextName: '💎 MILLIARDAIRE' },
+  { min: 10000,  name: '👑 RICHE',         next: 50000,    nextName: '🏆 FORTUNE' },
+  { min: 2000,   name: '💰 AISÉ',          next: 10000,    nextName: '👑 RICHE' },
+  { min: 500,    name: '📈 ÉCONOME',       next: 2000,     nextName: '💰 AISÉ' },
+  { min: 0,      name: '🌱 PAUVRE',        next: 500,      nextName: '📈 ÉCONOME' },
 ];
 
 function getWealthRank(balance) {
@@ -34,7 +34,6 @@ module.exports = {
     const guildId = interaction.guild ? interaction.guild.id : 'DM';
 
     const economy = getEconomy(guildId, targetUser.id);
-    const leveling = getLeveling(guildId, targetUser.id);
     const balance = economy.wallet + economy.bank;
     const karma = economy.karma;
 
@@ -49,9 +48,9 @@ module.exports = {
       level:         0,
       xp:            Math.max(0, progress),
       required:      Math.max(1, rangeSize),
-      messages:      leveling.total_messages || 0,
-      voiceMinutes:  leveling.voice_minutes || 0, // Mappé sur VOC
-      streak:        leveling.nsfw_messages || 0, // Mappé sur FEU dans card-worker.js
+      messages:      0,
+      voiceMinutes:  0,
+      streak:        0,
       karma,
       roleName:      'SOLDE CARD',
       expBarLabel:   rank.next === Infinity
@@ -73,8 +72,8 @@ module.exports = {
       ? (interaction.guild.members.cache.get(targetUser.id) || await interaction.guild.members.fetch(targetUser.id).catch(() => null))
       : { user: targetUser };
 
-    const { getMemberCardTheme } = require('../../utils/themeHelper');
-    const theme = getMemberCardTheme(interaction.guild, member);
+    const ALL_THEMES = ['holographique','gaming','love','sensuel','cosmos','nature','dark','gold','argent','bleu','rose'];
+    const theme = ALL_THEMES[Math.floor(Math.random() * ALL_THEMES.length)];
 
     if (member) {
       const card = await genCard(member, cardData, theme);
@@ -88,13 +87,11 @@ module.exports = {
       }
     }
 
-    const targetName = member ? member.displayName : targetUser.username;
-
     // Fallback embed si la génération de la carte échoue
     const remaining = rank.next === Infinity ? 0 : rank.next - balance;
     const embed = new EmbedBuilder()
       .setColor('#3498DB')
-      .setTitle(`💰 Solde de ${targetName}`)
+      .setTitle(`💰 Solde de ${targetUser.username}`)
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
       .addFields(
         { name: '💵 En poche', value: `${economy.wallet.toLocaleString('fr-FR')} pièces`, inline: true },

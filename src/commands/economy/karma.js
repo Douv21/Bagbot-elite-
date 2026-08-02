@@ -1,15 +1,15 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getEconomy, getLeveling } = require('../../database/db');
+const { getEconomy } = require('../../database/db');
 const genCard = require('../../carte/holographique');
 
 const KARMA_RANKS = [
-  { min: 10000, name: '👑 DIEU DU PLAISIR ABSOLU',  next: Infinity, nextName: 'MAX' },
-  { min: 5000,  name: "💎 LÉGENDE DE L'ERP",   next: 10000,    nextName: '👑 DIEU DU PLAISIR ABSOLU' },
-  { min: 2000,  name: '🔮 GOUROU DU KINK',   next: 5000,     nextName: "💎 LÉGENDE DE L'ERP" },
-  { min: 1000,  name: '⭐ SÉDUCTEUR EXPÉRIMENTÉ',  next: 2000,     nextName: '🔮 GOUROU DU KINK' },
-  { min: 500,   name: '🔥 FANTASMEUR',    next: 1000,     nextName: '⭐ SÉDUCTEUR EXPÉRIMENTÉ' },
-  { min: 100,   name: '📈 INITIÉ COQUIN',  next: 500,      nextName: '🔥 FANTASMEUR' },
-  { min: 0,     name: '🌱 VIERGE EFFAROUCHÉE', next: 100,      nextName: '📈 INITIÉ COQUIN' },
+  { min: 10000, name: '👑 LÉGENDE',  next: Infinity, nextName: 'MAX' },
+  { min: 5000,  name: '💎 MAÎTRE',   next: 10000,    nextName: '👑 LÉGENDE' },
+  { min: 2000,  name: '🔮 EXPERT',   next: 5000,     nextName: '💎 MAÎTRE' },
+  { min: 1000,  name: '⭐ VÉTÉRAN',  next: 2000,     nextName: '🔮 EXPERT' },
+  { min: 500,   name: '🔥 ACTIF',    next: 1000,     nextName: '⭐ VÉTÉRAN' },
+  { min: 100,   name: '📈 MONTANT',  next: 500,      nextName: '🔥 ACTIF' },
+  { min: 0,     name: '🌱 DÉBUTANT', next: 100,      nextName: '📈 MONTANT' },
 ];
 
 function getKarmaRank(karma) {
@@ -36,7 +36,6 @@ module.exports = {
     const guildId = interaction.guild ? interaction.guild.id : 'DM';
 
     const economy = getEconomy(guildId, targetUser.id);
-    const leveling = getLeveling(guildId, targetUser.id);
     const karma = economy.karma;
 
     const rank = getKarmaRank(karma);
@@ -50,9 +49,9 @@ module.exports = {
       level:           0,
       xp:              Math.max(0, progress),
       required:        Math.max(1, rangeSize),
-      messages:        leveling.total_messages || 0,
-      voiceMinutes:    leveling.voice_minutes || 0, // Mappé sur VOC
-      streak:          leveling.nsfw_messages || 0, // Mappé sur FEU dans card-worker.js
+      messages:        0,
+      voiceMinutes:    0,
+      streak:          0,
       karma,
       roleName:        'KARMA CARD',
       expBarLabel:     rank.next === Infinity
@@ -60,8 +59,8 @@ module.exports = {
         : `${karma.toLocaleString('fr-FR')} / ${nextThreshold.toLocaleString('fr-FR')} KARMA`,
       statsItems: [
         { icon: '⭐',  label: 'KARMA',    value: fmt(karma) },
-        { icon: '🔥',  label: 'FEU',      value: String(leveling.nsfw_messages || 0) },
-        { icon: 'MSG', label: 'MESSAGES', value: String(leveling.total_messages || 0) },
+        { icon: '🔥',  label: 'FEU',      value: '0' },
+        { icon: 'MSG', label: 'MESSAGES', value: '0' },
       ],
       rankDisplay:     rank.name,
       nextPanelTitle:  'PROCHAIN RANG',
@@ -74,8 +73,8 @@ module.exports = {
       ? (interaction.guild.members.cache.get(targetUser.id) || await interaction.guild.members.fetch(targetUser.id).catch(() => null))
       : { user: targetUser };
 
-    const { getMemberCardTheme } = require('../../utils/themeHelper');
-    const theme = getMemberCardTheme(interaction.guild, member);
+    const ALL_THEMES = ['holographique','gaming','love','sensuel','cosmos','nature','dark','gold','argent','bleu','rose'];
+    const theme = ALL_THEMES[Math.floor(Math.random() * ALL_THEMES.length)];
 
     if (member) {
       const card = await genCard(member, cardData, theme);
@@ -91,25 +90,13 @@ module.exports = {
 
     // Fallback embed si la génération de la carte échoue
     const remaining = rank.next === Infinity ? 0 : rank.next - karma;
-    let benefits = '🎁 Multiplicateur XP : **Aucun**\n🛒 Réduction Boutique : **Aucune** *(débloquez à 20 points)*';
-    if (karma >= 100) {
-      benefits = '🎁 Multiplicateur XP : **x2.0** 🔥\n🛒 Réduction Boutique : **-20%** 🛍️';
-    } else if (karma >= 50) {
-      benefits = '🎁 Multiplicateur XP : **x1.5** ⭐\n🛒 Réduction Boutique : **-10%** 🛍️';
-    } else if (karma >= 20) {
-      benefits = '🎁 Multiplicateur XP : **x1.2**\n🛒 Réduction Boutique : **-5%** 🛍️';
-    }
-
-    const targetName = member ? member.displayName : targetUser.username;
-
     const embed = new EmbedBuilder()
       .setColor('#9B59B6')
-      .setTitle(`⭐ Karma de ${targetName}`)
+      .setTitle(`⭐ Karma de ${targetUser.username}`)
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
       .addFields(
         { name: '✨ Karma', value: `${karma.toLocaleString('fr-FR')} points`, inline: true },
-        { name: '🎖️ Rang de Karma', value: `**${rank.name}**`, inline: true },
-        { name: '🎁 Avantages de Karma', value: benefits, inline: false }
+        { name: '🎖️ Rang de Karma', value: `**${rank.name}**`, inline: true }
       )
       .setTimestamp();
 
