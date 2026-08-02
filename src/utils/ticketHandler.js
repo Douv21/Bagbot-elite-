@@ -369,9 +369,7 @@ async function handleTicketInteraction(interaction, client) {
 
     setTimeout(async () => {
       deleteActiveTicket(interaction.channelId);
-      if (interaction.channel) {
-        await interaction.channel.delete().catch(() => null);
-      }
+      await interaction.channel.delete().catch(() => null);
     }, 5000);
   }
 
