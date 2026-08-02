@@ -429,44 +429,55 @@ async function handleTicketInteraction(interaction, client) {
   }
 
   else if (customId === 'ticket_assign_select' && interaction.isUserSelectMenu()) {
-    await interaction.deferReply({ ephemeral: true });
+    try {
+      if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferUpdate().catch(() => {});
+      }
 
-    const isStaff = await checkIsTicketStaff(interaction);
-    if (!isStaff) {
-      return interaction.editReply({ content: '❌ Cette action est réservée au personnel d\'assistance.' });
-    }
+      const isStaff = await checkIsTicketStaff(interaction);
+      if (!isStaff) {
+        return interaction.followUp({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true }).catch(() => {});
+      }
 
-    const targetUserId = interaction.values[0];
+      const targetUserId = interaction.values[0];
 
-    // Donner immédiatement les permissions au membre du staff dans le salon du ticket
-    await interaction.channel.permissionOverwrites.edit(targetUserId, {
-      ViewChannel: true,
-      SendMessages: true,
-      ReadMessageHistory: true,
-      AttachFiles: true,
-      EmbedLinks: true
-    }).catch(() => {});
+      // Donner immédiatement les permissions au membre du staff dans le salon du ticket
+      await interaction.channel.permissionOverwrites.edit(targetUserId, {
+        ViewChannel: true,
+        SendMessages: true,
+        ReadMessageHistory: true,
+        AttachFiles: true,
+        EmbedLinks: true
+      }).catch(err => console.error('Error updating ticket channel permissions:', err));
 
-    // Rechercher le message de bienvenue du bot dans les 50 derniers messages
-    const messages = await interaction.channel.messages.fetch({ limit: 50 }).catch(() => new Map());
-    const welcomeMsg = messages.find(m => m.author.id === interaction.client.user.id && m.embeds.length > 0);
-    
-    if (welcomeMsg) {
-      const embed = EmbedBuilder.from(welcomeMsg.embeds[0]);
-      const currentFields = embed.data.fields || [];
-      const newFields = currentFields.filter(f => f.name !== '🙋‍♂️ Pris en charge par');
-      newFields.push({ name: '🙋‍♂️ Pris en charge par', value: `<@${targetUserId}>`, inline: true });
-      embed.setFields(newFields);
+      // Rechercher le message de bienvenue du bot dans les 50 derniers messages
+      const messages = await interaction.channel.messages.fetch({ limit: 50 }).catch(() => new Map());
+      const welcomeMsg = messages.find(m => m.author.id === interaction.client.user.id && m.embeds.length > 0);
       
-      await welcomeMsg.edit({ embeds: [embed] }).catch(() => null);
+      if (welcomeMsg) {
+        const embed = EmbedBuilder.from(welcomeMsg.embeds[0]);
+        const currentFields = embed.data.fields || [];
+        const newFields = currentFields.filter(f => f.name !== '🙋‍♂️ Pris en charge par');
+        newFields.push({ name: '🙋‍♂️ Pris en charge par', value: `<@${targetUserId}>`, inline: true });
+        embed.setFields(newFields);
+        
+        await welcomeMsg.edit({ embeds: [embed] }).catch(err => console.error('Error updating welcome embed:', err));
+      }
+
+      const targetUser = await interaction.client.users.fetch(targetUserId).catch(() => null);
+      const targetTag = targetUser ? targetUser.tag : targetUserId;
+
+      await interaction.channel.setTopic(`Ticket assigné à ${targetTag}.`).catch(() => {});
+      await interaction.channel.send({ content: `👤 Le ticket a été assigné à <@${targetUserId}> par <@${interaction.user.id}>.` }).catch(() => {});
+      await interaction.editReply({ content: `✅ Ticket assigné avec succès à <@${targetUserId}>.`, components: [] }).catch(() => {});
+    } catch (err) {
+      console.error('Erreur dans ticket_assign_select:', err);
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp({ content: '❌ Une erreur est survenue lors de l\'assignation du ticket.', ephemeral: true }).catch(() => {});
+      } else {
+        await interaction.reply({ content: '❌ Une erreur est survenue lors de l\'assignation du ticket.', ephemeral: true }).catch(() => {});
+      }
     }
-
-    const targetUser = await interaction.client.users.fetch(targetUserId).catch(() => null);
-    const targetTag = targetUser ? targetUser.tag : targetUserId;
-
-    await interaction.channel.setTopic(`Ticket assigné à ${targetTag}.`).catch(() => {});
-    await interaction.channel.send({ content: `👤 Le ticket a été assigné à <@${targetUserId}> par <@${interaction.user.id}>.` }).catch(() => {});
-    await interaction.editReply({ content: `✅ Ticket assigné avec succès à <@${targetUserId}>.` });
   }
 
   else if (customId === 'ticket_member') {
