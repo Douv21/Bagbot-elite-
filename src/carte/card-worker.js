@@ -2,7 +2,27 @@
 // Reads JSON from stdin, writes PNG buffer to stdout.
 // Uses @napi-rs/canvas — prebuilt binaries, no native compilation required.
 
-const { createCanvas, loadImage } = require('@napi-rs/canvas');
+const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas');
+const fs = require('fs');
+const path = require('path');
+
+// Enregistrer automatiquement toutes les polices système Linux (DejaVu, Symbola, Noto Emoji, TeX Gyre, etc.)
+function registerSystemFonts(dir) {
+  if (!fs.existsSync(dir)) return;
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        registerSystemFonts(full);
+      } else if (entry.name.endsWith('.ttf') || entry.name.endsWith('.otf') || entry.name.endsWith('.ttc')) {
+        try { GlobalFonts.registerFromPath(full); } catch (e) {}
+      }
+    }
+  } catch (e) {}
+}
+
+registerSystemFonts('/usr/share/fonts');
 
 // ─── Safe text helper (keeps all unicode symbols, special characters & fonts) ───
 function safeText(str) {
