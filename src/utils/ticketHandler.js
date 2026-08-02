@@ -390,12 +390,22 @@ async function handleTicketInteraction(interaction, client) {
     const currentFields = embed.data.fields || [];
     const claimedField = currentFields.find(f => f.name === '🙋‍♂️ Pris en charge par');
     
-    if (claimedField) {
-      return interaction.reply({ content: '❌ Ce ticket est déjà pris en charge par un autre membre du personnel.', ephemeral: true });
+    if (claimedField && claimedField.value === `<@${interaction.user.id}>`) {
+      return interaction.reply({ content: '❌ Vous avez déjà pris en charge ce ticket.', ephemeral: true });
     }
 
-    embed.addFields({ name: '🙋‍♂️ Pris en charge par', value: `<@${interaction.user.id}>`, inline: true });
+    const newFields = currentFields.filter(f => f.name !== '🙋‍♂️ Pris en charge par');
+    newFields.push({ name: '🙋‍♂️ Pris en charge par', value: `<@${interaction.user.id}>`, inline: true });
+    embed.setFields(newFields);
     
+    await interaction.channel.permissionOverwrites.edit(interaction.user.id, {
+      ViewChannel: true,
+      SendMessages: true,
+      ReadMessageHistory: true,
+      AttachFiles: true,
+      EmbedLinks: true
+    }).catch(() => {});
+
     await interaction.message.edit({ embeds: [embed] });
     await interaction.channel.setTopic(`Ticket pris en charge par ${interaction.user.tag}.`).catch(() => {});
     await interaction.reply({ content: `🙋‍♂️ <@${interaction.user.id}> a pris en charge ce ticket.` });
@@ -419,14 +429,27 @@ async function handleTicketInteraction(interaction, client) {
   }
 
   else if (customId === 'ticket_assign_select' && interaction.isUserSelectMenu()) {
+    await interaction.deferReply({ ephemeral: true });
+
     const isStaff = await checkIsTicketStaff(interaction);
     if (!isStaff) {
-      return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
+      return interaction.editReply({ content: '❌ Cette action est réservée au personnel d\'assistance.' });
     }
 
     const targetUserId = interaction.values[0];
-    const messages = await interaction.channel.messages.fetch({ limit: 50 });
-    const welcomeMsg = messages.find(m => m.embeds.length > 0 && m.embeds[0].title && m.embeds[0].title.startsWith("🎫 Ticket d'Assistance"));
+
+    // Donner immédiatement les permissions au membre du staff dans le salon du ticket
+    await interaction.channel.permissionOverwrites.edit(targetUserId, {
+      ViewChannel: true,
+      SendMessages: true,
+      ReadMessageHistory: true,
+      AttachFiles: true,
+      EmbedLinks: true
+    }).catch(() => {});
+
+    // Rechercher le message de bienvenue du bot dans les 50 derniers messages
+    const messages = await interaction.channel.messages.fetch({ limit: 50 }).catch(() => new Map());
+    const welcomeMsg = messages.find(m => m.author.id === interaction.client.user.id && m.embeds.length > 0);
     
     if (welcomeMsg) {
       const embed = EmbedBuilder.from(welcomeMsg.embeds[0]);
@@ -435,11 +458,15 @@ async function handleTicketInteraction(interaction, client) {
       newFields.push({ name: '🙋‍♂️ Pris en charge par', value: `<@${targetUserId}>`, inline: true });
       embed.setFields(newFields);
       
-      await welcomeMsg.edit({ embeds: [embed] });
+      await welcomeMsg.edit({ embeds: [embed] }).catch(() => null);
     }
 
-    await interaction.channel.setTopic(`Ticket assigné à <@${targetUserId}>.`).catch(() => {});
-    await interaction.reply({ content: `👤 Le ticket a été assigné à <@${targetUserId}>.` });
+    const targetUser = await interaction.client.users.fetch(targetUserId).catch(() => null);
+    const targetTag = targetUser ? targetUser.tag : targetUserId;
+
+    await interaction.channel.setTopic(`Ticket assigné à ${targetTag}.`).catch(() => {});
+    await interaction.channel.send({ content: `👤 Le ticket a été assigné à <@${targetUserId}> par <@${interaction.user.id}>.` }).catch(() => {});
+    await interaction.editReply({ content: `✅ Ticket assigné avec succès à <@${targetUserId}>.` });
   }
 
   else if (customId === 'ticket_member') {
