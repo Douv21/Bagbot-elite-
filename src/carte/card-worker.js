@@ -913,7 +913,8 @@ function drawBarcode(ctx, x, y, theme) {
 async function run() {
   let raw = '';
   for await (const chunk of process.stdin) raw += chunk;
-  const { username, discriminator, avatarUrl, data, theme: themeName } = JSON.parse(raw);
+  const { username: rawUser, discriminator, avatarUrl, data, theme: themeName } = JSON.parse(raw);
+  const username = safeText(rawUser) || String(rawUser || 'Membre').trim() || 'Membre';
 
   const theme = getTheme(themeName);
 
