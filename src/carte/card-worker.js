@@ -937,7 +937,14 @@ async function run() {
   const nextPanelSubSub = data.nextPanelSubSub || 'RESTANTES';
 
   let avatar = null;
-  try { avatar = await loadImage(avatarUrl); } catch(_) { /* fallback: no avatar */ }
+  if (avatarUrl) {
+    try {
+      avatar = await Promise.race([
+        loadImage(avatarUrl),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('avatar load timeout')), 2500))
+      ]);
+    } catch (_) { avatar = null; }
+  }
 
   // ── Background ────────────────────────────────────────────────────────────
   ctx.fillStyle = theme.bg1; ctx.fillRect(0, 0, W, H);
