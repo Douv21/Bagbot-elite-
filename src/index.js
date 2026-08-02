@@ -541,7 +541,7 @@ client.on('interactionCreate', async interaction => {
         }
       }
       return;
-    } else if (interaction.customId === 'ticket_select' || interaction.customId === 'ticket_open_filtered') {
+    } else if (interaction.customId.startsWith('ticket_')) {
       const { handleTicketInteraction } = require('./utils/ticketHandler');
       return handleTicketInteraction(interaction, client);
     } else if (interaction.customId === 'autorole_select_menu') {
@@ -564,6 +564,11 @@ client.on('interactionCreate', async interaction => {
 
   if (interaction.isUserSelectMenu()) {
     const customId = interaction.customId;
+
+    if (customId.startsWith('ticket_')) {
+      const { handleTicketInteraction } = require('./utils/ticketHandler');
+      return handleTicketInteraction(interaction, client);
+    }
 
     if (customId.startsWith('inv_use_target:')) {
       const itemName = customId.replace('inv_use_target:', '');
