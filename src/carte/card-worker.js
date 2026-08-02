@@ -24,6 +24,8 @@ function registerSystemFonts(dir) {
 
 registerSystemFonts('/usr/share/fonts');
 
+const FONT_FAMILY = `${FONT_FAMILY}, "Noto Color Emoji", "Symbola", "DejaVu Math TeX Gyre", "DejaVu Sans", sans-serif`;
+
 // ─── Safe text helper (keeps all unicode symbols, special characters & fonts) ───
 function safeText(str) {
   if (!str && str !== 0) return '';
@@ -1000,7 +1002,7 @@ async function run() {
   }); ctx.shadowBlur = 0;
 
   // ── Theme label (top-left) ────────────────────────────────────────────────
-  ctx.font = 'bold 28px Arial, "DejaVu Sans", sans-serif';
+  ctx.font = `bold 28px ${FONT_FAMILY}`;
   ctx.fillStyle = theme.titleColor;
   ctx.shadowColor = theme.titleGlow; ctx.shadowBlur = 8;
   ctx.fillText(themeName ? themeName.toUpperCase() : 'HOLOGRAPHIQUE', 48, 76);
@@ -1028,7 +1030,7 @@ async function run() {
     const fbg = ctx.createRadialGradient(ax, ay, 0, ax, ay, ar);
     fbg.addColorStop(0, theme.titleColor); fbg.addColorStop(1, theme.panelBg1);
     ctx.fillStyle = fbg; ctx.fillRect(ax-ar, ay-ar, ar*2, ar*2);
-    ctx.fillStyle = '#ffffff'; ctx.font = `bold ${ar}px Arial, "DejaVu Sans", sans-serif`;
+    ctx.fillStyle = '#ffffff'; ctx.font = `bold ${ar}px ${FONT_FAMILY}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText((username[0] || '?').toUpperCase(), ax, ay);
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
@@ -1042,15 +1044,15 @@ async function run() {
 
   // ── Username + role ───────────────────────────────────────────────────────
   const nameX = 324;
-  let namePx = 68; ctx.font = `bold ${namePx}px Arial, "DejaVu Sans", sans-serif`;
+  let namePx = 68; ctx.font = `bold ${namePx}px ${FONT_FAMILY}`;
   while (ctx.measureText(username).width > 480 && namePx > 30) {
-    namePx -= 2; ctx.font = `bold ${namePx}px Arial, "DejaVu Sans", sans-serif`;
+    namePx -= 2; ctx.font = `bold ${namePx}px ${FONT_FAMILY}`;
   }
   ctx.fillStyle = '#ffffff'; ctx.shadowColor = theme.titleGlow; ctx.shadowBlur = 16;
   ctx.fillText(username, nameX, 220); ctx.shadowBlur = 0;
-  ctx.font = '30px Arial, "DejaVu Sans", sans-serif'; ctx.fillStyle = theme.statColor;
+  ctx.font = `30px ${FONT_FAMILY}`; ctx.fillStyle = theme.statColor;
   ctx.fillText(discriminator && discriminator !== '0' ? `#${discriminator}` : '', nameX+2, 268);
-  ctx.font = 'bold 21px Arial, "DejaVu Sans", sans-serif';
+  ctx.font = `bold 21px ${FONT_FAMILY}`;
   const badgeTxt = `  +  ${roleName}  `;
   const bw = ctx.measureText(badgeTxt).width;
   roundedRect(ctx, nameX, 282, bw, 40, 20);
@@ -1069,7 +1071,7 @@ async function run() {
                    : karma >= 1000    ? `${Math.floor(karma/1000)}K`
                    : String(karma);
     const karmaTxt = `  KRM  KARMA ${karmaStr}  `;
-    ctx.font = 'bold 19px Arial, "DejaVu Sans", sans-serif';
+    ctx.font = `bold 19px ${FONT_FAMILY}`;
     const kw = ctx.measureText(karmaTxt).width;
     roundedRect(ctx, nameX, 334, kw, 34, 17);
     const kg = ctx.createLinearGradient(nameX, 334, nameX+kw, 368);
@@ -1096,13 +1098,13 @@ async function run() {
     ctx.beginPath();
     ctx.moveTo(cx+dx*nBLen,cy); ctx.lineTo(cx,cy); ctx.lineTo(cx,cy+dy*nBLen); ctx.stroke();
   }); ctx.shadowBlur = 0;
-  ctx.font = 'bold 44px Arial, "DejaVu Sans", sans-serif'; ctx.fillStyle = theme.titleColor;
+  ctx.font = `bold 44px ${FONT_FAMILY}`; ctx.fillStyle = theme.titleColor;
   ctx.shadowColor = theme.panelGlow; ctx.shadowBlur = 10;
   ctx.fillText(panelTitle, NX+36, NY+76); ctx.shadowBlur = 0;
 
   const lvlStr = displayNumStr;
   const lvlPx  = lvlStr.length > 7 ? 70 : lvlStr.length > 5 ? 100 : lvlStr.length > 3 ? 150 : 210;
-  ctx.font = `bold ${lvlPx}px Arial, "DejaVu Sans", sans-serif`;
+  ctx.font = `bold ${lvlPx}px ${FONT_FAMILY}`;
   const lvlMw = ctx.measureText(lvlStr).width;
   const lvlStartX = NX + (NW - lvlMw) / 2;
   const lvlGrad = ctx.createLinearGradient(lvlStartX, NY+100, lvlStartX+lvlMw, NY+NH-20);
@@ -1119,7 +1121,7 @@ async function run() {
   roundedRect(ctx, EX, EY, EW, EH, 14);
   ctx.strokeStyle = theme.panelBorder; ctx.lineWidth = 1.5;
   ctx.shadowColor = theme.panelGlow; ctx.shadowBlur = 10; ctx.stroke(); ctx.shadowBlur = 0;
-  ctx.font = 'bold 26px Arial, "DejaVu Sans", sans-serif'; ctx.fillStyle = theme.statColor;
+  ctx.font = `bold 26px ${FONT_FAMILY}`; ctx.fillStyle = theme.statColor;
   ctx.fillText('EXP', EX+18, EY+40);
   const bX = EX+80, bY = EY+14, bW = EW-90-320, bH = EH-28;
   roundedRect(ctx, bX, bY, bW, bH, bH/2);
@@ -1132,7 +1134,7 @@ async function run() {
     ctx.fillStyle = fg; ctx.shadowColor = theme.borderGlow; ctx.shadowBlur = 20;
     ctx.fill(); ctx.shadowBlur = 0;
   }
-  ctx.font = 'bold 26px Arial, "DejaVu Sans", sans-serif'; ctx.fillStyle = theme.statColor;
+  ctx.font = `bold 26px ${FONT_FAMILY}`; ctx.fillStyle = theme.statColor;
   ctx.textAlign = 'right';
   ctx.fillText(expBarLabel, EX+EW-18, EY+40);
   ctx.textAlign = 'left';
@@ -1144,18 +1146,18 @@ async function run() {
 
   // Stats panel
   drawPanel(ctx, p1x, PY, PW, PH, theme);
-  ctx.font = 'bold 22px Arial, "DejaVu Sans", sans-serif'; ctx.fillStyle = theme.titleColor;
+  ctx.font = `bold 22px ${FONT_FAMILY}`; ctx.fillStyle = theme.titleColor;
   ctx.shadowColor = theme.panelGlow; ctx.shadowBlur = 6;
   ctx.fillText('STATISTIQUES', p1x+18, PY+34); ctx.shadowBlur = 0;
   const colW = PW / Math.max(1, bottomStats.length);
   bottomStats.forEach((s,i) => {
     const sx = p1x+14+i*colW;
-    ctx.font = 'bold 16px Arial, "DejaVu Sans", sans-serif'; ctx.fillStyle = theme.statColor;
+    ctx.font = `bold 16px ${FONT_FAMILY}`; ctx.fillStyle = theme.statColor;
     ctx.shadowColor = theme.panelGlow; ctx.shadowBlur = 4;
     ctx.fillText(s.icon, sx, PY+74); ctx.shadowBlur = 0;
-    ctx.font = '14px Arial, "DejaVu Sans", sans-serif'; ctx.fillStyle = theme.statColor; ctx.globalAlpha = 0.7;
+    ctx.font = `14px ${FONT_FAMILY}`; ctx.fillStyle = theme.statColor; ctx.globalAlpha = 0.7;
     ctx.fillText(s.label, sx, PY+98); ctx.globalAlpha = 1;
-    ctx.font = 'bold 30px Arial, "DejaVu Sans", sans-serif';
+    ctx.font = `bold 30px ${FONT_FAMILY}`;
     const sg = ctx.createLinearGradient(sx, PY+100, sx+colW-10, PY+140);
     theme.barColors.slice(0,2).forEach((c,i) => sg.addColorStop(i, c));
     ctx.fillStyle = sg;
@@ -1164,7 +1166,7 @@ async function run() {
 
   // Rang panel
   drawPanel(ctx, p2x, PY, PW, PH, theme);
-  ctx.font = 'bold 22px Arial, "DejaVu Sans", sans-serif'; ctx.fillStyle = theme.titleColor;
+  ctx.font = `bold 22px ${FONT_FAMILY}`; ctx.fillStyle = theme.titleColor;
   ctx.shadowColor = theme.panelGlow; ctx.shadowBlur = 6;
   const rangLabel = 'RANG ACTUEL';
   ctx.fillText(rangLabel, p2x+PW/2-ctx.measureText(rangLabel).width/2, PY+34);
@@ -1172,7 +1174,7 @@ async function run() {
   const gemCx = p2x+PW/2, gemCy = PY+PH/2-12;
   drawCrystalGem(ctx, gemCx, gemCy, 60, pal);
   ctx.textAlign = 'center';
-  ctx.font = 'bold 28px Arial, "DejaVu Sans", sans-serif';
+  ctx.font = `bold 28px ${FONT_FAMILY}`;
   const rnG = ctx.createLinearGradient(p2x, PY+PH-48, p2x+PW, PY+PH-28);
   rnG.addColorStop(0, pal[0]); rnG.addColorStop(1, pal[1]);
   ctx.fillStyle = rnG; ctx.shadowColor = pal[0]; ctx.shadowBlur = 14;
@@ -1181,17 +1183,17 @@ async function run() {
 
   // Prochain niveau / prochain rang panel
   drawPanel(ctx, p3x, PY, PW, PH, theme);
-  ctx.font = 'bold 22px Arial, "DejaVu Sans", sans-serif'; ctx.fillStyle = theme.titleColor;
+  ctx.font = `bold 22px ${FONT_FAMILY}`; ctx.fillStyle = theme.titleColor;
   ctx.shadowColor = theme.panelGlow; ctx.shadowBlur = 6;
   ctx.fillText(nextPanelTitle, p3x+18, PY+34); ctx.shadowBlur = 0;
   drawCrystalGem(ctx, p3x+60, PY+PH/2-8, 34, pal);
-  ctx.font = 'bold 36px Arial, "DejaVu Sans", sans-serif';
+  ctx.font = `bold 36px ${FONT_FAMILY}`;
   const nlG = ctx.createLinearGradient(p3x+98, PY+80, p3x+PW, PY+130);
   nlG.addColorStop(0, theme.titleColor); nlG.addColorStop(1, theme.statColor);
   ctx.fillStyle = nlG; ctx.fillText(nextPanelBig, p3x+98, PY+118);
-  ctx.font = 'bold 26px Arial, "DejaVu Sans", sans-serif'; ctx.fillStyle = theme.statColor;
+  ctx.font = `bold 26px ${FONT_FAMILY}`; ctx.fillStyle = theme.statColor;
   ctx.fillText(nextPanelSub, p3x+98, PY+158);
-  ctx.font = '18px Arial, "DejaVu Sans", sans-serif'; ctx.fillStyle = theme.statColor; ctx.globalAlpha = 0.65;
+  ctx.font = `18px ${FONT_FAMILY}`; ctx.fillStyle = theme.statColor; ctx.globalAlpha = 0.65;
   ctx.fillText(nextPanelSubSub, p3x+98, PY+188); ctx.globalAlpha = 1;
 
   // Barcode
