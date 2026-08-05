@@ -1813,7 +1813,44 @@ function updatePendingConfessionStatus(id, status) {
   db.prepare('UPDATE pending_confessions SET status = ? WHERE id = ?').run(status, id);
 }
 
+function createSondage(data) {
+  const { id, guild_id, channel_id, results_channel_id, title, description, rating_icon, text_type, color, created_by } = data;
+  return db.prepare(`
+    INSERT INTO sondages (id, guild_id, channel_id, results_channel_id, title, description, rating_icon, text_type, color, created_by, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, guild_id, channel_id, results_channel_id || null, title, description || '', rating_icon || '⭐', text_type || 'long', color || '#F1C40F', created_by || '', Date.now());
+}
+
+function getSondage(id) {
+  return db.prepare('SELECT * FROM sondages WHERE id = ?').get(id);
+}
+
+function saveSondageResponse(sondageId, userId, rating, comment) {
+  return db.prepare(`
+    INSERT INTO sondage_responses (sondage_id, user_id, rating, comment, created_at)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(sondage_id, user_id) DO UPDATE SET
+      rating = excluded.rating,
+      comment = excluded.comment,
+      created_at = excluded.created_at
+  `).run(sondageId, userId, rating, comment || '', Date.now());
+}
+
+function getSondageResponses(sondageId) {
+  return db.prepare('SELECT * FROM sondage_responses WHERE sondage_id = ? ORDER BY created_at DESC').all(sondageId);
+}
+
+function hasUserVotedSondage(sondageId, userId) {
+  const row = db.prepare('SELECT 1 FROM sondage_responses WHERE sondage_id = ? AND user_id = ?').get(sondageId, userId);
+  return !!row;
+}
+
 module.exports = {
+  createSondage,
+  getSondage,
+  saveSondageResponse,
+  getSondageResponses,
+  hasUserVotedSondage,
   db,
   initDatabase,
   getPermissionsConfig,

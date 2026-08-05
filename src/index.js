@@ -159,6 +159,19 @@ client.on('interactionCreate', async interaction => {
     }
   }
 
+  // Prise en charge directe des boutons et modaux de Sondage
+  if (interaction.customId && (interaction.customId.startsWith('sondage_vote:') || interaction.customId.startsWith('sondage_modal:'))) {
+    const sondageCmd = client.commands.get('sondage');
+    if (sondageCmd && typeof sondageCmd.handleInteraction === 'function') {
+      try {
+        const handled = await sondageCmd.handleInteraction(interaction);
+        if (handled) return;
+      } catch (err) {
+        console.error('Erreur interaction sondage:', err);
+      }
+    }
+  }
+
   if (interaction.isButton()) {
     const customId = interaction.customId;
 
@@ -996,11 +1009,11 @@ client.once('ready', async () => {
       { body: commandsJSON }
     );
 
-    // Supprimer les commandes de guilde locales (évite les doublons avec les globales)
+    // Déploiement également dans chaque guilde pour affichage instantané dans l'interface Discord
     for (const [guildId, guild] of client.guilds.cache) {
       await rest.put(
         Routes.applicationGuildCommands(client.user.id, guildId),
-        { body: [] }
+        { body: commandsJSON }
       ).catch(() => {});
     }
 
