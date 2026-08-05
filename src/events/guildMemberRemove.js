@@ -109,9 +109,10 @@ module.exports = {
         .setTimestamp();
       sendLog(member.guild, 'moderation', logEmbed, { isBot: member.user.bot });
     } else {
+      const userRolesList = member.roles.cache.filter(r => r.id !== member.guild.id).map(r => `<@&${r.id}>`).join(', ') || 'Aucun rôle';
       const logEmbed = new EmbedBuilder()
         .setTitle('📤 Départ de Membre')
-        .setDescription(`**Utilisateur :** ${member.user.tag} (<@${member.id}>)\n**ID :** ${member.id}\n**Rôles possédés :** ${member.roles.cache.map(r => r.name).filter(name => name !== '@everyone').join(', ') || 'Aucun'}`)
+        .setDescription(`**Utilisateur :** ${member.user.tag} (<@${member.id}>)\n**ID :** ${member.id}\n**Rôles possédés avant le départ :**\n${userRolesList}`)
         .setColor('#FF0000')
         .setTimestamp();
       sendLog(member.guild, 'memberRemove', logEmbed, { isBot: member.user.bot });
@@ -147,7 +148,7 @@ module.exports = {
         `).run(guildId, member.id, ageRole.id);
       }
 
-      // 2. Remise à zéro complète (Suppression de toutes les données du membre sur ce serveur)
+      // 2. Remise à zéro complète (Suppression de toutes les données du membre sur ce serveur, hors quarantaine)
       db.prepare('DELETE FROM economy WHERE guild_id = ? AND user_id = ?').run(guildId, member.id);
       db.prepare('DELETE FROM leveling WHERE guild_id = ? AND user_id = ?').run(guildId, member.id);
       db.prepare('DELETE FROM voice_xp WHERE guild_id = ? AND user_id = ?').run(guildId, member.id);
@@ -157,7 +158,6 @@ module.exports = {
       try { db.prepare('DELETE FROM user_quests WHERE guild_id = ? AND user_id = ?').run(guildId, member.id); } catch (_) {}
       try { db.prepare('DELETE FROM user_letters WHERE guild_id = ? AND user_id = ?').run(guildId, member.id); } catch (_) {}
       try { db.prepare('DELETE FROM star_weekly_points WHERE guild_id = ? AND user_id = ?').run(guildId, member.id); } catch (_) {}
-      try { db.prepare('DELETE FROM quarantined_users WHERE guild_id = ? AND user_id = ?').run(guildId, member.id); } catch (_) {}
 
       console.log(`[Remise à Zéro] Toutes les données (Argent, Karma, Niveau, Inventaire) de ${member.user.tag} (${member.id}) ont été réinitialisées suite à son départ du serveur ${guildId}.`);
     } catch (err) {

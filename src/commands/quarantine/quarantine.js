@@ -46,7 +46,7 @@ module.exports = {
         return interaction.reply({ content: '❌ Ce membre est déjà en quarantaine.', ephemeral: true });
       }
 
-      // Conserver les anciens rôles
+      // Conserver les anciens rôles (tous les rôles hors @everyone et rôle de quarantaine)
       const oldRoleIds = target.roles.cache
         .filter(r => r.id !== interaction.guild.id && r.id !== qRole.id)
         .map(r => r.id);
@@ -54,16 +54,16 @@ module.exports = {
       db.prepare('INSERT OR REPLACE INTO quarantined_users (guild_id, user_id, old_roles) VALUES (?, ?, ?)')
         .run(guildId, target.id, JSON.stringify(oldRoleIds));
 
-      // Retirer les rôles
-      for (const roleId of oldRoleIds) {
-        const r = interaction.guild.roles.cache.get(roleId);
-        if (r && r.editable) {
-          await target.roles.remove(r).catch(console.error);
+      // Retirer TOUS les rôles du membre sans exception et lui attribuer uniquement le rôle de quarantaine
+      await target.roles.set([qRole.id]).catch(async () => {
+        for (const roleId of oldRoleIds) {
+          const r = interaction.guild.roles.cache.get(roleId);
+          if (r && r.editable && !r.managed) {
+            await target.roles.remove(r).catch(() => null);
+          }
         }
-      }
-
-      // Ajouter le rôle de quarantaine
-      await target.roles.add(qRole);
+        await target.roles.add(qRole.id).catch(() => null);
+      });
 
       const embed = new EmbedBuilder()
         .setTitle('☣️ Quarantaine Activée')
@@ -91,18 +91,29 @@ module.exports = {
       }
 
       // Retirer le rôle de quarantaine
-      await target.roles.remove(qRole).catch(console.error);
+      await target.roles.remove(qRole.id).catch(() => null);
 
-      // Récupérer et restaurer les anciens rôles
+      // Récupérer et restaurer TOUS les anciens rôles
       const record = db.prepare('SELECT old_roles FROM quarantined_users WHERE guild_id = ? AND user_id = ?').get(guildId, target.id);
 
       if (record && record.old_roles) {
-        const roleIds = JSON.parse(record.old_roles);
-        for (const roleId of roleIds) {
-          const r = interaction.guild.roles.cache.get(roleId);
-          if (r && r.editable) {
-            await target.roles.add(r).catch(console.error);
+        try {
+          const roleIds = JSON.parse(record.old_roles);
+          if (Array.isArray(roleIds) && roleIds.length > 0) {
+            const validRoles = roleIds.filter(id => interaction.guild.roles.cache.has(id));
+            if (validRoles.length > 0) {
+              await target.roles.add(validRoles).catch(async () => {
+                for (const rId of validRoles) {
+                  const r = interaction.guild.roles.cache.get(rId);
+                  if (r && r.editable) {
+                    await target.roles.add(r).catch(() => null);
+                  }
+                }
+              });
+            }
           }
+        } catch (e) {
+          console.error('Erreur restauration rôles quarantaine:', e);
         }
       }
 

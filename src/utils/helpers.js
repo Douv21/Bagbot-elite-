@@ -31,10 +31,18 @@ function sendLog(guild, eventType, embed, options = {}) {
     category = 'structure';
   } else if (eventType === 'confession') {
     category = 'confessions';
+  } else if (eventType === 'tickets') {
+    category = 'tickets';
+  } else if (eventType === 'pseudo') {
+    category = 'pseudo';
+  } else if (['roleAdd', 'roleRemove', 'roles'].includes(eventType)) {
+    category = 'roles';
+  } else if (eventType === 'bots') {
+    category = 'bots';
   }
 
   // Rediriger vers la catégorie "bots" si c'est un bot
-  if (options.isBot) {
+  if (options.isBot && eventType !== 'tickets' && eventType !== 'confession') {
     category = 'bots';
   }
 

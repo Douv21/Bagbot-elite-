@@ -646,7 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const activeCategories = logs.events ? logs.events.split(',') : [];
         const isLegacyAll = !logs.events || logs.events === 'all';
-        const categories = ['messages', 'members', 'voice', 'moderation', 'structure', 'bots', 'confessions'];
+        const categories = ['messages', 'members', 'voice', 'moderation', 'structure', 'bots', 'tickets', 'pseudo', 'roles', 'confessions'];
         
         categories.forEach(cat => {
           safeSetCheck(`log_enable_${cat}`, isLegacyAll ? true : activeCategories.includes(cat));
@@ -2585,7 +2585,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 4. Logs
   formLogs.addEventListener('submit', (e) => {
     e.preventDefault();
-    const categories = ['messages', 'members', 'voice', 'moderation', 'structure', 'bots', 'confessions'];
+    const categories = ['messages', 'members', 'voice', 'moderation', 'structure', 'bots', 'tickets', 'pseudo', 'roles', 'confessions'];
     const channelMap = {};
     const checkedEvents = [];
 

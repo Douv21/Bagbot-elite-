@@ -952,6 +952,30 @@ client.on('interactionCreate', async interaction => {
         await checkAndAnnounceKarmaReward(interaction, oldKarma, newKarma);
       }
     }
+
+    // Log de l'exécution de la commande dans la catégorie 'bots'
+    if (interaction.guild) {
+      try {
+        const { sendLog } = require('./utils/helpers');
+        let cmdDetails = `\`/${interaction.commandName}\``;
+        if (subcommand) cmdDetails += ` \`${subcommand}\``;
+
+        const logEmbed = new EmbedBuilder()
+          .setTitle('🤖 Exécution de Commande Slash')
+          .setDescription(
+            `**Exécuteur :** ${interaction.user.tag} (<@${interaction.user.id}>) ${interaction.user.bot ? '[BOT]' : ''}\n` +
+            `**Bot Cible / Application :** ${client.user.tag} (<@${client.user.id}>)\n` +
+            `**Commande :** ${cmdDetails}\n` +
+            `**Salon :** <#${interaction.channelId}>`
+          )
+          .setColor('#9B59B6')
+          .setTimestamp();
+
+        sendLog(interaction.guild, 'bots', logEmbed, { isBot: true });
+      } catch (e) {
+        console.error('Erreur log commande bots:', e);
+      }
+    }
   } catch (error) {
     console.error(error);
     if (interaction.replied || interaction.deferred) {
