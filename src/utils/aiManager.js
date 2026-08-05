@@ -226,7 +226,7 @@ async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperatu
               num_predict: maxTokens
             }
           }),
-          signal: AbortSignal.timeout(3000) // Timeout strict de 3 secondes pour ne jamais bloquer l'application
+          signal: AbortSignal.timeout(20000) // Timeout de 20 secondes adapté au processeur de la Freebox VM
         });
 
         if (response.ok) {
