@@ -365,7 +365,13 @@ async function handleTicketInteraction(interaction, client) {
       return interaction.reply({ content: '❌ Cette action est réservée au personnel d\'assistance.', ephemeral: true });
     }
 
-    await interaction.reply({ content: '📁 **Fermeture du ticket dans 5 secondes...**' });
+    await interaction.reply({ content: '📁 **Génération du transcript et fermeture du ticket dans 5 secondes...**' });
+
+    // Générer et envoyer le transcript détaillé dans les logs
+    const { generateAndSendTicketTranscript } = require('./transcriptGenerator');
+    await generateAndSendTicketTranscript(interaction.channel, interaction.member).catch(err => {
+      console.error('Erreur lors de la création du transcript :', err);
+    });
 
     setTimeout(async () => {
       deleteActiveTicket(interaction.channelId);

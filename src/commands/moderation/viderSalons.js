@@ -83,26 +83,27 @@ module.exports = {
           const oldName = channel.name;
           const oldPosition = channel.position;
           const oldParent = channel.parent;
+          const oldTopic = channel.topic;
+          const oldNsfw = channel.nsfw;
+          const oldRateLimitPerUser = channel.rateLimitPerUser;
 
-          // 1. Cloner le salon avec toutes ses propriétés (permissions, sujet, slowmode, etc.)
+          // 1. Cloner le salon avec toutes ses propriétés
           const clonedChannel = await channel.clone({
             name: oldName,
+            topic: oldTopic,
+            nsfw: oldNsfw,
+            rateLimitPerUser: oldRateLimitPerUser,
             reason: `Réinitialisation du salon (/vider-salons) par ${interaction.user.tag}`
           });
 
-          // Restaurer la position et la catégorie
+          // Restaurer position et catégorie
           if (oldParent) {
             await clonedChannel.setParent(oldParent, { lockPermissions: false }).catch(() => null);
           }
           await clonedChannel.setPosition(oldPosition).catch(() => null);
 
-          // 2. Supprimer l'ancien salon
-          await channel.delete(`Réinitialisation (/vider-salons) par ${interaction.user.tag}`).catch(err => {
-            console.error(`Erreur suppression ancien salon ${oldName}:`, err);
-          });
-
-          // 3. Envoyer l'annonce dans le nouveau salon cloné
-          if (clonedChannel.isTextBased && typeof clonedChannel.send === 'function') {
+          // 2. Animer le nouveau salon avec l'embed de réinitialisation
+          if (clonedChannel.isTextBased() && typeof clonedChannel.send === 'function') {
             const nukeEmbed = new EmbedBuilder()
               .setTitle('💥 Salon Réinitialisé !')
               .setDescription(`✨ Ce salon a été réinitialisé à neuf par <@${interaction.user.id}>.\n\n*Toutes les permissions, catégories, rôles et configurations ont été conservés.*`)
@@ -116,6 +117,11 @@ module.exports = {
 
           results.push(`✅ **${oldName}** ➔ <#${clonedChannel.id}>`);
           logsList.push(`- **${oldName}** (Ancien ID: \`${channel.id}\` ➔ Nouveau ID: \`${clonedChannel.id}\`)`);
+
+          // 3. Supprimer l'ancien salon (avec force delete)
+          await channel.delete(`Réinitialisation (/vider-salons) par ${interaction.user.tag}`).catch(err => {
+            console.error(`Erreur suppression ancien salon ${oldName}:`, err);
+          });
         } catch (err) {
           console.error(`Erreur réinitialisation salon ${channel.name}:`, err);
           results.push(`❌ **${channel.name}** : Échec (${err.message})`);
