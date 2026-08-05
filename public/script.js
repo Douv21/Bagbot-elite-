@@ -6093,3 +6093,167 @@ function initSimpleEmbedSender() {
   });
 }
 
+// --- SYSTÈME DE SONDAGE ET ÉVALUATIONS PAR FORMULAIRE ---
+function updateSondagePreview() {
+  const inputTitle = document.getElementById('sondage_title');
+  const inputDesc = document.getElementById('sondage_desc');
+  const selectIcon = document.getElementById('sondage_icon');
+  const selectTextType = document.getElementById('sondage_text_type');
+  const inputColor = document.getElementById('sondage_color');
+
+  const previewBorder = document.getElementById('sondage-preview-border');
+  const previewTitle = document.getElementById('sondage-preview-title');
+  const previewDesc = document.getElementById('sondage-preview-desc');
+  const modalTitle = document.getElementById('sondage-modal-preview-title');
+  const modalTextType = document.getElementById('sondage-modal-text-type');
+
+  if (previewBorder && inputColor) previewBorder.style.borderLeftColor = inputColor.value || '#f1c40f';
+  if (previewTitle && inputTitle) previewTitle.textContent = inputTitle.value.trim() ? `📊 ${inputTitle.value.trim()}` : "📊 Avis sur l'Événement du Serveur";
+  if (previewDesc && inputDesc) previewDesc.textContent = inputDesc.value.trim() ? inputDesc.value.trim() : "Consignes affichées dans l'embed au-dessus du bouton...";
+  if (modalTitle && inputTitle) modalTitle.textContent = `Modal : ${inputTitle.value.trim() || "Avis sur l'Événement du Serveur"}`;
+  
+  if (modalTextType && selectTextType) {
+    modalTextType.textContent = selectTextType.value === 'court' ? 'Ligne unique' : 'Paragraphe Multiligne';
+  }
+
+  const iconVal = selectIcon ? selectIcon.value : '⭐';
+  document.querySelectorAll('.sondage-preview-icon-item').forEach(el => {
+    el.textContent = iconVal;
+  });
+}
+
+function renderSondagesSavedList(sondages) {
+  const container = document.getElementById('sondages-saved-list');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!sondages || sondages.length === 0) {
+    container.innerHTML = '<p style="color: #8e9297; font-style: italic; font-size: 0.85rem;">Aucun sondage enregistré pour le moment. Publiez-en un avec le formulaire ci-dessous !</p>';
+    return;
+  }
+
+  sondages.forEach(s => {
+    const channelName = typeof getChannelName === 'function' ? getChannelName(s.channel_id) : s.channel_id;
+    const card = document.createElement('div');
+    card.style.background = 'rgba(255,255,255,0.03)';
+    card.style.border = '1px solid rgba(255,255,255,0.08)';
+    card.style.padding = '10px 14px';
+    card.style.borderRadius = '8px';
+    card.style.display = 'flex';
+    card.style.alignItems = 'center';
+    card.style.justifyContent = 'space-between';
+    card.style.gap = '10px';
+
+    card.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;">
+        <div style="font-weight: 600; color: #fff; font-size: 0.95rem;">📊 ${s.title}</div>
+        <div style="font-size: 0.8rem; color: #b9bbbe;">
+          Salon: <strong>#${channelName}</strong> · Note : <strong>${s.avg_rating || 0}/5 ${s.rating_icon || '⭐'}</strong> (${s.total_votes || 0} votes)
+        </div>
+      </div>
+      <button type="button" class="btn btn-sm btn-delete-sondage" style="background: #e74c3c; color: #fff; border: none; padding: 6px 12px; font-size: 0.82rem; border-radius: 6px; cursor: pointer;">
+        <i class="fa-solid fa-trash"></i> Supprimer
+      </button>
+    `;
+
+    card.querySelector('.btn-delete-sondage').addEventListener('click', async () => {
+      if (!confirm('Supprimer ce sondage de la base de données ?')) return;
+      try {
+        const res = await fetch('/api/config/delete-sondage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sondage_id: s.id })
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (typeof showToast === 'function') showToast('Sondage supprimé !');
+          loadSondagesSavedList();
+        } else {
+          if (typeof showToast === 'function') showToast(`Erreur : ${data.error}`, true);
+        }
+      } catch (err) {
+        if (typeof showToast === 'function') showToast(`Erreur : ${err.message}`, true);
+      }
+    });
+
+    container.appendChild(card);
+  });
+}
+
+async function loadSondagesSavedList() {
+  try {
+    const res = await fetch('/api/config/sondages');
+    if (res.ok) {
+      const data = await res.json();
+      renderSondagesSavedList(data);
+    }
+  } catch (err) {
+    console.error('Erreur chargement sondages:', err);
+  }
+}
+
+function initSondageModule() {
+  const form = document.getElementById('form-sondage');
+  const inputTitle = document.getElementById('sondage_title');
+  const inputDesc = document.getElementById('sondage_desc');
+  const selectIcon = document.getElementById('sondage_icon');
+  const selectTextType = document.getElementById('sondage_text_type');
+  const inputColor = document.getElementById('sondage_color');
+
+  if (inputTitle) inputTitle.addEventListener('input', updateSondagePreview);
+  if (inputDesc) inputDesc.addEventListener('input', updateSondagePreview);
+  if (selectIcon) selectIcon.addEventListener('change', updateSondagePreview);
+  if (selectTextType) selectTextType.addEventListener('change', updateSondagePreview);
+  if (inputColor) inputColor.addEventListener('input', updateSondagePreview);
+
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const channel_id = document.getElementById('sondage_channel').value;
+      const results_channel_id = document.getElementById('sondage_results_channel').value;
+      const title = inputTitle.value;
+      const description = inputDesc.value;
+      const rating_icon = selectIcon ? selectIcon.value : '⭐';
+      const text_type = selectTextType ? selectTextType.value : 'long';
+      const color = inputColor ? inputColor.value : '#f1c40f';
+
+      if (!channel_id) return showToast('⚠️ Veuillez choisir un salon de destination.', true);
+      if (!title.trim()) return showToast('⚠️ Le titre du sondage est requis.', true);
+
+      try {
+        const res = await fetch('/api/config/send-sondage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channel_id,
+            results_channel_id: results_channel_id || null,
+            title,
+            description,
+            rating_icon,
+            text_type,
+            color
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          if (typeof showToast === 'function') showToast('✅ Sondage publié avec succès dans le salon !');
+          form.reset();
+          updateSondagePreview();
+          loadSondagesSavedList();
+        } else {
+          if (typeof showToast === 'function') showToast(`❌ Erreur : ${data.error}`, true);
+        }
+      } catch (err) {
+        if (typeof showToast === 'function') showToast(`❌ Erreur réseau : ${err.message}`, true);
+      }
+    });
+  }
+
+  loadSondagesSavedList();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initSondageModule();
+});
+

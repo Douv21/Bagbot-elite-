@@ -1556,6 +1556,75 @@ app.get('/api/config/embeds/fetch-channel-messages', async (req, res) => {
   }
 });
 
+// Sondages API Routes
+app.get('/api/config/sondages', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const sondages = db.prepare('SELECT * FROM sondages WHERE guild_id = ? ORDER BY created_at DESC').all(guildId);
+    const list = sondages.map(s => {
+      const responses = db.prepare('SELECT * FROM sondage_responses WHERE sondage_id = ?').all(s.id);
+      const total = responses.length;
+      const avg = total > 0 ? (responses.reduce((acc, curr) => acc + curr.rating, 0) / total).toFixed(1) : 0;
+      return { ...s, total_votes: total, avg_rating: avg };
+    });
+    res.json(list);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/config/send-sondage', async (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const { channel_id, results_channel_id, title, description, rating_icon, text_type, color } = req.body || {};
+    if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
+    if (!title) return res.status(400).json({ error: 'Titre du sondage requis' });
+
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const botResponse = await fetch(`http://127.0.0.1:${botApiPort}/bot/send-sondage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        guildId,
+        channelId: channel_id,
+        resultsChannelId: results_channel_id || null,
+        title,
+        description,
+        ratingIcon: rating_icon || '⭐',
+        textType: text_type || 'long',
+        color: color || '#F1C40F'
+      })
+    }).catch(() => null);
+
+    if (!botResponse || !botResponse.ok) {
+      const errText = botResponse ? await botResponse.text() : 'Le bot n\'est pas en ligne';
+      return res.status(500).json({ error: `Erreur du bot : ${errText}` });
+    }
+
+    const data = await botResponse.json();
+    res.json({ success: true, sondageId: data.sondageId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/config/delete-sondage', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+    const { sondage_id } = req.body || {};
+    db.prepare('DELETE FROM sondages WHERE id = ? AND guild_id = ?').run(sondage_id, guildId);
+    db.prepare('DELETE FROM sondage_responses WHERE sondage_id = ?').run(sondage_id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Auto-rôles à l'arrivée
 app.post('/api/config/autoroles-on-join/add', (req, res) => {
   try {

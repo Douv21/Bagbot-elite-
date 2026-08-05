@@ -1212,6 +1212,61 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
   }
 });
 
+apiApp.post('/bot/send-sondage', async (req, res) => {
+  try {
+    const { guildId, channelId, resultsChannelId, title, description, ratingIcon = '⭐', textType = 'long', color = '#F1C40F', existingSondageId } = req.body;
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
+    const channel = guild.channels.cache.get(channelId);
+    if (!channel) return res.status(404).json({ error: 'Salon introuvable' });
+
+    const sondageId = existingSondageId || `sndg_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+    const { createSondage } = require('./database/db');
+    createSondage({
+      id: sondageId,
+      guild_id: guildId,
+      channel_id: channelId,
+      results_channel_id: resultsChannelId || null,
+      title,
+      description,
+      rating_icon: ratingIcon,
+      text_type: textType,
+      color,
+      created_by: 'Dashboard'
+    });
+
+    const embed = new EmbedBuilder()
+      .setTitle(`📊 ${title}`)
+      .setDescription(
+        (description ? `${description}\n\n` : '') +
+        `*Cliquez sur le bouton ci-dessous pour ouvrir le formulaire d'évaluation (${ratingIcon} 1 à 5) et laisser vos remarques !*`
+      )
+      .addFields({
+        name: '📈 Statistiques en temps réel',
+        value: 'Aucun vote enregistré pour le moment.'
+      })
+      .setColor(color)
+      .setFooter({ text: `ID Sondage : ${sondageId} • Bagbot Elite` })
+      .setTimestamp();
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`sondage_vote:${sondageId}`)
+        .setLabel('📝 Participer au Sondage')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('📝')
+    );
+
+    const sentMessage = await channel.send({ embeds: [embed], components: [row] });
+
+    return res.json({ success: true, sondageId, messageId: sentMessage.id });
+  } catch (err) {
+    console.error('Erreur API send-sondage:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 apiApp.post('/bot/delete-message', async (req, res) => {
   try {
     const { guildId, channelId, messageId } = req.body;
