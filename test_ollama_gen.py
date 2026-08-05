@@ -14,7 +14,7 @@ req = urllib.request.Request(url, data=data, headers={'Content-Type': 'applicati
 
 t0 = time.time()
 try:
-    with urllib.request.urlopen(req, timeout=10) as resp:
+    with urllib.request.urlopen(req, timeout=30) as resp:
         res = json.loads(resp.read().decode('utf-8'))
         t1 = time.time()
         print(f"OLLAMA_GEN_SUCCESS in {t1 - t0:.2f}s:")
