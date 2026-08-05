@@ -48,6 +48,13 @@ async function executeAction(interaction, actionName, config) {
       wallet: eco.wallet + reward,
       karma: eco.karma + karmaReward
     });
+
+    if (target && target.id !== userId && !target.bot) {
+      const targetEco = getEconomy(guildId, target.id);
+      updateEconomy(guildId, target.id, {
+        karma: targetEco.karma + karmaReward
+      });
+    }
   } else {
     totalCoins = reward;
   }

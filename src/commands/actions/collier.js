@@ -17,7 +17,13 @@ module.exports = {
     let target = interaction.options.getUser('cible');
 
     if (!target) {
-      target = interaction.user;
+      if (interaction.guild) {
+        const members = await interaction.guild.members.fetch({ limit: 100 }).catch(() => null);
+        const randomMember = members ? members.filter(m => m.id !== userId).random() : null;
+        target = randomMember ? randomMember.user : interaction.user;
+      } else {
+        target = interaction.user;
+      }
     }
 
     const author = interaction.user;
@@ -40,6 +46,13 @@ module.exports = {
         wallet: eco.wallet + reward,
         karma: eco.karma + karmaReward
       });
+
+      if (target && target.id !== userId && !target.bot) {
+        const targetEco = getEconomy(guildId, target.id);
+        updateEconomy(guildId, target.id, {
+          karma: targetEco.karma + karmaReward
+        });
+      }
     } else {
       totalCoins = reward;
     }
@@ -48,7 +61,7 @@ module.exports = {
     let actionMessage = "";
 
     // Tenter de générer une phrase unique via l'IA en temps réel
-    if (true) {
+    if (target.id !== userId) {
       const { generateAiActionPhrase } = require('../../utils/aiActionHelper');
       const aiPhrase = await generateAiActionPhrase('collier', 'Mettre un collier à quelqu\'un', interaction.member, targetMember);
       if (aiPhrase) {
@@ -132,7 +145,7 @@ module.exports = {
       content: mention,
       embeds: [embed],
       files: files,
-      allowedMentions: mention ? { parse: ['users'], users: [target.id] } : { parse: [] }
+      allowedMentions: mention ? { users: [target.id] } : { parse: [] }
     });
 
     if (!guildId && target && target.id !== userId) {
