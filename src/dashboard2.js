@@ -1512,7 +1512,7 @@ app.post('/api/config/send-simple-embed', async (req, res) => {
   }
 });
 
-// Route pour récupérer les messages Embed du salon depuis Discord pour édition
+// Route pour récupérer les messages du salon depuis Discord pour édition / copie
 app.get('/api/config/embeds/fetch-channel-messages', async (req, res) => {
   try {
     const guildId = getReqGuildId(req);
@@ -1530,28 +1530,64 @@ app.get('/api/config/embeds/fetch-channel-messages', async (req, res) => {
     const messages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
     if (!messages) return res.json([]);
 
-    const botEmbeds = [];
+    const resultEmbeds = [];
     messages.forEach(msg => {
-      if (msg.author.id === client.user.id && msg.embeds.length > 0) {
-        const emb = msg.embeds[0];
-        botEmbeds.push({
+      const emb = msg.embeds.length > 0 ? msg.embeds[0] : null;
+      const options = [];
+
+      if (msg.components && msg.components.length > 0) {
+        msg.components.forEach(row => {
+          if (row.components) {
+            row.components.forEach(comp => {
+              if (comp.type === 2) { // Button
+                const roleId = comp.customId ? comp.customId.replace('autorole_', '') : '';
+                let styleStr = 'PRIMARY';
+                if (comp.style === 2) styleStr = 'SECONDARY';
+                else if (comp.style === 3) styleStr = 'SUCCESS';
+                else if (comp.style === 4) styleStr = 'DANGER';
+                options.push({
+                  role_id: roleId,
+                  label: comp.label || '',
+                  emoji: comp.emoji ? comp.emoji.name : '',
+                  style: styleStr
+                });
+              } else if (comp.type === 3) { // Select Menu
+                if (comp.options) {
+                  comp.options.forEach(opt => {
+                    options.push({
+                      role_id: opt.value,
+                      label: opt.label || '',
+                      emoji: opt.emoji ? opt.emoji.name : '',
+                      style: 'PRIMARY'
+                    });
+                  });
+                }
+              }
+            });
+          }
+        });
+      }
+
+      if (emb || options.length > 0 || msg.content) {
+        resultEmbeds.push({
           id: msg.id,
           channel_id: channel.id,
-          title: emb.title || '(Sans titre)',
-          description: emb.description || '',
-          color: emb.hexColor || '#5865F2',
-          thumbnail: emb.thumbnail ? emb.thumbnail.url : null,
-          image: emb.image ? emb.image.url : null,
-          author_name: emb.author ? emb.author.name : null,
-          author_icon: emb.author ? emb.author.iconURL : null,
-          footer: emb.footer ? emb.footer.text : null
+          author: msg.author ? msg.author.tag : 'Inconnu',
+          is_bot_owner: msg.author && msg.author.id === client.user.id,
+          title: emb ? (emb.title || '') : '',
+          description: emb ? (emb.description || '') : (msg.content || ''),
+          color: emb ? (emb.hexColor || '#5865F2') : '#5865F2',
+          thumbnail: (emb && emb.thumbnail) ? 1 : 0,
+          image_url: (emb && emb.image) ? emb.image.url : '',
+          options: options,
+          type: (msg.components && msg.components[0] && msg.components[0].components[0] && msg.components[0].components[0].type === 3) ? 'select' : 'buttons'
         });
       }
     });
 
-    res.json(botEmbeds);
+    res.json(resultEmbeds);
   } catch (error) {
-    console.error(error);
+    console.error('Erreur fetch-channel-messages:', error);
     res.status(500).json({ error: error.message });
   }
 });

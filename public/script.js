@@ -3524,10 +3524,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const existingMsgId = document.getElementById('autorole-embed-existing-msg').value.trim();
     const embedCard = document.getElementById('autorole-discord-embed');
 
-    // Gestion du message existant
+    // Aperçu visuel de l'embed
+    embedCard.style.display = 'block';
+
+    let banner = document.getElementById('autorole-preview-existing-banner');
     if (existingMsgId) {
-      embedCard.style.display = 'none';
-      let banner = document.getElementById('autorole-preview-existing-banner');
       if (!banner) {
         banner = document.createElement('div');
         banner.id = 'autorole-preview-existing-banner';
@@ -3540,12 +3541,10 @@ document.addEventListener('DOMContentLoaded', () => {
         banner.style.marginBottom = '10px';
         embedCard.parentNode.insertBefore(banner, embedCard);
       }
-      banner.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Les contrôles seront ajoutés directement sur le message Discord existant <strong>${existingMsgId}</strong>.`;
+      banner.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Mode Édition : Modification du message Discord <strong>${existingMsgId}</strong>.`;
       banner.style.display = 'block';
-    } else {
-      embedCard.style.display = 'block';
-      const banner = document.getElementById('autorole-preview-existing-banner');
-      if (banner) banner.style.display = 'none';
+    } else if (banner) {
+      banner.style.display = 'none';
     }
 
     document.getElementById('autorole-preview-title').textContent = title;
@@ -6271,24 +6270,27 @@ function initSondageModule() {
   // --- SELECTION MESSAGE RÔLES RÉACTION ---
   const autoroleChanSelect = document.getElementById('autorole-embed-channel');
   const selectChannelAutoroles = document.getElementById('select_channel_autoroles');
+  let fetchedChannelMessagesList = [];
 
   if (autoroleChanSelect && selectChannelAutoroles) {
     autoroleChanSelect.addEventListener('change', () => {
       const channelId = autoroleChanSelect.value;
       if (!channelId) {
         selectChannelAutoroles.innerHTML = '<option value="">-- Sélectionner un message --</option>';
+        fetchedChannelMessagesList = [];
         return;
       }
 
       fetch(`/api/config/embeds/fetch-channel-messages?channelId=${channelId}`)
         .then(res => res.json())
         .then(data => {
-          selectChannelAutoroles.innerHTML = '<option value="">-- Sélectionner un message du salon --</option>';
-          if (Array.isArray(data) && data.length > 0) {
-            data.forEach(m => {
+          fetchedChannelMessagesList = Array.isArray(data) ? data : [];
+          selectChannelAutoroles.innerHTML = '<option value="">-- Sélectionner un message à charger / modifier / copier --</option>';
+          if (fetchedChannelMessagesList.length > 0) {
+            fetchedChannelMessagesList.forEach(m => {
               const opt = document.createElement('option');
               opt.value = m.id;
-              const textPreview = m.title || (m.description ? m.description.slice(0, 40) : (m.content ? m.content.slice(0, 40) : `Message ${m.id}`));
+              const textPreview = m.title || (m.description ? m.description.slice(0, 40) : `Message ${m.id}`);
               opt.textContent = `${m.author} : ${textPreview} (${m.id})`;
               selectChannelAutoroles.appendChild(opt);
             });
@@ -6300,9 +6302,41 @@ function initSondageModule() {
     selectChannelAutoroles.addEventListener('change', () => {
       const msgId = selectChannelAutoroles.value;
       if (!msgId) return;
-      document.getElementById('autorole-embed-existing-msg').value = msgId;
-      if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
-      showToast('Message existant sélectionné !');
+
+      const item = fetchedChannelMessagesList.find(m => m.id === msgId);
+      if (item) {
+        const msgEl = document.getElementById('autorole-embed-existing-msg');
+        if (msgEl) msgEl.value = item.id;
+        const titleEl = document.getElementById('autorole-embed-title');
+        if (titleEl) titleEl.value = item.title || '';
+        const descEl = document.getElementById('autorole-embed-desc');
+        if (descEl) descEl.value = item.description || '';
+        const colorEl = document.getElementById('autorole-embed-color');
+        if (colorEl) colorEl.value = item.color || '#5865F2';
+        const thumbEl = document.getElementById('autorole-embed-thumbnail');
+        if (thumbEl) thumbEl.value = item.thumbnail ? '1' : '0';
+        const imgEl = document.getElementById('autorole-embed-image');
+        if (imgEl) imgEl.value = item.image_url || '';
+        const typeEl = document.getElementById('autorole-embed-type');
+        if (typeEl) typeEl.value = item.type || 'buttons';
+
+        if (Array.isArray(item.options) && item.options.length > 0) {
+          autoroleButtonsList = item.options.map(opt => ({
+            role_id: opt.role_id,
+            label: opt.label || '',
+            emoji: opt.emoji || '',
+            style: opt.style || 'PRIMARY'
+          }));
+        }
+
+        renderButtonsCreatorPreview();
+        updateAutorolePreview();
+        showToast('Message existant et ses rôles/boutons chargés dans le formulaire !');
+      } else {
+        document.getElementById('autorole-embed-existing-msg').value = msgId;
+        if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
+        showToast('Message existant sélectionné !');
+      }
     });
   }
 

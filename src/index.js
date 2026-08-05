@@ -1119,17 +1119,32 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
     const channel = guild.channels.cache.get(channelId);
     if (!channel) return res.status(404).json({ error: 'Channel not found' });
 
-    let message;
+    let message = null;
+    let isSameChannelEdit = false;
+
     if (existingMessageId) {
+      // 1. Chercher dans le salon cible
       message = await channel.messages.fetch(existingMessageId).catch(() => null);
-      if (!message) return res.status(404).json({ error: 'Message existant introuvable dans ce salon' });
+      if (message) {
+        if (message.author.id === client.user.id) {
+          isSameChannelEdit = true;
+        }
+      } else {
+        // 2. Si le salon cible est différent (copie dans un autre salon), chercher le message dans le serveur
+        for (const ch of guild.channels.cache.values()) {
+          if (ch.isTextBased() && ch.id !== channelId) {
+            message = await ch.messages.fetch(existingMessageId).catch(() => null);
+            if (message) break;
+          }
+        }
+      }
     }
 
     const { StringSelectMenuBuilder } = require('discord.js');
     let row;
     
     if (type === 'buttons') {
-      if (options.length > 0) {
+      if (options && options.length > 0) {
         row = new ActionRowBuilder();
         options.forEach(opt => {
           let styleCode = ButtonStyle.Primary;
@@ -1146,7 +1161,7 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
         });
       }
     } else if (type === 'select') {
-      if (options.length > 0) {
+      if (options && options.length > 0) {
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId('autorole_select_menu')
           .setPlaceholder('Sélectionnez un rôle...');
@@ -1188,55 +1203,51 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
       }
     }
 
-    if (existingMessageId) {
-      if (message.author.id === client.user.id) {
-        const editPayload = { embeds: [embed] };
-        if (files.length > 0) editPayload.files = files;
-        if (row) editPayload.components = [row];
-        else editPayload.components = [];
-        await message.edit(editPayload).catch(console.error);
-      } else {
-        if (type === 'reactions') {
-          for (const opt of options) {
-            if (opt.emoji) {
-              await message.react(opt.emoji).catch(console.error);
-            }
-          }
-        } else {
-          const payload = { embeds: [embed] };
-          if (files.length > 0) payload.files = files;
-          if (row) payload.components = [row];
-          const newMsg = await channel.send(payload);
-          return res.json({ success: true, messageId: newMsg.id });
-        }
-      }
+    let finalMessageId = null;
 
-      if (type === 'reactions') {
+    if (isSameChannelEdit && message) {
+      // Édition directe du message existant du bot dans le même salon
+      const editPayload = { embeds: [embed] };
+      if (files.length > 0) editPayload.files = files;
+      if (row) editPayload.components = [row];
+      else editPayload.components = [];
+      await message.edit(editPayload);
+      finalMessageId = message.id;
+
+      if (type === 'reactions' && options && options.length > 0) {
         for (const opt of options) {
           if (opt.emoji) {
             await message.react(opt.emoji).catch(console.error);
           }
         }
       }
-
-      return res.json({ success: true, messageId: message.id });
+    } else if (existingMessageId && message && message.author.id !== client.user.id && type === 'reactions') {
+      // Message d'un membre/autre bot où l'on ajoute des réactions
+      for (const opt of options) {
+        if (opt.emoji) {
+          await message.react(opt.emoji).catch(console.error);
+        }
+      }
+      finalMessageId = message.id;
     } else {
+      // Envoi d'un nouveau message embed ou copie dans un autre salon
       const payload = { embeds: [embed] };
       if (files.length > 0) payload.files = files;
       if (row) payload.components = [row];
 
       const newMessage = await channel.send(payload);
+      finalMessageId = newMessage.id;
 
-      if (type === 'reactions') {
+      if (type === 'reactions' && options && options.length > 0) {
         for (const opt of options) {
           if (opt.emoji) {
             await newMessage.react(opt.emoji).catch(console.error);
           }
         }
       }
-
-      return res.json({ success: true, messageId: newMessage.id });
     }
+
+    return res.json({ success: true, messageId: finalMessageId });
   } catch (error) {
     console.error('Error sending/editing autorole:', error);
     res.status(500).json({ error: error.message });
