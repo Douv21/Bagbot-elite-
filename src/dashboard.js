@@ -1598,6 +1598,7 @@ app.get('/api/config/embeds/fetch-channel-messages', async (req, res) => {
       const emb = msg.embeds.length > 0 ? msg.embeds[0] : null;
       const options = [];
 
+      // Extraire les boutons / menus déroulants
       if (msg.components && msg.components.length > 0) {
         msg.components.forEach(row => {
           if (row.components) {
@@ -1631,19 +1632,42 @@ app.get('/api/config/embeds/fetch-channel-messages', async (req, res) => {
         });
       }
 
-      if (emb || options.length > 0 || msg.content) {
+      // Extraire les émojis de réaction sous le message s'il n'y a pas de composant
+      if (options.length === 0 && msg.reactions && msg.reactions.cache.size > 0) {
+        msg.reactions.cache.forEach(reaction => {
+          options.push({
+            role_id: '',
+            label: '',
+            emoji: reaction.emoji.name || reaction.emoji.id || '',
+            style: 'PRIMARY'
+          });
+        });
+      }
+
+      // Déterminer l'image principale (depuis l'embed ou les pièces jointes/fichiers joints)
+      let imageUrl = '';
+      if (emb && emb.image && emb.image.url) {
+        imageUrl = emb.image.url;
+      } else if (msg.attachments && msg.attachments.size > 0) {
+        const firstAtt = msg.attachments.first();
+        if (firstAtt && firstAtt.url) {
+          imageUrl = firstAtt.url;
+        }
+      }
+
+      if (emb || options.length > 0 || msg.content || imageUrl) {
         resultEmbeds.push({
           id: msg.id,
           channel_id: channel.id,
           author: msg.author ? msg.author.tag : 'Inconnu',
           is_bot_owner: msg.author && msg.author.id === client.user.id,
           title: emb ? (emb.title || '') : '',
-          description: emb ? (emb.description || '') : (msg.content || ''),
+          description: emb ? (emb.description || (msg.content || '')) : (msg.content || ''),
           color: emb ? (emb.hexColor || '#5865F2') : '#5865F2',
           thumbnail: (emb && emb.thumbnail) ? 1 : 0,
-          image_url: (emb && emb.image) ? emb.image.url : '',
+          image_url: imageUrl,
           options: options,
-          type: (msg.components && msg.components[0] && msg.components[0].components[0] && msg.components[0].components[0].type === 3) ? 'select' : 'buttons'
+          type: (msg.components && msg.components[0] && msg.components[0].components[0] && msg.components[0].components[0].type === 3) ? 'select' : (options.length > 0 && options[0].role_id === '' ? 'reactions' : 'buttons')
         });
       }
     });

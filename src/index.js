@@ -1180,10 +1180,17 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
     }
 
     const embed = new EmbedBuilder()
-      .setTitle(title || 'Choix des Rôles')
-      .setDescription(description || 'Cliquez sur les options ci-dessous pour obtenir ou retirer des rôles.')
       .setColor(color || '#5865F2')
       .setTimestamp();
+    
+    if (title && title.trim()) {
+      embed.setTitle(title.trim());
+    }
+    if (description && description.trim()) {
+      embed.setDescription(description.trim());
+    } else if (!title || !title.trim()) {
+      embed.setDescription('Cliquez sur les options ci-dessous pour obtenir ou retirer des rôles.');
+    }
     
     if (thumbnail) {
       embed.setThumbnail(guild.iconURL({ dynamic: true }) || 'https://cdn.discordapp.com/embed/avatars/0.png');
