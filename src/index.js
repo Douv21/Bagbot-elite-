@@ -1129,8 +1129,36 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
       }
     }
 
+    const embed = new EmbedBuilder()
+      .setTitle(title || 'Choix des Rôles')
+      .setDescription(description || 'Cliquez sur les options ci-dessous pour obtenir ou retirer des rôles.')
+      .setColor(color || '#5865F2')
+      .setTimestamp();
+    
+    if (thumbnail) {
+      embed.setThumbnail(guild.iconURL({ dynamic: true }) || 'https://cdn.discordapp.com/embed/avatars/0.png');
+    }
+    
+    const files = [];
+    if (imageUrl) {
+      if (imageUrl.startsWith('/uploads/')) {
+        const absPath = path.join(__dirname, '../public', imageUrl);
+        if (fs.existsSync(absPath)) {
+          const name = path.basename(imageUrl);
+          files.push(new AttachmentBuilder(absPath, { name }));
+          embed.setImage(`attachment://${name}`);
+        }
+      } else if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        embed.setImage(imageUrl);
+      }
+    }
+
     if (existingMessageId) {
       const editPayload = {};
+      if (title && title !== '(Message Existant)') {
+        editPayload.embeds = [embed];
+      }
+      if (files.length > 0) editPayload.files = files;
       if (row) {
         editPayload.components = [row];
       } else {
@@ -1149,30 +1177,6 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
 
       return res.json({ success: true, messageId: message.id });
     } else {
-      const embed = new EmbedBuilder()
-        .setTitle(title || 'Choix des Rôles')
-        .setDescription(description || 'Cliquez sur les options ci-dessous pour obtenir ou retirer des rôles.')
-        .setColor(color || '#5865F2')
-        .setTimestamp();
-      
-      if (thumbnail) {
-        embed.setThumbnail(guild.iconURL({ dynamic: true }) || 'https://cdn.discordapp.com/embed/avatars/0.png');
-      }
-      
-      const files = [];
-      if (imageUrl) {
-        if (imageUrl.startsWith('/uploads/')) {
-          const absPath = path.join(__dirname, '../public', imageUrl);
-          if (fs.existsSync(absPath)) {
-            const name = path.basename(imageUrl);
-            files.push(new AttachmentBuilder(absPath, { name }));
-            embed.setImage(`attachment://${name}`);
-          }
-        } else if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-          embed.setImage(imageUrl);
-        }
-      }
-
       const payload = { embeds: [embed] };
       if (files.length > 0) payload.files = files;
       if (row) payload.components = [row];
@@ -1469,9 +1473,13 @@ async function checkBumpReminders(client) {
 
           if (channel) {
             const roleMention = bumpConfig.reminder_role ? `<@&${bumpConfig.reminder_role}>` : '';
+            const { generateAiBumpPhrase } = require('./utils/aiActionHelper');
+            const aiMessage = await generateAiBumpPhrase(reminder.bot_name, reminder.guild_id);
+            const desc = aiMessage || `✨ Il est temps de bump le serveur avec le bot **${reminder.bot_name.toUpperCase()}** !`;
+
             const embed = new EmbedBuilder()
               .setTitle('🔔 Rappel de Bump !')
-              .setDescription(`✨ Il est temps de bump le serveur avec le bot **${reminder.bot_name.toUpperCase()}** !`)
+              .setDescription(desc)
               .setColor('#5865F2')
               .setTimestamp();
 

@@ -192,6 +192,26 @@ async function generateAiDropPhrase(dropType, amount, authorMember, guildId = nu
   return null;
 }
 
-module.exports = { generateAiActionPhrase, generateSensualText, generateAiGiftPhrase, generateAiEconomyPhrase, generateAiBoostPhrase, generateAiDropPhrase };
+async function generateAiBumpPhrase(botName, guildId = null) {
+  const systemPrompt = `Tu es l'animateur VIP dynamique, chaleureux et complice d'un bot Discord premium. Ton rôle est de rédiger un message de rappel de bump captivant et amusant pour encourager les membres à relancer le référencement du serveur sur Discord.`;
+  const userPrompt = `Rédige un message de rappel de bump original et incitatif (max 220 caractères) pour informer que le délai de bump avec **${(botName || 'Disboard').toUpperCase()}** est écoulé et que le serveur peut être bumpé à nouveau ! Sois motivant avec des emojis (🔔, 🚀, ✨, 🔥). Ne mets pas de guillemets autour du texte.`;
+
+  try {
+    const res = await generateAiCompletion({
+      guildId,
+      category: 'text',
+      systemPrompt,
+      userPrompt,
+      temperature: 0.9,
+      maxTokens: 250
+    });
+    if (res) return res.replace(/^["']|["']$/g, '');
+  } catch (err) {
+    console.warn('[AI Bump Helper] Error:', err.message);
+  }
+  return null;
+}
+
+module.exports = { generateAiActionPhrase, generateSensualText, generateAiGiftPhrase, generateAiEconomyPhrase, generateAiBoostPhrase, generateAiDropPhrase, generateAiBumpPhrase };
 
 

@@ -132,7 +132,7 @@ module.exports = {
       content: mention,
       embeds: [embed],
       files: files,
-      allowedMentions: mention ? { users: [target.id] } : { parse: [] }
+      allowedMentions: mention ? { parse: ['users'], users: [target.id] } : { parse: [] }
     });
 
     if (!guildId && target && target.id !== userId) {

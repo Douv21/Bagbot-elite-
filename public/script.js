@@ -3777,15 +3777,39 @@ document.addEventListener('DOMContentLoaded', () => {
         const editBtn = card.querySelector('.btn-edit-embed');
         if (editBtn) {
           editBtn.addEventListener('click', () => {
-            const embedSenderBtn = document.querySelector('.tab-btn[data-tab="tab-embed-sender"]');
-            if (embedSenderBtn) embedSenderBtn.click();
-            safeSetVal('simple_embed_channel', item.channel_id);
-            safeSetVal('simple_embed_edit_msg_id', item.message_id);
-            safeSetVal('simple_embed_title', item.title || '');
-            safeSetVal('simple_embed_desc', item.description || '');
-            safeSetVal('simple_embed_color', item.color || '#5865F2');
-            safeSetVal('simple_embed_image', item.image_url || '');
-            showToast('Embed chargé dans l\'éditeur !');
+            const autoroleTabBtn = document.querySelector('.tab-btn[data-tab="tab-autoroles"]');
+            if (autoroleTabBtn) autoroleTabBtn.click();
+            
+            const chanEl = document.getElementById('autorole-embed-channel');
+            if (chanEl) chanEl.value = item.channel_id;
+            const msgEl = document.getElementById('autorole-embed-existing-msg');
+            if (msgEl) msgEl.value = item.message_id;
+            const titleEl = document.getElementById('autorole-embed-title');
+            if (titleEl) titleEl.value = item.title === '(Message Existant)' ? '' : (item.title || '');
+            const descEl = document.getElementById('autorole-embed-desc');
+            if (descEl) descEl.value = item.description === '(Pas d\'embed)' ? '' : (item.description || '');
+            const colorEl = document.getElementById('autorole-embed-color');
+            if (colorEl) colorEl.value = item.color || '#5865F2';
+            const thumbEl = document.getElementById('autorole-embed-thumbnail');
+            if (thumbEl) thumbEl.value = item.thumbnail ? '1' : '0';
+            const imgEl = document.getElementById('autorole-embed-image');
+            if (imgEl) imgEl.value = item.image_url || '';
+            const typeEl = document.getElementById('autorole-embed-type');
+            if (typeEl) typeEl.value = item.type || 'buttons';
+            const modeEl = document.getElementById('autorole-embed-mode');
+            if (modeEl) modeEl.value = item.mode || 'normal';
+
+            autoroleButtonsList = (item.options || []).map(opt => ({
+              role_id: opt.role_id,
+              label: opt.label || '',
+              emoji: opt.emoji || '',
+              style: opt.style || 'PRIMARY'
+            }));
+
+            if (typeof renderButtonsCreatorList === 'function') renderButtonsCreatorList();
+            if (typeof renderButtonsCreatorPreview === 'function') renderButtonsCreatorPreview();
+            if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
+            showToast('Panneau d\'auto-rôle chargé pour modification !');
           });
         }
 

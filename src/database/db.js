@@ -1036,7 +1036,7 @@ const getAutoroleOptions = (messageId) => {
 
 const addAutoroleEmbed = (guildId, messageId, channelId, title, description, color, thumbnail, imageUrl, type = 'buttons', mode = 'normal') => {
   return db.prepare(`
-    INSERT INTO autorole_embeds (guild_id, message_id, channel_id, title, description, color, thumbnail, image_url, type, mode)
+    INSERT OR REPLACE INTO autorole_embeds (guild_id, message_id, channel_id, title, description, color, thumbnail, image_url, type, mode)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(guildId, messageId, channelId, title, description, color, thumbnail, imageUrl, type, mode);
 };

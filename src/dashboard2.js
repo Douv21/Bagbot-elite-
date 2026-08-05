@@ -382,7 +382,7 @@ app.get('/api/user', (req, res) => {
 // API pour obtenir les serveurs (filtrés)
 app.get('/api/guilds', async (req, res) => {
   try {
-    const botApiPort = process.env.BOT_API_PORT || 49602;
+    const botApiPort = process.env.BOT_API_PORT || 49605;
     const botGuildsResponse = await fetch(`http://127.0.0.1:${botApiPort}/guilds`).catch(() => null);
 
     let botGuilds = [];
@@ -456,7 +456,7 @@ app.get('/api/channels', async (req, res) => {
     if (!guildId) {
       return res.json([]);
     }
-    const botApiPort = process.env.BOT_API_PORT || 49602;
+    const botApiPort = process.env.BOT_API_PORT || 49605;
     const response = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/channels`).catch(() => null);
     if (response && response.ok) {
       const channels = await response.json();
@@ -477,7 +477,7 @@ app.get('/api/roles', async (req, res) => {
     if (!guildId) {
       return res.json([]);
     }
-    const botApiPort = process.env.BOT_API_PORT || 49602;
+    const botApiPort = process.env.BOT_API_PORT || 49605;
     const response = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/roles`).catch(() => null);
     if (response && response.ok) {
       const roles = await response.json();
@@ -498,7 +498,7 @@ app.get('/api/members', async (req, res) => {
     if (!guildId) {
       return res.json([]);
     }
-    const botApiPort = process.env.BOT_API_PORT || 49602;
+    const botApiPort = process.env.BOT_API_PORT || 49605;
     const response = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/members`).catch(() => null);
     if (response && response.ok) {
       const members = await response.json();
@@ -515,7 +515,7 @@ app.get('/api/members', async (req, res) => {
 // Obtenir les informations du bot (nom et avatar réel)
 app.get('/api/bot/info', async (req, res) => {
   try {
-    const botApiPort = process.env.BOT_API_PORT || 49602;
+    const botApiPort = process.env.BOT_API_PORT || 49605;
     const response = await fetch(`http://127.0.0.1:${botApiPort}/bot/info`).catch(() => null);
     if (response && response.ok) {
       const data = await response.json();
@@ -1307,15 +1307,15 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
     if (!channel_id) return res.status(400).json({ error: 'ID du salon requis' });
 
     // 1. Communiquer avec l'API locale du bot pour envoyer ou éditer le message
-    const botApiPort = process.env.BOT_API_PORT || 49602;
+    const botApiPort = process.env.BOT_API_PORT || 49605;
     const botResponse = await fetch(`http://127.0.0.1:${botApiPort}/bot/send-autorole`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         guildId,
         channelId: channel_id,
-        title: existing_message_id ? '(Message Existant)' : title,
-        description: existing_message_id ? '(Pas d\'embed)' : description,
+        title: title || '(Message Existant)',
+        description: description || '(Pas d\'embed)',
         color,
         thumbnail: thumbnail ? 1 : 0,
         imageUrl: image_url,
@@ -1338,8 +1338,8 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
       guildId, 
       messageId, 
       channel_id, 
-      existing_message_id ? '(Message Existant)' : title, 
-      existing_message_id ? '(Pas d\'embed)' : description, 
+      title || '(Message Existant)', 
+      description || '(Pas d\'embed)', 
       color, 
       thumbnail ? 1 : 0, 
       image_url,
@@ -1347,6 +1347,8 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
       mode
     );
     
+    db.prepare('DELETE FROM autorole_options WHERE message_id = ?').run(messageId);
+
     if (options && options.length > 0) {
       for (const opt of options) {
         addAutoroleOption(messageId, opt.role_id, opt.label, opt.emoji, opt.style || 'PRIMARY');
@@ -1370,7 +1372,7 @@ app.post('/api/config/autorole-embeds/delete', async (req, res) => {
     if (!message_id) return res.status(400).json({ error: 'ID de message requis' });
 
     // 1. Essayer de supprimer le message sur Discord
-    const botApiPort = process.env.BOT_API_PORT || 49602;
+    const botApiPort = process.env.BOT_API_PORT || 49605;
     await fetch(`http://127.0.0.1:${botApiPort}/bot/delete-message`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2902,7 +2904,7 @@ app.get('/api/star/leaderboard', async (req, res) => {
     const weekId = getCurrentWeekIdentifier();
     const rawLeaderboard = getStarWeeklyLeaderboard(guildId, weekId, 15);
 
-    const botApiPort = process.env.BOT_API_PORT || 49602;
+    const botApiPort = process.env.BOT_API_PORT || 49605;
     const response = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/members`).catch(() => null);
     const members = response && response.ok ? await response.json() : [];
     const membersMap = new Map(members.map(m => [m.id, m]));
