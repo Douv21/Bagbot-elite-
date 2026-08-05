@@ -1308,8 +1308,8 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
       body: JSON.stringify({
         guildId,
         channelId: channel_id,
-        title: existing_message_id ? '(Message Existant)' : title,
-        description: existing_message_id ? '(Pas d\'embed)' : description,
+        title: title || 'Choix des Rôles',
+        description: description || 'Cliquez sur les options ci-dessous pour obtenir ou retirer des rôles.',
         color,
         thumbnail: thumbnail ? 1 : 0,
         imageUrl: image_url,
@@ -1378,7 +1378,7 @@ app.post('/api/config/send-sondage', async (req, res) => {
   if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
   try {
-    const { channel_id, results_channel_id, title, description, rating_icon, text_type, color } = req.body || {};
+    const { channel_id, results_channel_id, title, description, rating_icon, text_type, color, sections, has_general_remark } = req.body || {};
     if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
     if (!title) return res.status(400).json({ error: 'Titre du sondage requis' });
 
@@ -1394,7 +1394,9 @@ app.post('/api/config/send-sondage', async (req, res) => {
         description,
         ratingIcon: rating_icon || '⭐',
         textType: text_type || 'long',
-        color: color || '#F1C40F'
+        color: color || '#F1C40F',
+        sections: sections || [],
+        hasGeneralRemark: has_general_remark !== undefined ? has_general_remark : true
       })
     }).catch(() => null);
 

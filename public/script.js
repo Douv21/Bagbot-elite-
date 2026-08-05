@@ -6093,13 +6093,15 @@ function initSimpleEmbedSender() {
   });
 }
 
-// --- SYSTÈME DE SONDAGE ET ÉVALUATIONS PAR FORMULAIRE ---
+// --- SYSTÈME DE SONDAGE ET ÉVALUATIONS PAR FORMULAIRE MULTI-SECTIONS ---
 function updateSondagePreview() {
   const inputTitle = document.getElementById('sondage_title');
   const inputDesc = document.getElementById('sondage_desc');
   const selectIcon = document.getElementById('sondage_icon');
   const selectTextType = document.getElementById('sondage_text_type');
   const inputColor = document.getElementById('sondage_color');
+  const sec1Name = document.getElementById('sondage_sec1_name');
+  const sec2Name = document.getElementById('sondage_sec2_name');
 
   const previewBorder = document.getElementById('sondage-preview-border');
   const previewTitle = document.getElementById('sondage-preview-title');
@@ -6199,12 +6201,17 @@ function initSondageModule() {
   const selectIcon = document.getElementById('sondage_icon');
   const selectTextType = document.getElementById('sondage_text_type');
   const inputColor = document.getElementById('sondage_color');
+  const sec1Name = document.getElementById('sondage_sec1_name');
+  const sec2Name = document.getElementById('sondage_sec2_name');
+  const hasGeneralRemark = document.getElementById('sondage_has_general_remark');
 
   if (inputTitle) inputTitle.addEventListener('input', updateSondagePreview);
   if (inputDesc) inputDesc.addEventListener('input', updateSondagePreview);
   if (selectIcon) selectIcon.addEventListener('change', updateSondagePreview);
   if (selectTextType) selectTextType.addEventListener('change', updateSondagePreview);
   if (inputColor) inputColor.addEventListener('input', updateSondagePreview);
+  if (sec1Name) sec1Name.addEventListener('input', updateSondagePreview);
+  if (sec2Name) sec2Name.addEventListener('input', updateSondagePreview);
 
   if (form) {
     form.addEventListener('submit', async (e) => {
@@ -6216,6 +6223,15 @@ function initSondageModule() {
       const rating_icon = selectIcon ? selectIcon.value : '⭐';
       const text_type = selectTextType ? selectTextType.value : 'long';
       const color = inputColor ? inputColor.value : '#f1c40f';
+
+      const s1 = sec1Name ? sec1Name.value.trim() : '';
+      const s2 = sec2Name ? sec2Name.value.trim() : '';
+      const sections = [];
+      if (s1) sections.push({ id: 'sec1', label: s1 });
+      if (s2) sections.push({ id: 'sec2', label: s2 });
+      if (sections.length === 0) {
+        sections.push({ id: 'sec1', label: title || 'Évaluation' });
+      }
 
       if (!channel_id) return showToast('⚠️ Veuillez choisir un salon de destination.', true);
       if (!title.trim()) return showToast('⚠️ Le titre du sondage est requis.', true);
@@ -6231,13 +6247,15 @@ function initSondageModule() {
             description,
             rating_icon,
             text_type,
-            color
+            color,
+            sections,
+            has_general_remark: hasGeneralRemark ? hasGeneralRemark.checked : true
           })
         });
 
         const data = await res.json();
         if (res.ok && data.success) {
-          if (typeof showToast === 'function') showToast('✅ Sondage publié avec succès dans le salon !');
+          if (typeof showToast === 'function') showToast('✅ Formulaire d\'évaluation publié avec succès dans le salon !');
           form.reset();
           updateSondagePreview();
           loadSondagesSavedList();
@@ -6247,6 +6265,44 @@ function initSondageModule() {
       } catch (err) {
         if (typeof showToast === 'function') showToast(`❌ Erreur réseau : ${err.message}`, true);
       }
+    });
+  }
+
+  // --- SELECTION MESSAGE RÔLES RÉACTION ---
+  const autoroleChanSelect = document.getElementById('autorole-embed-channel');
+  const selectChannelAutoroles = document.getElementById('select_channel_autoroles');
+
+  if (autoroleChanSelect && selectChannelAutoroles) {
+    autoroleChanSelect.addEventListener('change', () => {
+      const channelId = autoroleChanSelect.value;
+      if (!channelId) {
+        selectChannelAutoroles.innerHTML = '<option value="">-- Sélectionner un message --</option>';
+        return;
+      }
+
+      fetch(`/api/config/embeds/fetch-channel-messages?channelId=${channelId}`)
+        .then(res => res.json())
+        .then(data => {
+          selectChannelAutoroles.innerHTML = '<option value="">-- Sélectionner un message du salon --</option>';
+          if (Array.isArray(data) && data.length > 0) {
+            data.forEach(m => {
+              const opt = document.createElement('option');
+              opt.value = m.id;
+              const textPreview = m.title || (m.description ? m.description.slice(0, 40) : (m.content ? m.content.slice(0, 40) : `Message ${m.id}`));
+              opt.textContent = `${m.author} : ${textPreview} (${m.id})`;
+              selectChannelAutoroles.appendChild(opt);
+            });
+          }
+        })
+        .catch(console.error);
+    });
+
+    selectChannelAutoroles.addEventListener('change', () => {
+      const msgId = selectChannelAutoroles.value;
+      if (!msgId) return;
+      document.getElementById('autorole-embed-existing-msg').value = msgId;
+      if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
+      showToast('Message existant sélectionné !');
     });
   }
 

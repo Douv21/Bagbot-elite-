@@ -159,16 +159,14 @@ client.on('interactionCreate', async interaction => {
     }
   }
 
-  // Prise en charge directe des boutons et modaux de Sondage
+  // Prise en charge directe des boutons et modaux de Sondage / Évaluations
   if (interaction.customId && (interaction.customId.startsWith('sondage_vote:') || interaction.customId.startsWith('sondage_modal:'))) {
-    const sondageCmd = client.commands.get('sondage');
-    if (sondageCmd && typeof sondageCmd.handleInteraction === 'function') {
-      try {
-        const handled = await sondageCmd.handleInteraction(interaction);
-        if (handled) return;
-      } catch (err) {
-        console.error('Erreur interaction sondage:', err);
-      }
+    const { handleSondageInteraction } = require('./utils/sondageHandler');
+    try {
+      const handled = await handleSondageInteraction(interaction);
+      if (handled) return;
+    } catch (err) {
+      console.error('Erreur interaction sondage:', err);
     }
   }
 
@@ -1003,21 +1001,21 @@ client.once('ready', async () => {
   try {
     console.log(`Début du rafraîchissement des ${commandsJSON.length} commandes d'application (/)`);
     
-    // Déploiement global des commandes
+    // Déploiement global unique des commandes (évite l'affichage en double)
     await rest.put(
       Routes.applicationCommands(client.user.id),
       { body: commandsJSON }
     );
 
-    // Déploiement également dans chaque guilde pour affichage instantané dans l'interface Discord
+    // Supprimer les résidus de commandes de guilde pour éviter les doublons sur Discord
     for (const [guildId, guild] of client.guilds.cache) {
       await rest.put(
         Routes.applicationGuildCommands(client.user.id, guildId),
-        { body: commandsJSON }
+        { body: [] }
       ).catch(() => {});
     }
 
-    console.log('Commandes d\'application (/) enregistrées avec succès.');
+    console.log('Commandes d\'application (/) enregistrées sans doublon.');
     
     // Nettoyage et resynchronisation automatique des suites privées et salons tribunal
     setInterval(() => checkExpiredSuites(client), 60000);
@@ -1167,18 +1165,27 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
     }
 
     if (existingMessageId) {
-      const editPayload = {};
-      if (title && title !== '(Message Existant)') {
-        editPayload.embeds = [embed];
-      }
-      if (files.length > 0) editPayload.files = files;
-      if (row) {
-        editPayload.components = [row];
+      if (message.author.id === client.user.id) {
+        const editPayload = { embeds: [embed] };
+        if (files.length > 0) editPayload.files = files;
+        if (row) editPayload.components = [row];
+        else editPayload.components = [];
+        await message.edit(editPayload).catch(console.error);
       } else {
-        editPayload.components = [];
+        if (type === 'reactions') {
+          for (const opt of options) {
+            if (opt.emoji) {
+              await message.react(opt.emoji).catch(console.error);
+            }
+          }
+        } else {
+          const payload = { embeds: [embed] };
+          if (files.length > 0) payload.files = files;
+          if (row) payload.components = [row];
+          const newMsg = await channel.send(payload);
+          return res.json({ success: true, messageId: newMsg.id });
+        }
       }
-      
-      await message.edit(editPayload);
 
       if (type === 'reactions') {
         for (const opt of options) {
@@ -1214,7 +1221,7 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
 
 apiApp.post('/bot/send-sondage', async (req, res) => {
   try {
-    const { guildId, channelId, resultsChannelId, title, description, ratingIcon = '⭐', textType = 'long', color = '#F1C40F', existingSondageId } = req.body;
+    const { guildId, channelId, resultsChannelId, title, description, ratingIcon = '⭐', textType = 'long', color = '#F1C40F', existingSondageId, sections = [], hasGeneralRemark = true } = req.body;
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
     const channel = guild.channels.cache.get(channelId);
@@ -1233,18 +1240,26 @@ apiApp.post('/bot/send-sondage', async (req, res) => {
       rating_icon: ratingIcon,
       text_type: textType,
       color,
-      created_by: 'Dashboard'
+      created_by: 'Dashboard',
+      sections,
+      has_general_remark: hasGeneralRemark ? 1 : 0
     });
+
+    let sectionsListStr = '';
+    if (Array.isArray(sections) && sections.length > 0) {
+      sectionsListStr = '\n\n**Sections d\'évaluation :**\n' + sections.map(s => `• ${s.label}`).join('\n');
+    }
 
     const embed = new EmbedBuilder()
       .setTitle(`📊 ${title}`)
       .setDescription(
-        (description ? `${description}\n\n` : '') +
-        `*Cliquez sur le bouton ci-dessous pour ouvrir le formulaire d'évaluation (${ratingIcon} 1 à 5) et laisser vos remarques !*`
+        (description ? `${description}\n` : '') +
+        sectionsListStr +
+        `\n\n*Cliquez sur le bouton ci-dessous pour ouvrir le formulaire d'évaluation (${ratingIcon} 1 à 5) et laisser vos remarques !*`
       )
       .addFields({
         name: '📈 Statistiques en temps réel',
-        value: 'Aucun vote enregistré pour le moment.'
+        value: 'Aucune évaluation enregistrée pour le moment.'
       })
       .setColor(color)
       .setFooter({ text: `ID Sondage : ${sondageId} • Bagbot Elite` })

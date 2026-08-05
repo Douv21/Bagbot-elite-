@@ -914,6 +914,41 @@ function initDatabase() {
       elected_at INTEGER
     )
   `).run();
+
+  // 36. Sondages et Fiches d'Évaluation Multi-Critères
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS sondages (
+      id TEXT PRIMARY KEY,
+      guild_id TEXT,
+      channel_id TEXT,
+      results_channel_id TEXT,
+      title TEXT,
+      description TEXT,
+      rating_icon TEXT DEFAULT '⭐',
+      text_type TEXT DEFAULT 'long',
+      color TEXT DEFAULT '#F1C40F',
+      created_by TEXT,
+      created_at INTEGER,
+      sections TEXT DEFAULT '[]',
+      has_general_remark INTEGER DEFAULT 1
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS sondage_responses (
+      sondage_id TEXT,
+      user_id TEXT,
+      rating INTEGER,
+      comment TEXT,
+      created_at INTEGER,
+      responses_json TEXT DEFAULT '{}',
+      PRIMARY KEY (sondage_id, user_id)
+    )
+  `).run();
+
+  try { db.prepare("ALTER TABLE sondages ADD COLUMN sections TEXT DEFAULT '[]'").run(); } catch (e) {}
+  try { db.prepare("ALTER TABLE sondages ADD COLUMN has_general_remark INTEGER DEFAULT 1").run(); } catch (e) {}
+  try { db.prepare("ALTER TABLE sondage_responses ADD COLUMN responses_json TEXT DEFAULT '{}'").run(); } catch (e) {}
 }
 
 // --- Fonctions utilitaires de base de données ---
@@ -1814,11 +1849,16 @@ function updatePendingConfessionStatus(id, status) {
 }
 
 function createSondage(data) {
-  const { id, guild_id, channel_id, results_channel_id, title, description, rating_icon, text_type, color, created_by } = data;
+  const { id, guild_id, channel_id, results_channel_id, title, description, rating_icon, text_type, color, created_by, sections, has_general_remark } = data;
   return db.prepare(`
-    INSERT INTO sondages (id, guild_id, channel_id, results_channel_id, title, description, rating_icon, text_type, color, created_by, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, guild_id, channel_id, results_channel_id || null, title, description || '', rating_icon || '⭐', text_type || 'long', color || '#F1C40F', created_by || '', Date.now());
+    INSERT INTO sondages (id, guild_id, channel_id, results_channel_id, title, description, rating_icon, text_type, color, created_by, created_at, sections, has_general_remark)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id, guild_id, channel_id, results_channel_id || null, title, description || '', 
+    rating_icon || '⭐', text_type || 'long', color || '#F1C40F', created_by || '', Date.now(),
+    typeof sections === 'string' ? sections : JSON.stringify(sections || []),
+    has_general_remark !== undefined ? (has_general_remark ? 1 : 0) : 1
+  );
 }
 
 function getSondage(id) {
