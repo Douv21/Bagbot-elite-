@@ -1308,8 +1308,8 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
       body: JSON.stringify({
         guildId,
         channelId: channel_id,
-        title: title || 'Choix des Rôles',
-        description: description || 'Cliquez sur les options ci-dessous pour obtenir ou retirer des rôles.',
+        title: title || '',
+        description: description || '',
         color,
         thumbnail: thumbnail ? 1 : 0,
         imageUrl: image_url,
@@ -1332,8 +1332,8 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
       guildId, 
       messageId, 
       channel_id, 
-      existing_message_id ? '(Message Existant)' : title, 
-      existing_message_id ? '(Pas d\'embed)' : description, 
+      title || (existing_message_id ? '(Message Existant)' : 'Choix des Rôles'), 
+      description || (existing_message_id ? '(Pas d\'embed)' : ''), 
       color, 
       thumbnail ? 1 : 0, 
       image_url,
@@ -1341,6 +1341,7 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
       mode
     );
     
+    db.prepare('DELETE FROM autorole_options WHERE message_id = ?').run(messageId);
     if (options && options.length > 0) {
       for (const opt of options) {
         addAutoroleOption(messageId, opt.role_id, opt.label, opt.emoji, opt.style || 'PRIMARY');
@@ -1609,19 +1610,27 @@ app.get('/api/config/embeds/fetch-channel-messages', async (req, res) => {
                 if (comp.style === 2) styleStr = 'SECONDARY';
                 else if (comp.style === 3) styleStr = 'SUCCESS';
                 else if (comp.style === 4) styleStr = 'DANGER';
+                let emojiStr = '';
+                if (comp.emoji) {
+                  emojiStr = comp.emoji.id ? (comp.emoji.animated ? `<a:${comp.emoji.name}:${comp.emoji.id}>` : `<:${comp.emoji.name}:${comp.emoji.id}>`) : (comp.emoji.name || '');
+                }
                 options.push({
                   role_id: roleId,
                   label: comp.label || '',
-                  emoji: comp.emoji ? comp.emoji.name : '',
+                  emoji: emojiStr,
                   style: styleStr
                 });
               } else if (comp.type === 3) { // Select Menu
                 if (comp.options) {
                   comp.options.forEach(opt => {
+                    let emojiStr = '';
+                    if (opt.emoji) {
+                      emojiStr = opt.emoji.id ? (opt.emoji.animated ? `<a:${opt.emoji.name}:${opt.emoji.id}>` : `<:${opt.emoji.name}:${opt.emoji.id}>`) : (opt.emoji.name || '');
+                    }
                     options.push({
                       role_id: opt.value,
                       label: opt.label || '',
-                      emoji: opt.emoji ? opt.emoji.name : '',
+                      emoji: emojiStr,
                       style: 'PRIMARY'
                     });
                   });
@@ -1635,10 +1644,11 @@ app.get('/api/config/embeds/fetch-channel-messages', async (req, res) => {
       // Extraire les émojis de réaction sous le message s'il n'y a pas de composant
       if (options.length === 0 && msg.reactions && msg.reactions.cache.size > 0) {
         msg.reactions.cache.forEach(reaction => {
+          let emojiStr = reaction.emoji.id ? (reaction.emoji.animated ? `<a:${reaction.emoji.name}:${reaction.emoji.id}>` : `<:${reaction.emoji.name}:${reaction.emoji.id}>`) : (reaction.emoji.name || '');
           options.push({
             role_id: '',
             label: '',
-            emoji: reaction.emoji.name || reaction.emoji.id || '',
+            emoji: emojiStr,
             style: 'PRIMARY'
           });
         });
@@ -1676,6 +1686,98 @@ app.get('/api/config/embeds/fetch-channel-messages', async (req, res) => {
   } catch (error) {
     console.error('Erreur fetch-channel-messages:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/config/embeds/fetch-message-details', async (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const messageId = req.query.messageId;
+    let channelId = req.query.channelId;
+    if (!messageId) return res.status(400).json({ error: 'Message ID requis' });
+
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
+
+    let message = null;
+    let channel = channelId ? guild.channels.cache.get(channelId) : null;
+    if (channel && channel.isTextBased()) {
+      message = await channel.messages.fetch(messageId).catch(() => null);
+    }
+
+    if (!message) {
+      for (const ch of guild.channels.cache.values()) {
+        if (ch.isTextBased()) {
+          message = await ch.messages.fetch(messageId).catch(() => null);
+          if (message) {
+            channel = ch;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!message) return res.status(404).json({ error: 'Message introuvable sur le serveur' });
+
+    const emb = message.embeds.length > 0 ? message.embeds[0] : null;
+    const options = [];
+
+    if (message.components && message.components.length > 0) {
+      message.components.forEach(row => {
+        if (row.components) {
+          row.components.forEach(comp => {
+            if (comp.type === 2) {
+              const roleId = comp.customId ? comp.customId.replace('autorole_', '') : '';
+              let styleStr = 'PRIMARY';
+              if (comp.style === 2) styleStr = 'SECONDARY';
+              else if (comp.style === 3) styleStr = 'SUCCESS';
+              else if (comp.style === 4) styleStr = 'DANGER';
+              let emojiStr = comp.emoji ? (comp.emoji.id ? (comp.emoji.animated ? `<a:${comp.emoji.name}:${comp.emoji.id}>` : `<:${comp.emoji.name}:${comp.emoji.id}>`) : comp.emoji.name) : '';
+              options.push({ role_id: roleId, label: comp.label || '', emoji: emojiStr, style: styleStr });
+            } else if (comp.type === 3 && comp.options) {
+              comp.options.forEach(opt => {
+                let emojiStr = opt.emoji ? (opt.emoji.id ? (opt.emoji.animated ? `<a:${opt.emoji.name}:${opt.emoji.id}>` : `<:${opt.emoji.name}:${opt.emoji.id}>`) : opt.emoji.name) : '';
+                options.push({ role_id: opt.value, label: opt.label || '', emoji: emojiStr, style: 'PRIMARY' });
+              });
+            }
+          });
+        }
+      });
+    }
+
+    if (options.length === 0 && message.reactions && message.reactions.cache.size > 0) {
+      message.reactions.cache.forEach(reaction => {
+        let emojiStr = reaction.emoji.id ? (reaction.emoji.animated ? `<a:${reaction.emoji.name}:${reaction.emoji.id}>` : `<:${reaction.emoji.name}:${reaction.emoji.id}>`) : reaction.emoji.name;
+        options.push({ role_id: '', label: '', emoji: emojiStr, style: 'PRIMARY' });
+      });
+    }
+
+    let imageUrl = '';
+    if (emb && emb.image && emb.image.url) {
+      imageUrl = emb.image.url;
+    } else if (message.attachments && message.attachments.size > 0) {
+      const firstAtt = message.attachments.first();
+      if (firstAtt && firstAtt.url) imageUrl = firstAtt.url;
+    }
+
+    res.json({
+      id: message.id,
+      channel_id: channel.id,
+      author: message.author ? message.author.tag : 'Inconnu',
+      is_bot_owner: message.author && message.author.id === client.user.id,
+      title: emb ? (emb.title || '') : '',
+      description: emb ? (emb.description || (message.content || '')) : (message.content || ''),
+      color: emb ? (emb.hexColor || '#5865F2') : '#5865F2',
+      thumbnail: (emb && emb.thumbnail) ? 1 : 0,
+      image_url: imageUrl,
+      options: options,
+      type: (message.components && message.components[0] && message.components[0].components[0] && message.components[0].components[0].type === 3) ? 'select' : (options.length > 0 && options[0].role_id === '' ? 'reactions' : 'buttons')
+    });
+  } catch (err) {
+    console.error('Erreur fetch-message-details:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 

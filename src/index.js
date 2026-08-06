@@ -1188,8 +1188,22 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
     }
     if (description && description.trim()) {
       embed.setDescription(description.trim());
-    } else if (!title || !title.trim()) {
-      embed.setDescription('Cliquez sur les options ci-dessous pour obtenir ou retirer des rôles.');
+    }
+
+    // Si titre et description ne sont pas fournis mais qu'on a un message existant, préserver l'embed ou le texte original !
+    if (!title && !description) {
+      if (existingMessageId && message) {
+        if (message.embeds && message.embeds.length > 0) {
+          const origEmb = message.embeds[0];
+          if (origEmb.title) embed.setTitle(origEmb.title);
+          if (origEmb.description) embed.setDescription(origEmb.description);
+          if (origEmb.color) embed.setColor(origEmb.color);
+        } else if (message.content) {
+          embed.setDescription(message.content);
+        }
+      } else {
+        embed.setDescription('Cliquez sur les options ci-dessous pour obtenir ou retirer des rôles.');
+      }
     }
     
     if (thumbnail) {
@@ -1207,6 +1221,15 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
         }
       } else if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
         embed.setImage(imageUrl);
+      }
+    } else if (existingMessageId && message) {
+      if (message.embeds && message.embeds[0] && message.embeds[0].image && message.embeds[0].image.url) {
+        embed.setImage(message.embeds[0].image.url);
+      } else if (message.attachments && message.attachments.size > 0) {
+        const firstAtt = message.attachments.first();
+        if (firstAtt && firstAtt.url) {
+          embed.setImage(firstAtt.url);
+        }
       }
     }
 

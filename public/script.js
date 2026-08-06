@@ -6269,14 +6269,47 @@ function initSondageModule() {
 
   // --- SELECTION MESSAGE RÔLES RÉACTION ---
   const autoroleChanSelect = document.getElementById('autorole-embed-channel');
+  const selectChannelAutorolesGroup = document.getElementById('group_select_channel_autoroles');
   const selectChannelAutoroles = document.getElementById('select_channel_autoroles');
+  const existingMsgInput = document.getElementById('autorole-embed-existing-msg');
   let fetchedChannelMessagesList = [];
 
-  if (autoroleChanSelect && selectChannelAutoroles) {
+  const loadMessageDetailsIntoForm = (item) => {
+    if (!item) return;
+    if (existingMsgInput) existingMsgInput.value = item.id;
+    const titleEl = document.getElementById('autorole-embed-title');
+    if (titleEl) titleEl.value = item.title || '';
+    const descEl = document.getElementById('autorole-embed-desc');
+    if (descEl) descEl.value = item.description || '';
+    const colorEl = document.getElementById('autorole-embed-color');
+    if (colorEl) colorEl.value = item.color || '#5865F2';
+    const thumbEl = document.getElementById('autorole-embed-thumbnail');
+    if (thumbEl) thumbEl.value = item.thumbnail ? '1' : '0';
+    const imgEl = document.getElementById('autorole-embed-image');
+    if (imgEl) imgEl.value = item.image_url || '';
+    const typeEl = document.getElementById('autorole-embed-type');
+    if (typeEl) typeEl.value = item.type || 'buttons';
+
+    if (Array.isArray(item.options)) {
+      autoroleButtonsList = item.options.map(opt => ({
+        role_id: opt.role_id,
+        label: opt.label || '',
+        emoji: opt.emoji || '',
+        style: opt.style || 'PRIMARY'
+      }));
+    }
+
+    if (typeof renderButtonsCreatorPreview === 'function') renderButtonsCreatorPreview();
+    if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
+    showToast('Message existant et ses rôles/boutons chargés dans le formulaire !');
+  };
+
+  if (autoroleChanSelect) {
     autoroleChanSelect.addEventListener('change', () => {
       const channelId = autoroleChanSelect.value;
       if (!channelId) {
-        selectChannelAutoroles.innerHTML = '<option value="">-- Sélectionner un message --</option>';
+        if (selectChannelAutorolesGroup) selectChannelAutorolesGroup.style.display = 'none';
+        if (selectChannelAutoroles) selectChannelAutoroles.innerHTML = '<option value="">-- Sélectionner un message --</option>';
         fetchedChannelMessagesList = [];
         return;
       }
@@ -6285,58 +6318,64 @@ function initSondageModule() {
         .then(res => res.json())
         .then(data => {
           fetchedChannelMessagesList = Array.isArray(data) ? data : [];
-          selectChannelAutoroles.innerHTML = '<option value="">-- Sélectionner un message à charger / modifier / copier --</option>';
-          if (fetchedChannelMessagesList.length > 0) {
-            fetchedChannelMessagesList.forEach(m => {
-              const opt = document.createElement('option');
-              opt.value = m.id;
-              const textPreview = m.title || (m.description ? m.description.slice(0, 40) : `Message ${m.id}`);
-              opt.textContent = `${m.author} : ${textPreview} (${m.id})`;
-              selectChannelAutoroles.appendChild(opt);
-            });
+          if (selectChannelAutoroles) {
+            selectChannelAutoroles.innerHTML = '<option value="">-- Sélectionner un message à charger / modifier / copier --</option>';
+            if (fetchedChannelMessagesList.length > 0) {
+              fetchedChannelMessagesList.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                const textPreview = m.title || (m.description ? m.description.slice(0, 40) : `Message ${m.id}`);
+                opt.textContent = `${m.author} : ${textPreview} (${m.id})`;
+                selectChannelAutoroles.appendChild(opt);
+              });
+              if (selectChannelAutorolesGroup) selectChannelAutorolesGroup.style.display = 'block';
+            } else {
+              if (selectChannelAutorolesGroup) selectChannelAutorolesGroup.style.display = 'none';
+            }
           }
         })
         .catch(console.error);
     });
+  }
 
+  if (selectChannelAutoroles) {
     selectChannelAutoroles.addEventListener('change', () => {
       const msgId = selectChannelAutoroles.value;
       if (!msgId) return;
 
       const item = fetchedChannelMessagesList.find(m => m.id === msgId);
       if (item) {
-        const msgEl = document.getElementById('autorole-embed-existing-msg');
-        if (msgEl) msgEl.value = item.id;
-        const titleEl = document.getElementById('autorole-embed-title');
-        if (titleEl) titleEl.value = item.title || '';
-        const descEl = document.getElementById('autorole-embed-desc');
-        if (descEl) descEl.value = item.description || '';
-        const colorEl = document.getElementById('autorole-embed-color');
-        if (colorEl) colorEl.value = item.color || '#5865F2';
-        const thumbEl = document.getElementById('autorole-embed-thumbnail');
-        if (thumbEl) thumbEl.value = item.thumbnail ? '1' : '0';
-        const imgEl = document.getElementById('autorole-embed-image');
-        if (imgEl) imgEl.value = item.image_url || '';
-        const typeEl = document.getElementById('autorole-embed-type');
-        if (typeEl) typeEl.value = item.type || 'buttons';
-
-        if (Array.isArray(item.options) && item.options.length > 0) {
-          autoroleButtonsList = item.options.map(opt => ({
-            role_id: opt.role_id,
-            label: opt.label || '',
-            emoji: opt.emoji || '',
-            style: opt.style || 'PRIMARY'
-          }));
-        }
-
-        renderButtonsCreatorPreview();
-        updateAutorolePreview();
-        showToast('Message existant et ses rôles/boutons chargés dans le formulaire !');
+        loadMessageDetailsIntoForm(item);
       } else {
-        document.getElementById('autorole-embed-existing-msg').value = msgId;
-        if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
-        showToast('Message existant sélectionné !');
+        fetch(`/api/config/embeds/fetch-message-details?messageId=${msgId}`)
+          .then(res => res.json())
+          .then(det => {
+            if (det && det.id) loadMessageDetailsIntoForm(det);
+          })
+          .catch(console.error);
       }
+    });
+  }
+
+  if (existingMsgInput) {
+    let fetchTimeout = null;
+    existingMsgInput.addEventListener('input', () => {
+      const msgId = existingMsgInput.value.trim();
+      if (!msgId || msgId.length < 15) return;
+      clearTimeout(fetchTimeout);
+      fetchTimeout = setTimeout(() => {
+        const item = fetchedChannelMessagesList.find(m => m.id === msgId);
+        if (item) {
+          loadMessageDetailsIntoForm(item);
+        } else {
+          fetch(`/api/config/embeds/fetch-message-details?messageId=${msgId}`)
+            .then(res => res.json())
+            .then(det => {
+              if (det && det.id) loadMessageDetailsIntoForm(det);
+            })
+            .catch(console.error);
+        }
+      }, 500);
     });
   }
 

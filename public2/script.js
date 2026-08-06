@@ -3514,6 +3514,118 @@ document.addEventListener('DOMContentLoaded', () => {
     .catch(err => showToast(err.message, true));
   });
 
+  // --- SELECTION ET POPULATION DU MESSAGE D'AUTO-ROLES EXISTANT ---
+  const autoroleChanSelect = document.getElementById('autorole-embed-channel');
+  const selectChannelAutorolesGroup = document.getElementById('group_select_channel_autoroles');
+  const selectChannelAutoroles = document.getElementById('select_channel_autoroles');
+  const existingMsgInput = document.getElementById('autorole-embed-existing-msg');
+  let fetchedChannelMessagesList = [];
+
+  const loadMessageDetailsIntoForm = (item) => {
+    if (!item) return;
+    if (existingMsgInput) existingMsgInput.value = item.id;
+    const titleEl = document.getElementById('autorole-embed-title');
+    if (titleEl) titleEl.value = item.title || '';
+    const descEl = document.getElementById('autorole-embed-desc');
+    if (descEl) descEl.value = item.description || '';
+    const colorEl = document.getElementById('autorole-embed-color');
+    if (colorEl) colorEl.value = item.color || '#5865F2';
+    const thumbEl = document.getElementById('autorole-embed-thumbnail');
+    if (thumbEl) thumbEl.value = item.thumbnail ? '1' : '0';
+    const imgEl = document.getElementById('autorole-embed-image');
+    if (imgEl) imgEl.value = item.image_url || '';
+    const typeEl = document.getElementById('autorole-embed-type');
+    if (typeEl) typeEl.value = item.type || 'buttons';
+
+    if (Array.isArray(item.options)) {
+      autoroleButtonsList = item.options.map(opt => ({
+        role_id: opt.role_id,
+        label: opt.label || '',
+        emoji: opt.emoji || '',
+        style: opt.style || 'PRIMARY'
+      }));
+    }
+
+    if (typeof renderButtonsCreatorPreview === 'function') renderButtonsCreatorPreview();
+    if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
+    if (typeof showToast === 'function') showToast('Message existant et ses rôles/boutons chargés dans le formulaire !');
+  };
+
+  if (autoroleChanSelect) {
+    autoroleChanSelect.addEventListener('change', () => {
+      const channelId = autoroleChanSelect.value;
+      if (!channelId) {
+        if (selectChannelAutorolesGroup) selectChannelAutorolesGroup.style.display = 'none';
+        if (selectChannelAutoroles) selectChannelAutoroles.innerHTML = '<option value="">-- Sélectionner un message --</option>';
+        fetchedChannelMessagesList = [];
+        return;
+      }
+
+      fetch(`/api/config/embeds/fetch-channel-messages?channelId=${channelId}`)
+        .then(res => res.json())
+        .then(data => {
+          fetchedChannelMessagesList = Array.isArray(data) ? data : [];
+          if (selectChannelAutoroles) {
+            selectChannelAutoroles.innerHTML = '<option value="">-- Sélectionner un message à charger / modifier / copier --</option>';
+            if (fetchedChannelMessagesList.length > 0) {
+              fetchedChannelMessagesList.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                const textPreview = m.title || (m.description ? m.description.slice(0, 40) : `Message ${m.id}`);
+                opt.textContent = `${m.author} : ${textPreview} (${m.id})`;
+                selectChannelAutoroles.appendChild(opt);
+              });
+              if (selectChannelAutorolesGroup) selectChannelAutorolesGroup.style.display = 'block';
+            } else {
+              if (selectChannelAutorolesGroup) selectChannelAutorolesGroup.style.display = 'none';
+            }
+          }
+        })
+        .catch(console.error);
+    });
+  }
+
+  if (selectChannelAutoroles) {
+    selectChannelAutoroles.addEventListener('change', () => {
+      const msgId = selectChannelAutoroles.value;
+      if (!msgId) return;
+
+      const item = fetchedChannelMessagesList.find(m => m.id === msgId);
+      if (item) {
+        loadMessageDetailsIntoForm(item);
+      } else {
+        fetch(`/api/config/embeds/fetch-message-details?messageId=${msgId}`)
+          .then(res => res.json())
+          .then(det => {
+            if (det && det.id) loadMessageDetailsIntoForm(det);
+          })
+          .catch(console.error);
+      }
+    });
+  }
+
+  if (existingMsgInput) {
+    let fetchTimeout = null;
+    existingMsgInput.addEventListener('input', () => {
+      const msgId = existingMsgInput.value.trim();
+      if (!msgId || msgId.length < 15) return;
+      clearTimeout(fetchTimeout);
+      fetchTimeout = setTimeout(() => {
+        const item = fetchedChannelMessagesList.find(m => m.id === msgId);
+        if (item) {
+          loadMessageDetailsIntoForm(item);
+        } else {
+          fetch(`/api/config/embeds/fetch-message-details?messageId=${msgId}`)
+            .then(res => res.json())
+            .then(det => {
+              if (det && det.id) loadMessageDetailsIntoForm(det);
+            })
+            .catch(console.error);
+        }
+      }, 500);
+    });
+  }
+
   // --- LIVE PREVIEW POUR AUTO-RÔLES ---
   const updateAutorolePreview = () => {
     const title = document.getElementById('autorole-embed-title').value.trim() || 'Aperçu du titre';
@@ -3526,7 +3638,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Gestion du message existant
     if (existingMsgId) {
-      embedCard.style.display = 'none';
+      embedCard.style.display = 'block';
       let banner = document.getElementById('autorole-preview-existing-banner');
       if (!banner) {
         banner = document.createElement('div');
@@ -3540,7 +3652,7 @@ document.addEventListener('DOMContentLoaded', () => {
         banner.style.marginBottom = '10px';
         embedCard.parentNode.insertBefore(banner, embedCard);
       }
-      banner.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Les contrôles seront ajoutés directement sur le message Discord existant <strong>${existingMsgId}</strong>.`;
+      banner.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Mode Édition / Copie : Les rôles et boutons seront associés au message <strong>${existingMsgId}</strong>.`;
       banner.style.display = 'block';
     } else {
       embedCard.style.display = 'block';
