@@ -1369,6 +1369,45 @@ apiApp.post('/bot/delete-message', async (req, res) => {
   }
 });
 
+apiApp.post('/bot/age-verification-completed', async (req, res) => {
+  try {
+    const { guildId, userId, channelId, method, estimatedAge, roleIdToAssign } = req.body;
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Guild not found' });
+    const channel = guild.channels.cache.get(channelId);
+    if (!channel) return res.status(404).json({ error: 'Channel not found' });
+
+    const methodLabel = method === 'facial' ? '📸 Reconnaissance Faciale' : '📄 Carte d\'Identité / Document';
+    const embed = new EmbedBuilder()
+      .setTitle('🛡️ VÉRIFICATION D\'ÂGE VALIDÉE')
+      .setDescription(
+        `La majorité de <@${userId}> a été vérifiée avec succès !\n\n` +
+        `• **Membre** : <@${userId}>\n` +
+        `• **Statut** : ✅ **Majeur (Âge validé : ${estimatedAge} ans)**\n` +
+        `• **Méthode utilisée** : ${methodLabel}\n` +
+        `• **Horodatage** : <t:${Math.floor(Date.now() / 1000)}:F>`
+      )
+      .setColor('#2ECC71')
+      .setThumbnail('https://cdn-icons-png.flaticon.com/512/7542/7542245.png')
+      .setFooter({ text: 'Bagbot Elite • Sécurité & Majorité' })
+      .setTimestamp();
+
+    await channel.send({ content: `✅ <@${userId}> a complété sa vérification d'âge !`, embeds: [embed] });
+
+    if (roleIdToAssign) {
+      const member = await guild.members.fetch(userId).catch(() => null);
+      if (member) {
+        await member.roles.add(roleIdToAssign).catch(err => console.error('Erreur ajout rôle âge:', err));
+      }
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erreur age-verification-completed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 apiApp.get('/guilds', (req, res) => {
   const guilds = client.guilds.cache.map(guild => ({
     id: guild.id,

@@ -260,7 +260,18 @@ async function handleTicketInteraction(interaction, client) {
       welcomeEmbed.setImage(option.image_url);
     }
 
-    const buttons = [
+    const buttons = [];
+
+    if (option.require_age_verification === 1) {
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId('ticket_verify_age')
+          .setLabel(`Vérifier d'âge (${option.min_age_required || 18}+) 🔐`)
+          .setStyle(ButtonStyle.Primary)
+      );
+    }
+
+    buttons.push(
       new ButtonBuilder()
         .setCustomId('ticket_claim')
         .setLabel('Prendre en charge 🙋‍♂️')
@@ -269,7 +280,7 @@ async function handleTicketInteraction(interaction, client) {
         .setCustomId('ticket_assign')
         .setLabel('Assigner 👤')
         .setStyle(ButtonStyle.Primary)
-    ];
+    );
 
     if (option.show_member_button !== 0) {
       buttons.push(
@@ -296,7 +307,10 @@ async function handleTicketInteraction(interaction, client) {
         .setStyle(ButtonStyle.Danger)
     );
 
-    const row = new ActionRowBuilder().addComponents(buttons);
+    const actionRows = [];
+    while (buttons.length > 0) {
+      actionRows.push(new ActionRowBuilder().addComponents(buttons.splice(0, 5)));
+    }
 
     // Pings des rôles
     let pingRoles = [];
@@ -316,10 +330,48 @@ async function handleTicketInteraction(interaction, client) {
     await ticketChannel.send({ 
       content: pingContent.trim() || undefined, 
       embeds: [welcomeEmbed], 
-      components: [row] 
+      components: actionRows 
     });
 
     await interaction.followUp({ content: `✅ Votre ticket a été créé avec succès dans <#${ticketChannel.id}>.`, ephemeral: true });
+  }
+
+  // 1b. DEMANDE DE VÉRIFICATION D'ÂGE
+  else if (customId === 'ticket_verify_age') {
+    const active = getActiveTicket(interaction.channelId);
+    if (!active) {
+      return interaction.reply({ content: '❌ Ce salon n\'est pas un ticket actif.', ephemeral: true });
+    }
+
+    const option = db.prepare('SELECT * FROM ticket_options WHERE id = ?').get(active.option_id);
+    const minAge = option ? (option.min_age_required || 18) : 18;
+
+    const crypto = require('crypto');
+    const token = crypto.randomUUID ? crypto.randomUUID() : `age_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+    const { createAgeVerificationSession } = require('../database/db');
+    createAgeVerificationSession(token, interaction.guildId, interaction.user.id, interaction.channelId, minAge);
+
+    const verifyUrl = `http://82.65.75.176:49602/verify-age.html?token=${token}`;
+
+    const embed = new EmbedBuilder()
+      .setTitle('🔞 Vérification d\'Âge Requise')
+      .setDescription(
+        `Pour faire valider votre majorité (**${minAge} ans et +**), cliquez sur le bouton ci-dessous pour ouvrir la page de vérification sécurisée.\n\n` +
+        `• **Méthodes au choix** : 📸 Reconnaissance Faciale ou 📄 Carte d'Identité / Passeport\n` +
+        `• **Confidentialité** : Aucune photo n'est conservée ni stockée sur le serveur.\n\n` +
+        `👉 [**Cliquer ici pour accéder à la vérification**](${verifyUrl})`
+      )
+      .setColor('#D4AF37');
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel('Accéder à la vérification 🔗')
+        .setStyle(ButtonStyle.Link)
+        .setURL(verifyUrl)
+    );
+
+    return interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
   }
 
   // 2. DEMANDE DE FERMETURE

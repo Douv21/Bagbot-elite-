@@ -561,6 +561,30 @@ function initDatabase() {
   try {
     db.prepare("ALTER TABLE ticket_options ADD COLUMN show_certify_button INTEGER DEFAULT 1").run();
   } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE ticket_options ADD COLUMN require_age_verification INTEGER DEFAULT 0").run();
+  } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE ticket_options ADD COLUMN min_age_required INTEGER DEFAULT 18").run();
+  } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE ticket_options ADD COLUMN age_verified_role_id TEXT DEFAULT NULL").run();
+  } catch (e) {}
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS age_verifications (
+      id TEXT PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      min_age INTEGER DEFAULT 18,
+      status TEXT DEFAULT 'pending',
+      verification_method TEXT,
+      estimated_age INTEGER,
+      created_at INTEGER,
+      verified_at INTEGER
+    )
+  `).run();
 
   try {
     const tableInfo = db.prepare("PRAGMA table_info(ticket_panels)").all();
@@ -1467,10 +1491,10 @@ const getTicketOptions = (guildId) => {
 };
 
 const addTicketOption = (guildId, option) => {
-  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button } = option;
+  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button, require_age_verification, min_age_required, age_verified_role_id } = option;
   return db.prepare(`
-    INSERT INTO ticket_options (guild_id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO ticket_options (guild_id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button, require_age_verification, min_age_required, age_verified_role_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     guildId, 
     label, 
@@ -1488,7 +1512,10 @@ const addTicketOption = (guildId, option) => {
     JSON.stringify(certify_roles_add || []),
     JSON.stringify(certify_roles_remove || []),
     show_member_button !== undefined ? show_member_button : 1,
-    show_certify_button !== undefined ? show_certify_button : 1
+    show_certify_button !== undefined ? show_certify_button : 1,
+    require_age_verification ? 1 : 0,
+    min_age_required ? parseInt(min_age_required) : 18,
+    age_verified_role_id || null
   );
 };
 
@@ -1497,7 +1524,7 @@ const deleteTicketOption = (guildId, id) => {
 };
 
 const updateTicketOption = (guildId, id, option) => {
-  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button } = option;
+  const { label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, image_url, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button, require_age_verification, min_age_required, age_verified_role_id } = option;
   return db.prepare(`
     UPDATE ticket_options SET
       label = ?,
@@ -1515,7 +1542,10 @@ const updateTicketOption = (guildId, id, option) => {
       certify_roles_add = ?,
       certify_roles_remove = ?,
       show_member_button = ?,
-      show_certify_button = ?
+      show_certify_button = ?,
+      require_age_verification = ?,
+      min_age_required = ?,
+      age_verified_role_id = ?
     WHERE guild_id = ? AND id = ?
   `).run(
     label,
@@ -1534,6 +1564,9 @@ const updateTicketOption = (guildId, id, option) => {
     JSON.stringify(certify_roles_remove || []),
     show_member_button !== undefined ? show_member_button : 1,
     show_certify_button !== undefined ? show_certify_button : 1,
+    require_age_verification ? 1 : 0,
+    min_age_required ? parseInt(min_age_required) : 18,
+    age_verified_role_id || null,
     guildId,
     id
   );
@@ -2312,3 +2345,29 @@ function setCommandPermission(guildId, commandName, data) {
     typeof denied_roles === 'string' ? denied_roles : JSON.stringify(denied_roles || [])
   );
 }
+
+function createAgeVerificationSession(id, guildId, userId, channelId, minAge = 18) {
+  return db.prepare(`
+    INSERT INTO age_verifications (id, guild_id, user_id, channel_id, min_age, status, created_at)
+    VALUES (?, ?, ?, ?, ?, 'pending', ?)
+  `).run(id, guildId, userId, channelId, minAge, Date.now());
+}
+
+function getAgeVerificationSession(id) {
+  return db.prepare('SELECT * FROM age_verifications WHERE id = ?').get(id);
+}
+
+function completeAgeVerification(id, method, estimatedAge) {
+  return db.prepare(`
+    UPDATE age_verifications
+    SET status = 'verified', verification_method = ?, estimated_age = ?, verified_at = ?
+    WHERE id = ?
+  `).run(method, estimatedAge, Date.now(), id);
+}
+
+module.exports = {
+  ...module.exports,
+  createAgeVerificationSession,
+  getAgeVerificationSession,
+  completeAgeVerification
+};

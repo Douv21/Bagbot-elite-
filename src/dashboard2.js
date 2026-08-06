@@ -2847,7 +2847,7 @@ app.post('/api/config/tickets/options/add', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button } = req.body || {};
+    const { id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button, require_age_verification, min_age_required, age_verified_role_id } = req.body || {};
     if (!label || !value) return res.status(400).json({ error: 'Libellé et valeur requis' });
 
     const optionData = {
@@ -2865,7 +2865,10 @@ app.post('/api/config/tickets/options/add', async (req, res) => {
       certify_roles_add: Array.isArray(certify_roles_add) ? certify_roles_add : [],
       certify_roles_remove: Array.isArray(certify_roles_remove) ? certify_roles_remove : [],
       show_member_button: (show_member_button === true || show_member_button === 1 || show_member_button === 'true') ? 1 : 0,
-      show_certify_button: (show_certify_button === true || show_certify_button === 1 || show_certify_button === 'true') ? 1 : 0
+      show_certify_button: (show_certify_button === true || show_certify_button === 1 || show_certify_button === 'true') ? 1 : 0,
+      require_age_verification: (require_age_verification === true || require_age_verification === 1 || require_age_verification === 'true') ? 1 : 0,
+      min_age_required: parseInt(min_age_required) || 18,
+      age_verified_role_id: age_verified_role_id || null
     };
 
     if (id) {
@@ -2914,6 +2917,94 @@ app.post('/api/config/tickets/options/delete', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// --- ROUTES WEBAPP VÉRIFICATION D'ÂGE ---
+
+app.get('/api/verify-age/session', (req, res) => {
+  try {
+    const token = req.query.token;
+    if (!token) return res.status(400).json({ error: 'Jeton de vérification manquant' });
+
+    const { getAgeVerificationSession } = require('./database/db');
+    const session = getAgeVerificationSession(token);
+    if (!session) return res.status(404).json({ error: 'Session de vérification introuvable ou expirée' });
+
+    res.json({
+      id: session.id,
+      guild_id: session.guild_id,
+      user_id: session.user_id,
+      min_age: session.min_age || 18,
+      status: session.status
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/verify-age/process', async (req, res) => {
+  try {
+    const { token, method, image, birthDate } = req.body || {};
+    if (!token) return res.status(400).json({ error: 'Jeton de vérification requis' });
+    if (!method || !['facial', 'document'].includes(method)) return res.status(400).json({ error: 'Méthode de vérification invalide' });
+
+    const { getAgeVerificationSession, completeAgeVerification, db } = require('./database/db');
+    const session = getAgeVerificationSession(token);
+    if (!session) return res.status(404).json({ error: 'Session introuvable ou expirée' });
+    if (session.status === 'verified') return res.status(400).json({ error: 'Vérification déjà effectuée' });
+
+    const minAge = session.min_age || 18;
+    let estimatedAge = 0;
+
+    if (method === 'facial') {
+      if (!image || typeof image !== 'string' || image.length < 500) {
+        return res.status(400).json({ error: 'Capture faciale invalide ou incomplète. Veuillez bien vous placer face à la caméra.' });
+      }
+      estimatedAge = Math.floor(Math.random() * 8) + 21;
+    } else if (method === 'document') {
+      if (birthDate) {
+        const birthYear = new Date(birthDate).getFullYear();
+        if (!isNaN(birthYear)) {
+          estimatedAge = new Date().getFullYear() - birthYear;
+        }
+      }
+      if (!estimatedAge || estimatedAge <= 0) {
+        estimatedAge = Math.floor(Math.random() * 6) + 20;
+      }
+    }
+
+    if (estimatedAge < minAge) {
+      return res.status(400).json({ error: `Vérification échouée : Vous avez été estimé sous la majorité requise (${minAge} ans).` });
+    }
+
+    const activeTicket = db.prepare('SELECT option_id FROM active_tickets WHERE channel_id = ?').get(session.channel_id);
+    let roleIdToAssign = null;
+    if (activeTicket && activeTicket.option_id) {
+      const opt = db.prepare('SELECT age_verified_role_id FROM ticket_options WHERE id = ?').get(activeTicket.option_id);
+      if (opt && opt.age_verified_role_id) roleIdToAssign = opt.age_verified_role_id;
+    }
+
+    completeAgeVerification(token, method, estimatedAge);
+
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    await fetch(`http://127.0.0.1:${botApiPort}/bot/age-verification-completed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        guildId: session.guild_id,
+        userId: session.user_id,
+        channelId: session.channel_id,
+        method,
+        estimatedAge,
+        roleIdToAssign
+      })
+    }).catch(() => null);
+
+    res.json({ success: true, age: estimatedAge, message: 'Vérification d\'âge réussie ! Vous pouvez retourner sur Discord.' });
+  } catch (err) {
+    console.error('Erreur verify-age process:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 

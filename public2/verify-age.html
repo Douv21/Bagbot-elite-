@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vérification d'Âge & Majorité — Bagbot Elite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-dark: #0a0a0f;
+      --bg-card: rgba(17, 17, 24, 0.85);
+      --gold-primary: #d4af37;
+      --gold-bright: #ffd700;
+      --gold-gradient: linear-gradient(135deg, #ffd700 0%, #d4af37 50%, #996515 100%);
+      --text-main: #f0f0f5;
+      --text-muted: #a0a0b0;
+      --border-gold: rgba(212, 175, 55, 0.25);
+      --success-green: #2ecc71;
+      --error-red: #e74c3c;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(212, 175, 55, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(212, 175, 55, 0.08) 0%, transparent 40%);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 580px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-gold);
+      border-radius: 16px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(212, 175, 55, 0.15);
+      padding: 30px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--gold-gradient);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(212, 175, 55, 0.1);
+      border: 1px solid var(--border-gold);
+      padding: 6px 16px;
+      border-radius: 20px;
+      color: var(--gold-bright);
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .title {
+      font-family: 'Cinzel', serif;
+      font-size: 1.6rem;
+      color: #ffffff;
+      margin-bottom: 8px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+
+    .badge-age-req {
+      display: inline-block;
+      background: rgba(231, 76, 60, 0.2);
+      border: 1px solid var(--error-red);
+      color: #ff6b6b;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+
+    /* Tabs */
+    .tabs-nav {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 10px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      padding: 12px 10px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .tab-btn:hover {
+      background: rgba(212, 175, 55, 0.08);
+      color: #fff;
+    }
+
+    .tab-btn.active {
+      background: var(--gold-gradient);
+      color: #000;
+      border-color: var(--gold-bright);
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Camera Box */
+    .camera-wrapper {
+      position: relative;
+      width: 100%;
+      height: 280px;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px dashed var(--border-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+
+    video, canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .face-overlay {
+      position: absolute;
+      width: 170px;
+      height: 210px;
+      border: 2px dashed var(--gold-bright);
+      border-radius: 50%;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .face-overlay::after {
+      content: 'Placez votre visage ici';
+      color: var(--gold-bright);
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(0,0,0,0.7);
+      padding: 4px 8px;
+      border-radius: 4px;
+      position: absolute;
+      bottom: 15px;
+    }
+
+    /* File Upload Box */
+    .upload-box {
+      border: 2px dashed var(--border-gold);
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 12px;
+      padding: 30px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 18px;
+    }
+
+    .upload-box:hover {
+      background: rgba(212, 175, 55, 0.05);
+      border-color: var(--gold-bright);
+    }
+
+    .upload-box i {
+      font-size: 2.2rem;
+      color: var(--gold-bright);
+      margin-bottom: 10px;
+    }
+
+    .preview-img {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 8px;
+      margin-top: 10px;
+      display: none;
+      border: 1px solid var(--border-gold);
+    }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 15px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .form-input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--gold-bright);
+    }
+
+    /* Action Buttons */
+    .btn-submit {
+      width: 100%;
+      background: var(--gold-gradient);
+      color: #000;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Privacy Banner */
+    .privacy-notice {
+      margin-top: 20px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .privacy-notice i {
+      color: var(--success-green);
+      margin-right: 4px;
+    }
+
+    /* Result Modal / Screen */
+    .result-screen {
+      display: none;
+      text-align: center;
+      padding: 20px 10px;
+    }
+
+    .result-icon {
+      font-size: 4rem;
+      color: var(--success-green);
+      margin-bottom: 15px;
+      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div id="mainFormView">
+      <div class="header">
+        <div class="logo-badge">
+          <i class="fa-solid fa-shield-halved"></i> Bagbot Elite • Sécurité
+        </div>
+        <h1 class="title">Vérification de la Majorité</h1>
+        <p class="subtitle">Choisissez la méthode de votre choix pour valider votre âge en toute sécurité.</p>
+        <div class="badge-age-req" id="minAgeBadge">
+          <i class="fa-solid fa-circle-exclamation"></i> Âge Minimum : 18 ans et +
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-nav">
+        <button type="button" class="tab-btn active" onclick="switchTab('facial')">
+          <i class="fa-solid fa-camera"></i> Scan Facial (Caméra)
+        </button>
+        <button type="button" class="tab-btn" onclick="switchTab('document')">
+          <i class="fa-solid fa-id-card"></i> Pièce d'Identité
+        </button>
+      </div>
+
+      <!-- Tab 1: Reconnaissance Faciale -->
+      <div class="tab-content active" id="tab-facial">
+        <div class="camera-wrapper">
+          <video id="videoFeed" autoplay playsinline muted></video>
+          <div class="face-overlay"></div>
+        </div>
+        <button type="button" class="btn-submit" id="btnStartFacial" onclick="processFacialScan()">
+          <i class="fa-solid fa-camera-rotate"></i> Analyser mon Visage (Temps Réel)
+        </button>
+      </div>
+
+      <!-- Tab 2: Document OCR -->
+      <div class="tab-content" id="tab-document">
+        <div class="upload-box" onclick="document.getElementById('docInput').click()">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <p style="font-weight: 600; color: #fff;">Prendre une photo ou importer votre pièce d'identité</p>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Passeport, Carte Nationale d'Identité ou Permis de conduire</p>
+          <input type="file" id="docInput" accept="image/*" style="display: none;" onchange="previewDoc(event)">
+          <img id="docPreview" class="preview-img" alt="Aperçu">
+        </div>
+        <div class="form-group">
+          <label><i class="fa-solid fa-calendar-days"></i> Date de Naissance (Confirmation)</label>
+          <input type="date" class="form-input" id="birthDateInput">
+        </div>
+        <button type="button" class="btn-submit" id="btnStartDoc" onclick="processDocScan()">
+          <i class="fa-solid fa-passport"></i> Analyser le Document d'Identité
+        </button>
+      </div>
+
+      <div class="privacy-notice">
+        <i class="fa-solid fa-user-shield"></i> <strong>Respect strict de la vie privée (RGPD) :</strong><br>
+        Les captures vidéo et photos sont analysées en mémoire instantanément et <strong>ne sont jamais conservées ni stockées sur nos serveurs</strong>.
+      </div>
+    </div>
+
+    <!-- Screen Result -->
+    <div class="result-screen" id="resultScreen">
+      <div class="result-icon" id="resIcon">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <h2 class="title" id="resTitle" style="color: var(--success-green);">Vérification Réussie !</h2>
+      <p class="subtitle" id="resDesc" style="margin-top: 8px;">Votre majorité a été validée avec succès. Le compte-rendu a été envoyé automatiquement dans votre ticket Discord.</p>
+      <p style="font-size: 0.85rem; color: var(--gold-bright); margin-top: 20px;">
+         Vous pouvez à présent fermer cette page et retourner sur Discord.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    let sessionData = null;
+    let videoStream = null;
+
+    // Initialisation
+    async function initSession() {
+      if (!token) {
+        showError('Jeton de vérification manquant dans l\'URL.');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/verify-age/session?token=${token}`);
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          showError(data.error || 'Session invalide ou expirée.');
+          return;
+        }
+        sessionData = data;
+        document.getElementById('minAgeBadge').innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Âge Minimum Requis : ${data.min_age} ans et +`;
+        startCamera();
+      } catch (err) {
+        showError('Erreur de connexion au serveur.');
+      }
+    }
+
+    // Gestion Caméra
+    async function startCamera() {
+      try {
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
+        document.getElementById('videoFeed').srcObject = videoStream;
+      } catch (err) {
+        console.warn('Impossible d\'activer la caméra:', err);
+      }
+    }
+
+    function stopCamera() {
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+      }
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      if (tabName === 'facial') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('tab-facial').classList.add('active');
+        startCamera();
+      } else {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('tab-document').classList.add('active');
+        stopCamera();
+      }
+    }
+
+    function previewDoc(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const img = document.getElementById('docPreview');
+        img.src = evt.target.result;
+        img.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function processFacialScan() {
+      const btn = document.getElementById('btnStartFacial');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyse IA du visage en cours...';
+
+      // Canvas capture
+      const video = document.getElementById('videoFeed');
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const base64Img = canvas.toDataURL('image/jpeg', 0.85);
+
+      submitVerification('facial', base64Img);
+    }
+
+    async function processDocScan() {
+      const img = document.getElementById('docPreview');
+      const birthDate = document.getElementById('birthDateInput').value;
+
+      if (!img.src || img.style.display === 'none') {
+        alert('Veuillez sélectionner une photo de votre pièce d\'identité.');
+        return;
+      }
+
+      const btn = document.getElementById('btnStartDoc');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Lecture OCR du document...';
+
+      submitVerification('document', img.src, birthDate);
+    }
+
+    async function submitVerification(method, image, birthDate = null) {
+      try {
+        const res = await fetch('/api/verify-age/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token,
+            method,
+            image,
+            birthDate
+          })
+        });
+
+        const data = await res.json();
+        stopCamera();
+
+        if (data.success) {
+          document.getElementById('mainFormView').style.display = 'none';
+          document.getElementById('resultScreen').style.display = 'block';
+          document.getElementById('resDesc').textContent = `Votre âge a été vérifié avec succès (${data.age} ans). Le compte-rendu a été transmis automatiquement dans votre ticket Discord.`;
+        } else {
+          alert('Erreur : ' + (data.error || 'Échec de la vérification.'));
+          resetButtons();
+        }
+      } catch (err) {
+        alert('Erreur réseau lors du traitement.');
+        resetButtons();
+      }
+    }
+
+    function resetButtons() {
+      document.getElementById('btnStartFacial').disabled = false;
+      document.getElementById('btnStartFacial').innerHTML = '<i class="fa-solid fa-camera-rotate"></i> Analyser mon Visage (Temps Réel)';
+      document.getElementById('btnStartDoc').disabled = false;
+      document.getElementById('btnStartDoc').innerHTML = '<i class="fa-solid fa-passport"></i> Analyser le Document d\'Identité';
+    }
+
+    function showError(msg) {
+      document.getElementById('mainFormView').style.display = 'none';
+      document.getElementById('resultScreen').style.display = 'block';
+      document.getElementById('resIcon').innerHTML = '<i class="fa-solid fa-circle-xmark" style="color: var(--error-red);"></i>';
+      document.getElementById('resTitle').textContent = 'Erreur de Vérification';
+      document.getElementById('resTitle').style.color = 'var(--error-red)';
+      document.getElementById('resDesc').textContent = msg;
+    }
+
+    window.onload = initSession;
+  </script>
+</body>
+</html>
