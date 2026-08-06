@@ -2936,6 +2936,14 @@ app.get('/api/verify-age/session', (req, res) => {
   }
 });
 
+app.get('/verify-age.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/verify-age.html'));
+});
+
+app.get('/verify-age', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/verify-age.html'));
+});
+
 app.post('/api/verify-age/process', async (req, res) => {
   try {
     const { token, method, image, birthDate } = req.body || {};
