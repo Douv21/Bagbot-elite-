@@ -1130,12 +1130,12 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
           isSameChannelEdit = true;
         }
       } else {
-        // 2. Si le salon cible est différent (copie dans un autre salon), chercher le message dans le serveur
-        for (const ch of guild.channels.cache.values()) {
-          if (ch.isTextBased() && ch.id !== channelId) {
-            message = await ch.messages.fetch(existingMessageId).catch(() => null);
-            if (message) break;
-          }
+        // 2. Si le salon cible est différent (copie dans un autre salon), chercher en parallèle dans tous les salons
+        const textChannels = Array.from(guild.channels.cache.values()).filter(ch => ch.isTextBased() && ch.id !== channelId);
+        const results = await Promise.all(textChannels.map(ch => ch.messages.fetch(existingMessageId).then(m => ({ msg: m, ch })).catch(() => null)));
+        const found = results.find(r => r && r.msg);
+        if (found) {
+          message = found.msg;
         }
       }
     }

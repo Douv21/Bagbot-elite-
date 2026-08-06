@@ -3889,15 +3889,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const editBtn = card.querySelector('.btn-edit-embed');
         if (editBtn) {
           editBtn.addEventListener('click', () => {
-            const embedSenderBtn = document.querySelector('.tab-btn[data-tab="tab-embed-sender"]');
-            if (embedSenderBtn) embedSenderBtn.click();
-            safeSetVal('simple_embed_channel', item.channel_id);
-            safeSetVal('simple_embed_edit_msg_id', item.message_id);
-            safeSetVal('simple_embed_title', item.title || '');
-            safeSetVal('simple_embed_desc', item.description || '');
-            safeSetVal('simple_embed_color', item.color || '#5865F2');
-            safeSetVal('simple_embed_image', item.image_url || '');
-            showToast('Embed chargé dans l\'éditeur !');
+            const reactionRolesTabBtn = document.querySelector('.tab-btn[data-tab="tab-reactionroles"]');
+            if (reactionRolesTabBtn) reactionRolesTabBtn.click();
+            
+            safeSetVal('autorole-embed-channel', item.channel_id);
+            safeSetVal('autorole-embed-existing-msg', item.message_id);
+            safeSetVal('autorole-embed-title', item.title === '(Message Existant)' ? '' : (item.title || ''));
+            safeSetVal('autorole-embed-desc', item.description === '(Pas d\'embed)' ? '' : (item.description || ''));
+            safeSetVal('autorole-embed-color', item.color || '#5865F2');
+            safeSetVal('autorole-embed-thumbnail', item.thumbnail ? '1' : '0');
+            safeSetVal('autorole-embed-image', item.image_url || '');
+            safeSetVal('autorole-embed-type', item.type || 'buttons');
+            safeSetVal('autorole-embed-mode', item.mode || 'normal');
+
+            autoroleButtonsList = (item.options || []).map(opt => ({
+              role_id: opt.role_id,
+              label: opt.label || '',
+              emoji: opt.emoji || '',
+              style: opt.style || 'PRIMARY'
+            }));
+
+            if (typeof renderButtonsCreatorPreview === 'function') renderButtonsCreatorPreview();
+            if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
+            showToast('Configuration du rôle réaction chargée dans le formulaire !');
           });
         }
 

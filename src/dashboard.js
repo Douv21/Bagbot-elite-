@@ -1712,14 +1712,12 @@ app.get('/api/config/embeds/fetch-message-details', async (req, res) => {
     }
 
     if (!message) {
-      for (const ch of guild.channels.cache.values()) {
-        if (ch.isTextBased()) {
-          message = await ch.messages.fetch(messageId).catch(() => null);
-          if (message) {
-            channel = ch;
-            break;
-          }
-        }
+      const textChannels = Array.from(guild.channels.cache.values()).filter(ch => ch.isTextBased() && ch.id !== channelId);
+      const results = await Promise.all(textChannels.map(ch => ch.messages.fetch(messageId).then(m => ({ msg: m, ch })).catch(() => null)));
+      const found = results.find(r => r && r.msg);
+      if (found) {
+        message = found.msg;
+        channel = found.ch;
       }
     }
 

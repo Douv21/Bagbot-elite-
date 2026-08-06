@@ -3776,7 +3776,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const editBtn = card.querySelector('.btn-edit-embed');
         if (editBtn) {
           editBtn.addEventListener('click', () => {
-            const autoroleTabBtn = document.querySelector('.tab-btn[data-tab="tab-autoroles"]');
+            const autoroleTabBtn = document.querySelector('.tab-btn[data-tab="tab-reactionroles"]');
             if (autoroleTabBtn) autoroleTabBtn.click();
             
             const chanEl = document.getElementById('autorole-embed-channel');
