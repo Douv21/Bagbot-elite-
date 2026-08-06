@@ -214,6 +214,14 @@ app.use(express.static(path.join(__dirname, '../public'), {
     res.setHeader('Surrogate-Control', 'no-store');
   }
 }));
+
+app.get('/verify-age.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/verify-age.html'));
+});
+
+app.get('/verify-age', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/verify-age.html'));
+});
 // Route principale
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
