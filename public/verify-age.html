@@ -158,7 +158,7 @@
       display: block;
     }
 
-    /* Camera Box */
+    /* Camera & Snapshot Box */
     .camera-wrapper {
       position: relative;
       width: 100%;
@@ -173,7 +173,7 @@
       margin-bottom: 18px;
     }
 
-    video, canvas {
+    video, canvas, .preview-full {
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -193,7 +193,7 @@
     }
 
     .face-overlay::after {
-      content: 'Placez votre visage ici';
+      content: 'Visage ici';
       color: var(--gold-bright);
       font-size: 0.75rem;
       font-weight: 600;
@@ -204,21 +204,46 @@
       bottom: 15px;
     }
 
+    /* Multi Button Container */
+    .btn-group-media {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .btn-media {
+      flex: 1;
+      background: rgba(212, 175, 55, 0.12);
+      border: 1px solid var(--border-gold);
+      color: var(--gold-bright);
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .btn-media:hover {
+      background: rgba(212, 175, 55, 0.25);
+      border-color: var(--gold-bright);
+      color: #fff;
+    }
+
     /* File Upload Box */
     .upload-box {
       border: 2px dashed var(--border-gold);
       background: rgba(255, 255, 255, 0.02);
       border-radius: 12px;
-      padding: 30px 20px;
+      padding: 25px 20px;
       text-align: center;
-      cursor: pointer;
       transition: all 0.3s ease;
       margin-bottom: 18px;
-    }
-
-    .upload-box:hover {
-      background: rgba(212, 175, 55, 0.05);
-      border-color: var(--gold-bright);
     }
 
     .upload-box i {
@@ -327,6 +352,17 @@
       animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
+    .camera-notice {
+      font-size: 0.8rem;
+      color: var(--gold-bright);
+      background: rgba(212, 175, 55, 0.1);
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      text-align: center;
+      display: none;
+    }
+
     @keyframes popIn {
       0% { transform: scale(0); opacity: 0; }
       100% { transform: scale(1); opacity: 1; }
@@ -351,7 +387,7 @@
       <!-- Tabs -->
       <div class="tabs-nav">
         <button type="button" class="tab-btn active" onclick="switchTab('facial')">
-          <i class="fa-solid fa-camera"></i> Scan Facial (Caméra)
+          <i class="fa-solid fa-camera"></i> Reconnaissance Faciale
         </button>
         <button type="button" class="tab-btn" onclick="switchTab('document')">
           <i class="fa-solid fa-id-card"></i> Pièce d'Identité
@@ -360,36 +396,63 @@
 
       <!-- Tab 1: Reconnaissance Faciale -->
       <div class="tab-content active" id="tab-facial">
+        <div class="camera-notice" id="facialNotice">
+          <i class="fa-solid fa-circle-info"></i> Utilisation de l'appareil photo de votre appareil.
+        </div>
+
         <div class="camera-wrapper">
           <video id="videoFeed" autoplay playsinline muted></video>
-          <div class="face-overlay"></div>
+          <img id="facialPhotoPreview" class="preview-full" style="display: none;" alt="Aperçu photo">
+          <div class="face-overlay" id="faceOverlay"></div>
         </div>
+
+        <div class="btn-group-media">
+          <button type="button" class="btn-media" onclick="triggerFacialCamera()">
+            <i class="fa-solid fa-camera"></i> Prendre une Photo (Appareil Photo)
+          </button>
+          <input type="file" id="facialCameraInput" accept="image/*" capture="user" style="display: none;" onchange="previewFacialPhoto(event)">
+        </div>
+
         <button type="button" class="btn-submit" id="btnStartFacial" onclick="processFacialScan()">
-          <i class="fa-solid fa-camera-rotate"></i> Analyser mon Visage (Temps Réel)
+          <i class="fa-solid fa-face-smile-wink"></i> Analyser mon Visage (Validation IA)
         </button>
       </div>
 
       <!-- Tab 2: Document OCR -->
       <div class="tab-content" id="tab-document">
-        <div class="upload-box" onclick="document.getElementById('docInput').click()">
-          <i class="fa-solid fa-cloud-arrow-up"></i>
-          <p style="font-weight: 600; color: #fff;">Prendre une photo ou importer votre pièce d'identité</p>
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Passeport, Carte Nationale d'Identité ou Permis de conduire</p>
-          <input type="file" id="docInput" accept="image/*" style="display: none;" onchange="previewDoc(event)">
-          <img id="docPreview" class="preview-img" alt="Aperçu">
+        <div class="upload-box">
+          <i class="fa-solid fa-passport"></i>
+          <p style="font-weight: 600; color: #fff;">Pièce d'Identité / Passeport</p>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; margin-bottom: 15px;">Carte Nationale d'Identité, Passeport ou Permis de conduire</p>
+          
+          <div class="btn-group-media">
+            <button type="button" class="btn-media" onclick="document.getElementById('docCameraInput').click()">
+              <i class="fa-solid fa-camera"></i> Prendre en Photo (Appareil Photo)
+            </button>
+            <button type="button" class="btn-media" onclick="document.getElementById('docFileInput').click()">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Importer un Fichier (Galerie)
+            </button>
+          </div>
+
+          <input type="file" id="docCameraInput" accept="image/*" capture="environment" style="display: none;" onchange="previewDoc(event)">
+          <input type="file" id="docFileInput" accept="image/*" style="display: none;" onchange="previewDoc(event)">
+
+          <img id="docPreview" class="preview-img" alt="Aperçu du document">
         </div>
+
         <div class="form-group">
           <label><i class="fa-solid fa-calendar-days"></i> Date de Naissance (Confirmation)</label>
           <input type="date" class="form-input" id="birthDateInput">
         </div>
+
         <button type="button" class="btn-submit" id="btnStartDoc" onclick="processDocScan()">
-          <i class="fa-solid fa-passport"></i> Analyser le Document d'Identité
+          <i class="fa-solid fa-shield-check"></i> Analyser le Document d'Identité
         </button>
       </div>
 
       <div class="privacy-notice">
         <i class="fa-solid fa-user-shield"></i> <strong>Respect strict de la vie privée (RGPD) :</strong><br>
-        Les captures vidéo et photos sont analysées en mémoire instantanément et <strong>ne sont jamais conservées ni stockées sur nos serveurs</strong>.
+        Les données visuelles sont traitées de manière éphémère en mémoire et <strong>ne sont jamais enregistrées ni stockées sur nos serveurs</strong>.
       </div>
     </div>
 
@@ -411,6 +474,7 @@
     const token = urlParams.get('token');
     let sessionData = null;
     let videoStream = null;
+    let facialCapturedBase64 = null;
 
     // Initialisation
     async function initSession() {
@@ -434,19 +498,31 @@
       }
     }
 
-    // Gestion Caméra
+    // Gestion Caméra Flux Direct
     async function startCamera() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        document.getElementById('facialNotice').style.display = 'block';
+        document.getElementById('facialNotice').innerHTML = '<i class="fa-solid fa-circle-info"></i> Cliquez sur <strong>Prendre une Photo</strong> pour utiliser votre appareil photo.';
+        return;
+      }
+
       try {
-        videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
-        document.getElementById('videoFeed').srcObject = videoStream;
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } });
+        const video = document.getElementById('videoFeed');
+        video.srcObject = videoStream;
+        await video.play().catch(() => null);
+        document.getElementById('facialNotice').style.display = 'none';
       } catch (err) {
-        console.warn('Impossible d\'activer la caméra:', err);
+        console.warn('Impossible d\'activer le flux vidéo direct:', err);
+        document.getElementById('facialNotice').style.display = 'block';
+        document.getElementById('facialNotice').innerHTML = '<i class="fa-solid fa-camera"></i> Flux direct indisponible. Cliquez ci-dessous pour déclencher l\'appareil photo.';
       }
     }
 
     function stopCamera() {
       if (videoStream) {
         videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
       }
     }
 
@@ -465,6 +541,25 @@
       }
     }
 
+    function triggerFacialCamera() {
+      document.getElementById('facialCameraInput').click();
+    }
+
+    function previewFacialPhoto(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        facialCapturedBase64 = evt.target.result;
+        const img = document.getElementById('facialPhotoPreview');
+        img.src = facialCapturedBase64;
+        img.style.display = 'block';
+        document.getElementById('videoFeed').style.display = 'none';
+        stopCamera();
+      };
+      reader.readAsDataURL(file);
+    }
+
     function previewDoc(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -478,18 +573,29 @@
     }
 
     async function processFacialScan() {
+      let base64Img = facialCapturedBase64;
+
+      if (!base64Img) {
+        const video = document.getElementById('videoFeed');
+        if (video && video.videoWidth > 0) {
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth || 640;
+          canvas.height = video.videoHeight || 480;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          base64Img = canvas.toDataURL('image/jpeg', 0.85);
+        }
+      }
+
+      if (!base64Img || base64Img.length < 500) {
+        alert('Veuillez prendre une photo de votre visage à l\'aide de votre appareil photo.');
+        triggerFacialCamera();
+        return;
+      }
+
       const btn = document.getElementById('btnStartFacial');
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyse IA du visage en cours...';
-
-      // Canvas capture
-      const video = document.getElementById('videoFeed');
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const base64Img = canvas.toDataURL('image/jpeg', 0.85);
 
       submitVerification('facial', base64Img);
     }
@@ -499,7 +605,7 @@
       const birthDate = document.getElementById('birthDateInput').value;
 
       if (!img.src || img.style.display === 'none') {
-        alert('Veuillez sélectionner une photo de votre pièce d\'identité.');
+        alert('Veuillez prendre ou sélectionner une photo de votre pièce d\'identité.');
         return;
       }
 
@@ -542,9 +648,9 @@
 
     function resetButtons() {
       document.getElementById('btnStartFacial').disabled = false;
-      document.getElementById('btnStartFacial').innerHTML = '<i class="fa-solid fa-camera-rotate"></i> Analyser mon Visage (Temps Réel)';
+      document.getElementById('btnStartFacial').innerHTML = '<i class="fa-solid fa-face-smile-wink"></i> Analyser mon Visage (Validation IA)';
       document.getElementById('btnStartDoc').disabled = false;
-      document.getElementById('btnStartDoc').innerHTML = '<i class="fa-solid fa-passport"></i> Analyser le Document d\'Identité';
+      document.getElementById('btnStartDoc').innerHTML = '<i class="fa-solid fa-shield-check"></i> Analyser le Document d\'Identité';
     }
 
     function showError(msg) {
