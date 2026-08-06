@@ -445,10 +445,18 @@ async function analyzeAgeWithAi(imageBase64, method, minAge = 18, birthDateInput
   }
 
   const prompt = method === 'facial'
-    ? `Tu es un expert biométrique en estimation d'âge facial. Analyse attentivement la photo de ce visage (maturité faciale, traits, structure).
-Estime l'âge précis de la personne.
+    ? `Tu es un expert biométrique légiste spécialisé dans l'estimation réaliste et précise de l'âge facial.
+Analyse attentivement les indicateurs physiologiques du visage sur cette photo :
+- Structure osseuse du visage et maturité faciale
+- Texture de peau, lignes d'expression (contour des yeux, front, sillons nasogéniens)
+- Densité de pilosité/barbe et regard
+
+RÈGLES STRICTES :
+- Ne sous-estime PAS l'âge des adultes de 30, 35, 40+ ans. Évalue la maturité réelle de la personne sans biais de rajeunissement automatique.
+- Donne une estimation d'âge entier réaliste.
+
 Réponds STRICTEMENT avec un objet JSON unique au format :
-{"age": <nombre_entier>, "is_adult": <true_ou_false>, "reason": "<explication très courte en français sur les traits du visage>"}`
+{"age": <nombre_entier>, "is_adult": <true_ou_false>, "reason": "<analyse succincte en français des traits de maturité observés>"}`
     : `Tu es un expert en vérification de pièces d'identité (CNI, Passeport, Permis). Examine cette photo de document d'identité.
 Identifie la date de naissance si présente. Date déclarée : ${birthDateInput || 'Non renseignée'}.
 Réponds STRICTEMENT avec un objet JSON unique au format :
