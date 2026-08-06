@@ -1286,7 +1286,7 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
 
 apiApp.post('/bot/send-sondage', async (req, res) => {
   try {
-    const { guildId, channelId, resultsChannelId, title, description, ratingIcon = '⭐', textType = 'long', color = '#F1C40F', existingSondageId, sections = [], hasGeneralRemark = true } = req.body;
+    const { guildId, channelId, resultsChannelId, title, description, ratingIcon = '⭐', textType = 'long', color = '#F1C40F', existingSondageId, sections = [], hasGeneralRemark = true, avatarImage = '', bannerImage = '', shortDescription = '', mentions = [] } = req.body;
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
     const channel = guild.channels.cache.get(channelId);
@@ -1307,7 +1307,11 @@ apiApp.post('/bot/send-sondage', async (req, res) => {
       color,
       created_by: 'Dashboard',
       sections,
-      has_general_remark: hasGeneralRemark ? 1 : 0
+      has_general_remark: hasGeneralRemark ? 1 : 0,
+      avatar_image: avatarImage,
+      banner_image: bannerImage,
+      short_description: shortDescription,
+      mentions
     });
 
     let sectionsListStr = '';

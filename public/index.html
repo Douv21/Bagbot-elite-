@@ -2259,7 +2259,14 @@
                           <option value="🔥">🔥 Flammes</option>
                           <option value="🎯">🎯 Cibles</option>
                           <option value="💎">💎 Diamants</option>
+                          <option value="👑">👑 Couronnes</option>
+                          <option value="🌟">🌟 Étoiles Dorées</option>
+                          <option value="🏆">🏆 Trophées</option>
+                          <option value="📌">📌 Épingles</option>
+                          <option value="✨">✨ Étincelles</option>
+                          <option value="custom">✏️ Personnalisé...</option>
                         </select>
+                        <input type="text" id="sondage_icon_custom" placeholder="Entrez un émoji..." style="display: none; margin-top: 5px;" class="inner-input">
                       </div>
                       <div class="form-group">
                         <label for="sondage_text_type"><i class="fa-solid fa-align-left"></i> Format du champ commentaire :</label>
@@ -2269,8 +2276,8 @@
                         </select>
                       </div>
                       <div class="form-group">
-                        <label for="sondage_color"><i class="fa-solid fa-palette"></i> Couleur de la barre :</label>
-                        <input type="color" id="sondage_color" value="#f1c40f" style="padding: 2px; height: 42px; width: 100%;">
+                        <label for="sondage_color"><i class="fa-solid fa-palette"></i> Couleur de l'embed :</label>
+                        <input type="color" id="sondage_color" value="#78A8C6" style="padding: 2px; height: 42px; width: 100%;">
                       </div>
                     </div>
 
@@ -2281,21 +2288,57 @@
 
                     <div class="form-group">
                       <label for="sondage_desc"><i class="fa-solid fa-paragraph"></i> Description / Consignes pour les membres :</label>
-                      <textarea id="sondage_desc" rows="3" class="inner-input" placeholder="Consignes affichées dans l'embed au-dessus du bouton..." style="resize: vertical;"></textarea>
+                      <textarea id="sondage_desc" rows="2" class="inner-input" placeholder="Consignes affichées dans l'embed au-dessus du bouton..." style="resize: vertical;"></textarea>
                     </div>
 
-                    <div class="card glass mb-3" style="background: rgba(0,0,0,0.2); border: 1px dashed rgba(255,255,255,0.15); padding: 12px 15px;">
-                      <h4 style="color: #f1c40f; margin-bottom: 8px; font-size: 0.9rem;"><i class="fa-solid fa-list-check"></i> Sections & Critères à Évaluer (Formulaire Multi-Champs)</h4>
-                      <p style="color: #b9bbbe; font-size: 0.8rem; margin-bottom: 10px;">Chaque section aura son propre champ de note (1 à 5) et sa propre zone de remarques/observations.</p>
+                    <!-- Options de l'Embed de Résultat Transmis -->
+                    <div class="card glass mb-3" style="background: rgba(0,0,0,0.25); border: 1px solid rgba(120, 168, 198, 0.3); padding: 12px 15px; border-radius: 8px;">
+                      <h4 style="color: #78a8c6; margin-bottom: 8px; font-size: 0.9rem;"><i class="fa-solid fa-file-invoice"></i> Personnalisation du Message de Résultat Transmis (Salon Avis)</h4>
                       
                       <div class="form-group mb-2">
-                        <label for="sondage_sec1_name" style="font-size: 0.8rem;">Critère / Section 1 :</label>
-                        <input type="text" id="sondage_sec1_name" class="inner-input" placeholder="ex: Accueil & Organisation" value="Accueil & Organisation">
+                        <label for="sondage_short_desc" style="font-size: 0.8rem;"><i class="fa-solid fa-quote-left"></i> Texte d'introduction (au-dessus des réponses) :</label>
+                        <input type="text" id="sondage_short_desc" class="inner-input" placeholder="ex: Voici les réponses reçues :" value="Voici les réponses reçues :">
                       </div>
 
-                      <div class="form-group mb-2">
-                        <label for="sondage_sec2_name" style="font-size: 0.8rem;">Critère / Section 2 (Optionnel) :</label>
-                        <input type="text" id="sondage_sec2_name" class="inner-input" placeholder="ex: Ambiance & Animations">
+                      <div class="form-row" style="display: flex; gap: 10px;">
+                        <div class="form-group" style="flex: 1;">
+                          <label for="sondage_avatar_image" style="font-size: 0.8rem;"><i class="fa-solid fa-image"></i> Miniature (Petite image / Avatar) :</label>
+                          <div style="display: flex; gap: 5px;">
+                            <input type="text" id="sondage_avatar_image" class="inner-input" placeholder="URL ou image hébergée..." style="flex: 1;">
+                            <label class="btn-upload-file" style="cursor: pointer; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 6px 10px; border-radius: 4px; color: #fff;">
+                              <i class="fa-solid fa-cloud-arrow-up"></i>
+                              <input type="file" accept="image/*" style="display: none;" onchange="handleImgUpload(event, 'sondage_avatar_image')">
+                            </label>
+                          </div>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                          <label for="sondage_banner_image" style="font-size: 0.8rem;"><i class="fa-solid fa-panorama"></i> Grande image de fond (Banner) :</label>
+                          <div style="display: flex; gap: 5px;">
+                            <input type="text" id="sondage_banner_image" class="inner-input" placeholder="URL ou image hébergée..." style="flex: 1;">
+                            <label class="btn-upload-file" style="cursor: pointer; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 6px 10px; border-radius: 4px; color: #fff;">
+                              <i class="fa-solid fa-cloud-arrow-up"></i>
+                              <input type="file" accept="image/*" style="display: none;" onchange="handleImgUpload(event, 'sondage_banner_image')">
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="form-group mt-2">
+                        <label for="sondage_mentions" style="font-size: 0.8rem;"><i class="fa-solid fa-at"></i> Mentions de Rôles / Membres (Pings lors d'une réponse) :</label>
+                        <input type="text" id="sondage_mentions" class="inner-input" placeholder="ex: <@&1101763528626544760> <@&1101763528626544759>">
+                      </div>
+                    </div>
+
+                    <!-- Sections / Questions Dynamiques -->
+                    <div class="card glass mb-3" style="background: rgba(0,0,0,0.2); border: 1px dashed rgba(255,255,255,0.15); padding: 12px 15px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h4 style="color: #f1c40f; margin: 0; font-size: 0.9rem;"><i class="fa-solid fa-list-check"></i> Questions & Catégories Personnalisables</h4>
+                        <button type="button" id="btn-add-sondage-question" class="btn-secondary" style="padding: 2px 8px; font-size: 0.75rem;"><i class="fa-solid fa-plus"></i> Ajouter une question</button>
+                      </div>
+                      <p style="color: #b9bbbe; font-size: 0.8rem; margin-bottom: 10px;">Chaque question apparaîtra dans le formulaire interactif du bot avec évaluation par étoiles/émojis.</p>
+                      
+                      <div id="sondage-questions-container" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Questions injectées dynamiquement -->
                       </div>
 
                       <div class="form-group mt-2" style="display: flex; align-items: center; gap: 8px;">

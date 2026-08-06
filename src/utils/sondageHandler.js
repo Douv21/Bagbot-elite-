@@ -1,6 +1,15 @@
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, EmbedBuilder } = require('discord.js');
 const { getSondage, saveSondageResponse, getSondageResponses, db } = require('../database/db');
 
+function getStarRatingStr(score, ratingIcon = '⭐') {
+  const num = parseInt(score);
+  if (!isNaN(num) && num >= 1 && num <= 5) {
+    const stars = ratingIcon.repeat(num);
+    return stars ? `${num} (${stars})` : `${num}`;
+  }
+  return score;
+}
+
 /**
  * Gère l'ouverture des Modaux et la soumission des Évaluations / Sondages par section.
  */
@@ -22,7 +31,7 @@ async function handleSondageInteraction(interaction) {
     } catch (e) {}
 
     if (!sections || sections.length === 0) {
-      sections = [{ id: 'sec1', label: sondage.title || 'Évaluation' }];
+      sections = [{ id: 'sec1', label: sondage.title || 'Évaluation', type: 'rating_text' }];
     }
 
     const modal = new ModalBuilder()
@@ -32,25 +41,31 @@ async function handleSondageInteraction(interaction) {
     const rows = [];
 
     // Limite de 5 champs max par modal Discord
-    sections.slice(0, 2).forEach((sec, idx) => {
-      const ratingInput = new TextInputBuilder()
-        .setCustomId(`rating_sec_${idx}`)
-        .setLabel(`Note 1 à 5 : ${sec.label}`.substring(0, 45))
-        .setPlaceholder('Entrez un chiffre de 1 à 5 (ex: 5)')
-        .setStyle(TextInputStyle.Short)
-        .setMinLength(1)
-        .setMaxLength(1)
-        .setRequired(true);
+    const maxSections = Math.min(sections.length, sondage.has_general_remark !== 0 ? 2 : 5);
+    sections.slice(0, maxSections).forEach((sec, idx) => {
+      const secType = sec.type || 'rating_text';
 
-      const obsInput = new TextInputBuilder()
-        .setCustomId(`obs_sec_${idx}`)
-        .setLabel(`Remarques : ${sec.label}`.substring(0, 45))
-        .setPlaceholder('Vos observations sur cette partie...')
-        .setStyle(sondage.text_type === 'court' ? TextInputStyle.Short : TextInputStyle.Paragraph)
-        .setRequired(false);
+      if (secType === 'rating' || secType === 'rating_text') {
+        const ratingInput = new TextInputBuilder()
+          .setCustomId(`rating_sec_${idx}`)
+          .setLabel(`Note 1 à 5 (${sondage.rating_icon || '⭐'}) : ${sec.label}`.substring(0, 45))
+          .setPlaceholder('Entrez un chiffre de 1 à 5 (ex: 5)')
+          .setStyle(TextInputStyle.Short)
+          .setMinLength(1)
+          .setMaxLength(1)
+          .setRequired(true);
+        rows.push(new ActionRowBuilder().addComponents(ratingInput));
+      }
 
-      rows.push(new ActionRowBuilder().addComponents(ratingInput));
-      rows.push(new ActionRowBuilder().addComponents(obsInput));
+      if ((secType === 'text' || secType === 'rating_text') && rows.length < 5) {
+        const obsInput = new TextInputBuilder()
+          .setCustomId(`obs_sec_${idx}`)
+          .setLabel(`Remarques : ${sec.label}`.substring(0, 45))
+          .setPlaceholder('Vos observations sur ce point...')
+          .setStyle(sondage.text_type === 'court' ? TextInputStyle.Short : TextInputStyle.Paragraph)
+          .setRequired(false);
+        rows.push(new ActionRowBuilder().addComponents(obsInput));
+      }
     });
 
     // Remarques Générales tout en bas
@@ -83,29 +98,39 @@ async function handleSondageInteraction(interaction) {
       sections = JSON.parse(sondage.sections || '[]');
     } catch (e) {}
     if (!sections || sections.length === 0) {
-      sections = [{ id: 'sec1', label: sondage.title || 'Évaluation' }];
+      sections = [{ id: 'sec1', label: sondage.title || 'Évaluation', type: 'rating_text' }];
     }
 
     const sectionScores = [];
     let totalScore = 0;
     let validScoresCount = 0;
 
-    sections.slice(0, 2).forEach((sec, idx) => {
-      const ratingStr = interaction.fields.getTextInputValue(`rating_sec_${idx}`) || '5';
-      const obsStr = interaction.fields.getTextInputValue(`obs_sec_${idx}`) || '';
+    const maxSections = Math.min(sections.length, sondage.has_general_remark !== 0 ? 2 : 5);
+    sections.slice(0, maxSections).forEach((sec, idx) => {
+      let score = 5;
+      let obsStr = '';
 
-      let score = parseInt(ratingStr.trim());
-      if (isNaN(score) || score < 1) score = 1;
-      if (score > 5) score = 5;
+      try {
+        const ratingStr = interaction.fields.getTextInputValue(`rating_sec_${idx}`);
+        if (ratingStr) {
+          score = parseInt(ratingStr.trim());
+          if (isNaN(score) || score < 1) score = 1;
+          if (score > 5) score = 5;
+          totalScore += score;
+          validScoresCount++;
+        }
+      } catch (e) {}
+
+      try {
+        obsStr = interaction.fields.getTextInputValue(`obs_sec_${idx}`) || '';
+      } catch (e) {}
 
       sectionScores.push({
         label: sec.label,
         rating: score,
+        type: sec.type || 'rating_text',
         observation: obsStr.trim()
       });
-
-      totalScore += score;
-      validScoresCount++;
     });
 
     let generalRemark = '';
@@ -157,30 +182,49 @@ async function handleSondageInteraction(interaction) {
     if (sondage.results_channel_id) {
       const resultsChannel = interaction.guild.channels.cache.get(sondage.results_channel_id);
       if (resultsChannel && resultsChannel.isTextBased()) {
-        const ficheEmbed = new EmbedBuilder()
-          .setTitle(`📝 Nouvelle Fiche d'Évaluation — ${sondage.title}`)
-          .setDescription(`Évaluation soumise par <@${interaction.user.id}> (${interaction.user.tag})`)
-          .setColor(sondage.color || '#F1C40F')
-          .setThumbnail(interaction.user.displayAvatarURL({ extension: 'png', size: 64 }))
-          .setTimestamp();
+        let mentionsArr = [];
+        try {
+          mentionsArr = typeof sondage.mentions === 'string' ? JSON.parse(sondage.mentions || '[]') : (sondage.mentions || []);
+        } catch (e) {}
 
+        const mentionsContent = Array.isArray(mentionsArr) && mentionsArr.length > 0 ? mentionsArr.join(' ') : null;
+
+        const items = [];
         sectionScores.forEach(sec => {
-          ficheEmbed.addFields({
-            name: `🔹 ${sec.label} — ${sec.rating}/5 ${icon}`,
-            value: sec.observation ? `*Remarques/Observations :*\n"${sec.observation}"` : '*Aucune observation spécifique.*',
-            inline: false
-          });
+          let scoreText = getStarRatingStr(sec.rating, icon);
+          let val = sec.observation ? `${scoreText}\n*Remarques :* "${sec.observation}"` : scoreText;
+          items.push({ name: sec.label, value: val });
         });
 
         if (generalRemark.trim()) {
-          ficheEmbed.addFields({
-            name: `📌 Remarques & Suggestions Générales (Tout en bas)`,
-            value: `"${generalRemark.trim()}"`,
-            inline: false
-          });
+          items.push({ name: '📌 Remarques & Suggestions Générales', value: `"${generalRemark.trim()}"` });
         }
 
-        await resultsChannel.send({ embeds: [ficheEmbed] }).catch(console.error);
+        const embedContent = items.map(item => `**${item.name}**\n${item.value}`).join('\n\n');
+        const shortDesc = sondage.short_description && sondage.short_description.trim() ? sondage.short_description.trim() : 'Voici les réponses reçues :';
+
+        const ficheEmbed = new EmbedBuilder()
+          .setTitle(sondage.title || 'Nouvelle réponse au formulaire')
+          .setDescription(`${shortDesc}\n\n${embedContent}`)
+          .setColor(sondage.color || '#78A8C6')
+          .setTimestamp();
+
+        if (sondage.avatar_image && sondage.avatar_image.trim()) {
+          ficheEmbed.setThumbnail(sondage.avatar_image.trim());
+        } else {
+          ficheEmbed.setThumbnail(interaction.user.displayAvatarURL({ extension: 'png', size: 128 }));
+        }
+
+        if (sondage.banner_image && sondage.banner_image.trim()) {
+          ficheEmbed.setImage(sondage.banner_image.trim());
+        }
+
+        ficheEmbed.setFooter({ text: `Réponse soumise par ${interaction.user.tag} • ID: ${interaction.user.id}` });
+
+        await resultsChannel.send({
+          content: mentionsContent,
+          embeds: [ficheEmbed]
+        }).catch(console.error);
       }
     }
 

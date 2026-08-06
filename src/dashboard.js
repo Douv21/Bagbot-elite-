@@ -1379,7 +1379,7 @@ app.post('/api/config/send-sondage', async (req, res) => {
   if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
   try {
-    const { channel_id, results_channel_id, title, description, rating_icon, text_type, color, sections, has_general_remark } = req.body || {};
+    const { channel_id, results_channel_id, title, description, rating_icon, text_type, color, sections, has_general_remark, avatar_image, banner_image, short_description, mentions } = req.body || {};
     if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
     if (!title) return res.status(400).json({ error: 'Titre du sondage requis' });
 
@@ -1397,7 +1397,11 @@ app.post('/api/config/send-sondage', async (req, res) => {
         textType: text_type || 'long',
         color: color || '#F1C40F',
         sections: sections || [],
-        hasGeneralRemark: has_general_remark !== undefined ? has_general_remark : true
+        hasGeneralRemark: has_general_remark !== undefined ? has_general_remark : true,
+        avatarImage: avatar_image || '',
+        bannerImage: banner_image || '',
+        shortDescription: short_description || '',
+        mentions: mentions || []
       })
     }).catch(() => null);
 

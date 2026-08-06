@@ -6182,10 +6182,46 @@ function initSimpleEmbedSender() {
 }
 
 // --- SYSTÈME DE SONDAGE ET ÉVALUATIONS PAR FORMULAIRE ---
+function addSondageQuestionInput(labelVal = '', typeVal = 'rating_text') {
+  const container = document.getElementById('sondage-questions-container');
+  if (!container) return;
+  const qIndex = container.children.length + 1;
+  const div = document.createElement('div');
+  div.className = 'sondage-question-row';
+  div.style.display = 'flex';
+  div.style.gap = '8px';
+  div.style.alignItems = 'center';
+  div.style.background = 'rgba(255,255,255,0.03)';
+  div.style.padding = '6px 8px';
+  div.style.borderRadius = '6px';
+  div.style.border = '1px solid rgba(255,255,255,0.08)';
+
+  div.innerHTML = `
+    <input type="text" class="inner-input sondage-q-label" placeholder="ex: Question / Critère ${qIndex}" value="${labelVal}" style="flex: 1;">
+    <select class="custom-select sondage-q-type" style="width: 170px;">
+      <option value="rating_text" ${typeVal === 'rating_text' ? 'selected' : ''}>⭐ Note + Observation</option>
+      <option value="rating" ${typeVal === 'rating' ? 'selected' : ''}>⭐ Note seule (1 à 5)</option>
+      <option value="text" ${typeVal === 'text' ? 'selected' : ''}>💬 Question Texte seule</option>
+    </select>
+    <button type="button" class="btn-remove-q" style="padding: 6px 10px; border: none; background: rgba(231,76,60,0.2); color: #e74c3c; border-radius: 4px; cursor: pointer;" title="Supprimer la question"><i class="fa-solid fa-trash"></i></button>
+  `;
+
+  div.querySelector('.btn-remove-q').addEventListener('click', () => {
+    div.remove();
+    updateSondagePreview();
+  });
+  div.querySelector('.sondage-q-label').addEventListener('input', updateSondagePreview);
+  div.querySelector('.sondage-q-type').addEventListener('change', updateSondagePreview);
+
+  container.appendChild(div);
+  updateSondagePreview();
+}
+
 function updateSondagePreview() {
   const inputTitle = document.getElementById('sondage_title');
   const inputDesc = document.getElementById('sondage_desc');
   const selectIcon = document.getElementById('sondage_icon');
+  const customIconInput = document.getElementById('sondage_icon_custom');
   const selectTextType = document.getElementById('sondage_text_type');
   const inputColor = document.getElementById('sondage_color');
 
@@ -6195,7 +6231,7 @@ function updateSondagePreview() {
   const modalTitle = document.getElementById('sondage-modal-preview-title');
   const modalTextType = document.getElementById('sondage-modal-text-type');
 
-  if (previewBorder && inputColor) previewBorder.style.borderLeftColor = inputColor.value || '#f1c40f';
+  if (previewBorder && inputColor) previewBorder.style.borderLeftColor = inputColor.value || '#78A8C6';
   if (previewTitle && inputTitle) previewTitle.textContent = inputTitle.value.trim() ? `📊 ${inputTitle.value.trim()}` : "📊 Avis sur l'Événement du Serveur";
   if (previewDesc && inputDesc) previewDesc.textContent = inputDesc.value.trim() ? inputDesc.value.trim() : "Consignes affichées dans l'embed au-dessus du bouton...";
   if (modalTitle && inputTitle) modalTitle.textContent = `Modal : ${inputTitle.value.trim() || "Avis sur l'Événement du Serveur"}`;
@@ -6204,7 +6240,17 @@ function updateSondagePreview() {
     modalTextType.textContent = selectTextType.value === 'court' ? 'Ligne unique' : 'Paragraphe Multiligne';
   }
 
-  const iconVal = selectIcon ? selectIcon.value : '⭐';
+  let iconVal = '⭐';
+  if (selectIcon) {
+    if (selectIcon.value === 'custom') {
+      if (customIconInput) customIconInput.style.display = 'block';
+      iconVal = (customIconInput && customIconInput.value.trim()) ? customIconInput.value.trim() : '⭐';
+    } else {
+      if (customIconInput) customIconInput.style.display = 'none';
+      iconVal = selectIcon.value;
+    }
+  }
+
   document.querySelectorAll('.sondage-preview-icon-item').forEach(el => {
     el.textContent = iconVal;
   });
@@ -6285,12 +6331,26 @@ function initSondageModule() {
   const inputTitle = document.getElementById('sondage_title');
   const inputDesc = document.getElementById('sondage_desc');
   const selectIcon = document.getElementById('sondage_icon');
+  const customIconInput = document.getElementById('sondage_icon_custom');
   const selectTextType = document.getElementById('sondage_text_type');
   const inputColor = document.getElementById('sondage_color');
+  const hasGeneralRemark = document.getElementById('sondage_has_general_remark');
+  const btnAddQ = document.getElementById('btn-add-sondage-question');
+  const qContainer = document.getElementById('sondage-questions-container');
+
+  if (qContainer && qContainer.children.length === 0) {
+    addSondageQuestionInput('Accueil & Organisation', 'rating_text');
+    addSondageQuestionInput('Ambiance & Animations', 'rating_text');
+  }
+
+  if (btnAddQ) {
+    btnAddQ.addEventListener('click', () => addSondageQuestionInput('', 'rating_text'));
+  }
 
   if (inputTitle) inputTitle.addEventListener('input', updateSondagePreview);
   if (inputDesc) inputDesc.addEventListener('input', updateSondagePreview);
   if (selectIcon) selectIcon.addEventListener('change', updateSondagePreview);
+  if (customIconInput) customIconInput.addEventListener('input', updateSondagePreview);
   if (selectTextType) selectTextType.addEventListener('change', updateSondagePreview);
   if (inputColor) inputColor.addEventListener('input', updateSondagePreview);
 
@@ -6301,9 +6361,34 @@ function initSondageModule() {
       const results_channel_id = document.getElementById('sondage_results_channel').value;
       const title = inputTitle.value;
       const description = inputDesc.value;
-      const rating_icon = selectIcon ? selectIcon.value : '⭐';
+
+      let rating_icon = '⭐';
+      if (selectIcon) {
+        rating_icon = selectIcon.value === 'custom' ? (customIconInput ? customIconInput.value.trim() || '⭐' : '⭐') : selectIcon.value;
+      }
+
       const text_type = selectTextType ? selectTextType.value : 'long';
-      const color = inputColor ? inputColor.value : '#f1c40f';
+      const color = inputColor ? inputColor.value : '#78A8C6';
+      const short_description = document.getElementById('sondage_short_desc') ? document.getElementById('sondage_short_desc').value : '';
+      const avatar_image = document.getElementById('sondage_avatar_image') ? document.getElementById('sondage_avatar_image').value.trim() : '';
+      const banner_image = document.getElementById('sondage_banner_image') ? document.getElementById('sondage_banner_image').value.trim() : '';
+      const mentionsInput = document.getElementById('sondage_mentions') ? document.getElementById('sondage_mentions').value.trim() : '';
+
+      const mentions = mentionsInput ? mentionsInput.split(/\s+/).filter(Boolean) : [];
+
+      const qRows = document.querySelectorAll('.sondage-question-row');
+      const sections = [];
+      qRows.forEach((row, idx) => {
+        const lbl = row.querySelector('.sondage-q-label').value.trim();
+        const typ = row.querySelector('.sondage-q-type').value;
+        if (lbl) {
+          sections.push({ id: `sec_${idx + 1}`, label: lbl, type: typ });
+        }
+      });
+
+      if (sections.length === 0) {
+        sections.push({ id: 'sec_1', label: title || 'Évaluation', type: 'rating_text' });
+      }
 
       if (!channel_id) return showToast('⚠️ Veuillez choisir un salon de destination.', true);
       if (!title.trim()) return showToast('⚠️ Le titre du sondage est requis.', true);
@@ -6319,7 +6404,13 @@ function initSondageModule() {
             description,
             rating_icon,
             text_type,
-            color
+            color,
+            sections,
+            has_general_remark: hasGeneralRemark ? hasGeneralRemark.checked : true,
+            avatar_image,
+            banner_image,
+            short_description,
+            mentions
           })
         });
 
@@ -6327,6 +6418,11 @@ function initSondageModule() {
         if (res.ok && data.success) {
           if (typeof showToast === 'function') showToast('✅ Sondage publié avec succès dans le salon !');
           form.reset();
+          if (qContainer) {
+            qContainer.innerHTML = '';
+            addSondageQuestionInput('Accueil & Organisation', 'rating_text');
+            addSondageQuestionInput('Ambiance & Animations', 'rating_text');
+          }
           updateSondagePreview();
           loadSondagesSavedList();
         } else {

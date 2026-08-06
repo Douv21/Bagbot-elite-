@@ -948,6 +948,10 @@ function initDatabase() {
 
   try { db.prepare("ALTER TABLE sondages ADD COLUMN sections TEXT DEFAULT '[]'").run(); } catch (e) {}
   try { db.prepare("ALTER TABLE sondages ADD COLUMN has_general_remark INTEGER DEFAULT 1").run(); } catch (e) {}
+  try { db.prepare("ALTER TABLE sondages ADD COLUMN avatar_image TEXT DEFAULT ''").run(); } catch (e) {}
+  try { db.prepare("ALTER TABLE sondages ADD COLUMN banner_image TEXT DEFAULT ''").run(); } catch (e) {}
+  try { db.prepare("ALTER TABLE sondages ADD COLUMN short_description TEXT DEFAULT ''").run(); } catch (e) {}
+  try { db.prepare("ALTER TABLE sondages ADD COLUMN mentions TEXT DEFAULT '[]'").run(); } catch (e) {}
   try { db.prepare("ALTER TABLE sondage_responses ADD COLUMN responses_json TEXT DEFAULT '{}'").run(); } catch (e) {}
 }
 
@@ -1849,15 +1853,17 @@ function updatePendingConfessionStatus(id, status) {
 }
 
 function createSondage(data) {
-  const { id, guild_id, channel_id, results_channel_id, title, description, rating_icon, text_type, color, created_by, sections, has_general_remark } = data;
+  const { id, guild_id, channel_id, results_channel_id, title, description, rating_icon, text_type, color, created_by, sections, has_general_remark, avatar_image, banner_image, short_description, mentions } = data;
   return db.prepare(`
-    INSERT INTO sondages (id, guild_id, channel_id, results_channel_id, title, description, rating_icon, text_type, color, created_by, created_at, sections, has_general_remark)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO sondages (id, guild_id, channel_id, results_channel_id, title, description, rating_icon, text_type, color, created_by, created_at, sections, has_general_remark, avatar_image, banner_image, short_description, mentions)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, guild_id, channel_id, results_channel_id || null, title, description || '', 
     rating_icon || '⭐', text_type || 'long', color || '#F1C40F', created_by || '', Date.now(),
     typeof sections === 'string' ? sections : JSON.stringify(sections || []),
-    has_general_remark !== undefined ? (has_general_remark ? 1 : 0) : 1
+    has_general_remark !== undefined ? (has_general_remark ? 1 : 0) : 1,
+    avatar_image || '', banner_image || '', short_description || '',
+    typeof mentions === 'string' ? mentions : JSON.stringify(mentions || [])
   );
 }
 

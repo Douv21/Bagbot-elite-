@@ -6093,14 +6093,48 @@ function initSimpleEmbedSender() {
 }
 
 // --- SYSTÈME DE SONDAGE ET ÉVALUATIONS PAR FORMULAIRE MULTI-SECTIONS ---
+function addSondageQuestionInput(labelVal = '', typeVal = 'rating_text') {
+  const container = document.getElementById('sondage-questions-container');
+  if (!container) return;
+  const qIndex = container.children.length + 1;
+  const div = document.createElement('div');
+  div.className = 'sondage-question-row';
+  div.style.display = 'flex';
+  div.style.gap = '8px';
+  div.style.alignItems = 'center';
+  div.style.background = 'rgba(255,255,255,0.03)';
+  div.style.padding = '6px 8px';
+  div.style.borderRadius = '6px';
+  div.style.border = '1px solid rgba(255,255,255,0.08)';
+
+  div.innerHTML = `
+    <input type="text" class="inner-input sondage-q-label" placeholder="ex: Question / Critère ${qIndex}" value="${labelVal}" style="flex: 1;">
+    <select class="custom-select sondage-q-type" style="width: 170px;">
+      <option value="rating_text" ${typeVal === 'rating_text' ? 'selected' : ''}>⭐ Note + Observation</option>
+      <option value="rating" ${typeVal === 'rating' ? 'selected' : ''}>⭐ Note seule (1 à 5)</option>
+      <option value="text" ${typeVal === 'text' ? 'selected' : ''}>💬 Question Texte seule</option>
+    </select>
+    <button type="button" class="btn-remove-q" style="padding: 6px 10px; border: none; background: rgba(231,76,60,0.2); color: #e74c3c; border-radius: 4px; cursor: pointer;" title="Supprimer la question"><i class="fa-solid fa-trash"></i></button>
+  `;
+
+  div.querySelector('.btn-remove-q').addEventListener('click', () => {
+    div.remove();
+    updateSondagePreview();
+  });
+  div.querySelector('.sondage-q-label').addEventListener('input', updateSondagePreview);
+  div.querySelector('.sondage-q-type').addEventListener('change', updateSondagePreview);
+
+  container.appendChild(div);
+  updateSondagePreview();
+}
+
 function updateSondagePreview() {
   const inputTitle = document.getElementById('sondage_title');
   const inputDesc = document.getElementById('sondage_desc');
   const selectIcon = document.getElementById('sondage_icon');
+  const customIconInput = document.getElementById('sondage_icon_custom');
   const selectTextType = document.getElementById('sondage_text_type');
   const inputColor = document.getElementById('sondage_color');
-  const sec1Name = document.getElementById('sondage_sec1_name');
-  const sec2Name = document.getElementById('sondage_sec2_name');
 
   const previewBorder = document.getElementById('sondage-preview-border');
   const previewTitle = document.getElementById('sondage-preview-title');
@@ -6108,7 +6142,7 @@ function updateSondagePreview() {
   const modalTitle = document.getElementById('sondage-modal-preview-title');
   const modalTextType = document.getElementById('sondage-modal-text-type');
 
-  if (previewBorder && inputColor) previewBorder.style.borderLeftColor = inputColor.value || '#f1c40f';
+  if (previewBorder && inputColor) previewBorder.style.borderLeftColor = inputColor.value || '#78A8C6';
   if (previewTitle && inputTitle) previewTitle.textContent = inputTitle.value.trim() ? `📊 ${inputTitle.value.trim()}` : "📊 Avis sur l'Événement du Serveur";
   if (previewDesc && inputDesc) previewDesc.textContent = inputDesc.value.trim() ? inputDesc.value.trim() : "Consignes affichées dans l'embed au-dessus du bouton...";
   if (modalTitle && inputTitle) modalTitle.textContent = `Modal : ${inputTitle.value.trim() || "Avis sur l'Événement du Serveur"}`;
@@ -6117,80 +6151,20 @@ function updateSondagePreview() {
     modalTextType.textContent = selectTextType.value === 'court' ? 'Ligne unique' : 'Paragraphe Multiligne';
   }
 
-  const iconVal = selectIcon ? selectIcon.value : '⭐';
+  let iconVal = '⭐';
+  if (selectIcon) {
+    if (selectIcon.value === 'custom') {
+      if (customIconInput) customIconInput.style.display = 'block';
+      iconVal = (customIconInput && customIconInput.value.trim()) ? customIconInput.value.trim() : '⭐';
+    } else {
+      if (customIconInput) customIconInput.style.display = 'none';
+      iconVal = selectIcon.value;
+    }
+  }
+
   document.querySelectorAll('.sondage-preview-icon-item').forEach(el => {
     el.textContent = iconVal;
   });
-}
-
-function renderSondagesSavedList(sondages) {
-  const container = document.getElementById('sondages-saved-list');
-  if (!container) return;
-  container.innerHTML = '';
-
-  if (!sondages || sondages.length === 0) {
-    container.innerHTML = '<p style="color: #8e9297; font-style: italic; font-size: 0.85rem;">Aucun sondage enregistré pour le moment. Publiez-en un avec le formulaire ci-dessous !</p>';
-    return;
-  }
-
-  sondages.forEach(s => {
-    const channelName = typeof getChannelName === 'function' ? getChannelName(s.channel_id) : s.channel_id;
-    const card = document.createElement('div');
-    card.style.background = 'rgba(255,255,255,0.03)';
-    card.style.border = '1px solid rgba(255,255,255,0.08)';
-    card.style.padding = '10px 14px';
-    card.style.borderRadius = '8px';
-    card.style.display = 'flex';
-    card.style.alignItems = 'center';
-    card.style.justifyContent = 'space-between';
-    card.style.gap = '10px';
-
-    card.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;">
-        <div style="font-weight: 600; color: #fff; font-size: 0.95rem;">📊 ${s.title}</div>
-        <div style="font-size: 0.8rem; color: #b9bbbe;">
-          Salon: <strong>#${channelName}</strong> · Note : <strong>${s.avg_rating || 0}/5 ${s.rating_icon || '⭐'}</strong> (${s.total_votes || 0} votes)
-        </div>
-      </div>
-      <button type="button" class="btn btn-sm btn-delete-sondage" style="background: #e74c3c; color: #fff; border: none; padding: 6px 12px; font-size: 0.82rem; border-radius: 6px; cursor: pointer;">
-        <i class="fa-solid fa-trash"></i> Supprimer
-      </button>
-    `;
-
-    card.querySelector('.btn-delete-sondage').addEventListener('click', async () => {
-      if (!confirm('Supprimer ce sondage de la base de données ?')) return;
-      try {
-        const res = await fetch('/api/config/delete-sondage', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sondage_id: s.id })
-        });
-        const data = await res.json();
-        if (data.success) {
-          if (typeof showToast === 'function') showToast('Sondage supprimé !');
-          loadSondagesSavedList();
-        } else {
-          if (typeof showToast === 'function') showToast(`Erreur : ${data.error}`, true);
-        }
-      } catch (err) {
-        if (typeof showToast === 'function') showToast(`Erreur : ${err.message}`, true);
-      }
-    });
-
-    container.appendChild(card);
-  });
-}
-
-async function loadSondagesSavedList() {
-  try {
-    const res = await fetch('/api/config/sondages');
-    if (res.ok) {
-      const data = await res.json();
-      renderSondagesSavedList(data);
-    }
-  } catch (err) {
-    console.error('Erreur chargement sondages:', err);
-  }
 }
 
 function initSondageModule() {
@@ -6198,19 +6172,28 @@ function initSondageModule() {
   const inputTitle = document.getElementById('sondage_title');
   const inputDesc = document.getElementById('sondage_desc');
   const selectIcon = document.getElementById('sondage_icon');
+  const customIconInput = document.getElementById('sondage_icon_custom');
   const selectTextType = document.getElementById('sondage_text_type');
   const inputColor = document.getElementById('sondage_color');
-  const sec1Name = document.getElementById('sondage_sec1_name');
-  const sec2Name = document.getElementById('sondage_sec2_name');
   const hasGeneralRemark = document.getElementById('sondage_has_general_remark');
+  const btnAddQ = document.getElementById('btn-add-sondage-question');
+  const qContainer = document.getElementById('sondage-questions-container');
+
+  if (qContainer && qContainer.children.length === 0) {
+    addSondageQuestionInput('Accueil & Organisation', 'rating_text');
+    addSondageQuestionInput('Ambiance & Animations', 'rating_text');
+  }
+
+  if (btnAddQ) {
+    btnAddQ.addEventListener('click', () => addSondageQuestionInput('', 'rating_text'));
+  }
 
   if (inputTitle) inputTitle.addEventListener('input', updateSondagePreview);
   if (inputDesc) inputDesc.addEventListener('input', updateSondagePreview);
   if (selectIcon) selectIcon.addEventListener('change', updateSondagePreview);
+  if (customIconInput) customIconInput.addEventListener('input', updateSondagePreview);
   if (selectTextType) selectTextType.addEventListener('change', updateSondagePreview);
   if (inputColor) inputColor.addEventListener('input', updateSondagePreview);
-  if (sec1Name) sec1Name.addEventListener('input', updateSondagePreview);
-  if (sec2Name) sec2Name.addEventListener('input', updateSondagePreview);
 
   if (form) {
     form.addEventListener('submit', async (e) => {
@@ -6219,17 +6202,33 @@ function initSondageModule() {
       const results_channel_id = document.getElementById('sondage_results_channel').value;
       const title = inputTitle.value;
       const description = inputDesc.value;
-      const rating_icon = selectIcon ? selectIcon.value : '⭐';
-      const text_type = selectTextType ? selectTextType.value : 'long';
-      const color = inputColor ? inputColor.value : '#f1c40f';
 
-      const s1 = sec1Name ? sec1Name.value.trim() : '';
-      const s2 = sec2Name ? sec2Name.value.trim() : '';
+      let rating_icon = '⭐';
+      if (selectIcon) {
+        rating_icon = selectIcon.value === 'custom' ? (customIconInput ? customIconInput.value.trim() || '⭐' : '⭐') : selectIcon.value;
+      }
+
+      const text_type = selectTextType ? selectTextType.value : 'long';
+      const color = inputColor ? inputColor.value : '#78A8C6';
+      const short_description = document.getElementById('sondage_short_desc') ? document.getElementById('sondage_short_desc').value : '';
+      const avatar_image = document.getElementById('sondage_avatar_image') ? document.getElementById('sondage_avatar_image').value.trim() : '';
+      const banner_image = document.getElementById('sondage_banner_image') ? document.getElementById('sondage_banner_image').value.trim() : '';
+      const mentionsInput = document.getElementById('sondage_mentions') ? document.getElementById('sondage_mentions').value.trim() : '';
+
+      const mentions = mentionsInput ? mentionsInput.split(/\s+/).filter(Boolean) : [];
+
+      const qRows = document.querySelectorAll('.sondage-question-row');
       const sections = [];
-      if (s1) sections.push({ id: 'sec1', label: s1 });
-      if (s2) sections.push({ id: 'sec2', label: s2 });
+      qRows.forEach((row, idx) => {
+        const lbl = row.querySelector('.sondage-q-label').value.trim();
+        const typ = row.querySelector('.sondage-q-type').value;
+        if (lbl) {
+          sections.push({ id: `sec_${idx + 1}`, label: lbl, type: typ });
+        }
+      });
+
       if (sections.length === 0) {
-        sections.push({ id: 'sec1', label: title || 'Évaluation' });
+        sections.push({ id: 'sec_1', label: title || 'Évaluation', type: 'rating_text' });
       }
 
       if (!channel_id) return showToast('⚠️ Veuillez choisir un salon de destination.', true);
@@ -6248,7 +6247,11 @@ function initSondageModule() {
             text_type,
             color,
             sections,
-            has_general_remark: hasGeneralRemark ? hasGeneralRemark.checked : true
+            has_general_remark: hasGeneralRemark ? hasGeneralRemark.checked : true,
+            avatar_image,
+            banner_image,
+            short_description,
+            mentions
           })
         });
 
@@ -6256,6 +6259,11 @@ function initSondageModule() {
         if (res.ok && data.success) {
           if (typeof showToast === 'function') showToast('✅ Formulaire d\'évaluation publié avec succès dans le salon !');
           form.reset();
+          if (qContainer) {
+            qContainer.innerHTML = '';
+            addSondageQuestionInput('Accueil & Organisation', 'rating_text');
+            addSondageQuestionInput('Ambiance & Animations', 'rating_text');
+          }
           updateSondagePreview();
           loadSondagesSavedList();
         } else {
