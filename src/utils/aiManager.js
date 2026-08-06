@@ -451,6 +451,7 @@ MÉTHODOLOGIE D'ANALYSE DÉTAILLÉE :
 1. Zone périoculaire : Pattes d'oie, poches et ridules des yeux.
 2. Structure & Peau : Sillons nasogéniens, rides du front, tonicité des joues et de la mâchoire.
 3. Regard & Pilosité : Densité de barbe, maturité de l'expression et de l'ossature.
+${birthDateInput ? `4. Étalonnage : Date de naissance déclarée par le membre : ${birthDateInput}. Vérifie si les traits biométriques du visage confirment cet âge.` : ''}
 
 DIRECTIVES IMPÉRATIVES :
 - Neutralise l'effet de lissage des appareils photo pour détecter la maturité réelle de la peau.
@@ -484,7 +485,19 @@ Réponds STRICTEMENT avec un objet JSON unique au format :
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         if (parsed && typeof parsed.age === 'number') {
-          const calculatedAge = Math.max(1, Math.round(parsed.age));
+          let calculatedAge = Math.max(1, Math.round(parsed.age));
+          
+          // Étalonnage avec date déclarée si présente
+          if (birthDateInput) {
+            const birthYear = new Date(birthDateInput).getFullYear();
+            if (!isNaN(birthYear) && birthYear > 1900 && birthYear <= new Date().getFullYear()) {
+              const declaredAge = new Date().getFullYear() - birthYear;
+              if (declaredAge >= minAge && parsed.is_adult !== false) {
+                calculatedAge = Math.max(calculatedAge, declaredAge);
+              }
+            }
+          }
+
           return {
             age: calculatedAge,
             isAdult: parsed.is_adult !== undefined ? parsed.is_adult : calculatedAge >= minAge,
