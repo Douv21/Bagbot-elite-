@@ -637,8 +637,8 @@
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = function(evt) {
-        facialCapturedBase64 = evt.target.result;
+      reader.onload = async function(evt) {
+        facialCapturedBase64 = await compressImage(evt.target.result, 800, 0.85);
         const img = document.getElementById('facialPhotoPreview');
         img.src = facialCapturedBase64;
         img.style.display = 'block';
@@ -655,9 +655,10 @@
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = function(evt) {
+      reader.onload = async function(evt) {
+        const compressed = await compressImage(evt.target.result, 1000, 0.9);
         const img = document.getElementById('docPreview');
-        img.src = evt.target.result;
+        img.src = compressed;
         img.style.display = 'block';
       };
       reader.readAsDataURL(file);
@@ -670,8 +671,8 @@
         const video = document.getElementById('videoFeed');
         if (video && video.videoWidth > 0) {
           const canvas = document.createElement('canvas');
-          canvas.width = video.videoWidth || 640;
-          canvas.height = video.videoHeight || 480;
+          canvas.width = Math.min(video.videoWidth || 800, 800);
+          canvas.height = Math.round((video.videoHeight || 600) * (canvas.width / (video.videoWidth || 800)));
           const ctx = canvas.getContext('2d');
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           base64Img = canvas.toDataURL('image/jpeg', 0.85);
@@ -682,6 +683,8 @@
         triggerFacialCamera();
         return;
       }
+
+      const compressedImg = await compressImage(base64Img, 800, 0.85);
 
       const btn = document.getElementById('btnStartFacial');
       btn.disabled = true;

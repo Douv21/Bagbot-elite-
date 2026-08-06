@@ -445,18 +445,19 @@ async function analyzeAgeWithAi(imageBase64, method, minAge = 18, birthDateInput
   }
 
   const prompt = method === 'facial'
-    ? `Tu es un expert biométrique légiste spécialisé dans l'estimation réaliste et précise de l'âge facial.
-Analyse attentivement les indicateurs physiologiques du visage sur cette photo :
-- Structure osseuse du visage et maturité faciale
-- Texture de peau, lignes d'expression (contour des yeux, front, sillons nasogéniens)
-- Densité de pilosité/barbe et regard
+    ? `Tu es un médecin légiste expert en biométrie faciale et dermatologie. Ton objectif est de déterminer l'âge PHYSIOLOGIQUE EXACT de la personne sur cette photo avec la plus haute précision scientifique.
 
-RÈGLES STRICTES :
-- Ne sous-estime PAS l'âge des adultes de 30, 35, 40+ ans. Évalue la maturité réelle de la personne sans biais de rajeunissement automatique.
-- Donne une estimation d'âge entier réaliste.
+MÉTHODOLOGIE D'ANALYSE DÉTAILLÉE :
+1. Zone périoculaire : Pattes d'oie, poches et ridules des yeux.
+2. Structure & Peau : Sillons nasogéniens, rides du front, tonicité des joues et de la mâchoire.
+3. Regard & Pilosité : Densité de barbe, maturité de l'expression et de l'ossature.
 
-Réponds STRICTEMENT avec un objet JSON unique au format :
-{"age": <nombre_entier>, "is_adult": <true_ou_false>, "reason": "<analyse succincte en français des traits de maturité observés>"}`
+DIRECTIVES IMPÉRATIVES :
+- Neutralise l'effet de lissage des appareils photo pour détecter la maturité réelle de la peau.
+- Évalue avec une extrême rigueur l'âge exact en années (ex: 32, 38, 42, etc.). Ne sous-estime PAS l'âge des adultes de 30 à 50+ ans.
+
+Format JSON obligatoire :
+{"age": <nombre_entier>, "is_adult": <true_ou_false>, "reason": "<détail des marqueurs de maturité observés>"}`
     : `Tu es un expert en vérification de pièces d'identité (CNI, Passeport, Permis). Examine cette photo de document d'identité.
 Identifie la date de naissance si présente. Date déclarée : ${birthDateInput || 'Non renseignée'}.
 Réponds STRICTEMENT avec un objet JSON unique au format :
@@ -467,8 +468,8 @@ Réponds STRICTEMENT avec un objet JSON unique au format :
       category: 'vision',
       userPrompt: prompt,
       imageUrl: cleanBase64,
-      temperature: 0.2,
-      maxTokens: 250
+      temperature: 0.0,
+      maxTokens: 300
     });
 
     // Timeout de sécurité de 6 secondes max pour éviter tout blocage du frontend
