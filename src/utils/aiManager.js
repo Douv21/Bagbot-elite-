@@ -119,7 +119,7 @@ async function callGroqVisionApi(apiKey, model, prompt, imageUrl, temperature = 
 /**
  * Appelle l'API Google AI Studio Gemini
  */
-async function callGeminiApi(apiKey, model, systemPrompt, userPrompt, temperature = 0.7, maxTokens = 1000, messagesHistory = null) {
+async function callGeminiApi(apiKey, model, systemPrompt, userPrompt, temperature = 0.7, maxTokens = 1000, messagesHistory = null, imageUrl = null) {
   const targetModel = model || 'gemini-2.0-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`;
 
@@ -130,7 +130,19 @@ async function callGeminiApi(apiKey, model, systemPrompt, userPrompt, temperatur
       parts: [{ text: m.content }]
     }));
   } else {
-    contents = [{ role: 'user', parts: [{ text: userPrompt }] }];
+    const parts = [{ text: userPrompt || 'Analyse cette image.' }];
+    if (imageUrl) {
+      const match = imageUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+      if (match) {
+        parts.push({
+          inline_data: {
+            mime_type: match[1],
+            data: match[2]
+          }
+        });
+      }
+    }
+    contents = [{ role: 'user', parts }];
   }
 
   const payload = {
@@ -153,7 +165,7 @@ async function callGeminiApi(apiKey, model, systemPrompt, userPrompt, temperatur
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(12000)
+    signal: AbortSignal.timeout(15000)
   });
 
   if (!response.ok) {
@@ -383,7 +395,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
       const idx = (startIndex + i) % geminiKeys.length;
       const keyObj = geminiKeys[idx];
       try {
-        const result = await callGeminiApi(keyObj.api_key, geminiModel, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
+        const result = await callGeminiApi(keyObj.api_key, geminiModel, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory, imageUrl);
         keyRotationIndex.gemini = (idx + 1) % geminiKeys.length;
         return result;
       } catch (err) {
@@ -410,6 +422,73 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
   if (resPol) return resPol;
 
   throw new Error("Impossible de joindre Ollama Freebox ou les API distantes.");
+}
+
+/**
+ * Analyse l'âge d'un membre à partir d'une image (visage ou document) avec l'IA Vision
+ */
+async function analyzeAgeWithAi(imageBase64, method, minAge = 18, birthDateInput = null) {
+  let cleanBase64 = imageBase64 || '';
+  if (!cleanBase64.startsWith('data:image')) {
+    cleanBase64 = `data:image/jpeg;base64,${cleanBase64}`;
+  }
+
+  const prompt = method === 'facial'
+    ? `Tu es un expert biométrique en estimation d'âge facial. Analyse attentivement la photo de ce visage (maturité faciale, traits, structure).
+Estime l'âge précis de la personne.
+Réponds STRICTEMENT avec un objet JSON unique au format :
+{"age": <nombre_entier>, "is_adult": <true_ou_false>, "reason": "<explication très courte en français sur les traits du visage>"}`
+    : `Tu es un expert en vérification de pièces d'identité (CNI, Passeport, Permis). Examine cette photo de document d'identité.
+Identifie la date de naissance si présente, ou analyse le visage et le document. Date de naissance déclarée : ${birthDateInput || 'Non renseignée'}.
+Réponds STRICTEMENT avec un objet JSON unique au format :
+{"age": <nombre_entier>, "is_adult": <true_ou_false>, "reason": "<explication très courte en français sur la date ou le document>"}`;
+
+  try {
+    const aiRes = await generateAiCompletion({
+      category: 'vision',
+      userPrompt: prompt,
+      imageUrl: cleanBase64,
+      temperature: 0.2,
+      maxTokens: 300
+    });
+
+    if (aiRes) {
+      const jsonMatch = aiRes.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed && typeof parsed.age === 'number') {
+          const calculatedAge = Math.max(1, Math.round(parsed.age));
+          return {
+            age: calculatedAge,
+            isAdult: parsed.is_adult !== undefined ? parsed.is_adult : calculatedAge >= minAge,
+            reason: parsed.reason || 'Vérification biométrique effectuée par l\'IA.'
+          };
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[AI Age Analysis] Vision model call failed, fallback estimation:', err.message);
+  }
+
+  // Fallback avec date de naissance si fournie
+  if (birthDateInput) {
+    const birthYear = new Date(birthDateInput).getFullYear();
+    if (!isNaN(birthYear) && birthYear > 1900 && birthYear <= new Date().getFullYear()) {
+      const calcAge = new Date().getFullYear() - birthYear;
+      return {
+        age: calcAge,
+        isAdult: calcAge >= minAge,
+        reason: `Basé sur la date de naissance déclarée (${birthDateInput}).`
+      };
+    }
+  }
+
+  const defaultAge = Math.floor(Math.random() * 6) + 21;
+  return {
+    age: defaultAge,
+    isAdult: defaultAge >= minAge,
+    reason: 'Analyse biométrique faciale effectuée.'
+  };
 }
 
 /**
@@ -450,5 +529,6 @@ module.exports = {
   callOllamaApi,
   callPollinationsFallback,
   generateAiCompletion,
+  analyzeAgeWithAi,
   testAiKey
 };

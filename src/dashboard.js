@@ -2948,27 +2948,16 @@ app.post('/api/verify-age/process', async (req, res) => {
     if (session.status === 'verified') return res.status(400).json({ error: 'Vérification déjà effectuée' });
 
     const minAge = session.min_age || 18;
-    let estimatedAge = 0;
-
-    if (method === 'facial') {
-      if (!image || typeof image !== 'string' || image.length < 500) {
-        return res.status(400).json({ error: 'Capture faciale invalide ou incomplète. Veuillez bien vous placer face à la caméra.' });
-      }
-      estimatedAge = Math.floor(Math.random() * 8) + 21;
-    } else if (method === 'document') {
-      if (birthDate) {
-        const birthYear = new Date(birthDate).getFullYear();
-        if (!isNaN(birthYear)) {
-          estimatedAge = new Date().getFullYear() - birthYear;
-        }
-      }
-      if (!estimatedAge || estimatedAge <= 0) {
-        estimatedAge = Math.floor(Math.random() * 6) + 20;
-      }
+    if (!image || typeof image !== 'string' || image.length < 500) {
+      return res.status(400).json({ error: 'Image invalide ou incomplète. Veuillez soumettre une photo nette.' });
     }
 
-    if (estimatedAge < minAge) {
-      return res.status(400).json({ error: `Vérification échouée : Vous avez été estimé sous la majorité requise (${minAge} ans).` });
+    const { analyzeAgeWithAi } = require('./utils/aiManager');
+    const aiAnalysis = await analyzeAgeWithAi(image, method, minAge, birthDate);
+    const estimatedAge = aiAnalysis.age;
+
+    if (!aiAnalysis.isAdult || estimatedAge < minAge) {
+      return res.status(400).json({ error: `Vérification non validée : Âge estimé ${estimatedAge} ans (Seuil requis : ${minAge} ans). ${aiAnalysis.reason}` });
     }
 
     const activeTicket = db.prepare('SELECT option_id FROM active_tickets WHERE channel_id = ?').get(session.channel_id);

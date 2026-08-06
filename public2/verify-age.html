@@ -158,7 +158,7 @@
       display: block;
     }
 
-    /* Camera & Snapshot Box */
+    /* Camera & Scanning Laser */
     .camera-wrapper {
       position: relative;
       width: 100%;
@@ -166,7 +166,7 @@
       background: #000;
       border-radius: 12px;
       overflow: hidden;
-      border: 2px dashed var(--border-gold);
+      border: 2px solid var(--border-gold);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -179,29 +179,80 @@
       object-fit: cover;
     }
 
+    .scan-laser {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, #ffd700, #2ecc71, #ffd700, transparent);
+      box-shadow: 0 0 15px #ffd700, 0 0 25px #2ecc71;
+      animation: scanMove 2s ease-in-out infinite alternate;
+      z-index: 10;
+    }
+
+    @keyframes scanMove {
+      0% { top: 5%; }
+      100% { top: 95%; }
+    }
+
     .face-overlay {
       position: absolute;
-      width: 170px;
-      height: 210px;
+      width: 180px;
+      height: 220px;
       border: 2px dashed var(--gold-bright);
       border-radius: 50%;
-      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
       pointer-events: none;
       display: flex;
       align-items: center;
       justify-content: center;
+      z-index: 5;
     }
 
     .face-overlay::after {
-      content: 'Visage ici';
+      content: 'Ciblez votre visage';
       color: var(--gold-bright);
       font-size: 0.75rem;
       font-weight: 600;
-      background: rgba(0,0,0,0.7);
-      padding: 4px 8px;
+      background: rgba(0,0,0,0.75);
+      padding: 4px 10px;
       border-radius: 4px;
       position: absolute;
       bottom: 15px;
+    }
+
+    /* Scanning Progress Box */
+    .scan-progress-box {
+      display: none;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-gold);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    .scan-progress-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .scan-progress-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--gold-gradient);
+      transition: width 0.1s linear;
+    }
+
+    .scan-status-text {
+      font-size: 0.82rem;
+      color: var(--gold-bright);
+      font-weight: 600;
     }
 
     /* Multi Button Container */
@@ -387,34 +438,43 @@
       <!-- Tabs -->
       <div class="tabs-nav">
         <button type="button" class="tab-btn active" onclick="switchTab('facial')">
-          <i class="fa-solid fa-camera"></i> Reconnaissance Faciale
+          <i class="fa-solid fa-camera"></i> Reconnaissance Faciale (IA)
         </button>
         <button type="button" class="tab-btn" onclick="switchTab('document')">
-          <i class="fa-solid fa-id-card"></i> Pièce d'Identité
+          <i class="fa-solid fa-id-card"></i> Pièce d'Identité (OCR)
         </button>
       </div>
 
       <!-- Tab 1: Reconnaissance Faciale -->
       <div class="tab-content active" id="tab-facial">
         <div class="camera-notice" id="facialNotice">
-          <i class="fa-solid fa-circle-info"></i> Utilisation de l'appareil photo de votre appareil.
+          <i class="fa-solid fa-circle-info"></i> Positionnez votre visage au centre du scanner.
         </div>
 
         <div class="camera-wrapper">
           <video id="videoFeed" autoplay playsinline muted></video>
+          <div class="scan-laser" id="scanLaser"></div>
           <img id="facialPhotoPreview" class="preview-full" style="display: none;" alt="Aperçu photo">
           <div class="face-overlay" id="faceOverlay"></div>
         </div>
 
+        <!-- Live Scan Progress Bar -->
+        <div class="scan-progress-box" id="scanProgressBox">
+          <div class="scan-progress-bar-bg">
+            <div class="scan-progress-bar-fill" id="scanProgressFill"></div>
+          </div>
+          <span class="scan-status-text" id="scanStatusText"><i class="fa-solid fa-qrcode fa-spin"></i> Numérisation faciale biométrique...</span>
+        </div>
+
         <div class="btn-group-media">
           <button type="button" class="btn-media" onclick="triggerFacialCamera()">
-            <i class="fa-solid fa-camera"></i> Prendre une Photo (Appareil Photo)
+            <i class="fa-solid fa-camera"></i> Photo Appareil Direct
           </button>
           <input type="file" id="facialCameraInput" accept="image/*" capture="user" style="display: none;" onchange="previewFacialPhoto(event)">
         </div>
 
         <button type="button" class="btn-submit" id="btnStartFacial" onclick="processFacialScan()">
-          <i class="fa-solid fa-face-smile-wink"></i> Analyser mon Visage (Validation IA)
+          <i class="fa-solid fa-bolt-lightning"></i> Lancer l'Analyse Faciale IA
         </button>
       </div>
 
@@ -427,10 +487,10 @@
           
           <div class="btn-group-media">
             <button type="button" class="btn-media" onclick="document.getElementById('docCameraInput').click()">
-              <i class="fa-solid fa-camera"></i> Prendre en Photo (Appareil Photo)
+              <i class="fa-solid fa-camera"></i> Photo Appareil Direct
             </button>
             <button type="button" class="btn-media" onclick="document.getElementById('docFileInput').click()">
-              <i class="fa-solid fa-cloud-arrow-up"></i> Importer un Fichier (Galerie)
+              <i class="fa-solid fa-cloud-arrow-up"></i> Fichier / Galerie
             </button>
           </div>
 
@@ -441,18 +501,18 @@
         </div>
 
         <div class="form-group">
-          <label><i class="fa-solid fa-calendar-days"></i> Date de Naissance (Confirmation)</label>
+          <label><i class="fa-solid fa-calendar-days"></i> Date de Naissance (Confirmation optionnelle)</label>
           <input type="date" class="form-input" id="birthDateInput">
         </div>
 
         <button type="button" class="btn-submit" id="btnStartDoc" onclick="processDocScan()">
-          <i class="fa-solid fa-shield-check"></i> Analyser le Document d'Identité
+          <i class="fa-solid fa-shield-check"></i> Lancer l'Analyse du Document par l'IA
         </button>
       </div>
 
       <div class="privacy-notice">
         <i class="fa-solid fa-user-shield"></i> <strong>Respect strict de la vie privée (RGPD) :</strong><br>
-        Les données visuelles sont traitées de manière éphémère en mémoire et <strong>ne sont jamais enregistrées ni stockées sur nos serveurs</strong>.
+        Les données biométriques et photos sont traitées instantanément par l'IA et <strong>ne sont jamais conservées ni stockées sur nos serveurs</strong>.
       </div>
     </div>
 
@@ -502,7 +562,7 @@
     async function startCamera() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         document.getElementById('facialNotice').style.display = 'block';
-        document.getElementById('facialNotice').innerHTML = '<i class="fa-solid fa-circle-info"></i> Cliquez sur <strong>Prendre une Photo</strong> pour utiliser votre appareil photo.';
+        document.getElementById('facialNotice').innerHTML = '<i class="fa-solid fa-camera"></i> Flux direct indisponible sur ce navigateur HTTP. Cliquez sur <strong>Photo Appareil Direct</strong>.';
         return;
       }
 
@@ -512,10 +572,11 @@
         video.srcObject = videoStream;
         await video.play().catch(() => null);
         document.getElementById('facialNotice').style.display = 'none';
+        document.getElementById('scanLaser').style.display = 'block';
       } catch (err) {
         console.warn('Impossible d\'activer le flux vidéo direct:', err);
         document.getElementById('facialNotice').style.display = 'block';
-        document.getElementById('facialNotice').innerHTML = '<i class="fa-solid fa-camera"></i> Flux direct indisponible. Cliquez ci-dessous pour déclencher l\'appareil photo.';
+        document.getElementById('facialNotice').innerHTML = '<i class="fa-solid fa-camera"></i> Flux vidéo direct bloqué. Cliquez ci-dessous sur <strong>Photo Appareil Direct</strong> pour prendre votre photo.';
       }
     }
 
@@ -555,6 +616,7 @@
         img.src = facialCapturedBase64;
         img.style.display = 'block';
         document.getElementById('videoFeed').style.display = 'none';
+        document.getElementById('scanLaser').style.display = 'none';
         stopCamera();
       };
       reader.readAsDataURL(file);
@@ -573,6 +635,29 @@
     }
 
     async function processFacialScan() {
+      const btn = document.getElementById('btnStartFacial');
+      btn.disabled = true;
+
+      const progressBox = document.getElementById('scanProgressBox');
+      const progressFill = document.getElementById('scanProgressFill');
+      const statusText = document.getElementById('scanStatusText');
+      progressBox.style.display = 'block';
+
+      // Live scan animation loop
+      let pct = 0;
+      statusText.innerHTML = '<i class="fa-solid fa-spin fa-spinner"></i> Numérisation faciale biométrique en cours...';
+
+      await new Promise(resolve => {
+        const interval = setInterval(() => {
+          pct += 10;
+          progressFill.style.width = pct + '%';
+          if (pct >= 100) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 200);
+      });
+
       let base64Img = facialCapturedBase64;
 
       if (!base64Img) {
@@ -588,14 +673,14 @@
       }
 
       if (!base64Img || base64Img.length < 500) {
-        alert('Veuillez prendre une photo de votre visage à l\'aide de votre appareil photo.');
+        progressBox.style.display = 'none';
+        alert('Aucune capture vidéo ni photo trouvée. Veuillez cliquer sur Photo Appareil Direct.');
         triggerFacialCamera();
+        resetButtons();
         return;
       }
 
-      const btn = document.getElementById('btnStartFacial');
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyse IA du visage en cours...';
+      statusText.innerHTML = '<i class="fa-solid fa-brain"></i> Analyse IA de la maturité faciale...';
 
       submitVerification('facial', base64Img);
     }
@@ -611,7 +696,7 @@
 
       const btn = document.getElementById('btnStartDoc');
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Lecture OCR du document...';
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyse IA et lecture du document...';
 
       submitVerification('document', img.src, birthDate);
     }
@@ -635,22 +720,23 @@
         if (data.success) {
           document.getElementById('mainFormView').style.display = 'none';
           document.getElementById('resultScreen').style.display = 'block';
-          document.getElementById('resDesc').textContent = `Votre âge a été vérifié avec succès (${data.age} ans). Le compte-rendu a été transmis automatiquement dans votre ticket Discord.`;
+          document.getElementById('resDesc').textContent = `Votre âge a été analysé par l'IA à ${data.age} ans avec succès ! Le compte-rendu a été transmis dans votre ticket Discord.`;
         } else {
-          alert('Erreur : ' + (data.error || 'Échec de la vérification.'));
+          alert('Vérification non validée : ' + (data.error || 'Échec de l\'analyse d\'âge.'));
           resetButtons();
         }
       } catch (err) {
-        alert('Erreur réseau lors du traitement.');
+        alert('Erreur réseau lors du traitement IA.');
         resetButtons();
       }
     }
 
     function resetButtons() {
       document.getElementById('btnStartFacial').disabled = false;
-      document.getElementById('btnStartFacial').innerHTML = '<i class="fa-solid fa-face-smile-wink"></i> Analyser mon Visage (Validation IA)';
+      document.getElementById('btnStartFacial').innerHTML = '<i class="fa-solid fa-bolt-lightning"></i> Lancer l\'Analyse Faciale IA';
       document.getElementById('btnStartDoc').disabled = false;
-      document.getElementById('btnStartDoc').innerHTML = '<i class="fa-solid fa-shield-check"></i> Analyser le Document d\'Identité';
+      document.getElementById('btnStartDoc').innerHTML = '<i class="fa-solid fa-shield-check"></i> Lancer l\'Analyse du Document par l\'IA';
+      document.getElementById('scanProgressBox').style.display = 'none';
     }
 
     function showError(msg) {
