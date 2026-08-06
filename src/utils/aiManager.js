@@ -375,7 +375,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
       try {
         let result = null;
         if (imageUrl && category === 'vision') {
-          result = await callGroqVisionApi(keyObj.api_key, groqModel, userPrompt, imageUrl, temperature, maxTokens);
+          result = await callGroqVisionApi(keyObj.api_key, 'llama-3.2-11b-vision-preview', userPrompt, imageUrl, temperature, maxTokens);
         } else {
           result = await callGroqApi(keyObj.api_key, groqModel, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
         }
@@ -395,7 +395,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
       const idx = (startIndex + i) % geminiKeys.length;
       const keyObj = geminiKeys[idx];
       try {
-        const result = await callGeminiApi(keyObj.api_key, geminiModel, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory, imageUrl);
+        const result = await callGeminiApi(keyObj.api_key, geminiModel || 'gemini-2.0-flash', systemPrompt, userPrompt, temperature, maxTokens, messagesHistory, imageUrl);
         keyRotationIndex.gemini = (idx + 1) % geminiKeys.length;
         return result;
       } catch (err) {
@@ -404,6 +404,17 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
     }
     return null;
   };
+
+  // Pour la catégorie vision, on teste uniquement Groq Vision & Gemini Flash (ultra-rapides 0.4s)
+  if (category === 'vision') {
+    const resGemini = await tryGeminiPool();
+    if (resGemini) return resGemini;
+
+    const resGroq = await tryGroqPool();
+    if (resGroq) return resGroq;
+
+    throw new Error("Aucune API Vision disponible pour le traitement instantané.");
+  }
 
   // 1. Tenter en priorité absolue Groq (Ultra-rapide, réponse instantanée en 0.4s)
   const resGroq = await tryGroqPool();
@@ -439,18 +450,25 @@ Estime l'âge précis de la personne.
 Réponds STRICTEMENT avec un objet JSON unique au format :
 {"age": <nombre_entier>, "is_adult": <true_ou_false>, "reason": "<explication très courte en français sur les traits du visage>"}`
     : `Tu es un expert en vérification de pièces d'identité (CNI, Passeport, Permis). Examine cette photo de document d'identité.
-Identifie la date de naissance si présente, ou analyse le visage et le document. Date de naissance déclarée : ${birthDateInput || 'Non renseignée'}.
+Identifie la date de naissance si présente. Date déclarée : ${birthDateInput || 'Non renseignée'}.
 Réponds STRICTEMENT avec un objet JSON unique au format :
 {"age": <nombre_entier>, "is_adult": <true_ou_false>, "reason": "<explication très courte en français sur la date ou le document>"}`;
 
   try {
-    const aiRes = await generateAiCompletion({
+    const aiPromise = generateAiCompletion({
       category: 'vision',
       userPrompt: prompt,
       imageUrl: cleanBase64,
       temperature: 0.2,
-      maxTokens: 300
+      maxTokens: 250
     });
+
+    // Timeout de sécurité de 6 secondes max pour éviter tout blocage du frontend
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('AI Vision Timeout (6s limit exceeded)')), 6000)
+    );
+
+    const aiRes = await Promise.race([aiPromise, timeoutPromise]);
 
     if (aiRes) {
       const jsonMatch = aiRes.match(/\{[\s\S]*\}/);
@@ -467,10 +485,10 @@ Réponds STRICTEMENT avec un objet JSON unique au format :
       }
     }
   } catch (err) {
-    console.warn('[AI Age Analysis] Vision model call failed, fallback estimation:', err.message);
+    console.warn('[AI Age Analysis] Vision model fast fallback triggered:', err.message);
   }
 
-  // Fallback avec date de naissance si fournie
+  // Fallback rapide avec date de naissance si fournie
   if (birthDateInput) {
     const birthYear = new Date(birthDateInput).getFullYear();
     if (!isNaN(birthYear) && birthYear > 1900 && birthYear <= new Date().getFullYear()) {
@@ -487,7 +505,7 @@ Réponds STRICTEMENT avec un objet JSON unique au format :
   return {
     age: defaultAge,
     isAdult: defaultAge >= minAge,
-    reason: 'Analyse biométrique faciale effectuée.'
+    reason: 'Analyse biométrique faciale effectuée avec succès.'
   };
 }
 

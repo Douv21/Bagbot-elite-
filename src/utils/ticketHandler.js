@@ -352,7 +352,7 @@ async function handleTicketInteraction(interaction, client) {
     const { createAgeVerificationSession } = require('../database/db');
     createAgeVerificationSession(token, interaction.guildId, interaction.user.id, interaction.channelId, minAge);
 
-    const verifyUrl = `http://82.65.75.176:49602/verify-age.html?token=${token}`;
+    const verifyUrl = `https://82.65.75.176:49602/verify-age.html?token=${token}`;
 
     const embed = new EmbedBuilder()
       .setTitle('🔞 Vérification d\'Âge Requise')
