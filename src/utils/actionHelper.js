@@ -122,10 +122,22 @@ function getNextRotatedGif(guildId, actionName, gifs) {
     embed.setFooter({ text: '💬 Exécuté en message privé (sans gain de pièces ou de karma)' });
   }
 
-  await interaction.editReply({
-    embeds: [embed],
-    files: files
-  });
+  const mention = target && target.id !== userId ? `<@${target.id}>` : null;
+
+  if (mention && interaction.channel) {
+    await interaction.deleteReply().catch(() => null);
+    await interaction.channel.send({
+      content: mention,
+      embeds: [embed],
+      files: files,
+      allowedMentions: { parse: ['users'] }
+    });
+  } else {
+    await interaction.editReply({
+      embeds: [embed],
+      files: files
+    });
+  }
 
   if (!guildId && target && target.id !== userId) {
     try {

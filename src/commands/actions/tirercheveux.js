@@ -141,12 +141,21 @@ module.exports = {
     }
 
     const mention = target && target.id !== userId ? `<@${target.id}>` : null;
-    await interaction.editReply({
-      content: mention,
-      embeds: [embed],
-      files: files,
-      allowedMentions: mention ? { users: [target.id] } : { parse: [] }
-    });
+
+    if (mention && interaction.channel) {
+      await interaction.deleteReply().catch(() => null);
+      await interaction.channel.send({
+        content: mention,
+        embeds: [embed],
+        files: files,
+        allowedMentions: { parse: ['users'] }
+      });
+    } else {
+      await interaction.editReply({
+        embeds: [embed],
+        files: files
+      });
+    }
 
     if (!guildId && target && target.id !== userId) {
       try {
