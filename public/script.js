@@ -496,6 +496,54 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    // Populate Game Allowed Channels Checkboxes
+    renderGameAllowedChannels();
+  }
+
+  let currentAllowedGameChannels = [];
+
+  function renderGameAllowedChannels(allowedArray = null) {
+    if (allowedArray !== null) {
+      if (Array.isArray(allowedArray)) {
+        currentAllowedGameChannels = allowedArray;
+      } else if (typeof allowedArray === 'string') {
+        try {
+          currentAllowedGameChannels = JSON.parse(allowedArray);
+        } catch (e) {
+          currentAllowedGameChannels = allowedArray.split(',').map(s => s.trim()).filter(Boolean);
+        }
+      }
+    }
+
+    const container = document.getElementById('game_allowed_channels_checkboxes_container');
+    if (!container) return;
+
+    if (!channelsList || channelsList.length === 0) {
+      container.innerHTML = '<p style="font-size: 0.85rem; color: #72767d; margin: 0;">Aucun salon trouvé ou chargement des salons...</p>';
+      return;
+    }
+
+    const textChannels = channelsList.filter(ch => ch.type === 0 || ch.type === 5 || ch.type === undefined);
+    if (textChannels.length === 0) {
+      container.innerHTML = '<p style="font-size: 0.85rem; color: #72767d; margin: 0;">Aucun salon textuel disponible.</p>';
+      return;
+    }
+
+    container.innerHTML = textChannels.map(ch => {
+      const isChecked = currentAllowedGameChannels.length === 0 || currentAllowedGameChannels.includes(ch.id) || currentAllowedGameChannels.includes(String(ch.id));
+      return `
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; color: #e0e0e0; cursor: pointer; padding: 5px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+          <input type="checkbox" class="game-allowed-channel-cb" value="${ch.id}" ${isChecked ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px; accent-color: #5865F2;">
+          <span># ${ch.name}</span>
+        </label>
+      `;
+    }).join('');
+  }
+
+  function toggleAllGameChannels(checked) {
+    document.querySelectorAll('.game-allowed-channel-cb').forEach(cb => cb.checked = checked);
+  }
+
     // Populate Ticket Category Select (type 4 is GuildCategory)
     const ticketCatSelect = document.getElementById('ticket_opt_category');
     if (ticketCatSelect) {
@@ -624,6 +672,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         safeSetCheck('game_ephemeral_letters', (game.ephemeral_letters === undefined || game.ephemeral_letters === null) ? true : !!game.ephemeral_letters);
         safeSetCheck('game_reset_progress', false);
+        try { renderGameAllowedChannels(game.allowed_channels); } catch (e) { console.error('Erreur render game channels:', e); }
 
         // Quarantaine
         const quar = config.quarantine || {};
