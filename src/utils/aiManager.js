@@ -445,22 +445,28 @@ async function analyzeAgeWithAi(imageBase64, method, minAge = 18, birthDateInput
   }
 
   const prompt = method === 'facial'
-    ? `Tu es un expert biométrique légiste et dermatologique spécialisé dans l'estimation précise de l'âge facial.
+    ? `Tu es un expert biométrique légiste et dermatologique hyper-strict, spécialisé dans la protection des mineurs et la détection d'âge facial.
 
-Examine la photo de ce visage et effectue une analyse détaillée étape par étape :
-1. Examine la texture de la peau, le contour des yeux, les rides d'expression (front, yeux, sillons nasogéniens) et la maturité de la structure osseuse.
-2. Identifie la tranche d'âge physiologique réelle (ex: 18-25, 26-34, 35-45, 46-60+).
-3. Détermine l'âge numérique le plus juste et réaliste. Ne sous-estime PAS l'âge des adultes trentenaires et quarantenaires.
+RÈGLE DE SÉCURITÉ ABSOLUE (PROTECTION DES MINEURS) :
+- Tu dois analyser scrupuleusement si le visage présente des caractéristiques d'un adolescent ou d'un mineur (12 à 17 ans) : peau lisse sans rides, forme du visage juvénile, traits fins d'adolescent, absence de maturité faciale adulte claire.
+- Si le sujet a l'air jeune, adolescent ou s'il y a le MOINDRE DOUTE sur sa majorité, tu DOIS attribuer un âge strictement inférieur à 18 ans (ex: 15, 16 ou 17 ans) et définir "is_adult": false.
+- Ne surévalue JAMAIS l'âge d'un adolescent ou d'un jeune sous prétexte qu'il a du maquillage, une barbe naissante ou une posture d'adulte. En cas d'hésitation entre minorité et majorité, classe TOUJOURS comme MINEUR (is_adult: false).
+
+Étapes d'analyse :
+1. Recherche des signes d'adolescence ou de jeunesse (structure osseuse immature, finesse de la peau, absence de plis nasogéniens adultes).
+2. Estimation précise de l'âge (si adolescent/mineur -> attribuer impérativement un âge entre 12 et 17 ans).
+3. Détermination du statut de majorité (is_adult = true UNIQUEMENT si la maturité adulte de 18 ans ou plus est totalement indiscutable).
 
 Réponds STRICTEMENT sous la forme d'un objet JSON unique au format :
 {
-  "reasoning": "<analyse détaillée étape par étape des marqueurs de maturité faciale observés>",
+  "reasoning": "<analyse des traits de jeunesse vs maturité faciale observés>",
   "age": <nombre_entier_representant_l_age_estime>,
-  "is_adult": <true_si_age_superieur_ou_egal_a_18_sinon_false>,
-  "reason": "<résumé en 1 phrase en français sur les traits du visage>"
+  "is_adult": <true_si_18_ans_ou_plus_indiscutable_sinon_false>,
+  "reason": "<résumé court en 1 phrase en français sur l'évaluation des traits du visage>"
 }`
     : `Tu es un expert en vérification de pièces d'identité (CNI, Passeport, Permis). Examine cette photo de document d'identité.
 Identifie la date de naissance si présente. Date déclarée : ${birthDateInput || 'Non renseignée'}.
+RÈGLE STRICTE : Si la date de naissance indique moins de 18 ans, ou si le document indique un mineur, is_adult DOIT être false.
 Réponds STRICTEMENT avec un objet JSON unique au format :
 {"age": <nombre_entier>, "is_adult": <true_ou_false>, "reason": "<explication très courte en français sur la date ou le document>"}`;
 
@@ -492,14 +498,16 @@ Réponds STRICTEMENT avec un objet JSON unique au format :
             const birthYear = new Date(birthDateInput).getFullYear();
             if (!isNaN(birthYear) && birthYear > 1900 && birthYear <= new Date().getFullYear()) {
               const declaredAge = new Date().getFullYear() - birthYear;
-              calculatedAge = Math.max(calculatedAge, declaredAge);
+              calculatedAge = Math.min(calculatedAge, declaredAge); // Sécurité : on prend l'âge le plus bas pour ne pas fausser la majorité
             }
           }
 
+          const isAdultFinal = (parsed.is_adult === false || calculatedAge < minAge) ? false : (parsed.is_adult === true && calculatedAge >= minAge);
+
           return {
             age: calculatedAge,
-            isAdult: parsed.is_adult !== undefined ? parsed.is_adult : calculatedAge >= minAge,
-            reason: parsed.reason || 'Vérification biométrique effectuée par l\'IA.'
+            isAdult: isAdultFinal,
+            reason: parsed.reason || (isAdultFinal ? 'Majeur certifié par l\'analyse biométrique.' : 'Détecté comme mineur / adolescent.')
           };
         }
       }
@@ -521,11 +529,11 @@ Réponds STRICTEMENT avec un objet JSON unique au format :
     }
   }
 
-  const defaultAge = Math.floor(Math.random() * 6) + 21;
+  // Fallback sécurisé : En cas de doute ou d'échec d'analyse, classer par défaut comme mineur (isAdult: false)
   return {
-    age: defaultAge,
-    isAdult: defaultAge >= minAge,
-    reason: 'Analyse biométrique faciale effectuée avec succès.'
+    age: 16,
+    isAdult: false,
+    reason: 'Analyse biométrique faciale douteuse ou incomplète. Par sécurité mineur, la majorité n\'a pas pu être certifiée.'
   };
 }
 
