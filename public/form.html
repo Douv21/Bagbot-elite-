@@ -3,204 +3,194 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Formulaire d'Évaluation • Bagbot Elite</title>
+  <title>Formulaire • Google Forms Elite</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Product+Sans:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Outfit', sans-serif;
-      background: #0a0a0f;
-      color: #e1e1e1;
+      font-family: 'Roboto', Arial, sans-serif;
+      background-color: #f0f3f8;
+      color: #202124;
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      padding: 30px 15px;
-      background-image: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.12), transparent 70%);
+      padding: 24px 12px;
+      background-image: radial-gradient(circle at 50% 0%, #e8eef9, #f0f3f8);
     }
-    .form-container {
+    .gform-container {
       width: 100%;
-      max-width: 720px;
+      max-width: 640px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 14px;
     }
-    .form-card {
-      background: rgba(18, 18, 26, 0.85);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(212, 175, 55, 0.25);
-      border-radius: 14px;
-      padding: 25px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      transition: border-color 0.3s, transform 0.2s;
-    }
-    .form-card:hover {
-      border-color: rgba(212, 175, 55, 0.5);
-    }
-    .header-card {
-      border-top: 6px solid #d4af37;
+    .gform-card {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(60,64,67,0.15), 0 2px 6px 2px rgba(60,64,67,0.05);
+      border: 1px solid #dadce0;
       position: relative;
+    }
+    .gform-header-card {
+      border-top: 10px solid #673ab7;
       overflow: hidden;
     }
     .banner-img {
       width: 100%;
-      max-height: 200px;
+      max-height: 180px;
       object-fit: cover;
-      border-radius: 8px;
+      border-radius: 6px;
       margin-bottom: 15px;
     }
-    .form-title {
-      font-family: 'Cinzel', serif;
-      color: #ffd700;
+    .gform-title {
       font-size: 1.8rem;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      font-weight: 500;
+      color: #202124;
+      margin-bottom: 8px;
     }
-    .form-desc {
-      color: #b9bbbe;
+    .gform-desc {
+      color: #5f6368;
       font-size: 0.95rem;
-      line-height: 1.6;
+      line-height: 1.5;
       white-space: pre-wrap;
     }
-    .section-title {
-      font-size: 1.15rem;
-      font-weight: 600;
-      color: #fff;
-      margin-bottom: 12px;
+    .q-title {
+      font-size: 1.05rem;
+      font-weight: 500;
+      color: #202124;
+      margin-bottom: 14px;
       display: flex;
       align-items: center;
-      gap: 8px;
-    }
-    .rating-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 15px;
-    }
-    .rating-stars {
-      display: flex;
       gap: 8px;
     }
     .star-item {
-      font-size: 2rem;
+      font-size: 2.2rem;
       cursor: pointer;
       user-select: none;
       transition: transform 0.15s, filter 0.15s;
-      filter: grayscale(100%) opacity(0.4);
+      filter: grayscale(100%) opacity(0.3);
     }
     .star-item.active, .star-item:hover {
       filter: grayscale(0%) opacity(1);
-      transform: scale(1.15);
+      transform: scale(1.12);
     }
-    .rating-value-badge {
-      background: rgba(212, 175, 55, 0.15);
-      border: 1px solid rgba(212, 175, 55, 0.3);
-      color: #ffd700;
-      font-weight: 700;
-      font-size: 0.9rem;
-      padding: 4px 10px;
-      border-radius: 20px;
-    }
-    .obs-textarea {
+    .gform-textarea, .gform-input {
       width: 100%;
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 8px;
-      padding: 12px;
-      color: #fff;
+      border: none;
+      border-bottom: 1px solid #dadce0;
+      padding: 10px 0;
       font-family: inherit;
-      font-size: 0.9rem;
-      resize: vertical;
-      min-height: 80px;
+      font-size: 0.95rem;
+      color: #202124;
+      background: transparent;
+      outline: none;
       transition: border-color 0.2s;
     }
-    .obs-textarea:focus {
-      outline: none;
-      border-color: #d4af37;
-      box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+    .gform-textarea:focus, .gform-input:focus {
+      border-bottom: 2px solid #673ab7;
     }
-    .btn-submit {
-      width: 100%;
-      background: linear-gradient(135deg, #d4af37, #b8962e);
-      color: #000;
-      font-weight: 700;
-      font-size: 1.1rem;
-      padding: 15px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
-      transition: transform 0.2s, box-shadow 0.2s;
+    .choice-option {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 10px;
+      gap: 12px;
+      padding: 8px 0;
+      cursor: pointer;
+      user-select: none;
+    }
+    .choice-option input[type="radio"], .choice-option input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #673ab7;
+      cursor: pointer;
+    }
+    .choice-label {
+      font-size: 0.95rem;
+      color: #3c4043;
+    }
+    .scale-row {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0 5px 0;
+      overflow-x: auto;
+    }
+    .scale-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .scale-item input {
+      accent-color: #673ab7;
+      cursor: pointer;
+    }
+    .scale-num {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #5f6368;
+    }
+    .btn-submit {
+      background: #673ab7;
+      color: #ffffff;
+      font-weight: 500;
+      font-size: 0.95rem;
+      padding: 10px 24px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(60,64,67,0.3);
+      transition: background 0.2s, box-shadow 0.2s;
     }
     .btn-submit:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
-    }
-    .success-screen {
-      display: none;
-      text-align: center;
-      padding: 50px 20px;
-    }
-    .success-icon {
-      font-size: 4rem;
-      color: #2ecc71;
-      margin-bottom: 20px;
+      background: #5e35b1;
+      box-shadow: 0 2px 4px rgba(60,64,67,0.4);
     }
   </style>
 </head>
 <body>
-  <div class="form-container">
-    <div id="form-loading" style="text-align: center; padding: 40px; color: #ffd700;">
+  <div class="gform-container">
+    <div id="form-loading" style="text-align: center; padding: 40px; color: #673ab7;">
       <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
-      <p style="margin-top: 10px;">Chargement du formulaire d'évaluation...</p>
+      <p style="margin-top: 10px;">Chargement du formulaire Google Forms...</p>
     </div>
 
-    <div id="form-body" style="display: none; flex-direction: column; gap: 20px;">
-      <!-- Card En-tête -->
-      <div class="form-card header-card">
+    <div id="form-body" style="display: none; flex-direction: column; gap: 14px;">
+      <div class="gform-card gform-header-card" id="header-card">
         <img id="form-banner" src="" class="banner-img" style="display: none;">
-        <h1 class="form-title" id="form-header-title">📊 Titre du Sondage</h1>
-        <p class="form-desc" id="form-header-desc">Chargement des instructions...</p>
+        <h1 class="gform-title" id="form-header-title">Titre du Formulaire</h1>
+        <p class="gform-desc" id="form-header-desc">Chargement des instructions...</p>
       </div>
 
-      <!-- Identification optionnelle -->
-      <div class="form-card">
-        <div class="section-title"><i class="fa-solid fa-user" style="color: #d4af37;"></i> Votre Pseudo Discord / Identifiant</div>
-        <input type="text" id="user-tag" class="obs-textarea" style="min-height: auto;" placeholder="ex: Pseudo#0000 ou Pseudo (facultatif)">
+      <div class="gform-card">
+        <div class="q-title"><i class="fa-solid fa-id-badge" style="color: #673ab7;"></i> Votre Pseudo Discord / Identifiant</div>
+        <input type="text" id="user-tag" class="gform-input" placeholder="ex: Pseudo (facultatif)">
       </div>
 
-      <!-- Container des Questions & Sections -->
-      <div id="questions-container" style="display: flex; flex-direction: column; gap: 20px;">
-        <!-- Généré dynamiquement -->
+      <div id="questions-container" style="display: flex; flex-direction: column; gap: 14px;">
       </div>
 
-      <!-- Section Remarques Générales -->
-      <div class="form-card" id="card-general-remark" style="display: none;">
-        <div class="section-title"><i class="fa-solid fa-comment-dots" style="color: #d4af37;"></i> Remarques & Suggestions Générales</div>
-        <textarea id="general-remark" class="obs-textarea" placeholder="Partagez vos remarques ou idées tout en bas pour conclure votre avis..."></textarea>
+      <div class="gform-card" id="card-general-remark" style="display: none;">
+        <div class="q-title"><i class="fa-solid fa-comment-dots" style="color: #673ab7;"></i> Remarques & Suggestions Générales</div>
+        <textarea id="general-remark" class="gform-textarea" placeholder="Vos remarques tout en bas..."></textarea>
       </div>
 
-      <!-- Bouton Soumettre -->
-      <button type="button" class="btn-submit" id="btn-submit-form" onclick="submitForm()">
-        <i class="fa-solid fa-paper-plane"></i> Envoyer mon Évaluation
-      </button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+        <button type="button" class="btn-submit" id="btn-submit-form" onclick="submitForm()">Envoyer</button>
+        <span style="font-size: 0.8rem; color: #70757a;">Google Forms • Bagbot Elite</span>
+      </div>
     </div>
 
-    <!-- Écran de Succès -->
-    <div class="form-card success-screen" id="success-screen">
-      <div class="success-icon"><i class="fa-solid fa-circle-check"></i></div>
-      <h2 style="font-family: 'Cinzel', serif; color: #ffd700; margin-bottom: 10px;">Évaluation Envoyée !</h2>
-      <p style="color: #b9bbbe; font-size: 1rem; margin-bottom: 20px;">Merci d'avoir pris le temps de répondre. Vos réponses et observations ont été transmises avec succès au serveur !</p>
-      <p style="font-size: 0.85rem; color: #8e9297;">Vous pouvez fermer cette page.</p>
+    <div class="gform-card" id="success-screen" style="display: none; text-align: center; padding: 40px 20px;">
+      <i class="fa-solid fa-check-circle" style="font-size: 4rem; color: #0f9d58; margin-bottom: 16px;"></i>
+      <h2 style="font-size: 1.6rem; font-weight: 400; color: #202124; margin-bottom: 8px;">Votre réponse a bien été enregistrée.</h2>
+      <p style="color: #5f6368; font-size: 0.95rem; margin-bottom: 20px;">Merci pour votre participation ! Vos réponses ont été transmises au serveur.</p>
     </div>
   </div>
 
@@ -212,7 +202,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       if (!sondageId) {
-        document.getElementById('form-loading').innerHTML = '<span style="color:#e74c3c;">❌ ID de sondage manquant dans l\'URL.</span>';
+        document.getElementById('form-loading').innerHTML = '<span style="color:#d93025;">❌ ID de sondage manquant dans l\'URL.</span>';
         return;
       }
 
@@ -220,7 +210,7 @@
         .then(res => res.json())
         .then(data => {
           if (data.error) {
-            document.getElementById('form-loading').innerHTML = `<span style="color:#e74c3c;">❌ ${data.error}</span>`;
+            document.getElementById('form-loading').innerHTML = `<span style="color:#d93025;">❌ ${data.error}</span>`;
             return;
           }
 
@@ -228,7 +218,7 @@
           renderForm();
         })
         .catch(err => {
-          document.getElementById('form-loading').innerHTML = `<span style="color:#e74c3c;">❌ Erreur : ${err.message}</span>`;
+          document.getElementById('form-loading').innerHTML = `<span style="color:#d93025;">❌ Erreur : ${err.message}</span>`;
         });
     });
 
@@ -236,8 +226,12 @@
       document.getElementById('form-loading').style.display = 'none';
       document.getElementById('form-body').style.display = 'flex';
 
-      document.getElementById('form-header-title').textContent = `📊 ${sondageData.title || 'Formulaire'}`;
-      document.getElementById('form-header-desc').textContent = sondageData.description || 'Veuillez remplir vos évaluations ci-dessous.';
+      document.getElementById('form-header-title').textContent = sondageData.title || 'Formulaire';
+      document.getElementById('form-header-desc').textContent = sondageData.description || '';
+
+      if (sondageData.color && sondageData.color.startsWith('#')) {
+        document.getElementById('header-card').style.borderTopColor = sondageData.color;
+      }
 
       if (sondageData.banner_image && sondageData.banner_image.trim()) {
         const banner = document.getElementById('form-banner');
@@ -259,34 +253,69 @@
       const ratingIcon = sondageData.rating_icon || '⭐';
 
       sections.forEach((sec, idx) => {
-        userRatings[idx] = 5; // Note par défaut 5
+        userRatings[idx] = 5;
 
         const card = document.createElement('div');
-        card.className = 'form-card';
+        card.className = 'gform-card';
 
         const secType = sec.type || 'rating_text';
-
-        let contentHtml = `<div class="section-title"><i class="fa-solid fa-list-check" style="color:#d4af37;"></i> ${idx + 1}. ${sec.label}</div>`;
+        let contentHtml = `<div class="q-title">${idx + 1}. ${sec.label}</div>`;
 
         if (secType === 'rating' || secType === 'rating_text') {
           contentHtml += `
-            <div class="rating-row">
-              <div class="rating-stars" id="stars-sec-${idx}">
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;" id="stars-sec-${idx}">
           `;
           for (let star = 1; star <= 5; star++) {
-            contentHtml += `<span class="star-item ${star <= 5 ? 'active' : ''}" data-sec="${idx}" data-val="${star}" onclick="setRating(${idx}, ${star})">${ratingIcon}</span>`;
+            contentHtml += `<span class="star-item ${star <= 5 ? 'active' : ''}" onclick="setRating(${idx}, ${star})">${ratingIcon}</span>`;
           }
           contentHtml += `
-              </div>
-              <span class="rating-value-badge" id="badge-sec-${idx}">5 / 5</span>
             </div>
           `;
         }
 
-        if (secType === 'text' || secType === 'rating_text') {
+        if (secType === 'rating_text' || secType === 'text') {
           contentHtml += `
-            <textarea class="obs-textarea" id="obs-sec-${idx}" placeholder="Vos observations et remarques pour : ${sec.label} (optionnel)..."></textarea>
+            <textarea class="gform-textarea" id="obs-sec-${idx}" placeholder="Votre réponse / observation..."></textarea>
           `;
+        }
+
+        if (secType === 'radio' && Array.isArray(sec.options)) {
+          contentHtml += `<div style="display: flex; flex-direction: column; gap: 4px;">`;
+          sec.options.forEach((opt, optIdx) => {
+            contentHtml += `
+              <label class="choice-option">
+                <input type="radio" name="radio-sec-${idx}" value="${opt}" ${optIdx === 0 ? 'checked' : ''}>
+                <span class="choice-label">${opt}</span>
+              </label>
+            `;
+          });
+          contentHtml += `</div>`;
+        }
+
+        if (secType === 'checkbox' && Array.isArray(sec.options)) {
+          contentHtml += `<div style="display: flex; flex-direction: column; gap: 4px;">`;
+          sec.options.forEach((opt) => {
+            contentHtml += `
+              <label class="choice-option">
+                <input type="checkbox" name="check-sec-${idx}" value="${opt}">
+                <span class="choice-label">${opt}</span>
+              </label>
+            `;
+          });
+          contentHtml += `</div>`;
+        }
+
+        if (secType === 'scale') {
+          contentHtml += `<div class="scale-row">`;
+          for (let num = 1; num <= 10; num++) {
+            contentHtml += `
+              <label class="scale-item">
+                <span class="scale-num">${num}</span>
+                <input type="radio" name="scale-sec-${idx}" value="${num}" ${num === 10 ? 'checked' : ''}>
+              </label>
+            `;
+          }
+          contentHtml += `</div>`;
         }
 
         card.innerHTML = contentHtml;
@@ -311,14 +340,12 @@
           }
         });
       }
-      const badge = document.getElementById(`badge-sec-${secIdx}`);
-      if (badge) badge.textContent = `${val} / 5`;
     }
 
     async function submitForm() {
       const btn = document.getElementById('btn-submit-form');
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Transmission en cours...';
+      btn.textContent = 'Envoi en cours...';
 
       let sections = [];
       try {
@@ -330,14 +357,37 @@
 
       const sectionScores = [];
       sections.forEach((sec, idx) => {
-        const rating = userRatings[idx] !== undefined ? userRatings[idx] : 5;
-        const obsEl = document.getElementById(`obs-sec-${idx}`);
-        const observation = obsEl ? obsEl.value.trim() : '';
+        const secType = sec.type || 'rating_text';
+        let rating = userRatings[idx] !== undefined ? userRatings[idx] : 5;
+        let observation = '';
+
+        if (secType === 'rating_text' || secType === 'text') {
+          const obsEl = document.getElementById(`obs-sec-${idx}`);
+          if (obsEl) observation = obsEl.value.trim();
+        }
+
+        if (secType === 'radio') {
+          const checked = document.querySelector(`input[name="radio-sec-${idx}"]:checked`);
+          if (checked) observation = checked.value;
+        }
+
+        if (secType === 'checkbox') {
+          const checkedArr = Array.from(document.querySelectorAll(`input[name="check-sec-${idx}"]:checked`)).map(c => c.value);
+          observation = checkedArr.join(', ');
+        }
+
+        if (secType === 'scale') {
+          const checked = document.querySelector(`input[name="scale-sec-${idx}"]:checked`);
+          if (checked) {
+            rating = Math.round(parseInt(checked.value) / 2);
+            observation = `${checked.value} / 10`;
+          }
+        }
 
         sectionScores.push({
           label: sec.label,
           rating,
-          type: sec.type || 'rating_text',
+          type: secType,
           observation
         });
       });
@@ -364,12 +414,12 @@
         } else {
           alert('Erreur lors de la soumission : ' + (data.error || 'Erreur inconnue'));
           btn.disabled = false;
-          btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Envoyer mon Évaluation';
+          btn.textContent = 'Envoyer';
         }
       } catch (err) {
         alert('Erreur réseau : ' + err.message);
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Envoyer mon Évaluation';
+        btn.textContent = 'Envoyer';
       }
     }
   </script>

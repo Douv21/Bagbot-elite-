@@ -1364,28 +1364,20 @@ apiApp.post('/bot/send-sondage', async (req, res) => {
       .setFooter({ text: `ID Sondage : ${sondageId} • Bagbot Elite` })
       .setTimestamp();
 
-    const row = new ActionRowBuilder();
-    if (googleFormUrl && googleFormUrl.trim()) {
-      row.addComponents(
-        new ButtonBuilder()
-          .setLabel('📋 Formulaire Google Forms')
-          .setStyle(ButtonStyle.Link)
-          .setURL(googleFormUrl.trim()),
-        new ButtonBuilder()
-          .setCustomId(`sondage_vote:${sondageId}`)
-          .setLabel('⚡ Évaluation sur Discord')
-          .setStyle(ButtonStyle.Secondary)
-          .setEmoji('📝')
-      );
-    } else {
-      row.addComponents(
-        new ButtonBuilder()
-          .setCustomId(`sondage_vote:${sondageId}`)
-          .setLabel('📝 Participer au Sondage')
-          .setStyle(ButtonStyle.Primary)
-          .setEmoji('📝')
-      );
-    }
+    const hostIp = process.env.PUBLIC_IP || '82.65.75.176';
+    const formUrl = (googleFormUrl && googleFormUrl.trim()) ? googleFormUrl.trim() : `http://${hostIp}:49602/form.html?id=${sondageId}`;
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel('📋 Remplir le Formulaire')
+        .setStyle(ButtonStyle.Link)
+        .setURL(formUrl),
+      new ButtonBuilder()
+        .setCustomId(`sondage_vote:${sondageId}`)
+        .setLabel('⚡ Vote Rapide Discord')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('📝')
+    );
 
     let sentMessage = null;
     if (existingSondageId) {

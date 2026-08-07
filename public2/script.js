@@ -6243,37 +6243,57 @@ function initSimpleEmbedSender() {
   });
 }
 
-// --- SYSTÈME DE SONDAGE ET ÉVALUATIONS PAR FORMULAIRE ---
-function addSondageQuestionInput(labelVal = '', typeVal = 'rating_text') {
+function addSondageQuestionInput(labelVal = '', typeVal = 'rating_text', optionsVal = []) {
   const container = document.getElementById('sondage-questions-container');
   if (!container) return;
   const qIndex = container.children.length + 1;
   const div = document.createElement('div');
   div.className = 'sondage-question-row';
   div.style.display = 'flex';
-  div.style.gap = '8px';
-  div.style.alignItems = 'center';
+  div.style.flexDirection = 'column';
+  div.style.gap = '6px';
   div.style.background = 'rgba(255,255,255,0.03)';
-  div.style.padding = '6px 8px';
+  div.style.padding = '8px 10px';
   div.style.borderRadius = '6px';
   div.style.border = '1px solid rgba(255,255,255,0.08)';
 
+  const optionsStr = Array.isArray(optionsVal) ? optionsVal.join(', ') : (optionsVal || '');
+
   div.innerHTML = `
-    <input type="text" class="inner-input sondage-q-label" placeholder="ex: Question / Critère ${qIndex}" value="${labelVal}" style="flex: 1;">
-    <select class="custom-select sondage-q-type" style="width: 170px;">
-      <option value="rating_text" ${typeVal === 'rating_text' ? 'selected' : ''}>⭐ Note + Observation</option>
-      <option value="rating" ${typeVal === 'rating' ? 'selected' : ''}>⭐ Note seule (1 à 5)</option>
-      <option value="text" ${typeVal === 'text' ? 'selected' : ''}>💬 Question Texte seule</option>
-    </select>
-    <button type="button" class="btn-remove-q" style="padding: 6px 10px; border: none; background: rgba(231,76,60,0.2); color: #e74c3c; border-radius: 4px; cursor: pointer;" title="Supprimer la question"><i class="fa-solid fa-trash"></i></button>
+    <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+      <input type="text" class="inner-input sondage-q-label" placeholder="ex: ${qIndex}. Intitulé de la question..." value="${labelVal}" style="flex: 1;">
+      <select class="custom-select sondage-q-type" style="width: 200px;">
+        <option value="rating_text" ${typeVal === 'rating_text' ? 'selected' : ''}>⭐ Étoiles (1-5) + Remarque</option>
+        <option value="rating" ${typeVal === 'rating' ? 'selected' : ''}>⭐ Étoiles seules (1-5)</option>
+        <option value="radio" ${typeVal === 'radio' ? 'selected' : ''}>🔘 Choix Unique (Radio)</option>
+        <option value="checkbox" ${typeVal === 'checkbox' ? 'selected' : ''}>☑️ Choix Multiples (Checkboxes)</option>
+        <option value="scale" ${typeVal === 'scale' ? 'selected' : ''}>📊 Échelle de 1 à 10</option>
+        <option value="text" ${typeVal === 'text' ? 'selected' : ''}>💬 Texte Libre (Réponse écrite)</option>
+      </select>
+      <button type="button" class="btn-remove-q" style="padding: 6px 10px; border: none; background: rgba(231,76,60,0.2); color: #e74c3c; border-radius: 4px; cursor: pointer;" title="Supprimer la question"><i class="fa-solid fa-trash"></i></button>
+    </div>
+    <div class="sondage-q-options-row" style="display: ${['radio', 'checkbox'].includes(typeVal) ? 'block' : 'none'}; margin-top: 2px;">
+      <input type="text" class="inner-input sondage-q-options" placeholder="Entrez les choix séparés par des virgules (ex: Oui, Non, Peut-être)" value="${optionsStr}" style="width: 100%; font-size: 0.82rem;">
+    </div>
   `;
+
+  const typeSel = div.querySelector('.sondage-q-type');
+  const optsRow = div.querySelector('.sondage-q-options-row');
+
+  typeSel.addEventListener('change', () => {
+    if (['radio', 'checkbox'].includes(typeSel.value)) {
+      optsRow.style.display = 'block';
+    } else {
+      optsRow.style.display = 'none';
+    }
+    updateSondagePreview();
+  });
 
   div.querySelector('.btn-remove-q').addEventListener('click', () => {
     div.remove();
     updateSondagePreview();
   });
   div.querySelector('.sondage-q-label').addEventListener('input', updateSondagePreview);
-  div.querySelector('.sondage-q-type').addEventListener('change', updateSondagePreview);
 
   container.appendChild(div);
   updateSondagePreview();
@@ -6409,7 +6429,7 @@ function renderSondagesSavedList(sondages) {
 
         if (Array.isArray(secArr) && secArr.length > 0) {
           secArr.forEach(sec => {
-            addSondageQuestionInput(sec.label || '', sec.type || 'rating_text');
+            addSondageQuestionInput(sec.label || '', sec.type || 'rating_text', sec.options || []);
           });
         } else {
           addSondageQuestionInput('Accueil & Organisation', 'rating_text');
@@ -6570,8 +6590,12 @@ function initSondageModule() {
       qRows.forEach((row, idx) => {
         const lbl = row.querySelector('.sondage-q-label').value.trim();
         const typ = row.querySelector('.sondage-q-type').value;
+        const optsInput = row.querySelector('.sondage-q-options');
+        const optsRaw = optsInput ? optsInput.value.trim() : '';
+        const options = optsRaw ? optsRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+
         if (lbl) {
-          sections.push({ id: `sec_${idx + 1}`, label: lbl, type: typ });
+          sections.push({ id: `sec_${idx + 1}`, label: lbl, type: typ, options: options });
         }
       });
 
