@@ -498,11 +498,6 @@
           <input type="file" id="facialCameraInput" accept="image/*" capture="user" style="display: none;" onchange="previewFacialPhoto(event)">
         </div>
 
-        <div class="form-group" style="margin-top: 10px; margin-bottom: 15px;">
-          <label><i class="fa-solid fa-calendar-days"></i> Date de Naissance (Optionnelle - Étalonnage de précision)</label>
-          <input type="date" class="form-input" id="facialBirthDateInput">
-        </div>
-
         <button type="button" class="btn-submit" id="btnStartFacial" onclick="processFacialScan()">
           <i class="fa-solid fa-bolt-lightning"></i> Valider et Analyser par l'IA
         </button>
@@ -710,8 +705,7 @@
         }
       }, 150);
 
-      const facialBirthDate = document.getElementById('facialBirthDateInput') ? document.getElementById('facialBirthDateInput').value : null;
-      submitVerification('facial', compressedImg, facialBirthDate, animInterval);
+      submitVerification('facial', compressedImg, null, animInterval);
     }
 
     async function processDocScan() {

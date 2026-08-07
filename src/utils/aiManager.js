@@ -445,20 +445,20 @@ async function analyzeAgeWithAi(imageBase64, method, minAge = 18, birthDateInput
   }
 
   const prompt = method === 'facial'
-    ? `Tu es un médecin légiste expert en biométrie faciale et dermatologie. Ton objectif est de déterminer l'âge PHYSIOLOGIQUE EXACT de la personne sur cette photo avec la plus haute précision scientifique.
+    ? `Tu es un expert biométrique légiste et dermatologique spécialisé dans l'estimation précise de l'âge facial.
 
-MÉTHODOLOGIE D'ANALYSE DÉTAILLÉE :
-1. Zone périoculaire : Pattes d'oie, poches et ridules des yeux.
-2. Structure & Peau : Sillons nasogéniens, rides du front, tonicité des joues et de la mâchoire.
-3. Regard & Pilosité : Densité de barbe, maturité de l'expression et de l'ossature.
-${birthDateInput ? `4. Étalonnage : Date de naissance déclarée par le membre : ${birthDateInput}. Vérifie si les traits biométriques du visage confirment cet âge.` : ''}
+Examine la photo de ce visage et effectue une analyse détaillée étape par étape :
+1. Examine la texture de la peau, le contour des yeux, les rides d'expression (front, yeux, sillons nasogéniens) et la maturité de la structure osseuse.
+2. Identifie la tranche d'âge physiologique réelle (ex: 18-25, 26-34, 35-45, 46-60+).
+3. Détermine l'âge numérique le plus juste et réaliste. Ne sous-estime PAS l'âge des adultes trentenaires et quarantenaires.
 
-DIRECTIVES IMPÉRATIVES :
-- Neutralise l'effet de lissage des appareils photo pour détecter la maturité réelle de la peau.
-- Évalue avec une extrême rigueur l'âge exact en années (ex: 32, 38, 42, etc.). Ne sous-estime PAS l'âge des adultes de 30 à 50+ ans.
-
-Format JSON obligatoire :
-{"age": <nombre_entier>, "is_adult": <true_ou_false>, "reason": "<détail des marqueurs de maturité observés>"}`
+Réponds STRICTEMENT sous la forme d'un objet JSON unique au format :
+{
+  "reasoning": "<analyse détaillée étape par étape des marqueurs de maturité faciale observés>",
+  "age": <nombre_entier_representant_l_age_estime>,
+  "is_adult": <true_si_age_superieur_ou_egal_a_18_sinon_false>,
+  "reason": "<résumé en 1 phrase en français sur les traits du visage>"
+}`
     : `Tu es un expert en vérification de pièces d'identité (CNI, Passeport, Permis). Examine cette photo de document d'identité.
 Identifie la date de naissance si présente. Date déclarée : ${birthDateInput || 'Non renseignée'}.
 Réponds STRICTEMENT avec un objet JSON unique au format :
@@ -470,7 +470,7 @@ Réponds STRICTEMENT avec un objet JSON unique au format :
       userPrompt: prompt,
       imageUrl: cleanBase64,
       temperature: 0.0,
-      maxTokens: 300
+      maxTokens: 350
     });
 
     // Timeout de sécurité de 6 secondes max pour éviter tout blocage du frontend
@@ -487,14 +487,12 @@ Réponds STRICTEMENT avec un objet JSON unique au format :
         if (parsed && typeof parsed.age === 'number') {
           let calculatedAge = Math.max(1, Math.round(parsed.age));
           
-          // Étalonnage avec date déclarée si présente
-          if (birthDateInput) {
+          // Dans le mode document uniquement, validation par date de naissance si présente
+          if (method === 'document' && birthDateInput) {
             const birthYear = new Date(birthDateInput).getFullYear();
             if (!isNaN(birthYear) && birthYear > 1900 && birthYear <= new Date().getFullYear()) {
               const declaredAge = new Date().getFullYear() - birthYear;
-              if (declaredAge >= minAge && parsed.is_adult !== false) {
-                calculatedAge = Math.max(calculatedAge, declaredAge);
-              }
+              calculatedAge = Math.max(calculatedAge, declaredAge);
             }
           }
 
