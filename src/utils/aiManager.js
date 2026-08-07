@@ -284,8 +284,72 @@ async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperatu
 }
 
 /**
- * Appelle Pollinations AI (Fallback sans clé)
+ * Appelle Ollama Vision (moondream, llava, etc.) avec une image en base64
+ * Utilisé comme fallback local quand Groq Vision est indisponible
  */
+async function callOllamaVisionApi(prompt, imageBase64OrUrl) {
+  const hosts = [
+    'http://192.168.1.145:11434',
+    'http://82.65.75.176:11434',
+    process.env.OLLAMA_HOST,
+    'http://127.0.0.1:11434'
+  ].filter(Boolean);
+
+  // Modèles vision disponibles localement (dans l'ordre de préférence)
+  const visionModels = ['moondream', 'llava:7b', 'llava', 'minicpm-v', 'llava:13b'];
+
+  // Extraire le base64 pur si c'est une data URL
+  let imageBase64 = imageBase64OrUrl;
+  if (imageBase64OrUrl && imageBase64OrUrl.startsWith('data:')) {
+    imageBase64 = imageBase64OrUrl.split(',')[1];
+  }
+
+  for (const host of hosts) {
+    const baseUrl = host.replace(/\/+$/, '');
+    // Vérifier quels modèles vision sont disponibles sur ce host
+    let availableVisionModels = [];
+    try {
+      const tagsRes = await fetch(`${baseUrl}/api/tags`, { signal: AbortSignal.timeout(3000) });
+      if (tagsRes.ok) {
+        const tagsData = await tagsRes.json();
+        const available = (tagsData.models || []).map(m => m.name);
+        availableVisionModels = visionModels.filter(vm => available.some(a => a.startsWith(vm.split(':')[0])));
+      }
+    } catch (e) { continue; }
+
+    if (availableVisionModels.length === 0) continue;
+
+    for (const model of availableVisionModels) {
+      try {
+        const body = {
+          model,
+          prompt: prompt || 'Estime l\'age de la personne sur cette image. Reponds uniquement en JSON valide: {"age": X, "isAdult": true/false, "confidence": "low/medium/high"}',
+          images: [imageBase64],
+          stream: false,
+          options: { temperature: 0.3, num_predict: 200 }
+        };
+        const res = await fetch(`${baseUrl}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(30000) // 30s pour la vision locale
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.response) {
+            console.log(`[AI Manager] Ollama Vision (${model}@${host}) OK`);
+            return data.response.trim();
+          }
+        }
+      } catch (e) {
+        console.warn(`[AI Manager] Ollama Vision (${model}@${host}) échoué: ${e.message}`);
+      }
+    }
+  }
+  throw new Error('Aucun modèle Vision Ollama local disponible (moondream/llava non installés)');
+}
+
+
 async function callPollinationsFallback(systemPrompt, userPrompt, messagesHistory = null) {
   const models = ['openai', 'mistral', 'qwen', 'llama'];
   
@@ -441,7 +505,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
     return null;
   };
 
-  // Pour la catégorie vision, on teste uniquement Groq Vision & Gemini Flash (ultra-rapides 0.4s)
+  // Pour la catégorie vision : Gemini → Groq → Ollama local (moondream/llava)
   if (category === 'vision') {
     const resGemini = await tryGeminiPool();
     if (resGemini) return resGemini;
@@ -449,7 +513,18 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
     const resGroq = await tryGroqPool();
     if (resGroq) return resGroq;
 
-    throw new Error("Aucune API Vision disponible pour le traitement instantané.");
+    // Fallback local : Ollama avec moondream ou llava (fonctionne sans internet)
+    if (imageUrl) {
+      try {
+        console.log('[AI Manager] Basculement sur Ollama Vision local (moondream/llava)...');
+        const resOllamaVision = await callOllamaVisionApi(userPrompt, imageUrl);
+        if (resOllamaVision) return resOllamaVision;
+      } catch (e) {
+        console.warn('[AI Manager] Ollama Vision local indisponible:', e.message);
+      }
+    }
+
+    throw new Error("Aucune API Vision disponible (Groq, Gemini, Ollama local tous échoués).");
   }
 
   // 1. Tenter en priorité absolue Groq (Ultra-rapide, réponse instantanée en 0.4s)
