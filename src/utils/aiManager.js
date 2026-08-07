@@ -341,7 +341,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
   const config = guildId ? getAiConfig(guildId) : {
     preferred_provider: 'auto',
     groq_text_model: 'llama-3.3-70b-versatile',
-    groq_vision_model: 'llama-3.2-90b-vision-preview',
+    groq_vision_model: 'meta-llama/llama-4-scout-17b-16e-instruct',
     groq_server_model: 'llama-3.1-8b-instant',
     gemini_model: 'gemini-2.0-flash'
   };
@@ -353,7 +353,14 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
 
   // Déterminer les modèles à utiliser selon la catégorie
   let groqModel = config.groq_text_model || 'llama-3.3-70b-versatile';
-  if (category === 'vision') groqModel = config.groq_vision_model || 'llama-3.2-90b-vision-preview';
+  // Force un modèle Vision actif quel que soit ce qui est en DB (les anciens llama-3.2 sont décommissionnés)
+  if (category === 'vision') {
+    const visionModelFromDb = config.groq_vision_model || '';
+    const deprecatedModels = ['llama-3.2-11b-vision-preview', 'llama-3.2-90b-vision-preview', 'llama-3.2-90b-vision-instruct', 'llama-3.2-11b-vision-instruct'];
+    groqModel = deprecatedModels.includes(visionModelFromDb) || !visionModelFromDb
+      ? 'meta-llama/llama-4-scout-17b-16e-instruct'
+      : visionModelFromDb;
+  }
   if (category === 'server') groqModel = config.groq_server_model || 'llama-3.1-8b-instant';
 
   const geminiModel = config.gemini_model || 'gemini-2.0-flash';
@@ -393,7 +400,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
       try {
         let result = null;
         if (imageUrl && category === 'vision') {
-          result = await callGroqVisionApi(keyObj.api_key, groqModel || 'llama-3.2-90b-vision-preview', userPrompt, imageUrl, temperature, maxTokens);
+          result = await callGroqVisionApi(keyObj.api_key, groqModel || 'meta-llama/llama-4-scout-17b-16e-instruct', userPrompt, imageUrl, temperature, maxTokens);
         } else {
           result = await callGroqApi(keyObj.api_key, groqModel, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
         }
