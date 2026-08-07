@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Formulaire d'Évaluation • Bagbot Elite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: #0a0a0f;
+      color: #e1e1e1;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 30px 15px;
+      background-image: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.12), transparent 70%);
+    }
+    .form-container {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .form-card {
+      background: rgba(18, 18, 26, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(212, 175, 55, 0.25);
+      border-radius: 14px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      transition: border-color 0.3s, transform 0.2s;
+    }
+    .form-card:hover {
+      border-color: rgba(212, 175, 55, 0.5);
+    }
+    .header-card {
+      border-top: 6px solid #d4af37;
+      position: relative;
+      overflow: hidden;
+    }
+    .banner-img {
+      width: 100%;
+      max-height: 200px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    .form-title {
+      font-family: 'Cinzel', serif;
+      color: #ffd700;
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .form-desc {
+      color: #b9bbbe;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .rating-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+    .rating-stars {
+      display: flex;
+      gap: 8px;
+    }
+    .star-item {
+      font-size: 2rem;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.15s, filter 0.15s;
+      filter: grayscale(100%) opacity(0.4);
+    }
+    .star-item.active, .star-item:hover {
+      filter: grayscale(0%) opacity(1);
+      transform: scale(1.15);
+    }
+    .rating-value-badge {
+      background: rgba(212, 175, 55, 0.15);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      color: #ffd700;
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+    .obs-textarea {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 12px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.9rem;
+      resize: vertical;
+      min-height: 80px;
+      transition: border-color 0.2s;
+    }
+    .obs-textarea:focus {
+      outline: none;
+      border-color: #d4af37;
+      box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+    }
+    .btn-submit {
+      width: 100%;
+      background: linear-gradient(135deg, #d4af37, #b8962e);
+      color: #000;
+      font-weight: 700;
+      font-size: 1.1rem;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+    }
+    .success-screen {
+      display: none;
+      text-align: center;
+      padding: 50px 20px;
+    }
+    .success-icon {
+      font-size: 4rem;
+      color: #2ecc71;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <div id="form-loading" style="text-align: center; padding: 40px; color: #ffd700;">
+      <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+      <p style="margin-top: 10px;">Chargement du formulaire d'évaluation...</p>
+    </div>
+
+    <div id="form-body" style="display: none; flex-direction: column; gap: 20px;">
+      <!-- Card En-tête -->
+      <div class="form-card header-card">
+        <img id="form-banner" src="" class="banner-img" style="display: none;">
+        <h1 class="form-title" id="form-header-title">📊 Titre du Sondage</h1>
+        <p class="form-desc" id="form-header-desc">Chargement des instructions...</p>
+      </div>
+
+      <!-- Identification optionnelle -->
+      <div class="form-card">
+        <div class="section-title"><i class="fa-solid fa-user" style="color: #d4af37;"></i> Votre Pseudo Discord / Identifiant</div>
+        <input type="text" id="user-tag" class="obs-textarea" style="min-height: auto;" placeholder="ex: Pseudo#0000 ou Pseudo (facultatif)">
+      </div>
+
+      <!-- Container des Questions & Sections -->
+      <div id="questions-container" style="display: flex; flex-direction: column; gap: 20px;">
+        <!-- Généré dynamiquement -->
+      </div>
+
+      <!-- Section Remarques Générales -->
+      <div class="form-card" id="card-general-remark" style="display: none;">
+        <div class="section-title"><i class="fa-solid fa-comment-dots" style="color: #d4af37;"></i> Remarques & Suggestions Générales</div>
+        <textarea id="general-remark" class="obs-textarea" placeholder="Partagez vos remarques ou idées tout en bas pour conclure votre avis..."></textarea>
+      </div>
+
+      <!-- Bouton Soumettre -->
+      <button type="button" class="btn-submit" id="btn-submit-form" onclick="submitForm()">
+        <i class="fa-solid fa-paper-plane"></i> Envoyer mon Évaluation
+      </button>
+    </div>
+
+    <!-- Écran de Succès -->
+    <div class="form-card success-screen" id="success-screen">
+      <div class="success-icon"><i class="fa-solid fa-circle-check"></i></div>
+      <h2 style="font-family: 'Cinzel', serif; color: #ffd700; margin-bottom: 10px;">Évaluation Envoyée !</h2>
+      <p style="color: #b9bbbe; font-size: 1rem; margin-bottom: 20px;">Merci d'avoir pris le temps de répondre. Vos réponses et observations ont été transmises avec succès au serveur !</p>
+      <p style="font-size: 0.85rem; color: #8e9297;">Vous pouvez fermer cette page.</p>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const sondageId = urlParams.get('id');
+    let sondageData = null;
+    const userRatings = {};
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!sondageId) {
+        document.getElementById('form-loading').innerHTML = '<span style="color:#e74c3c;">❌ ID de sondage manquant dans l\'URL.</span>';
+        return;
+      }
+
+      fetch(`/api/form/${sondageId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            document.getElementById('form-loading').innerHTML = `<span style="color:#e74c3c;">❌ ${data.error}</span>`;
+            return;
+          }
+
+          sondageData = data;
+          renderForm();
+        })
+        .catch(err => {
+          document.getElementById('form-loading').innerHTML = `<span style="color:#e74c3c;">❌ Erreur : ${err.message}</span>`;
+        });
+    });
+
+    function renderForm() {
+      document.getElementById('form-loading').style.display = 'none';
+      document.getElementById('form-body').style.display = 'flex';
+
+      document.getElementById('form-header-title').textContent = `📊 ${sondageData.title || 'Formulaire'}`;
+      document.getElementById('form-header-desc').textContent = sondageData.description || 'Veuillez remplir vos évaluations ci-dessous.';
+
+      if (sondageData.banner_image && sondageData.banner_image.trim()) {
+        const banner = document.getElementById('form-banner');
+        banner.src = sondageData.banner_image.trim();
+        banner.style.display = 'block';
+      }
+
+      let sections = [];
+      try {
+        sections = JSON.parse(sondageData.sections || '[]');
+      } catch (e) {}
+      if (!sections || sections.length === 0) {
+        sections = [{ id: 'sec1', label: sondageData.title || 'Évaluation', type: 'rating_text' }];
+      }
+
+      const qContainer = document.getElementById('questions-container');
+      qContainer.innerHTML = '';
+
+      const ratingIcon = sondageData.rating_icon || '⭐';
+
+      sections.forEach((sec, idx) => {
+        userRatings[idx] = 5; // Note par défaut 5
+
+        const card = document.createElement('div');
+        card.className = 'form-card';
+
+        const secType = sec.type || 'rating_text';
+
+        let contentHtml = `<div class="section-title"><i class="fa-solid fa-list-check" style="color:#d4af37;"></i> ${idx + 1}. ${sec.label}</div>`;
+
+        if (secType === 'rating' || secType === 'rating_text') {
+          contentHtml += `
+            <div class="rating-row">
+              <div class="rating-stars" id="stars-sec-${idx}">
+          `;
+          for (let star = 1; star <= 5; star++) {
+            contentHtml += `<span class="star-item ${star <= 5 ? 'active' : ''}" data-sec="${idx}" data-val="${star}" onclick="setRating(${idx}, ${star})">${ratingIcon}</span>`;
+          }
+          contentHtml += `
+              </div>
+              <span class="rating-value-badge" id="badge-sec-${idx}">5 / 5</span>
+            </div>
+          `;
+        }
+
+        if (secType === 'text' || secType === 'rating_text') {
+          contentHtml += `
+            <textarea class="obs-textarea" id="obs-sec-${idx}" placeholder="Vos observations et remarques pour : ${sec.label} (optionnel)..."></textarea>
+          `;
+        }
+
+        card.innerHTML = contentHtml;
+        qContainer.appendChild(card);
+      });
+
+      if (sondageData.has_general_remark !== 0) {
+        document.getElementById('card-general-remark').style.display = 'block';
+      }
+    }
+
+    function setRating(secIdx, val) {
+      userRatings[secIdx] = val;
+      const starsContainer = document.getElementById(`stars-sec-${secIdx}`);
+      if (starsContainer) {
+        const items = starsContainer.querySelectorAll('.star-item');
+        items.forEach((item, i) => {
+          if (i < val) {
+            item.classList.add('active');
+          } else {
+            item.classList.remove('active');
+          }
+        });
+      }
+      const badge = document.getElementById(`badge-sec-${secIdx}`);
+      if (badge) badge.textContent = `${val} / 5`;
+    }
+
+    async function submitForm() {
+      const btn = document.getElementById('btn-submit-form');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Transmission en cours...';
+
+      let sections = [];
+      try {
+        sections = JSON.parse(sondageData.sections || '[]');
+      } catch (e) {}
+      if (!sections || sections.length === 0) {
+        sections = [{ id: 'sec1', label: sondageData.title || 'Évaluation', type: 'rating_text' }];
+      }
+
+      const sectionScores = [];
+      sections.forEach((sec, idx) => {
+        const rating = userRatings[idx] !== undefined ? userRatings[idx] : 5;
+        const obsEl = document.getElementById(`obs-sec-${idx}`);
+        const observation = obsEl ? obsEl.value.trim() : '';
+
+        sectionScores.push({
+          label: sec.label,
+          rating,
+          type: sec.type || 'rating_text',
+          observation
+        });
+      });
+
+      const userTag = document.getElementById('user-tag').value.trim();
+      const generalRemark = document.getElementById('general-remark') ? document.getElementById('general-remark').value.trim() : '';
+
+      try {
+        const res = await fetch('/api/form/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sondage_id: sondageId,
+            userTag,
+            sectionScores,
+            generalRemark
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('form-body').style.display = 'none';
+          document.getElementById('success-screen').style.display = 'block';
+        } else {
+          alert('Erreur lors de la soumission : ' + (data.error || 'Erreur inconnue'));
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Envoyer mon Évaluation';
+        }
+      } catch (err) {
+        alert('Erreur réseau : ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Envoyer mon Évaluation';
+      }
+    }
+  </script>
+</body>
+</html>

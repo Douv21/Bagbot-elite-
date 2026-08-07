@@ -1875,6 +1875,41 @@ app.post('/api/config/delete-sondage', (req, res) => {
   }
 });
 
+// Routes publiques pour l'application Formulaire Web (style Google Forms)
+app.get('/api/form/:sondageId', (req, res) => {
+  try {
+    const sondageId = req.params.sondageId;
+    const sondage = db.prepare('SELECT * FROM sondages WHERE id = ?').get(sondageId);
+    if (!sondage) return res.status(404).json({ error: 'Formulaire introuvable en base de données' });
+    res.json(sondage);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/form/submit', async (req, res) => {
+  try {
+    const { sondage_id, userTag, sectionScores, generalRemark } = req.body || {};
+    if (!sondage_id) return res.status(400).json({ error: 'ID de formulaire requis' });
+
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const botResponse = await fetch(`http://127.0.0.1:${botApiPort}/bot/submit-web-form`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sondageId: sondage_id, userTag, sectionScores, generalRemark })
+    }).catch(() => null);
+
+    if (!botResponse || !botResponse.ok) {
+      const errText = botResponse ? await botResponse.text() : 'Erreur de communication avec le Bot';
+      return res.status(500).json({ error: errText });
+    }
+
+    res.json({ success: true, message: 'Évaluation transmise avec succès !' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Auto-rôles à l'arrivée
 app.post('/api/config/autoroles-on-join/add', (req, res) => {
   try {

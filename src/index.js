@@ -1351,10 +1351,17 @@ apiApp.post('/bot/send-sondage', async (req, res) => {
       .setFooter({ text: `ID Sondage : ${sondageId} • Bagbot Elite` })
       .setTimestamp();
 
+    const hostIp = process.env.PUBLIC_IP || '82.65.75.176';
+    const webFormUrl = `http://${hostIp}:49602/form.html?id=${sondageId}`;
+
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
+        .setLabel('📝 Remplir le Formulaire (Web)')
+        .setStyle(ButtonStyle.Link)
+        .setURL(webFormUrl),
+      new ButtonBuilder()
         .setCustomId(`sondage_vote:${sondageId}`)
-        .setLabel('📝 Participer au Sondage')
+        .setLabel('⚡ Évaluation sur Discord')
         .setStyle(ButtonStyle.Primary)
         .setEmoji('📝')
     );
@@ -1364,6 +1371,129 @@ apiApp.post('/bot/send-sondage', async (req, res) => {
     return res.json({ success: true, sondageId, messageId: sentMessage.id });
   } catch (err) {
     console.error('Erreur API send-sondage:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiApp.post('/bot/submit-web-form', async (req, res) => {
+  try {
+    const { sondageId, userTag, sectionScores = [], generalRemark = '' } = req.body;
+    const { getSondage, saveSondageResponse, getSondageResponses } = require('./database/db');
+    const { getStarRatingStr } = require('./utils/sondageHandler');
+
+    const sondage = getSondage(sondageId);
+    if (!sondage) return res.status(404).json({ error: 'Sondage introuvable en base de données' });
+
+    let totalScore = 0;
+    let validScoresCount = 0;
+
+    sectionScores.forEach(sec => {
+      let score = parseInt(sec.rating) || 5;
+      if (score < 1) score = 1;
+      if (score > 5) score = 5;
+      totalScore += score;
+      validScoresCount++;
+    });
+
+    const overallRating = validScoresCount > 0 ? (totalScore / validScoresCount).toFixed(1) : '5.0';
+
+    const responsePayload = {
+      overallRating,
+      sectionScores,
+      generalRemark: (generalRemark || '').trim()
+    };
+
+    const userId = `web_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    saveSondageResponse(sondageId, userId, Math.round(overallRating), JSON.stringify(responsePayload));
+
+    const guild = client.guilds.cache.get(sondage.guild_id);
+    if (guild) {
+      const channel = guild.channels.cache.get(sondage.channel_id);
+      if (channel && channel.isTextBased()) {
+        const responses = getSondageResponses(sondageId);
+        const totalVotes = responses.length;
+
+        let globalAvg = 0;
+        if (totalVotes > 0) {
+          const sum = responses.reduce((acc, r) => acc + (r.rating || 5), 0);
+          globalAvg = (sum / totalVotes).toFixed(1);
+        }
+
+        const icon = sondage.rating_icon || '⭐';
+
+        const embed = new EmbedBuilder()
+          .setTitle(`📊 ${sondage.title}`)
+          .setDescription(
+            (sondage.description ? `${sondage.description}\n\n` : '') +
+            `**📈 Statistiques d'Évaluation en Temps Réel :**\n` +
+            `• **Note globale moyenne :** ${globalAvg}/5 ${icon}\n` +
+            `• **Nombre de fiches d'évaluations :** ${totalVotes} membre(s)`
+          )
+          .setColor(sondage.color || '#F1C40F')
+          .setFooter({ text: `ID Sondage : ${sondageId} • Bagbot Elite` })
+          .setTimestamp();
+
+        const messages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
+        if (messages) {
+          const origMsg = messages.find(m => m.embeds.length > 0 && m.embeds[0].footer && m.embeds[0].footer.text && m.embeds[0].footer.text.includes(sondageId));
+          if (origMsg && origMsg.editable) {
+            await origMsg.edit({ embeds: [embed] }).catch(() => null);
+          }
+        }
+      }
+
+      if (sondage.results_channel_id) {
+        const resultsChannel = guild.channels.cache.get(sondage.results_channel_id);
+        if (resultsChannel && resultsChannel.isTextBased()) {
+          let mentionsArr = [];
+          try {
+            mentionsArr = typeof sondage.mentions === 'string' ? JSON.parse(sondage.mentions || '[]') : (sondage.mentions || []);
+          } catch (e) {}
+
+          const mentionsContent = Array.isArray(mentionsArr) && mentionsArr.length > 0 ? mentionsArr.join(' ') : null;
+
+          const items = [];
+          sectionScores.forEach(sec => {
+            let scoreText = getStarRatingStr(sec.rating, sondage.rating_icon || '⭐');
+            let val = sec.observation ? `${scoreText}\n*Remarques :* "${sec.observation}"` : scoreText;
+            items.push({ name: sec.label, value: val });
+          });
+
+          if (generalRemark && generalRemark.trim()) {
+            items.push({ name: '📌 Remarques & Suggestions Générales', value: `"${generalRemark.trim()}"` });
+          }
+
+          const embedContent = items.map(item => `**${item.name}**\n${item.value}`).join('\n\n');
+          const shortDesc = sondage.short_description && sondage.short_description.trim() ? sondage.short_description.trim() : 'Voici les réponses reçues :';
+
+          const ficheEmbed = new EmbedBuilder()
+            .setTitle(sondage.title || 'Nouvelle réponse au formulaire')
+            .setDescription(`${shortDesc}\n\n${embedContent}`)
+            .setColor(sondage.color || '#78A8C6')
+            .setTimestamp();
+
+          if (sondage.avatar_image && sondage.avatar_image.trim()) {
+            ficheEmbed.setThumbnail(sondage.avatar_image.trim());
+          }
+
+          if (sondage.banner_image && sondage.banner_image.trim()) {
+            ficheEmbed.setImage(sondage.banner_image.trim());
+          }
+
+          const authorText = userTag ? `Réponse soumise via Web par ${userTag}` : `Réponse soumise via le Formulaire Web`;
+          ficheEmbed.setFooter({ text: authorText });
+
+          await resultsChannel.send({
+            content: mentionsContent,
+            embeds: [ficheEmbed]
+          }).catch(console.error);
+        }
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Erreur submit-web-form:', err);
     res.status(500).json({ error: err.message });
   }
 });
