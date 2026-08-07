@@ -131,12 +131,6 @@ async function callGroqVisionApi(apiKey, model, prompt, imageUrl, temperature = 
   }
 
   throw lastError || new Error('Groq Vision API failed');
-
-  const data = await response.json();
-  if (data.choices && data.choices[0] && data.choices[0].message) {
-    return data.choices[0].message.content.trim();
-  }
-  throw new Error('Groq Vision API response format invalid');
 }
 
 /**
