@@ -6347,10 +6347,77 @@ function renderSondagesSavedList(sondages) {
           Salon: <strong>#${channelName}</strong> · Note : <strong>${s.avg_rating || 0}/5 ${s.rating_icon || '⭐'}</strong> (${s.total_votes || 0} votes)
         </div>
       </div>
-      <button type="button" class="btn btn-sm btn-delete-sondage" style="background: #e74c3c; color: #fff; border: none; padding: 6px 12px; font-size: 0.82rem; border-radius: 6px; cursor: pointer;">
-        <i class="fa-solid fa-trash"></i> Supprimer
-      </button>
+      <div style="display: flex; gap: 6px;">
+        <button type="button" class="btn btn-sm btn-edit-sondage" style="background: #3498db; color: #fff; border: none; padding: 6px 12px; font-size: 0.82rem; border-radius: 6px; cursor: pointer;">
+          <i class="fa-solid fa-pen-to-square"></i> Modifier
+        </button>
+        <button type="button" class="btn btn-sm btn-delete-sondage" style="background: #e74c3c; color: #fff; border: none; padding: 6px 12px; font-size: 0.82rem; border-radius: 6px; cursor: pointer;">
+          <i class="fa-solid fa-trash"></i> Supprimer
+        </button>
+      </div>
     `;
+
+    card.querySelector('.btn-edit-sondage').addEventListener('click', () => {
+      safeSetVal('sondage_channel', s.channel_id);
+      safeSetVal('sondage_results_channel', s.results_channel_id || '');
+      safeSetVal('sondage_title', s.title || '');
+      safeSetVal('sondage_desc', s.description || '');
+
+      const iconSel = document.getElementById('sondage_icon');
+      const customIconInput = document.getElementById('sondage_icon_custom');
+      if (iconSel) {
+        const standardIcons = ['⭐', '❤️', '👍', '🔥', '🎯', '💎', '👑', '🌟', '🏆', '📌', '✨'];
+        if (standardIcons.includes(s.rating_icon)) {
+          iconSel.value = s.rating_icon;
+          if (customIconInput) customIconInput.style.display = 'none';
+        } else {
+          iconSel.value = 'custom';
+          if (customIconInput) {
+            customIconInput.style.display = 'block';
+            customIconInput.value = s.rating_icon || '';
+          }
+        }
+      }
+
+      safeSetVal('sondage_text_type', s.text_type || 'long');
+      safeSetVal('sondage_color', s.color || '#F1C40F');
+      safeSetVal('sondage_short_desc', s.short_description || '');
+      safeSetVal('sondage_avatar_image', s.avatar_image || '');
+      safeSetVal('sondage_banner_image', s.banner_image || '');
+
+      let mentionsStr = '';
+      try {
+        const mArr = typeof s.mentions === 'string' ? JSON.parse(s.mentions || '[]') : (s.mentions || []);
+        mentionsStr = Array.isArray(mArr) ? mArr.join(' ') : '';
+      } catch (e) {}
+      safeSetVal('sondage_mentions', mentionsStr);
+
+      const hasGenCheck = document.getElementById('sondage_has_general_remark');
+      if (hasGenCheck) hasGenCheck.checked = s.has_general_remark !== 0;
+
+      const qContainer = document.getElementById('sondage-questions-container');
+      if (qContainer) {
+        qContainer.innerHTML = '';
+        let secArr = [];
+        try {
+          secArr = typeof s.sections === 'string' ? JSON.parse(s.sections || '[]') : (s.sections || []);
+        } catch (e) {}
+
+        if (Array.isArray(secArr) && secArr.length > 0) {
+          secArr.forEach(sec => {
+            addSondageQuestionInput(sec.label || '', sec.type || 'rating_text');
+          });
+        } else {
+          addSondageQuestionInput('Accueil & Organisation', 'rating_text');
+        }
+      }
+
+      updateSondagePreview();
+      if (typeof showToast === 'function') showToast(`Formulaire "${s.title}" chargé pour modification dans l'éditeur ci-dessous.`);
+      
+      const formEl = document.getElementById('form-sondage');
+      if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+    });
 
     card.querySelector('.btn-delete-sondage').addEventListener('click', async () => {
       if (!confirm('Supprimer ce sondage de la base de données ?')) return;

@@ -94,10 +94,12 @@ async function handleSondageInteraction(interaction) {
 
   // 2. Soumission du Formulaire d'Évaluation (Modal Submit)
   if (interaction.isModalSubmit() && customId.startsWith('sondage_modal:')) {
+    await interaction.deferReply({ ephemeral: true }).catch(() => null);
+
     const sondageId = customId.replace('sondage_modal:', '');
     const sondage = getSondage(sondageId);
     if (!sondage) {
-      return interaction.reply({ content: '❌ Sondage introuvable.', ephemeral: true });
+      return interaction.editReply({ content: '❌ Sondage introuvable.' });
     }
 
     let sections = [];
@@ -258,7 +260,7 @@ async function handleSondageInteraction(interaction) {
       }
     }
 
-    await interaction.reply({ content: '✅ **Votre fiche d\'évaluation a été transmise avec succès ! Merci pour votre retour.**', ephemeral: true });
+    await interaction.editReply({ content: '✅ **Votre fiche d\'évaluation a été transmise avec succès ! Merci pour votre retour.**' }).catch(() => null);
     return true;
   }
 

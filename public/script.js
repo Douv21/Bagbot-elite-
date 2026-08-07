@@ -6179,6 +6179,141 @@ function updateSondagePreview() {
   });
 }
 
+function renderSondagesSavedList(sondages) {
+  const container = document.getElementById('sondages-saved-list');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!sondages || sondages.length === 0) {
+    container.innerHTML = '<p style="color: #8e9297; font-style: italic; font-size: 0.85rem;">Aucun sondage enregistré pour le moment. Publiez-en un avec le formulaire ci-dessous !</p>';
+    return;
+  }
+
+  sondages.forEach(s => {
+    const channelName = typeof getChannelName === 'function' ? getChannelName(s.channel_id) : s.channel_id;
+    const card = document.createElement('div');
+    card.style.background = 'rgba(255,255,255,0.03)';
+    card.style.border = '1px solid rgba(255,255,255,0.08)';
+    card.style.padding = '10px 14px';
+    card.style.borderRadius = '8px';
+    card.style.display = 'flex';
+    card.style.alignItems = 'center';
+    card.style.justifyContent = 'space-between';
+    card.style.gap = '10px';
+
+    card.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;">
+        <div style="font-weight: 600; color: #fff; font-size: 0.95rem;">📊 ${s.title}</div>
+        <div style="font-size: 0.8rem; color: #b9bbbe;">
+          Salon: <strong>#${channelName}</strong> · Note : <strong>${s.avg_rating || 0}/5 ${s.rating_icon || '⭐'}</strong> (${s.total_votes || 0} votes)
+        </div>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <button type="button" class="btn btn-sm btn-edit-sondage" style="background: #3498db; color: #fff; border: none; padding: 6px 12px; font-size: 0.82rem; border-radius: 6px; cursor: pointer;">
+          <i class="fa-solid fa-pen-to-square"></i> Modifier
+        </button>
+        <button type="button" class="btn btn-sm btn-delete-sondage" style="background: #e74c3c; color: #fff; border: none; padding: 6px 12px; font-size: 0.82rem; border-radius: 6px; cursor: pointer;">
+          <i class="fa-solid fa-trash"></i> Supprimer
+        </button>
+      </div>
+    `;
+
+    card.querySelector('.btn-edit-sondage').addEventListener('click', () => {
+      safeSetVal('sondage_channel', s.channel_id);
+      safeSetVal('sondage_results_channel', s.results_channel_id || '');
+      safeSetVal('sondage_title', s.title || '');
+      safeSetVal('sondage_desc', s.description || '');
+
+      const iconSel = document.getElementById('sondage_icon');
+      const customIconInput = document.getElementById('sondage_icon_custom');
+      if (iconSel) {
+        const standardIcons = ['⭐', '❤️', '👍', '🔥', '🎯', '💎', '👑', '🌟', '🏆', '📌', '✨'];
+        if (standardIcons.includes(s.rating_icon)) {
+          iconSel.value = s.rating_icon;
+          if (customIconInput) customIconInput.style.display = 'none';
+        } else {
+          iconSel.value = 'custom';
+          if (customIconInput) {
+            customIconInput.style.display = 'block';
+            customIconInput.value = s.rating_icon || '';
+          }
+        }
+      }
+
+      safeSetVal('sondage_text_type', s.text_type || 'long');
+      safeSetVal('sondage_color', s.color || '#F1C40F');
+      safeSetVal('sondage_short_desc', s.short_description || '');
+      safeSetVal('sondage_avatar_image', s.avatar_image || '');
+      safeSetVal('sondage_banner_image', s.banner_image || '');
+
+      let mentionsStr = '';
+      try {
+        const mArr = typeof s.mentions === 'string' ? JSON.parse(s.mentions || '[]') : (s.mentions || []);
+        mentionsStr = Array.isArray(mArr) ? mArr.join(' ') : '';
+      } catch (e) {}
+      safeSetVal('sondage_mentions', mentionsStr);
+
+      const hasGenCheck = document.getElementById('sondage_has_general_remark');
+      if (hasGenCheck) hasGenCheck.checked = s.has_general_remark !== 0;
+
+      const qContainer = document.getElementById('sondage-questions-container');
+      if (qContainer) {
+        qContainer.innerHTML = '';
+        let secArr = [];
+        try {
+          secArr = typeof s.sections === 'string' ? JSON.parse(s.sections || '[]') : (s.sections || []);
+        } catch (e) {}
+
+        if (Array.isArray(secArr) && secArr.length > 0) {
+          secArr.forEach(sec => {
+            addSondageQuestionInput(sec.label || '', sec.type || 'rating_text');
+          });
+        } else {
+          addSondageQuestionInput('Accueil & Organisation', 'rating_text');
+        }
+      }
+
+      updateSondagePreview();
+      if (typeof showToast === 'function') showToast(`Formulaire "${s.title}" chargé pour modification dans l'éditeur ci-dessous.`);
+      
+      const formEl = document.getElementById('form-sondage');
+      if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    card.querySelector('.btn-delete-sondage').addEventListener('click', async () => {
+      if (!confirm('Supprimer ce sondage de la base de données ?')) return;
+      try {
+        const res = await fetch('/api/config/delete-sondage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sondage_id: s.id })
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (typeof showToast === 'function') showToast('Sondage supprimé !');
+          loadSondagesSavedList();
+        } else {
+          if (typeof showToast === 'function') showToast(`Erreur : ${data.error}`, true);
+        }
+      } catch (err) {
+        if (typeof showToast === 'function') showToast(`Erreur : ${err.message}`, true);
+      }
+    });
+
+    container.appendChild(card);
+  });
+}
+
+async function loadSondagesSavedList() {
+  try {
+    const res = await fetch('/api/config/sondages');
+    const sondages = await res.json();
+    renderSondagesSavedList(sondages);
+  } catch (e) {
+    console.error('Erreur chargement sondages:', e);
+  }
+}
+
 function initSondageModule() {
   const form = document.getElementById('form-sondage');
   const inputTitle = document.getElementById('sondage_title');
