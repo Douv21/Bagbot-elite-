@@ -1,5 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
 const { getInviteConfig, recordInviteJoin, recordInviteLeave, getUserInviteStats } = require('../database/db');
+const { sendLog } = require('./helpers');
 
 // Cache global en mémoire des invitations par serveur
 // Structure : invitesCache.get(guildId) = Map(code => uses)
@@ -56,25 +57,28 @@ async function handleMemberJoinInvite(member) {
     stats = getUserInviteStats(guildId, inviterId);
   }
 
-  // Vérifier la configuration des logs d'invitation
+  const inviterMention = inviterUser ? `<@${inviterUser.id}>` : (inviterId === 'vanity' ? 'Lien Personnalisé (Vanity)' : 'Inconnu / Direct');
+  const joinEmbed = new EmbedBuilder()
+    .setTitle('📥 Nouveau Membre Rejoint !')
+    .setDescription(
+      `**Membre :** <@${member.id}> (${member.user.tag})\n` +
+      `**Invité par :** ${inviterMention}\n` +
+      `**Code utilisé :** \`${inviteCode}\`\n` +
+      `**Total d'invitations de l'inviteur :** **${stats.total}**`
+    )
+    .setColor('#2ECC71')
+    .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+    .setTimestamp();
+
+  // 1. Envoyer via logs_config (catégorie invites)
+  sendLog(guild, 'invites', joinEmbed);
+
+  // 2. Envoyer via invite_config si un salon d'invitation spécifique est configuré
   const config = getInviteConfig(guildId);
   if (config && config.enabled === 1 && config.log_channel_id) {
     const logChan = guild.channels.cache.get(config.log_channel_id);
     if (logChan) {
-      const inviterMention = inviterUser ? `<@${inviterUser.id}>` : (inviterId === 'vanity' ? 'Lien Personnalisé (Vanity)' : 'Inconnu / Direct');
-      const embed = new EmbedBuilder()
-        .setTitle('📥 Nouveau Membre Rejoins !')
-        .setDescription(
-          `**Membre :** <@${member.id}> (${member.user.tag})\n` +
-          `**Invité par :** ${inviterMention}\n` +
-          `**Code utilisé :** \`${inviteCode}\`\n` +
-          `**Total d'invitations de l'inviteur :** **${stats.total}**`
-        )
-        .setColor('#2ECC71')
-        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
-        .setTimestamp();
-
-      logChan.send({ embeds: [embed] }).catch(console.error);
+      logChan.send({ embeds: [joinEmbed] }).catch(console.error);
     }
   }
 
@@ -93,23 +97,27 @@ async function handleMemberLeaveInvite(member) {
     stats = getUserInviteStats(guildId, inviterId);
   }
 
+  const inviterMention = inviterId && inviterId !== 'unknown' && inviterId !== 'vanity' ? `<@${inviterId}>` : 'Inconnu';
+  const leaveEmbed = new EmbedBuilder()
+    .setTitle('📤 Départ d\'un Membre')
+    .setDescription(
+      `**Membre :** <@${member.id}> (${member.user.tag})\n` +
+      `**Était invité par :** ${inviterMention}\n` +
+      `**Total actuel de l'inviteur :** **${stats.total}**`
+    )
+    .setColor('#E74C3C')
+    .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+    .setTimestamp();
+
+  // 1. Envoyer via logs_config (catégorie invites)
+  sendLog(guild, 'invites', leaveEmbed);
+
+  // 2. Envoyer via invite_config
   const config = getInviteConfig(guildId);
   if (config && config.enabled === 1 && config.log_channel_id) {
     const logChan = guild.channels.cache.get(config.log_channel_id);
     if (logChan) {
-      const inviterMention = inviterId && inviterId !== 'unknown' && inviterId !== 'vanity' ? `<@${inviterId}>` : 'Inconnu';
-      const embed = new EmbedBuilder()
-        .setTitle('📤 Départ d\'un Membre')
-        .setDescription(
-          `**Membre :** <@${member.id}> (${member.user.tag})\n` +
-          `**Était invité par :** ${inviterMention}\n` +
-          `**Total actuel de l'inviteur :** **${stats.total}**`
-        )
-        .setColor('#E74C3C')
-        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
-        .setTimestamp();
-
-      logChan.send({ embeds: [embed] }).catch(console.error);
+      logChan.send({ embeds: [leaveEmbed] }).catch(console.error);
     }
   }
 }

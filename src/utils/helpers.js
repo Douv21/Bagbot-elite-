@@ -52,6 +52,8 @@ function sendLog(guild, eventType, embed, options = {}) {
     category = 'roles';
   } else if (eventType === 'bots') {
     category = 'bots';
+  } else if (eventType === 'invites') {
+    category = 'invites';
   }
 
   // Rediriger vers la catégorie "bots" si c'est un bot

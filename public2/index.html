@@ -1236,6 +1236,23 @@
                       </select>
                     </div>
                   </div>
+
+                  <!-- Logs Invitations -->
+                  <div class="log-category-row" style="display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-bottom: 5px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px;">
+                      <h4 style="margin: 0; color: #fff;"><i class="fa-solid fa-user-plus" style="color: #2ecc71;"></i> Logs des Invitations (Invite Tracker)</h4>
+                      <p style="margin: 3px 0 0; font-size: 0.8rem; color: #8e9297;">Publie un message quand un membre rejoint (avec le nom du parrain) ou quitte le serveur.</p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; min-width: 250px;">
+                      <label class="switch-label" style="margin: 0;">
+                        <input type="checkbox" id="log_enable_invites" class="log-enable-checkbox" data-category="invites">
+                        <span class="slider"></span>
+                      </label>
+                      <select id="log_channel_invites" class="channel-select" style="min-width: 180px;">
+                        <option value="">Sélectionner un salon</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div class="actions-bar">
