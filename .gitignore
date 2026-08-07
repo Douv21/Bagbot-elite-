@@ -5,3 +5,8 @@ node_modules/
 *.db
 .DS_Store
 package-lock.json
+
+database.sqlite-shm
+database.sqlite-wal
+database.sqlite
+
