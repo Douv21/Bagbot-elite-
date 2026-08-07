@@ -547,13 +547,47 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
 }
 
 /**
+ * Redimensionne une image base64 à max 600x600 px pour réduire considérablement le nombre de tokens Groq et accélérer l'analyse
+ */
+async function compressBase64Image(base64Data, maxDim = 600) {
+  try {
+    const { createCanvas, loadImage } = require('@napi-rs/canvas');
+    let cleanB64 = base64Data || '';
+    if (!cleanB64.startsWith('data:image')) {
+      cleanB64 = `data:image/jpeg;base64,${cleanB64}`;
+    }
+    const img = await loadImage(cleanB64);
+    let width = img.width;
+    let height = img.height;
+
+    if (width > maxDim || height > maxDim) {
+      if (width > height) {
+        height = Math.round((height * maxDim) / width);
+        width = maxDim;
+      } else {
+        width = Math.round((width * maxDim) / height);
+        height = maxDim;
+      }
+    }
+
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const compressedBuffer = canvas.toBuffer('image/jpeg', 0.8);
+    return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
+  } catch (err) {
+    console.warn('[AI Manager] Image compression skipped:', err.message);
+    return base64Data;
+  }
+}
+
+/**
  * Analyse l'âge d'un membre à partir d'une image (visage ou document) avec l'IA Vision
  */
 async function analyzeAgeWithAi(imageBase64, method, minAge = 18, birthDateInput = null) {
-  let cleanBase64 = imageBase64 || '';
-  if (!cleanBase64.startsWith('data:image')) {
-    cleanBase64 = `data:image/jpeg;base64,${cleanBase64}`;
-  }
+  // Redimensionner l'image à 600px pour un traitement ultra-rapide (réduit les tokens de 7000 à 350 et évite l'erreur HTTP 429)
+  let cleanBase64 = await compressBase64Image(imageBase64, 600);
 
   const prompt = method === 'facial'
     ? `Tu es un expert biométrique légiste et dermatologique spécialisé dans la détermination objective et précise de l'âge facial.
@@ -590,7 +624,7 @@ Réponds STRICTEMENT avec un objet JSON unique au format :
       maxTokens: 350
     });
 
-    // Timeout de sécurité de 25 secondes max (la vision peut prendre quelques secondes)
+    // Timeout de sécurité de 25 secondes max
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('AI Vision Timeout (25s limit exceeded)')), 25000)
     );
@@ -598,28 +632,38 @@ Réponds STRICTEMENT avec un objet JSON unique au format :
     const aiRes = await Promise.race([aiPromise, timeoutPromise]);
 
     if (aiRes) {
-      const jsonMatch = aiRes.match(/\{[\s\S]*\}/);
+      // Nettoyer les balises <think>...</think> générées par les modèles Qwen
+      let cleanRes = aiRes.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+      // Extraire le bloc JSON
+      const jsonMatch = cleanRes.match(/\{[\s\S]*?\}/);
       if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed && typeof parsed.age === 'number') {
-          let calculatedAge = Math.max(1, Math.round(parsed.age));
-          
-          // Dans le mode document uniquement, validation par date de naissance si présente
-          if (method === 'document' && birthDateInput) {
-            const birthYear = new Date(birthDateInput).getFullYear();
-            if (!isNaN(birthYear) && birthYear > 1900 && birthYear <= new Date().getFullYear()) {
-              const declaredAge = new Date().getFullYear() - birthYear;
-              calculatedAge = Math.min(calculatedAge, declaredAge); // Sécurité : on prend l'âge le plus bas pour ne pas fausser la majorité
+        try {
+          const parsed = JSON.parse(jsonMatch[0]);
+          const rawAge = parsed.age ?? parsed.estimated_age ?? parsed.age_estime;
+
+          if (rawAge !== undefined && rawAge !== null) {
+            let calculatedAge = Math.max(1, Math.round(Number(rawAge) || 18));
+            
+            // Dans le mode document uniquement, validation par date de naissance si présente
+            if (method === 'document' && birthDateInput) {
+              const birthYear = new Date(birthDateInput).getFullYear();
+              if (!isNaN(birthYear) && birthYear > 1900 && birthYear <= new Date().getFullYear()) {
+                const declaredAge = new Date().getFullYear() - birthYear;
+                calculatedAge = Math.min(calculatedAge, declaredAge);
+              }
             }
+
+            const isAdultFinal = (parsed.is_adult === false || calculatedAge < minAge) ? false : (parsed.is_adult === true && calculatedAge >= minAge);
+
+            return {
+              age: calculatedAge,
+              isAdult: isAdultFinal,
+              reason: parsed.reason || (isAdultFinal ? 'Majeur certifié par l\'analyse biométrique.' : 'Détecté comme mineur / adolescent.')
+            };
           }
-
-          const isAdultFinal = (parsed.is_adult === false || calculatedAge < minAge) ? false : (parsed.is_adult === true && calculatedAge >= minAge);
-
-          return {
-            age: calculatedAge,
-            isAdult: isAdultFinal,
-            reason: parsed.reason || (isAdultFinal ? 'Majeur certifié par l\'analyse biométrique.' : 'Détecté comme mineur / adolescent.')
-          };
+        } catch (jsonErr) {
+          console.warn('[AI Age Analysis] JSON parse error:', jsonErr.message, 'on raw:', jsonMatch[0]);
         }
       }
     }
@@ -640,7 +684,7 @@ Réponds STRICTEMENT avec un objet JSON unique au format :
       }
     }
 
-    // Lever une erreur explicite pour que l'utilisateur voie la cause exacte au lieu d'un faux "16 ans"
+    // Lever une erreur explicite pour que l'utilisateur voie la cause exacte
     throw new Error(`L'analyse d'âge a échoué (${err.message}). Veuillez reprendre une photo nette et bien éclairée.`);
   }
 }
