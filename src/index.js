@@ -18,7 +18,8 @@ const client = new Client({
     GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.DirectMessages,
     GatewayIntentBits.GuildModeration,
-    GatewayIntentBits.GuildEmojisAndStickers
+    GatewayIntentBits.GuildEmojisAndStickers,
+    GatewayIntentBits.GuildInvites
   ],
   partials: [Partials.Channel, Partials.Message, Partials.Reaction]
 });
@@ -61,6 +62,22 @@ for (const file of eventFiles) {
     client.on(event.name, (...args) => event.execute(...args, client));
   }
 }
+
+// Initialiser le cache des invitations au démarrage et à la création/suppression
+client.once('ready', () => {
+  const { initInviteCache } = require('./utils/inviteTracker');
+  initInviteCache(client).catch(console.error);
+});
+
+client.on('inviteCreate', invite => {
+  const { refreshGuildInvites } = require('./utils/inviteTracker');
+  refreshGuildInvites(invite.guild).catch(console.error);
+});
+
+client.on('inviteDelete', invite => {
+  const { refreshGuildInvites } = require('./utils/inviteTracker');
+  refreshGuildInvites(invite.guild).catch(console.error);
+});
 
 // Helper pour l'attribution des rôles réaction selon le mode
 const handleRoleModeAssignment = async (interaction, roleId, messageId) => {

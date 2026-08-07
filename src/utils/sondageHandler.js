@@ -5,7 +5,7 @@ function getStarRatingStr(score, ratingIcon = '⭐') {
   const num = parseInt(score);
   if (!isNaN(num) && num >= 1 && num <= 5) {
     const stars = ratingIcon.repeat(num);
-    return stars ? `${num} (${stars})` : `${num}`;
+    return stars || `${num}`;
   }
   return score;
 }
@@ -39,25 +39,27 @@ async function handleSondageInteraction(interaction) {
       .setTitle(`📊 ${sondage.title}`.substring(0, 45));
 
     const rows = [];
+    const icon = sondage.rating_icon || '⭐';
+    const maxCapacity = sondage.has_general_remark !== 0 ? 4 : 5;
 
-    // Limite de 5 champs max par modal Discord
-    const maxSections = Math.min(sections.length, sondage.has_general_remark !== 0 ? 2 : 5);
-    sections.slice(0, maxSections).forEach((sec, idx) => {
+    for (let idx = 0; idx < sections.length; idx++) {
+      if (rows.length >= maxCapacity) break;
+      const sec = sections[idx];
       const secType = sec.type || 'rating_text';
 
       if (secType === 'rating' || secType === 'rating_text') {
         const ratingInput = new TextInputBuilder()
           .setCustomId(`rating_sec_${idx}`)
-          .setLabel(`Note 1 à 5 (${sondage.rating_icon || '⭐'}) : ${sec.label}`.substring(0, 45))
-          .setPlaceholder('Entrez un chiffre de 1 à 5 (ex: 5)')
+          .setLabel(`Note (1 à 5 ${icon}) : ${sec.label}`.substring(0, 45))
+          .setPlaceholder(`Tapez un chiffre 1-5 ou ${icon.repeat(1)} à ${icon.repeat(5)}`)
           .setStyle(TextInputStyle.Short)
           .setMinLength(1)
-          .setMaxLength(1)
+          .setMaxLength(20)
           .setRequired(true);
         rows.push(new ActionRowBuilder().addComponents(ratingInput));
       }
 
-      if ((secType === 'text' || secType === 'rating_text') && rows.length < 5) {
+      if ((secType === 'text' || secType === 'rating_text') && rows.length < maxCapacity) {
         const obsInput = new TextInputBuilder()
           .setCustomId(`obs_sec_${idx}`)
           .setLabel(`Remarques : ${sec.label}`.substring(0, 45))
@@ -66,7 +68,7 @@ async function handleSondageInteraction(interaction) {
           .setRequired(false);
         rows.push(new ActionRowBuilder().addComponents(obsInput));
       }
-    });
+    }
 
     // Remarques Générales tout en bas
     if (sondage.has_general_remark !== 0 && rows.length < 5) {
@@ -105,17 +107,33 @@ async function handleSondageInteraction(interaction) {
     let totalScore = 0;
     let validScoresCount = 0;
 
-    const maxSections = Math.min(sections.length, sondage.has_general_remark !== 0 ? 2 : 5);
-    sections.slice(0, maxSections).forEach((sec, idx) => {
+    sections.forEach((sec, idx) => {
       let score = 5;
       let obsStr = '';
 
       try {
         const ratingStr = interaction.fields.getTextInputValue(`rating_sec_${idx}`);
         if (ratingStr) {
-          score = parseInt(ratingStr.trim());
-          if (isNaN(score) || score < 1) score = 1;
-          if (score > 5) score = 5;
+          const raw = ratingStr.trim();
+          let parsed = parseInt(raw);
+          if (isNaN(parsed)) {
+            const icon = sondage.rating_icon || '⭐';
+            const escapedIcon = icon.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const count = (raw.match(new RegExp(escapedIcon, 'g')) || []).length;
+            if (count > 0) {
+              parsed = count;
+            } else {
+              const digitMatch = raw.match(/\d/);
+              if (digitMatch) {
+                parsed = parseInt(digitMatch[0]);
+              } else {
+                parsed = [...raw].length;
+              }
+            }
+          }
+          if (isNaN(parsed) || parsed < 1) parsed = 1;
+          if (parsed > 5) parsed = 5;
+          score = parsed;
           totalScore += score;
           validScoresCount++;
         }

@@ -597,8 +597,18 @@ module.exports = {
       // --- JEU DE DEVINETTE (RECHERCHE DE LETTRE) ---
       const game = db.prepare('SELECT * FROM game_config WHERE guild_id = ? AND is_active = 1').get(guildId);
       if (game) {
-        const chance = (game.appearance_chance !== undefined && game.appearance_chance !== null) ? game.appearance_chance : 15;
-        if (Math.random() * 100 < chance) {
+        let allowedChans = [];
+        try {
+          allowedChans = game.allowed_channels ? JSON.parse(game.allowed_channels) : [];
+        } catch (e) {}
+
+        const currentChanId = message.channel.id;
+        const parentChanId = message.channel.parentId || null;
+        const isAllowed = allowedChans.length === 0 || allowedChans.includes(currentChanId) || (parentChanId && allowedChans.includes(parentChanId));
+
+        if (isAllowed) {
+          const chance = (game.appearance_chance !== undefined && game.appearance_chance !== null) ? game.appearance_chance : 15;
+          if (Math.random() * 100 < chance) {
           const phrase = game.secret_phrase.toUpperCase();
           // Trouver toutes les lettres uniques de A à Z
           const allLetters = [...new Set(phrase.replace(/[^A-Z]/g, ''))];
@@ -680,4 +690,5 @@ module.exports = {
       }
     }
   }
+}
 };

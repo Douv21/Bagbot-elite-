@@ -1756,6 +1756,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 7. Jeu du Mot Caché
   formGame.addEventListener('submit', (e) => {
     e.preventDefault();
+    const selectedChannels = Array.from(document.querySelectorAll('.game-allowed-channel-cb:checked')).map(cb => cb.value);
     const data = {
       is_active: document.getElementById('game_is_active').checked,
       secret_phrase: document.getElementById('game_secret_phrase').value,
@@ -1767,7 +1768,8 @@ document.addEventListener('DOMContentLoaded', () => {
       letter_emoji: document.getElementById('game_letter_emoji').value || '🔍',
       announce_channel: document.getElementById('game_announce_channel').value || '',
       ephemeral_letters: document.getElementById('game_ephemeral_letters').checked,
-      reset_progress: document.getElementById('game_reset_progress').checked
+      reset_progress: document.getElementById('game_reset_progress').checked,
+      allowed_channels: selectedChannels
     };
 
     fetch('/api/config/game', {

@@ -625,6 +625,12 @@ document.addEventListener('DOMContentLoaded', () => {
         safeSetCheck('game_ephemeral_letters', (game.ephemeral_letters === undefined || game.ephemeral_letters === null) ? true : !!game.ephemeral_letters);
         safeSetCheck('game_reset_progress', false);
 
+        let allowedChans = [];
+        try {
+          allowedChans = typeof game.allowed_channels === 'string' ? JSON.parse(game.allowed_channels || '[]') : (game.allowed_channels || []);
+        } catch (e) {}
+        try { renderGameAllowedChannels(allowedChans); } catch (e) {}
+
         // Quarantaine
         const quar = config.quarantine || {};
         safeSetVal('quarantine_role', quar.role_id);
@@ -1756,6 +1762,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 7. Jeu du Mot Caché
   formGame.addEventListener('submit', (e) => {
     e.preventDefault();
+    const selectedChannels = Array.from(document.querySelectorAll('.game-allowed-channel-cb:checked')).map(cb => cb.value);
     const data = {
       is_active: document.getElementById('game_is_active').checked,
       secret_phrase: document.getElementById('game_secret_phrase').value,
@@ -1767,7 +1774,8 @@ document.addEventListener('DOMContentLoaded', () => {
       letter_emoji: document.getElementById('game_letter_emoji').value || '🔍',
       announce_channel: document.getElementById('game_announce_channel').value || '',
       ephemeral_letters: document.getElementById('game_ephemeral_letters').checked,
-      reset_progress: document.getElementById('game_reset_progress').checked
+      reset_progress: document.getElementById('game_reset_progress').checked,
+      allowed_channels: selectedChannels
     };
 
     fetch('/api/config/game', {
@@ -4794,6 +4802,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })
       .catch(err => showToast(err.message, true));
+  }
+
+  function renderGameAllowedChannels(allowedChans = []) {
+    const container = document.getElementById('game_allowed_channels_checkboxes_container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!channelsList || channelsList.length === 0) {
+      container.innerHTML = '<span style="color:#8e9297;font-style:italic;">Aucun salon textuel disponible.</span>';
+      return;
+    }
+
+    channelsList.forEach(ch => {
+      if (ch.type === 0 || ch.type === 5) {
+        const isChecked = Array.isArray(allowedChans) && allowedChans.includes(ch.id);
+        const label = document.createElement('label');
+        label.style.display = 'flex';
+        label.style.alignItems = 'center';
+        label.style.gap = '8px';
+        label.style.color = '#e1e1e1';
+        label.style.fontSize = '0.88rem';
+        label.style.cursor = 'pointer';
+
+        label.innerHTML = `
+          <input type="checkbox" class="game-allowed-channel-cb" value="${ch.id}" ${isChecked ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer;">
+          <span># ${ch.name}</span>
+        `;
+        container.appendChild(label);
+      }
+    });
   }
 
   // --- Émoji Picker pour Mot Caché ---

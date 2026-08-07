@@ -1,23 +1,46 @@
 const { EmbedBuilder } = require('discord.js');
 const { getInviteConfig, recordInviteJoin, recordInviteLeave, getUserInviteStats } = require('../database/db');
-const { sendLog } = require('./helpers');
 
 // Cache global en mémoire des invitations par serveur
-// Structure : invitesCache.get(guildId) = Map(code => uses)
+// Structure : invitesCache.get(guildId) = Map(code => { uses, maxUses, inviterId, inviterUser, isVanity })
 const invitesCache = new Map();
+const vanityCache = new Map();
 
 async function initInviteCache(client) {
   for (const [guildId, guild] of client.guilds.cache) {
-    try {
-      const invites = await guild.invites.fetch();
-      const codeMap = new Map();
-      invites.forEach(inv => codeMap.set(inv.code, inv.uses));
-      invitesCache.set(guildId, codeMap);
-    } catch (e) {
-      // Le bot peut ne pas avoir la permission de lire les invitations sur certains serveurs
-      invitesCache.set(guildId, new Map());
-    }
+    await refreshGuildInvites(guild);
   }
+}
+
+async function refreshGuildInvites(guild) {
+  if (!guild) return;
+  const guildId = guild.id;
+  const codeMap = new Map();
+
+  try {
+    const invites = await guild.invites.fetch();
+    invites.forEach(inv => {
+      codeMap.set(inv.code, {
+        code: inv.code,
+        uses: inv.uses || 0,
+        maxUses: inv.maxUses || 0,
+        inviterId: inv.inviter ? inv.inviter.id : 'unknown',
+        inviterUser: inv.inviter || null
+      });
+    });
+  } catch (e) {
+    // Si pas la permission ManageGuild
+  }
+  invitesCache.set(guildId, codeMap);
+
+  try {
+    if (guild.features && guild.features.includes('VANITY_URL')) {
+      const vanityData = await guild.fetchVanityData().catch(() => null);
+      if (vanityData) {
+        vanityCache.set(guildId, vanityData.uses || 0);
+      }
+    }
+  } catch (e) {}
 }
 
 async function handleMemberJoinInvite(member) {
@@ -27,26 +50,79 @@ async function handleMemberJoinInvite(member) {
   
   let usedInvite = null;
   let inviterUser = null;
+  let isVanity = false;
 
+  // 1. Vérifier si l'URL personnalisée (Vanity) a été utilisée
   try {
-    const currentInvites = await guild.invites.fetch();
-    const newCache = new Map();
-
-    for (const [code, inv] of currentInvites) {
-      newCache.set(code, inv.uses);
-      const prevUses = cachedInvites.get(code) || 0;
-      if (inv.uses > prevUses) {
-        usedInvite = inv;
-        inviterUser = inv.inviter;
+    if (guild.features && guild.features.includes('VANITY_URL')) {
+      const vanityData = await guild.fetchVanityData().catch(() => null);
+      const prevVanity = vanityCache.get(guildId) || 0;
+      if (vanityData && vanityData.uses > prevVanity) {
+        vanityCache.set(guildId, vanityData.uses);
+        isVanity = true;
       }
     }
-    invitesCache.set(guildId, newCache);
-  } catch (e) {
-    console.error('Erreur récupération invitations au join:', e);
+  } catch (e) {}
+
+  if (!isVanity) {
+    try {
+      const currentInvites = await guild.invites.fetch();
+      const newCache = new Map();
+
+      // Trouver si une invitation existante a vu son compteur d'utilisations augmenter
+      for (const [code, inv] of currentInvites) {
+        const cached = cachedInvites.get(code);
+        const prevUses = cached ? cached.uses : 0;
+        
+        if (inv.uses > prevUses && !usedInvite) {
+          usedInvite = {
+            code: inv.code,
+            uses: inv.uses,
+            maxUses: inv.maxUses,
+            inviterId: inv.inviter ? inv.inviter.id : 'unknown',
+            inviterUser: inv.inviter || null
+          };
+          inviterUser = inv.inviter || null;
+        }
+
+        newCache.set(code, {
+          code: inv.code,
+          uses: inv.uses || 0,
+          maxUses: inv.maxUses || 0,
+          inviterId: inv.inviter ? inv.inviter.id : 'unknown',
+          inviterUser: inv.inviter || null
+        });
+      }
+
+      // Si aucune invitation n'a augmenté en nombre d'utilisations dans currentInvites,
+      // cela signifie qu'une invitation à usage unique (maxUses = 1) a été utilisée et immédiatement supprimée par Discord !
+      if (!usedInvite) {
+        for (const [code, cached] of cachedInvites) {
+          if (!newCache.has(code)) {
+            // L'invitation existait dans le cache mais n'existe plus dans currentInvites -> elle a été consommée !
+            usedInvite = cached;
+            inviterUser = cached.inviterUser || null;
+            break;
+          }
+        }
+      }
+
+      invitesCache.set(guildId, newCache);
+    } catch (e) {
+      console.error('Erreur récupération invitations au join:', e);
+    }
   }
 
-  const inviterId = inviterUser ? inviterUser.id : (usedInvite ? usedInvite.inviter?.id : 'unknown');
-  const inviteCode = usedInvite ? usedInvite.code : 'inconnu';
+  let inviterId = 'unknown';
+  let inviteCode = 'inconnu';
+
+  if (isVanity) {
+    inviterId = 'vanity';
+    inviteCode = guild.vanityURLCode || 'vanity';
+  } else if (usedInvite) {
+    inviterId = usedInvite.inviterId || (inviterUser ? inviterUser.id : 'unknown');
+    inviteCode = usedInvite.code || 'inconnu';
+  }
 
   // Enregistrer en BDD
   recordInviteJoin(guildId, member.id, inviterId, inviteCode);
@@ -57,7 +133,10 @@ async function handleMemberJoinInvite(member) {
     stats = getUserInviteStats(guildId, inviterId);
   }
 
-  const inviterMention = inviterUser ? `<@${inviterUser.id}>` : (inviterId === 'vanity' ? 'Lien Personnalisé (Vanity)' : 'Inconnu / Direct');
+  const inviterMention = isVanity
+    ? 'Lien Personnalisé (Vanity)'
+    : (inviterUser ? `<@${inviterUser.id}>` : (inviterId !== 'unknown' ? `<@${inviterId}>` : 'Inconnu / Direct'));
+
   const joinEmbed = new EmbedBuilder()
     .setTitle('📥 Nouveau Membre Rejoint !')
     .setDescription(
@@ -118,6 +197,7 @@ async function handleMemberLeaveInvite(member) {
 
 module.exports = {
   initInviteCache,
+  refreshGuildInvites,
   handleMemberJoinInvite,
   handleMemberLeaveInvite
 };

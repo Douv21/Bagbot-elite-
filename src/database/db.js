@@ -769,6 +769,9 @@ function initDatabase() {
     db.prepare("ALTER TABLE game_config ADD COLUMN reward_chance INTEGER DEFAULT 0").run();
   } catch (e) {}
   try {
+    db.prepare("ALTER TABLE game_config ADD COLUMN allowed_channels TEXT DEFAULT '[]'").run();
+  } catch (e) {}
+  try {
     db.prepare("ALTER TABLE quests ADD COLUMN reward_chance INTEGER DEFAULT 0").run();
   } catch (e) {}
 
