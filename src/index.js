@@ -1371,11 +1371,15 @@ apiApp.post('/bot/delete-message', async (req, res) => {
 
 apiApp.post('/bot/age-verification-completed', async (req, res) => {
   try {
-    const { guildId, userId, channelId, method, estimatedAge, roleIdToAssign } = req.body;
+    const { guildId, userId, channelId, method, estimatedAge, roleIdToAssign, logChannelId } = req.body;
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return res.status(404).json({ error: 'Guild not found' });
-    const channel = guild.channels.cache.get(channelId);
-    if (!channel) return res.status(404).json({ error: 'Channel not found' });
+    
+    const ticketChannel = guild.channels.cache.get(channelId);
+    const logChannel = logChannelId ? (guild.channels.cache.get(logChannelId) || await guild.channels.fetch(logChannelId).catch(() => null)) : null;
+
+    const targetChannel = logChannel || ticketChannel;
+    if (!targetChannel) return res.status(404).json({ error: 'Target channel not found' });
 
     const methodLabel = method === 'facial' ? '📸 Reconnaissance Faciale' : '📄 Carte d\'Identité / Document';
     const embed = new EmbedBuilder()
@@ -1385,6 +1389,7 @@ apiApp.post('/bot/age-verification-completed', async (req, res) => {
         `• **Membre** : <@${userId}>\n` +
         `• **Statut** : ✅ **Majeur (Âge validé : ${estimatedAge} ans)**\n` +
         `• **Méthode utilisée** : ${methodLabel}\n` +
+        `• **Salon Ticket** : <#${channelId}>\n` +
         `• **Horodatage** : <t:${Math.floor(Date.now() / 1000)}:F>`
       )
       .setColor('#2ECC71')
@@ -1392,7 +1397,11 @@ apiApp.post('/bot/age-verification-completed', async (req, res) => {
       .setFooter({ text: 'Bagbot Elite • Sécurité & Majorité' })
       .setTimestamp();
 
-    await channel.send({ content: `✅ <@${userId}> a complété sa vérification d'âge !`, embeds: [embed] });
+    await targetChannel.send({ content: `✅ Vérification d'âge validée pour <@${userId}> !`, embeds: [embed] }).catch(console.error);
+
+    if (logChannel && ticketChannel && logChannel.id !== ticketChannel.id) {
+      await ticketChannel.send({ content: `✅ <@${userId}>, votre majorité (${estimatedAge} ans) a été validée avec succès ! Le rapport de sécurité a été transmis dans le salon <#${logChannel.id}>.` }).catch(console.error);
+    }
 
     if (roleIdToAssign) {
       const member = await guild.members.fetch(userId).catch(() => null);

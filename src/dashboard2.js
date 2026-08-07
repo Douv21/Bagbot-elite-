@@ -2855,7 +2855,7 @@ app.post('/api/config/tickets/options/add', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button, require_age_verification, min_age_required, age_verified_role_id } = req.body || {};
+    const { id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button, require_age_verification, min_age_required, age_verified_role_id, age_verification_log_channel } = req.body || {};
     if (!label || !value) return res.status(400).json({ error: 'Libellé et valeur requis' });
 
     const optionData = {
@@ -2876,7 +2876,8 @@ app.post('/api/config/tickets/options/add', async (req, res) => {
       show_certify_button: (show_certify_button === true || show_certify_button === 1 || show_certify_button === 'true') ? 1 : 0,
       require_age_verification: (require_age_verification === true || require_age_verification === 1 || require_age_verification === 'true') ? 1 : 0,
       min_age_required: parseInt(min_age_required) || 18,
-      age_verified_role_id: age_verified_role_id || null
+      age_verified_role_id: age_verified_role_id || null,
+      age_verification_log_channel: age_verification_log_channel || null
     };
 
     if (id) {
@@ -2985,9 +2986,13 @@ app.post('/api/verify-age/process', async (req, res) => {
 
     const activeTicket = db.prepare('SELECT option_id FROM active_tickets WHERE channel_id = ?').get(session.channel_id);
     let roleIdToAssign = null;
+    let logChannelId = null;
     if (activeTicket && activeTicket.option_id) {
-      const opt = db.prepare('SELECT age_verified_role_id FROM ticket_options WHERE id = ?').get(activeTicket.option_id);
-      if (opt && opt.age_verified_role_id) roleIdToAssign = opt.age_verified_role_id;
+      const opt = db.prepare('SELECT age_verified_role_id, age_verification_log_channel FROM ticket_options WHERE id = ?').get(activeTicket.option_id);
+      if (opt) {
+        if (opt.age_verified_role_id) roleIdToAssign = opt.age_verified_role_id;
+        if (opt.age_verification_log_channel) logChannelId = opt.age_verification_log_channel;
+      }
     }
 
     completeAgeVerification(token, method, estimatedAge);
@@ -3002,7 +3007,8 @@ app.post('/api/verify-age/process', async (req, res) => {
         channelId: session.channel_id,
         method,
         estimatedAge,
-        roleIdToAssign
+        roleIdToAssign,
+        logChannelId
       })
     }).catch(() => null);
 

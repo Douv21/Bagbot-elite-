@@ -1519,6 +1519,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('ticket_opt_require_age_verification').checked = opt.require_age_verification === 1;
         document.getElementById('ticket_opt_min_age_required').value = opt.min_age_required || 18;
         document.getElementById('ticket_opt_age_verified_role_id').value = opt.age_verified_role_id || '';
+        document.getElementById('ticket_opt_age_verification_log_channel').value = opt.age_verification_log_channel || '';
 
         // Rôles support
         let sRoles = [];
@@ -1577,7 +1578,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Synchroniser les custom selects du formulaire
-        ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users', 'ticket_opt_member_roles_add', 'ticket_opt_member_roles_remove', 'ticket_opt_certify_roles_add', 'ticket_opt_certify_roles_remove'].forEach(id => {
+        ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users', 'ticket_opt_member_roles_add', 'ticket_opt_member_roles_remove', 'ticket_opt_certify_roles_add', 'ticket_opt_certify_roles_remove', 'ticket_opt_age_verified_role_id', 'ticket_opt_age_verification_log_channel'].forEach(id => {
           const selectEl = document.getElementById(id);
           if (selectEl && selectEl.syncCustomSelect) {
             selectEl.syncCustomSelect();
@@ -2402,7 +2403,8 @@ document.addEventListener('DOMContentLoaded', () => {
       show_certify_button: document.getElementById('ticket_opt_show_certify').checked ? 1 : 0,
       require_age_verification: document.getElementById('ticket_opt_require_age_verification').checked ? 1 : 0,
       min_age_required: parseInt(document.getElementById('ticket_opt_min_age_required').value) || 18,
-      age_verified_role_id: document.getElementById('ticket_opt_age_verified_role_id').value || null
+      age_verified_role_id: document.getElementById('ticket_opt_age_verified_role_id').value || null,
+      age_verification_log_channel: document.getElementById('ticket_opt_age_verification_log_channel').value || null
     };
 
     fetch('/api/config/tickets/options/add', {
@@ -2423,7 +2425,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btn-ticket-cancel-edit').style.display = 'none';
 
         // Synchroniser tous les custom selects pour réinitialisation
-        ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users', 'ticket_opt_member_roles_add', 'ticket_opt_member_roles_remove', 'ticket_opt_certify_roles_add', 'ticket_opt_certify_roles_remove', 'ticket_opt_age_verified_role_id'].forEach(selId => {
+        ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users', 'ticket_opt_member_roles_add', 'ticket_opt_member_roles_remove', 'ticket_opt_certify_roles_add', 'ticket_opt_certify_roles_remove', 'ticket_opt_age_verified_role_id', 'ticket_opt_age_verification_log_channel'].forEach(selId => {
           const selectEl = document.getElementById(selId);
           if (selectEl && selectEl.syncCustomSelect) {
             selectEl.syncCustomSelect();
@@ -2449,7 +2451,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btnTicketCancelEdit.style.display = 'none';
 
       // Synchroniser tous les custom selects pour réinitialisation
-      ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users', 'ticket_opt_member_roles_add', 'ticket_opt_member_roles_remove', 'ticket_opt_certify_roles_add', 'ticket_opt_certify_roles_remove', 'ticket_opt_age_verified_role_id'].forEach(selId => {
+      ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users', 'ticket_opt_member_roles_add', 'ticket_opt_member_roles_remove', 'ticket_opt_certify_roles_add', 'ticket_opt_certify_roles_remove', 'ticket_opt_age_verified_role_id', 'ticket_opt_age_verification_log_channel'].forEach(selId => {
         const selectEl = document.getElementById(selId);
         if (selectEl && selectEl.syncCustomSelect) {
           selectEl.syncCustomSelect();
