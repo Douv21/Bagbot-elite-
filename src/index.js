@@ -1351,24 +1351,30 @@ apiApp.post('/bot/send-sondage', async (req, res) => {
       .setFooter({ text: `ID Sondage : ${sondageId} • Bagbot Elite` })
       .setTimestamp();
 
-    const hostIp = process.env.PUBLIC_IP || '82.65.75.176';
-    const webFormUrl = `http://${hostIp}:49602/form.html?id=${sondageId}`;
-
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setLabel('📝 Remplir le Formulaire (Web)')
-        .setStyle(ButtonStyle.Link)
-        .setURL(webFormUrl),
-      new ButtonBuilder()
         .setCustomId(`sondage_vote:${sondageId}`)
-        .setLabel('⚡ Évaluation sur Discord')
+        .setLabel('📝 Participer au Sondage')
         .setStyle(ButtonStyle.Primary)
         .setEmoji('📝')
     );
 
-    const sentMessage = await channel.send({ embeds: [embed], components: [row] });
+    let sentMessage = null;
+    if (existingSondageId) {
+      const messages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
+      if (messages) {
+        sentMessage = messages.find(m => m.embeds.length > 0 && m.embeds[0].footer && m.embeds[0].footer.text && m.embeds[0].footer.text.includes(existingSondageId));
+        if (sentMessage && sentMessage.editable) {
+          await sentMessage.edit({ embeds: [embed], components: [row] }).catch(() => null);
+        }
+      }
+    }
 
-    return res.json({ success: true, sondageId, messageId: sentMessage.id });
+    if (!sentMessage) {
+      sentMessage = await channel.send({ embeds: [embed], components: [row] });
+    }
+
+    return res.json({ success: true, sondageId, messageId: sentMessage ? sentMessage.id : null });
   } catch (err) {
     console.error('Erreur API send-sondage:', err);
     res.status(500).json({ error: err.message });

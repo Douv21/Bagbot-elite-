@@ -1824,7 +1824,7 @@ app.post('/api/config/send-sondage', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
-    const { channel_id, results_channel_id, title, description, rating_icon, text_type, color, sections, has_general_remark, avatar_image, banner_image, short_description, mentions } = req.body || {};
+    const { existing_sondage_id, channel_id, results_channel_id, title, description, rating_icon, text_type, color, sections, has_general_remark, avatar_image, banner_image, short_description, mentions } = req.body || {};
     if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
     if (!title) return res.status(400).json({ error: 'Titre du sondage requis' });
 
@@ -1833,6 +1833,7 @@ app.post('/api/config/send-sondage', async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        existingSondageId: existing_sondage_id || null,
         guildId,
         channelId: channel_id,
         resultsChannelId: results_channel_id || null,

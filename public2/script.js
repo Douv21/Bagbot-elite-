@@ -6358,6 +6358,10 @@ function renderSondagesSavedList(sondages) {
     `;
 
     card.querySelector('.btn-edit-sondage').addEventListener('click', () => {
+      safeSetVal('sondage_edit_id', s.id);
+      const editBanner = document.getElementById('sondage-edit-banner');
+      if (editBanner) editBanner.style.display = 'flex';
+
       safeSetVal('sondage_channel', s.channel_id);
       safeSetVal('sondage_results_channel', s.results_channel_id || '');
       safeSetVal('sondage_title', s.title || '');
@@ -6476,6 +6480,18 @@ function initSondageModule() {
     btnAddQ.addEventListener('click', () => addSondageQuestionInput('', 'rating_text'));
   }
 
+  const btnCancelEdit = document.getElementById('btn-cancel-sondage-edit');
+  if (btnCancelEdit) {
+    btnCancelEdit.addEventListener('click', () => {
+      safeSetVal('sondage_edit_id', '');
+      const editBanner = document.getElementById('sondage-edit-banner');
+      if (editBanner) editBanner.style.display = 'none';
+      if (form) form.reset();
+      updateSondagePreview();
+      if (typeof showToast === 'function') showToast('Modification annulée.');
+    });
+  }
+
   if (inputTitle) inputTitle.addEventListener('input', updateSondagePreview);
   if (inputDesc) inputDesc.addEventListener('input', updateSondagePreview);
   if (selectIcon) selectIcon.addEventListener('change', updateSondagePreview);
@@ -6486,6 +6502,7 @@ function initSondageModule() {
   if (form) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const existing_sondage_id = document.getElementById('sondage_edit_id') ? document.getElementById('sondage_edit_id').value : null;
       const channel_id = document.getElementById('sondage_channel').value;
       const results_channel_id = document.getElementById('sondage_results_channel').value;
       const title = inputTitle.value;
@@ -6527,6 +6544,7 @@ function initSondageModule() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            existing_sondage_id,
             channel_id,
             results_channel_id: results_channel_id || null,
             title,
@@ -6545,8 +6563,11 @@ function initSondageModule() {
 
         const data = await res.json();
         if (res.ok && data.success) {
-          if (typeof showToast === 'function') showToast('✅ Sondage publié avec succès dans le salon !');
+          if (typeof showToast === 'function') showToast(existing_sondage_id ? '✅ Sondage mis à jour avec succès !' : '✅ Sondage publié avec succès dans le salon !');
           form.reset();
+          safeSetVal('sondage_edit_id', '');
+          const editBanner = document.getElementById('sondage-edit-banner');
+          if (editBanner) editBanner.style.display = 'none';
           if (qContainer) {
             qContainer.innerHTML = '';
             addSondageQuestionInput('Accueil & Organisation', 'rating_text');
