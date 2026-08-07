@@ -583,11 +583,15 @@
       }
     }
 
-    // Gestion Caméra Flux Direct
+    // Gestion Caméra Flux Direct (uniquement HTTPS ou localhost)
     async function startCamera() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      // Sur HTTP (pas localhost), getUserMedia est bloqué par le navigateur — on affiche directement les boutons
+      const isSecureContext = window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      
+      if (!isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         document.getElementById('facialNotice').style.display = 'block';
         document.getElementById('fallbackBox').style.display = 'flex';
+        document.getElementById('cameraLiveBtn').style.display = 'none';
         return;
       }
 
@@ -600,10 +604,31 @@
         document.getElementById('fallbackBox').style.display = 'none';
         document.getElementById('scanLaser').style.display = 'block';
         document.getElementById('faceOverlay').style.display = 'flex';
+        document.getElementById('cameraLiveBtn').style.display = 'none';
       } catch (err) {
-        console.warn('Impossible d\'activer le flux vidéo direct:', err);
+        console.warn('Flux vidéo indisponible (HTTP ou permission refusée):', err.message);
         document.getElementById('facialNotice').style.display = 'block';
         document.getElementById('fallbackBox').style.display = 'flex';
+        document.getElementById('cameraLiveBtn').style.display = 'none';
+      }
+    }
+
+    function triggerLiveCapture() {
+      // Capture depuis le flux vidéo live si actif
+      const video = document.getElementById('videoFeed');
+      if (video && video.videoWidth > 0 && videoStream) {
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.min(video.videoWidth, 800);
+        canvas.height = Math.round(video.videoHeight * (canvas.width / video.videoWidth));
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        facialCapturedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+        const img = document.getElementById('facialPhotoPreview');
+        img.src = facialCapturedBase64;
+        img.style.display = 'block';
+        document.getElementById('videoFeed').style.display = 'none';
+        document.getElementById('scanLaser').style.display = 'none';
+      } else {
+        triggerFacialCamera();
       }
     }
 

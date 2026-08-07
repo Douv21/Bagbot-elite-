@@ -89,11 +89,12 @@ async function callGroqVisionApi(apiKey, model, prompt, imageUrl, temperature = 
     }
   ];
 
+  // Modèles Vision Groq actifs en août 2026 (dans l'ordre de préférence)
   const modelsToTry = [
     model,
-    'llama-3.2-90b-vision-preview',
-    'llama-3.2-11b-vision-instruct',
-    'llama-3.2-90b-vision-instruct'
+    'meta-llama/llama-4-scout-17b-16e-instruct',
+    'meta-llama/llama-4-maverick-17b-128e-instruct',
+    'qwen/qwen3-2-27b'
   ].filter(Boolean);
 
   const uniqueModels = [...new Set(modelsToTry)];
