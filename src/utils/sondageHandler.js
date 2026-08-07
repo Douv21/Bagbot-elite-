@@ -1,4 +1,4 @@
-const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, EmbedBuilder } = require('discord.js');
+const { ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, ActionRowBuilder, EmbedBuilder } = require('discord.js');
 const { getSondage, saveSondageResponse, getSondageResponses, db } = require('../database/db');
 
 function getStarRatingStr(score, ratingIcon = '⭐') {
@@ -48,15 +48,20 @@ async function handleSondageInteraction(interaction) {
       const secType = sec.type || 'rating_text';
 
       if (secType === 'rating' || secType === 'rating_text') {
-        const ratingInput = new TextInputBuilder()
+        const ratingSelect = new StringSelectMenuBuilder()
           .setCustomId(`rating_sec_${idx}`)
-          .setLabel(`Note (1 à 5 ${icon}) : ${sec.label}`.substring(0, 45))
-          .setPlaceholder(`Tapez un chiffre 1-5 ou ${icon.repeat(1)} à ${icon.repeat(5)}`)
-          .setStyle(TextInputStyle.Short)
-          .setMinLength(1)
-          .setMaxLength(20)
-          .setRequired(true);
-        rows.push(new ActionRowBuilder().addComponents(ratingInput));
+          .setPlaceholder(`Note pour : ${sec.label}`.substring(0, 100))
+          .setMinValues(1)
+          .setMaxValues(1)
+          .addOptions(
+            [1, 2, 3, 4, 5].map(val => ({
+              label: `${icon.repeat(val)}  (${val} / 5)`,
+              value: String(val),
+              description: `Attribuer ${val} ${icon}`
+            }))
+          );
+
+        rows.push(new ActionRowBuilder().addComponents(ratingSelect));
       }
 
       if ((secType === 'text' || secType === 'rating_text') && rows.length < maxCapacity) {
@@ -112,9 +117,16 @@ async function handleSondageInteraction(interaction) {
       let obsStr = '';
 
       try {
-        const ratingStr = interaction.fields.getTextInputValue(`rating_sec_${idx}`);
+        let ratingStr = null;
+        try {
+          const selectVals = interaction.fields.getStringSelectMenuValues(`rating_sec_${idx}`);
+          if (selectVals && selectVals.length > 0) ratingStr = selectVals[0];
+        } catch (e) {
+          ratingStr = interaction.fields.getTextInputValue(`rating_sec_${idx}`);
+        }
+
         if (ratingStr) {
-          const raw = ratingStr.trim();
+          const raw = String(ratingStr).trim();
           let parsed = parseInt(raw);
           if (isNaN(parsed)) {
             const icon = sondage.rating_icon || '⭐';
