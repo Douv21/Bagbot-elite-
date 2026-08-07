@@ -48,20 +48,16 @@ async function handleSondageInteraction(interaction) {
       const secType = sec.type || 'rating_text';
 
       if (secType === 'rating' || secType === 'rating_text') {
-        const ratingSelect = new StringSelectMenuBuilder()
+        const ratingInput = new TextInputBuilder()
           .setCustomId(`rating_sec_${idx}`)
-          .setPlaceholder(`Note pour : ${sec.label}`.substring(0, 100))
-          .setMinValues(1)
-          .setMaxValues(1)
-          .addOptions(
-            [1, 2, 3, 4, 5].map(val => ({
-              label: `${icon.repeat(val)}  (${val} / 5)`,
-              value: String(val),
-              description: `Attribuer ${val} ${icon}`
-            }))
-          );
+          .setLabel(`Note (1 à 5 ${icon}) : ${sec.label}`.substring(0, 45))
+          .setPlaceholder(`Entrez un chiffre de 1 à 5 (ex: 5) ou des ${icon}`)
+          .setStyle(TextInputStyle.Short)
+          .setMinLength(1)
+          .setMaxLength(20)
+          .setRequired(true);
 
-        rows.push(new ActionRowBuilder().addComponents(ratingSelect));
+        rows.push(new ActionRowBuilder().addComponents(ratingInput));
       }
 
       if ((secType === 'text' || secType === 'rating_text') && rows.length < maxCapacity) {
@@ -88,7 +84,14 @@ async function handleSondageInteraction(interaction) {
     }
 
     modal.addComponents(rows);
-    await interaction.showModal(modal);
+    try {
+      await interaction.showModal(modal);
+    } catch (err) {
+      console.error('Erreur affichage modal sondage:', err);
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: `❌ Impossible d'ouvrir le formulaire : ${err.message}`, ephemeral: true }).catch(() => null);
+      }
+    }
     return true;
   }
 
