@@ -89,13 +89,19 @@ async function callGroqVisionApi(apiKey, model, prompt, imageUrl, temperature = 
     }
   ];
 
-  // Modèles Vision Groq actifs en août 2026 (dans l'ordre de préférence)
+  // Seul modèle Vision Groq disponible avec cette clé (août 2026)
   const modelsToTry = [
     model,
+    'qwen/qwen3.6-27b'
+  ].filter(m => m && ![
+    'llama-3.2-11b-vision-preview',
+    'llama-3.2-90b-vision-preview',
+    'llama-3.2-90b-vision-instruct',
+    'llama-3.2-11b-vision-instruct',
     'meta-llama/llama-4-scout-17b-16e-instruct',
     'meta-llama/llama-4-maverick-17b-128e-instruct',
     'qwen/qwen3-2-27b'
-  ].filter(Boolean);
+  ].includes(m));
 
   const uniqueModels = [...new Set(modelsToTry)];
   let lastError = null;
@@ -341,7 +347,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
   const config = guildId ? getAiConfig(guildId) : {
     preferred_provider: 'auto',
     groq_text_model: 'llama-3.3-70b-versatile',
-    groq_vision_model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    groq_vision_model: 'qwen/qwen3.6-27b',
     groq_server_model: 'llama-3.1-8b-instant',
     gemini_model: 'gemini-2.0-flash'
   };
@@ -353,12 +359,17 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
 
   // Déterminer les modèles à utiliser selon la catégorie
   let groqModel = config.groq_text_model || 'llama-3.3-70b-versatile';
-  // Force un modèle Vision actif quel que soit ce qui est en DB (les anciens llama-3.2 sont décommissionnés)
+  // Force le bon modèle Vision (les anciens llama-3.2 et llama-4-scout sont inaccessibles avec cette clé)
   if (category === 'vision') {
     const visionModelFromDb = config.groq_vision_model || '';
-    const deprecatedModels = ['llama-3.2-11b-vision-preview', 'llama-3.2-90b-vision-preview', 'llama-3.2-90b-vision-instruct', 'llama-3.2-11b-vision-instruct'];
-    groqModel = deprecatedModels.includes(visionModelFromDb) || !visionModelFromDb
-      ? 'meta-llama/llama-4-scout-17b-16e-instruct'
+    const badModels = [
+      'llama-3.2-11b-vision-preview', 'llama-3.2-90b-vision-preview',
+      'llama-3.2-90b-vision-instruct', 'llama-3.2-11b-vision-instruct',
+      'meta-llama/llama-4-scout-17b-16e-instruct', 'meta-llama/llama-4-maverick-17b-128e-instruct',
+      'qwen/qwen3-2-27b'
+    ];
+    groqModel = badModels.includes(visionModelFromDb) || !visionModelFromDb
+      ? 'qwen/qwen3.6-27b'
       : visionModelFromDb;
   }
   if (category === 'server') groqModel = config.groq_server_model || 'llama-3.1-8b-instant';
@@ -400,7 +411,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
       try {
         let result = null;
         if (imageUrl && category === 'vision') {
-          result = await callGroqVisionApi(keyObj.api_key, groqModel || 'meta-llama/llama-4-scout-17b-16e-instruct', userPrompt, imageUrl, temperature, maxTokens);
+          result = await callGroqVisionApi(keyObj.api_key, groqModel || 'qwen/qwen3.6-27b', userPrompt, imageUrl, temperature, maxTokens);
         } else {
           result = await callGroqApi(keyObj.api_key, groqModel, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
         }
