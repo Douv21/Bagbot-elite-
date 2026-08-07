@@ -1365,7 +1365,8 @@ apiApp.post('/bot/send-sondage', async (req, res) => {
       .setTimestamp();
 
     const hostIp = process.env.PUBLIC_IP || '82.65.75.176';
-    const formUrl = (googleFormUrl && googleFormUrl.trim()) ? googleFormUrl.trim() : `http://${hostIp}:49602/form.html?id=${sondageId}`;
+    const dashPort = process.env.DASHBOARD2_PORT || 49602;
+    const formUrl = (googleFormUrl && googleFormUrl.trim()) ? googleFormUrl.trim() : `http://${hostIp}:${dashPort}/form.html?id=${sondageId}`;
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()

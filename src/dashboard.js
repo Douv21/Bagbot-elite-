@@ -222,6 +222,15 @@ app.get('/verify-age.html', (req, res) => {
 app.get('/verify-age', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/verify-age.html'));
 });
+
+app.get('/form.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/form.html'));
+});
+
+app.get('/form', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/form.html'));
+});
+
 // Route principale
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));

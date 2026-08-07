@@ -89,25 +89,48 @@ async function callGroqVisionApi(apiKey, model, prompt, imageUrl, temperature = 
     }
   ];
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: model || 'llama-3.2-11b-vision-preview',
-      messages,
-      temperature,
-      max_tokens: maxTokens
-    }),
-    signal: AbortSignal.timeout(15000)
-  });
+  const modelsToTry = [
+    model,
+    'llama-3.2-90b-vision-preview',
+    'llama-3.2-11b-vision-instruct',
+    'llama-3.2-90b-vision-instruct'
+  ].filter(Boolean);
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => '');
-    throw new Error(`Groq Vision API HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+  const uniqueModels = [...new Set(modelsToTry)];
+  let lastError = null;
+
+  for (const targetModel of uniqueModels) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: targetModel,
+          messages,
+          temperature,
+          max_tokens: maxTokens
+        }),
+        signal: AbortSignal.timeout(15000)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+          return data.choices[0].message.content.trim();
+        }
+      } else {
+        const errorText = await response.text().catch(() => '');
+        lastError = new Error(`Groq Vision API (${targetModel}) HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+      }
+    } catch (err) {
+      lastError = err;
+    }
   }
+
+  throw lastError || new Error('Groq Vision API failed');
 
   const data = await response.json();
   if (data.choices && data.choices[0] && data.choices[0].message) {
@@ -323,7 +346,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
   const config = guildId ? getAiConfig(guildId) : {
     preferred_provider: 'auto',
     groq_text_model: 'llama-3.3-70b-versatile',
-    groq_vision_model: 'llama-3.2-11b-vision-preview',
+    groq_vision_model: 'llama-3.2-90b-vision-preview',
     groq_server_model: 'llama-3.1-8b-instant',
     gemini_model: 'gemini-2.0-flash'
   };
@@ -335,7 +358,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
 
   // Déterminer les modèles à utiliser selon la catégorie
   let groqModel = config.groq_text_model || 'llama-3.3-70b-versatile';
-  if (category === 'vision') groqModel = config.groq_vision_model || 'llama-3.2-11b-vision-preview';
+  if (category === 'vision') groqModel = config.groq_vision_model || 'llama-3.2-90b-vision-preview';
   if (category === 'server') groqModel = config.groq_server_model || 'llama-3.1-8b-instant';
 
   const geminiModel = config.gemini_model || 'gemini-2.0-flash';
