@@ -260,18 +260,46 @@ async function handleTicketInteraction(interaction, client) {
       welcomeEmbed.setImage(option.image_url);
     }
 
-    const buttons = [];
+    const embedsToSend = [welcomeEmbed];
+    const actionRows = [];
 
     if (option.require_age_verification === 1) {
-      buttons.push(
-        new ButtonBuilder()
-          .setCustomId('ticket_verify_age')
-          .setLabel(`Vérifier d'âge (${option.min_age_required || 18}+) 🔐`)
-          .setStyle(ButtonStyle.Primary)
+      const minAge = option.min_age_required || 18;
+      const crypto = require('crypto');
+      const token = crypto.randomUUID ? crypto.randomUUID() : `age_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+      const { createAgeVerificationSession } = require('../database/db');
+      createAgeVerificationSession(token, interaction.guildId, interaction.user.id, ticketChannel.id, minAge);
+
+      const verifyUrl = `https://packs-stem-literature-stan.trycloudflare.com/verify-age.html?token=${token}`;
+
+      const ageVerifyEmbed = new EmbedBuilder()
+        .setTitle('🔞 Vérification d\'Âge Requise')
+        .setDescription(
+          `Bonjour <@${interaction.user.id}> !\n\nPour faire valider votre accès (**${minAge} ans et +**), veuillez effectuer votre vérification en ligne.\n\n` +
+          `• **Méthodes disponibles** : 📸 Reconnaissance Faciale (Caméra) ou 📄 Pièce d'Identité\n` +
+          `• **Confidentialité RGPD** : Aucune photo n'est conservée ni stockée sur nos serveurs.\n\n` +
+          `👉 [**Cliquer ici pour accéder à la vérification**](${verifyUrl})`
+        )
+        .setColor('#D4AF37');
+
+      embedsToSend.push(ageVerifyEmbed);
+
+      actionRows.push(
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setLabel('Accéder à la vérification 🔗')
+            .setStyle(ButtonStyle.Link)
+            .setURL(verifyUrl),
+          new ButtonBuilder()
+            .setCustomId('ticket_verify_age')
+            .setLabel(`Régénérer lien (${minAge}+) 🔐`)
+            .setStyle(ButtonStyle.Secondary)
+        )
       );
     }
 
-    buttons.push(
+    const buttons = [
       new ButtonBuilder()
         .setCustomId('ticket_claim')
         .setLabel('Prendre en charge 🙋‍♂️')
@@ -280,7 +308,7 @@ async function handleTicketInteraction(interaction, client) {
         .setCustomId('ticket_assign')
         .setLabel('Assigner 👤')
         .setStyle(ButtonStyle.Primary)
-    );
+    ];
 
     if (option.show_member_button !== 0) {
       buttons.push(
@@ -307,7 +335,6 @@ async function handleTicketInteraction(interaction, client) {
         .setStyle(ButtonStyle.Danger)
     );
 
-    const actionRows = [];
     while (buttons.length > 0) {
       actionRows.push(new ActionRowBuilder().addComponents(buttons.splice(0, 5)));
     }
@@ -329,7 +356,7 @@ async function handleTicketInteraction(interaction, client) {
 
     await ticketChannel.send({ 
       content: pingContent.trim() || undefined, 
-      embeds: [welcomeEmbed], 
+      embeds: embedsToSend, 
       components: actionRows 
     });
 
