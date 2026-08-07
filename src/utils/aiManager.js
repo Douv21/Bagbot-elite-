@@ -590,9 +590,9 @@ Réponds STRICTEMENT avec un objet JSON unique au format :
       maxTokens: 350
     });
 
-    // Timeout de sécurité de 6 secondes max pour éviter tout blocage du frontend
+    // Timeout de sécurité de 25 secondes max (la vision peut prendre quelques secondes)
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('AI Vision Timeout (6s limit exceeded)')), 6000)
+      setTimeout(() => reject(new Error('AI Vision Timeout (25s limit exceeded)')), 25000)
     );
 
     const aiRes = await Promise.race([aiPromise, timeoutPromise]);
@@ -623,29 +623,26 @@ Réponds STRICTEMENT avec un objet JSON unique au format :
         }
       }
     }
+    throw new Error('Format de réponse IA invalide.');
   } catch (err) {
-    console.warn('[AI Age Analysis] Vision model fast fallback triggered:', err.message);
-  }
-
-  // Fallback rapide avec date de naissance si fournie
-  if (birthDateInput) {
-    const birthYear = new Date(birthDateInput).getFullYear();
-    if (!isNaN(birthYear) && birthYear > 1900 && birthYear <= new Date().getFullYear()) {
-      const calcAge = new Date().getFullYear() - birthYear;
-      return {
-        age: calcAge,
-        isAdult: calcAge >= minAge,
-        reason: `Basé sur la date de naissance déclarée (${birthDateInput}).`
-      };
+    console.warn('[AI Age Analysis] Error during analysis:', err.message);
+    
+    // Fallback rapide avec date de naissance si fournie (mode document)
+    if (birthDateInput) {
+      const birthYear = new Date(birthDateInput).getFullYear();
+      if (!isNaN(birthYear) && birthYear > 1900 && birthYear <= new Date().getFullYear()) {
+        const calcAge = new Date().getFullYear() - birthYear;
+        return {
+          age: calcAge,
+          isAdult: calcAge >= minAge,
+          reason: `Basé sur la date de naissance déclarée (${birthDateInput}).`
+        };
+      }
     }
-  }
 
-  // Fallback sécurisé : En cas de doute ou d'échec d'analyse, classer par défaut comme mineur (isAdult: false)
-  return {
-    age: 16,
-    isAdult: false,
-    reason: 'Analyse biométrique faciale douteuse ou incomplète. Par sécurité mineur, la majorité n\'a pas pu être certifiée.'
-  };
+    // Lever une erreur explicite pour que l'utilisateur voie la cause exacte au lieu d'un faux "16 ans"
+    throw new Error(`L'analyse d'âge a échoué (${err.message}). Veuillez reprendre une photo nette et bien éclairée.`);
+  }
 }
 
 /**
