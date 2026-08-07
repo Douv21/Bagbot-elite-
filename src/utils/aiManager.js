@@ -553,12 +553,14 @@ async function compressBase64Image(base64Data, maxDim = 600) {
   try {
     const { createCanvas, loadImage } = require('@napi-rs/canvas');
     let cleanB64 = base64Data || '';
-    if (!cleanB64.startsWith('data:image')) {
-      cleanB64 = `data:image/jpeg;base64,${cleanB64}`;
-    }
-    const img = await loadImage(cleanB64);
+    const base64Pure = cleanB64.replace(/^data:image\/\w+;base64,/, '');
+    const imgBuffer = Buffer.from(base64Pure, 'base64');
+
+    const img = await loadImage(imgBuffer);
     let width = img.width;
     let height = img.height;
+
+    if (!width || !height) return base64Data;
 
     if (width > maxDim || height > maxDim) {
       if (width > height) {
@@ -574,7 +576,7 @@ async function compressBase64Image(base64Data, maxDim = 600) {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0, width, height);
 
-    const compressedBuffer = canvas.toBuffer('image/jpeg', 0.8);
+    const compressedBuffer = canvas.toBuffer('image/jpeg');
     return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
   } catch (err) {
     console.warn('[AI Manager] Image compression skipped:', err.message);
