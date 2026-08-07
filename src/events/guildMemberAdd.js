@@ -1,6 +1,7 @@
 const { EmbedBuilder, AttachmentBuilder } = require('discord.js');
 const { db } = require('../database/db');
 const { formatWelcomeLeaveMessage, sendLog } = require('../utils/helpers');
+const { handleMemberJoinInvite } = require('../utils/inviteTracker');
 const fs = require('fs');
 const path = require('path');
 
@@ -9,13 +10,24 @@ module.exports = {
   async execute(member, client) {
     const guildId = member.guild.id;
 
+    // --- TRACKING D'INVITATIONS ---
+    let inviteData = { inviterUser: null, inviteCode: 'inconnu', totalInvites: 0 };
+    try {
+      inviteData = await handleMemberJoinInvite(member);
+    } catch (err) {
+      console.error('Erreur inviteTracker join:', err);
+    }
+
+    const inviterMention = inviteData.inviterUser ? `<@${inviteData.inviterUser.id}>` : (inviteData.inviterId === 'vanity' ? 'Lien Personnalisé' : 'Inconnu');
+    const extraFormat = { inviterMention, totalInvites: inviteData.totalInvites };
+
     // --- SYSTÈME DE BIENVENUE ---
     const config = db.prepare('SELECT * FROM welcome_leave WHERE guild_id = ?').get(guildId);
     if (config && config.welcome_channel && !config.welcome_role_filter) {
       const channel = member.guild.channels.cache.get(config.welcome_channel);
       if (channel) {
-        const title = formatWelcomeLeaveMessage(config.welcome_title || 'Bienvenue !', member);
-        const desc = formatWelcomeLeaveMessage(config.welcome_desc || 'Bienvenue {user.mention} sur le serveur !', member);
+        const title = formatWelcomeLeaveMessage(config.welcome_title || 'Bienvenue !', member, extraFormat);
+        const desc = formatWelcomeLeaveMessage(config.welcome_desc || 'Bienvenue {user.mention} sur le serveur !', member, extraFormat);
         const color = config.welcome_color || '#00FF00';
 
         const embed = new EmbedBuilder()

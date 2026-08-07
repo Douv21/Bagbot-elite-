@@ -1,6 +1,7 @@
 const { EmbedBuilder, AttachmentBuilder, AuditLogEvent } = require('discord.js');
 const { db } = require('../database/db');
 const { formatWelcomeLeaveMessage, sendLog } = require('../utils/helpers');
+const { handleMemberLeaveInvite } = require('../utils/inviteTracker');
 const fs = require('fs');
 const path = require('path');
 
@@ -8,6 +9,13 @@ module.exports = {
   name: 'guildMemberRemove',
   async execute(member, client) {
     const guildId = member.guild.id;
+
+    // --- TRACKING D'INVITATIONS ---
+    try {
+      await handleMemberLeaveInvite(member);
+    } catch (err) {
+      console.error('Erreur inviteTracker leave:', err);
+    }
 
     // --- SYSTÈME DE DÉPART ---
     const config = db.prepare('SELECT * FROM welcome_leave WHERE guild_id = ?').get(guildId);

@@ -646,6 +646,48 @@ function initDatabase() {
   `).run();
 
   db.prepare(`
+    CREATE TABLE IF NOT EXISTS role_boosters (
+      guild_id TEXT,
+      role_id TEXT,
+      xp_multiplier REAL DEFAULT 1.0,
+      karma_multiplier REAL DEFAULT 1.0,
+      money_multiplier REAL DEFAULT 1.0,
+      PRIMARY KEY (guild_id, role_id)
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS invite_config (
+      guild_id TEXT PRIMARY KEY,
+      log_channel_id TEXT,
+      enabled INTEGER DEFAULT 1
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS invite_tracking (
+      guild_id TEXT,
+      user_id TEXT,
+      inviter_id TEXT,
+      invite_code TEXT,
+      joined_at INTEGER,
+      PRIMARY KEY (guild_id, user_id)
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS user_invite_counts (
+      guild_id TEXT,
+      inviter_id TEXT,
+      regular INTEGER DEFAULT 0,
+      fake INTEGER DEFAULT 0,
+      left INTEGER DEFAULT 0,
+      bonus INTEGER DEFAULT 0,
+      PRIMARY KEY (guild_id, inviter_id)
+    )
+  `).run();
+
+  db.prepare(`
     CREATE TABLE IF NOT EXISTS command_permissions (
       guild_id TEXT NOT NULL,
       command_name TEXT NOT NULL,
@@ -2371,9 +2413,125 @@ function completeAgeVerification(id, method, estimatedAge) {
   `).run(method, estimatedAge, Date.now(), id);
 }
 
+// --- FONCTIONS ROLE BOOSTERS ---
+
+function getRoleBoosters(guildId) {
+  return db.prepare('SELECT * FROM role_boosters WHERE guild_id = ?').all(guildId);
+}
+
+function addOrUpdateRoleBooster(guildId, roleId, xpMultiplier = 1.0, karmaMultiplier = 1.0, moneyMultiplier = 1.0) {
+  return db.prepare(`
+    INSERT INTO role_boosters (guild_id, role_id, xp_multiplier, karma_multiplier, money_multiplier)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(guild_id, role_id) DO UPDATE SET
+      xp_multiplier = excluded.xp_multiplier,
+      karma_multiplier = excluded.karma_multiplier,
+      money_multiplier = excluded.money_multiplier
+  `).run(guildId, roleId, parseFloat(xpMultiplier) || 1.0, parseFloat(karmaMultiplier) || 1.0, parseFloat(moneyMultiplier) || 1.0);
+}
+
+function deleteRoleBooster(guildId, roleId) {
+  return db.prepare('DELETE FROM role_boosters WHERE guild_id = ? AND role_id = ?').run(guildId, roleId);
+}
+
+function getMemberRoleMultipliers(guildId, member) {
+  const defaultMultipliers = { xp_multiplier: 1.0, karma_multiplier: 1.0, money_multiplier: 1.0 };
+  if (!member || !member.roles || !member.roles.cache) return defaultMultipliers;
+
+  const boosters = getRoleBoosters(guildId);
+  if (!boosters || boosters.length === 0) return defaultMultipliers;
+
+  let maxXp = 1.0;
+  let maxKarma = 1.0;
+  let maxMoney = 1.0;
+
+  for (const booster of boosters) {
+    if (member.roles.cache.has(booster.role_id)) {
+      if (booster.xp_multiplier > maxXp) maxXp = booster.xp_multiplier;
+      if (booster.karma_multiplier > maxKarma) maxKarma = booster.karma_multiplier;
+      if (booster.money_multiplier > maxMoney) maxMoney = booster.money_multiplier;
+    }
+  }
+
+  return {
+    xp_multiplier: maxXp,
+    karma_multiplier: maxKarma,
+    money_multiplier: maxMoney
+  };
+}
+
+// --- FONCTIONS INVITE TRACKER ---
+
+function getInviteConfig(guildId) {
+  return db.prepare('SELECT * FROM invite_config WHERE guild_id = ?').get(guildId) || { log_channel_id: null, enabled: 1 };
+}
+
+function updateInviteConfig(guildId, logChannelId, enabled = 1) {
+  return db.prepare(`
+    INSERT INTO invite_config (guild_id, log_channel_id, enabled)
+    VALUES (?, ?, ?)
+    ON CONFLICT(guild_id) DO UPDATE SET
+      log_channel_id = excluded.log_channel_id,
+      enabled = excluded.enabled
+  `).run(guildId, logChannelId || null, enabled ? 1 : 0);
+}
+
+function recordInviteJoin(guildId, userId, inviterId, inviteCode) {
+  db.prepare(`
+    INSERT OR REPLACE INTO invite_tracking (guild_id, user_id, inviter_id, invite_code, joined_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(guildId, userId, inviterId || 'vanity', inviteCode || 'vanity', Date.now());
+
+  if (inviterId && inviterId !== 'vanity' && inviterId !== 'unknown') {
+    db.prepare(`
+      INSERT INTO user_invite_counts (guild_id, inviter_id, regular, fake, left, bonus)
+      VALUES (?, ?, 1, 0, 0, 0)
+      ON CONFLICT(guild_id, inviter_id) DO UPDATE SET
+        regular = regular + 1
+    `).run(guildId, inviterId);
+  }
+}
+
+function recordInviteLeave(guildId, userId) {
+  const tracked = db.prepare('SELECT * FROM invite_tracking WHERE guild_id = ? AND user_id = ?').get(guildId, userId);
+  if (tracked && tracked.inviter_id && tracked.inviter_id !== 'vanity' && tracked.inviter_id !== 'unknown') {
+    db.prepare(`
+      UPDATE user_invite_counts
+      SET left = left + 1
+      WHERE guild_id = ? AND inviter_id = ?
+    `).run(guildId, tracked.inviter_id);
+  }
+  return tracked;
+}
+
+function getUserInviteStats(guildId, inviterId) {
+  const row = db.prepare('SELECT * FROM user_invite_counts WHERE guild_id = ? AND inviter_id = ?').get(guildId, inviterId);
+  if (!row) return { regular: 0, fake: 0, left: 0, bonus: 0, total: 0 };
+  const total = (row.regular || 0) + (row.bonus || 0) - (row.left || 0) - (row.fake || 0);
+  return { ...row, total: Math.max(0, total) };
+}
+
+function getInviteLeaderboard(guildId, limit = 10) {
+  const rows = db.prepare('SELECT * FROM user_invite_counts WHERE guild_id = ?').all(guildId);
+  return rows.map(r => {
+    const total = (r.regular || 0) + (r.bonus || 0) - (r.left || 0) - (r.fake || 0);
+    return { ...r, total: Math.max(0, total) };
+  }).sort((a, b) => b.total - a.total).slice(0, limit);
+}
+
 module.exports = {
   ...module.exports,
   createAgeVerificationSession,
   getAgeVerificationSession,
-  completeAgeVerification
+  completeAgeVerification,
+  getRoleBoosters,
+  addOrUpdateRoleBooster,
+  deleteRoleBooster,
+  getMemberRoleMultipliers,
+  getInviteConfig,
+  updateInviteConfig,
+  recordInviteJoin,
+  recordInviteLeave,
+  getUserInviteStats,
+  getInviteLeaderboard
 };

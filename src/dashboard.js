@@ -2746,6 +2746,83 @@ app.post('/api/config/ai/keys/toggle', (req, res) => {
   }
 });
 
+// --- API ROLE BOOSTERS ---
+
+app.get('/api/config/role-boosters', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { getRoleBoosters } = require('./database/db');
+    const boosters = getRoleBoosters(guildId);
+    res.json(boosters);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/config/role-boosters/add', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { role_id, xp_multiplier, karma_multiplier, money_multiplier } = req.body || {};
+    if (!role_id) return res.status(400).json({ error: 'Rôle requis' });
+
+    const { addOrUpdateRoleBooster } = require('./database/db');
+    addOrUpdateRoleBooster(guildId, role_id, xp_multiplier, karma_multiplier, money_multiplier);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/config/role-boosters/delete', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { role_id } = req.body || {};
+    if (!role_id) return res.status(400).json({ error: 'Rôle requis' });
+
+    const { deleteRoleBooster } = require('./database/db');
+    deleteRoleBooster(guildId, role_id);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- API INVITE TRACKER ---
+
+app.get('/api/config/invites', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { getInviteConfig, getInviteLeaderboard } = require('./database/db');
+    const config = getInviteConfig(guildId);
+    const leaderboard = getInviteLeaderboard(guildId, 20);
+    res.json({ config, leaderboard });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/config/invites', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const { log_channel_id, enabled } = req.body || {};
+    const { updateInviteConfig } = require('./database/db');
+    updateInviteConfig(guildId, log_channel_id, enabled);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post('/api/config/ai/keys/delete', (req, res) => {
   try {
     const { id } = req.body || {};

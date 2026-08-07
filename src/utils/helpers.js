@@ -2,14 +2,27 @@ const { EmbedBuilder } = require('discord.js');
 const { db, getLeveling, updateLeveling, getLevelingConfig } = require('../database/db');
 
 // Remplacer les variables pour les messages de bienvenue/départ
-function formatWelcomeLeaveMessage(text, member) {
+function formatWelcomeLeaveMessage(text, member, extra = {}) {
   if (!text) return '';
-  return text
+  let result = text
     .replace(/{user}/g, member.user.username)
     .replace(/{user.tag}/g, member.user.tag)
     .replace(/{user.mention}/g, `<@${member.user.id}>`)
     .replace(/{server}/g, member.guild.name)
     .replace(/{memberCount}/g, member.guild.memberCount);
+
+  if (extra.inviterMention) {
+    result = result.replace(/{inviter}/g, extra.inviterMention);
+  } else {
+    result = result.replace(/{inviter}/g, 'Inconnu');
+  }
+  if (extra.totalInvites !== undefined) {
+    result = result.replace(/{invites}/g, extra.totalInvites);
+  } else {
+    result = result.replace(/{invites}/g, '0');
+  }
+
+  return result;
 }
 
 // Envoyer un log dans le salon de logs configuré

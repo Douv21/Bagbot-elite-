@@ -113,6 +113,7 @@
           <button class="tab-btn" data-tab="tab-autoroles"><i class="fa-solid fa-user-plus"></i> Auto-Rôles à l'Arrivée</button>
           <button class="tab-btn" data-tab="tab-reactionroles"><i class="fa-solid fa-rectangle-list"></i> Rôles Réaction</button>
           <button class="tab-btn" data-tab="tab-autothread"><i class="fa-solid fa-hashtag"></i> Auto-Thread</button>
+          <button class="tab-btn" data-tab="tab-invites"><i class="fa-solid fa-user-plus" style="color: #2ecc71;"></i> Suivi Invitations <span class="nav-badge badge-green">TRACKER</span></button>
           <button class="tab-btn" data-tab="tab-logs"><i class="fa-solid fa-list-check"></i> Logs d'Activité</button>
         </div>
 
@@ -1645,6 +1646,75 @@
                 <button type="submit" class="btn btn-add"><i class="fa-solid fa-plus"></i> Associer le thème</button>
               </form>
             </div>
+
+            <!-- Role Boosters Section -->
+            <div class="card glass mt-4">
+              <h3>🚀 Multiplicateurs & Rôles Boosters (XP, Karma, Pièces)</h3>
+              <p class="form-help mb-3">Attribuez des multiplicateurs de gains (x1.5, x2.0, x2.5...) selon les rôles possédés par vos membres (ex: Rôle VIP, Booster Discord, Rôle Niveau, etc.).</p>
+
+              <div class="table-container mb-3">
+                <table class="premium-table">
+                  <thead>
+                    <tr>
+                      <th>Rôle Concerné</th>
+                      <th>Multiplicateur XP</th>
+                      <th>Multiplicateur Karma</th>
+                      <th>Multiplicateur Pièces</th>
+                      <th style="width: 100px; text-align: center;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="role-boosters-list">
+                    <tr>
+                      <td colspan="5" class="text-center">Aucun rôle booster configuré.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Add Role Booster Form -->
+              <h4 class="mb-2">Ajouter / Modifier un Rôle Booster</h4>
+              <form id="form-add-role-booster" class="inner-form">
+                <div class="form-row">
+                  <div class="form-group" style="flex: 1.5; min-width: 200px;">
+                    <label for="booster_role">Rôle :</label>
+                    <select id="booster_role" class="role-select custom-select" required>
+                      <option value="">Sélectionner un rôle...</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="booster_xp">Multiplier XP :</label>
+                    <select id="booster_xp" class="custom-select">
+                      <option value="1.0">x1.0 (Normal)</option>
+                      <option value="1.25">x1.25 (+25%)</option>
+                      <option value="1.5">x1.5 (+50%)</option>
+                      <option value="1.75">x1.75 (+75%)</option>
+                      <option value="2.0">x2.0 (Double)</option>
+                      <option value="2.5">x2.5 (+150%)</option>
+                      <option value="3.0">x3.0 (Triple)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="booster_karma">Multiplier Karma :</label>
+                    <select id="booster_karma" class="custom-select">
+                      <option value="1.0">x1.0 (Normal)</option>
+                      <option value="1.5">x1.5 (+50%)</option>
+                      <option value="2.0">x2.0 (Double)</option>
+                      <option value="3.0">x3.0 (Triple)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="booster_money">Multiplier Pièces :</label>
+                    <select id="booster_money" class="custom-select">
+                      <option value="1.0">x1.0 (Normal)</option>
+                      <option value="1.5">x1.5 (+50%)</option>
+                      <option value="2.0">x2.0 (Double)</option>
+                      <option value="3.0">x3.0 (Triple)</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-add" style="margin-top: 10px;"><i class="fa-solid fa-rocket"></i> Enregistrer le Rôle Booster</button>
+              </form>
+            </div>
           </div>
 
           <!-- Tab: Configuration Karma -->
@@ -2910,6 +2980,58 @@
                 </button>
               </div>
             </form>
+          </div>
+
+          <!-- Tab: Tracker d'Invitations -->
+          <div id="tab-invites" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-user-plus" style="color: #2ecc71;"></i> Suivi des Invitations (Invite Tracker)</h2>
+
+            <div class="card glass mb-4">
+              <h3>⚙️ Configuration du Suivi d'Invitations</h3>
+              <p class="form-help mb-3">Identifiez automatiquement qui a invité chaque membre sur votre serveur et publiez des logs d'arrivée/départ détaillés avec le nombre total d'invitations.</p>
+              
+              <form id="form-invites-config" class="inner-form">
+                <div class="form-row">
+                  <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="invites_enabled" style="width: 20px; height: 20px; cursor: pointer;" checked>
+                    <label for="invites_enabled" style="margin: 0; cursor: pointer; color: #fff; font-weight: 600;">Activer le Suivi des Invitations 📩</label>
+                  </div>
+                  <div class="form-group" style="flex: 1; min-width: 250px;">
+                    <label for="invites_log_channel"><i class="fa-solid fa-hashtag"></i> Salon de logs des invitations :</label>
+                    <select id="invites_log_channel" class="channel-select custom-select">
+                      <option value="">-- Désactiver les annonces d'invitations --</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-save" style="margin-top: 10px; width: auto;">
+                  <i class="fa-solid fa-floppy-disk"></i> Enregistrer les paramètres d'invitations
+                </button>
+              </form>
+            </div>
+
+            <!-- Leaderboard -->
+            <div class="card glass">
+              <h3>🏆 Classement des Meilleurs Inviteurs du Serveur</h3>
+              <div style="overflow-x: auto;">
+                <table class="premium-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Membre Inviteur</th>
+                      <th>Invitations Réelles</th>
+                      <th>Quittés</th>
+                      <th>Total Net</th>
+                    </tr>
+                  </thead>
+                  <tbody id="invite-leaderboard-list">
+                    <tr>
+                      <td colspan="5" class="text-center">Chargement du classement...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <!-- Tab: Star de la Semaine -->

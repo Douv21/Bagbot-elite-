@@ -879,6 +879,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Charger les thèmes de cartes par rôle
         loadRoleThemes();
+        loadRoleBoosters();
+        loadInviteTracker();
       })
       .catch(console.error);
   }
@@ -6457,6 +6459,154 @@ function initSondageModule() {
   }
 
   loadSondagesSavedList();
+}
+
+// --- ROLE BOOSTERS & INVITE TRACKER MODULES ---
+
+function loadRoleBoosters() {
+  fetch('/api/config/role-boosters')
+    .then(r => r.json())
+    .then(boosters => {
+      const list = document.getElementById('role-boosters-list');
+      if (!list) return;
+      if (!Array.isArray(boosters) || boosters.length === 0) {
+        list.innerHTML = '<tr><td colspan="5" class="text-center">Aucun rôle booster configuré.</td></tr>';
+        return;
+      }
+      list.innerHTML = boosters.map(b => {
+        const role = rolesList.find(r => r.id === b.role_id);
+        const roleName = role ? role.name : (b.role_id || 'Rôle inconnu');
+        return `
+          <tr>
+            <td><strong>@${roleName}</strong></td>
+            <td><span class="nav-badge badge-gold" style="font-size: 0.85rem;">x${b.xp_multiplier}</span></td>
+            <td><span class="nav-badge badge-purple" style="font-size: 0.85rem;">x${b.karma_multiplier}</span></td>
+            <td><span class="nav-badge badge-green" style="font-size: 0.85rem;">x${b.money_multiplier}</span></td>
+            <td class="text-center">
+              <button type="button" class="btn btn-sm btn-logout" onclick="deleteRoleBooster('${b.role_id}')">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    })
+    .catch(console.error);
+}
+
+window.deleteRoleBooster = function(roleId) {
+  if (!confirm('Supprimer ce rôle booster ?')) return;
+  fetch('/api/config/role-boosters/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role_id: roleId })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      showToast('Rôle booster supprimé !');
+      loadRoleBoosters();
+    } else {
+      showToast('Erreur: ' + res.error, true);
+    }
+  })
+  .catch(err => showToast('Erreur: ' + err.message, true));
+};
+
+const formAddRoleBooster = document.getElementById('form-add-role-booster');
+if (formAddRoleBooster) {
+  formAddRoleBooster.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const role_id = document.getElementById('booster_role').value;
+    const xp_multiplier = parseFloat(document.getElementById('booster_xp').value) || 1.0;
+    const karma_multiplier = parseFloat(document.getElementById('booster_karma').value) || 1.0;
+    const money_multiplier = parseFloat(document.getElementById('booster_money').value) || 1.0;
+
+    if (!role_id) return showToast('Sélectionnez un rôle', true);
+
+    fetch('/api/config/role-boosters/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role_id, xp_multiplier, karma_multiplier, money_multiplier })
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        showToast('Rôle booster enregistré !');
+        formAddRoleBooster.reset();
+        loadRoleBoosters();
+      } else {
+        showToast('Erreur: ' + res.error, true);
+      }
+    })
+    .catch(err => showToast('Erreur: ' + err.message, true));
+  });
+}
+
+function loadInviteTracker() {
+  fetch('/api/config/invites')
+    .then(r => r.json())
+    .then(data => {
+      const config = data.config || {};
+      const leaderboard = data.leaderboard || [];
+
+      const enabledInput = document.getElementById('invites_enabled');
+      const channelInput = document.getElementById('invites_log_channel');
+
+      if (enabledInput) enabledInput.checked = config.enabled === 1;
+      if (channelInput) channelInput.value = config.log_channel_id || '';
+
+      if (channelInput && channelInput.syncCustomSelect) channelInput.syncCustomSelect();
+
+      const list = document.getElementById('invite-leaderboard-list');
+      if (list) {
+        if (!Array.isArray(leaderboard) || leaderboard.length === 0) {
+          list.innerHTML = '<tr><td colspan="5" class="text-center">Aucune invitation enregistrée pour le moment.</td></tr>';
+          return;
+        }
+
+        list.innerHTML = leaderboard.map((row, idx) => {
+          const inviterMember = membersList.find(m => m.id === row.inviter_id);
+          const name = inviterMember ? inviterMember.name : (row.inviter_id || 'Utilisateur inconnu');
+          const medal = idx === 0 ? '🥇 ' : (idx === 1 ? '🥈 ' : (idx === 2 ? '🥉 ' : ''));
+          return `
+            <tr>
+              <td><strong>${medal}${idx + 1}</strong></td>
+              <td><i class="fa-solid fa-user" style="color:#d4af37;"></i> <strong>@${name}</strong></td>
+              <td><span class="nav-badge badge-green">${row.regular || 0}</span></td>
+              <td><span class="nav-badge badge-red">${row.left || 0}</span></td>
+              <td><span class="nav-badge badge-gold" style="font-size: 0.95rem;">${row.total} invs</span></td>
+            </tr>
+          `;
+        }).join('');
+      }
+    })
+    .catch(console.error);
+}
+
+const formInvitesConfig = document.getElementById('form-invites-config');
+if (formInvitesConfig) {
+  formInvitesConfig.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const enabled = document.getElementById('invites_enabled').checked ? 1 : 0;
+    const log_channel_id = document.getElementById('invites_log_channel').value || null;
+
+    fetch('/api/config/invites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ log_channel_id, enabled })
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        showToast('Configuration des invitations enregistrée !');
+        loadInviteTracker();
+      } else {
+        showToast('Erreur: ' + res.error, true);
+      }
+    })
+    .catch(err => showToast('Erreur: ' + err.message, true));
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -553,41 +553,45 @@ module.exports = {
     // Note : Cooldown supprimé pour que chaque message compte
     if (true) {
       const lvlConfig = getLevelingConfig(guildId);
+      const { getMemberRoleMultipliers } = require('../database/db');
+      const multipliers = getMemberRoleMultipliers(guildId, message.member);
 
-      // Gain d'XP standard
+      // Gain d'XP standard (avec multiplicateur Rôle Booster)
       const minXp = lvlConfig.xp_min ?? 15;
       const maxXp = lvlConfig.xp_max ?? 25;
       const range = Math.max(1, maxXp - minXp + 1);
       const randomXp = Math.floor(Math.random() * range) + minXp;
-      await addXP(message.guild, message.member, randomXp, message.channel);
+      const finalXp = Math.round(randomXp * multipliers.xp_multiplier);
+      await addXP(message.guild, message.member, finalXp, message.channel);
 
-      // Gain d'Argent (Solde)
+      // Gain d'Argent (Solde) (avec multiplicateur Rôle Booster)
       const minMoney = lvlConfig.money_min ?? 2;
       const maxMoney = lvlConfig.money_max ?? 5;
       const moneyRange = Math.max(1, maxMoney - minMoney + 1);
       const randomMoney = Math.floor(Math.random() * moneyRange) + minMoney;
 
-      // Ajouter l'Argent (avec bonus NSFW inclus)
-      const totalMoney = randomMoney + nsfwRewardMoney;
+      const totalMoney = Math.round((randomMoney + nsfwRewardMoney) * multipliers.money_multiplier);
       
       // Assurer l'existence de la table economy pour l'utilisateur
       db.prepare('INSERT OR IGNORE INTO economy (guild_id, user_id) VALUES (?, ?)').run(guildId, userId);
       
-      // Gain de Karma configurable
+      // Gain de Karma configurable (avec multiplicateur Rôle Booster)
       const minKarma = lvlConfig.karma_min ?? 1;
       const maxKarma = lvlConfig.karma_max ?? 3;
       const karmaRange = Math.max(1, maxKarma - minKarma + 1);
       const randomKarma = Math.floor(Math.random() * karmaRange) + minKarma;
+      const finalKarma = Math.round(randomKarma * multipliers.karma_multiplier);
 
       db.prepare(`
         UPDATE economy 
         SET wallet = wallet + ?, karma = karma + ?
         WHERE guild_id = ? AND user_id = ?
-      `).run(totalMoney, randomKarma, guildId, userId);
+      `).run(totalMoney, finalKarma, guildId, userId);
 
       // Appliquer le bonus d'XP NSFW éventuel
       if (nsfwRewardXp > 0) {
-        await addXP(message.guild, message.member, nsfwRewardXp, message.channel);
+        const finalNsfwXp = Math.round(nsfwRewardXp * multipliers.xp_multiplier);
+        await addXP(message.guild, message.member, finalNsfwXp, message.channel);
       }
 
       // --- JEU DE DEVINETTE (RECHERCHE DE LETTRE) ---
