@@ -177,7 +177,7 @@ client.on('interactionCreate', async interaction => {
   }
 
   // Prise en charge directe des boutons et modaux de Sondage / Évaluations
-  if (interaction.customId && (interaction.customId.startsWith('sondage_vote:') || interaction.customId.startsWith('sondage_modal:'))) {
+  if (interaction.customId && interaction.customId.startsWith('sondage_')) {
     const { handleSondageInteraction } = require('./utils/sondageHandler');
     try {
       const handled = await handleSondageInteraction(interaction);
