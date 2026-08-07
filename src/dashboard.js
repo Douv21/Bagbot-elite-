@@ -1268,6 +1268,82 @@ app.post('/api/config/action-rewards/delete', (req, res) => {
   }
 });
 
+// --- ROLE BOOSTERS ENDPOINTS ---
+app.get('/api/config/role-boosters', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { getRoleBoosters } = require('./database/db');
+    const boosters = getRoleBoosters(guildId);
+    res.json(boosters);
+  } catch (error) {
+    console.error('Erreur GET /api/config/role-boosters:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/role-boosters/add', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { role_id, xp_multiplier, karma_multiplier, money_multiplier } = req.body || {};
+    if (!role_id) return res.status(400).json({ error: 'ID de rôle requis' });
+
+    const { addOrUpdateRoleBooster } = require('./database/db');
+    addOrUpdateRoleBooster(guildId, role_id, xp_multiplier, karma_multiplier, money_multiplier);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erreur POST /api/config/role-boosters/add:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/role-boosters/delete', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { role_id } = req.body || {};
+    if (!role_id) return res.status(400).json({ error: 'ID de rôle requis' });
+
+    const { deleteRoleBooster } = require('./database/db');
+    deleteRoleBooster(guildId, role_id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erreur POST /api/config/role-boosters/delete:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- INVITE TRACKER ENDPOINTS ---
+app.get('/api/config/invites', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { getInviteConfig, getInviteLeaderboard } = require('./database/db');
+    const config = getInviteConfig(guildId);
+    const leaderboard = getInviteLeaderboard(guildId, 15);
+    res.json({ config, leaderboard });
+  } catch (error) {
+    console.error('Erreur GET /api/config/invites:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/invites', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { log_channel_id, enabled } = req.body || {};
+
+    const { updateInviteConfig } = require('./database/db');
+    updateInviteConfig(guildId, log_channel_id || null, enabled ? 1 : 0);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erreur POST /api/config/invites:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 14. Sauvegarder la configuration d'automodération
 app.post('/api/config/automod', (req, res) => {
   try {
