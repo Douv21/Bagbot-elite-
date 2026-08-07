@@ -6277,6 +6277,9 @@ function renderSondagesSavedList(sondages) {
         }
       }
 
+      safeSetVal('sondage_google_url', s.google_form_url || '');
+      updateGoogleAppsScriptCode(s.id);
+
       updateSondagePreview();
       if (typeof showToast === 'function') showToast(`Formulaire "${s.title}" chargé pour modification dans l'éditeur ci-dessous.`);
       
@@ -6308,6 +6311,34 @@ function renderSondagesSavedList(sondages) {
   });
 }
 
+function updateGoogleAppsScriptCode(sondageId) {
+  const codeBox = document.getElementById('apps-script-code');
+  if (!codeBox) return;
+  const sId = sondageId || 'VOTRE_ID_SONDAGE';
+  const scriptCode = `function onFormSubmit(e) {
+  var response = e.response;
+  var itemResponses = response.getItemResponses();
+  var answers = [];
+  for (var i = 0; i < itemResponses.length; i++) {
+    answers.push({
+      question: itemResponses[i].getItem().getTitle(),
+      answer: itemResponses[i].getResponse()
+    });
+  }
+  var payload = {
+    sondageId: '${sId}',
+    userEmail: response.getRespondentEmail() || '',
+    answers: answers
+  };
+  UrlFetchApp.fetch('http://82.65.75.176:49602/api/google-forms/webhook?sondage_id=${sId}', {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload)
+  });
+}`;
+  codeBox.value = scriptCode;
+}
+
 async function loadSondagesSavedList() {
   try {
     const res = await fetch('/api/config/sondages');
@@ -6330,6 +6361,19 @@ function initSondageModule() {
   const btnAddQ = document.getElementById('btn-add-sondage-question');
   const qContainer = document.getElementById('sondage-questions-container');
 
+  const btnCopyScript = document.getElementById('btn-copy-apps-script');
+  if (btnCopyScript) {
+    btnCopyScript.addEventListener('click', () => {
+      const codeBox = document.getElementById('apps-script-code');
+      if (codeBox && codeBox.value) {
+        navigator.clipboard.writeText(codeBox.value);
+        if (typeof showToast === 'function') showToast('📋 Script Google Apps Script copié dans le presse-papier !');
+      }
+    });
+  }
+
+  updateGoogleAppsScriptCode(document.getElementById('sondage_edit_id') ? document.getElementById('sondage_edit_id').value : '');
+
   if (qContainer && qContainer.children.length === 0) {
     addSondageQuestionInput('Accueil & Organisation', 'rating_text');
     addSondageQuestionInput('Ambiance & Animations', 'rating_text');
@@ -6346,6 +6390,7 @@ function initSondageModule() {
       const editBanner = document.getElementById('sondage-edit-banner');
       if (editBanner) editBanner.style.display = 'none';
       if (form) form.reset();
+      updateGoogleAppsScriptCode('');
       updateSondagePreview();
       if (typeof showToast === 'function') showToast('Modification annulée.');
     });
@@ -6366,6 +6411,7 @@ function initSondageModule() {
       const results_channel_id = document.getElementById('sondage_results_channel').value;
       const title = inputTitle.value;
       const description = inputDesc.value;
+      const google_form_url = document.getElementById('sondage_google_url') ? document.getElementById('sondage_google_url').value.trim() : '';
 
       let rating_icon = '⭐';
       if (selectIcon) {
@@ -6416,7 +6462,8 @@ function initSondageModule() {
             avatar_image,
             banner_image,
             short_description,
-            mentions
+            mentions,
+            google_form_url
           })
         });
 

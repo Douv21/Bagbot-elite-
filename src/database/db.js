@@ -1024,6 +1024,7 @@ function initDatabase() {
   try { db.prepare("ALTER TABLE sondages ADD COLUMN banner_image TEXT DEFAULT ''").run(); } catch (e) {}
   try { db.prepare("ALTER TABLE sondages ADD COLUMN short_description TEXT DEFAULT ''").run(); } catch (e) {}
   try { db.prepare("ALTER TABLE sondages ADD COLUMN mentions TEXT DEFAULT '[]'").run(); } catch (e) {}
+  try { db.prepare("ALTER TABLE sondages ADD COLUMN google_form_url TEXT DEFAULT ''").run(); } catch (e) {}
   try { db.prepare("ALTER TABLE sondage_responses ADD COLUMN responses_json TEXT DEFAULT '{}'").run(); } catch (e) {}
 }
 

@@ -1303,7 +1303,7 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
 
 apiApp.post('/bot/send-sondage', async (req, res) => {
   try {
-    const { guildId, channelId, resultsChannelId, title, description, ratingIcon = '⭐', textType = 'long', color = '#F1C40F', existingSondageId, sections = [], hasGeneralRemark = true, avatarImage = '', bannerImage = '', shortDescription = '', mentions = [] } = req.body;
+    const { guildId, channelId, resultsChannelId, title, description, ratingIcon = '⭐', textType = 'long', color = '#F1C40F', existingSondageId, sections = [], hasGeneralRemark = true, avatarImage = '', bannerImage = '', shortDescription = '', mentions = [], googleFormUrl = '' } = req.body;
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
     const channel = guild.channels.cache.get(channelId);
@@ -1311,25 +1311,38 @@ apiApp.post('/bot/send-sondage', async (req, res) => {
 
     const sondageId = existingSondageId || `sndg_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
-    const { createSondage } = require('./database/db');
-    createSondage({
-      id: sondageId,
-      guild_id: guildId,
-      channel_id: channelId,
-      results_channel_id: resultsChannelId || null,
-      title,
-      description,
-      rating_icon: ratingIcon,
-      text_type: textType,
-      color,
-      created_by: 'Dashboard',
-      sections,
-      has_general_remark: hasGeneralRemark ? 1 : 0,
-      avatar_image: avatarImage,
-      banner_image: bannerImage,
-      short_description: shortDescription,
-      mentions
-    });
+    const { createSondage, db } = require('./database/db');
+    if (existingSondageId) {
+      try {
+        db.prepare(`UPDATE sondages SET channel_id = ?, results_channel_id = ?, title = ?, description = ?, rating_icon = ?, text_type = ?, color = ?, sections = ?, has_general_remark = ?, avatar_image = ?, banner_image = ?, short_description = ?, mentions = ?, google_form_url = ? WHERE id = ? AND guild_id = ?`).run(
+          channelId, resultsChannelId || null, title, description, ratingIcon, textType, color,
+          JSON.stringify(sections), hasGeneralRemark ? 1 : 0, avatarImage, bannerImage, shortDescription,
+          JSON.stringify(mentions), googleFormUrl || '', existingSondageId, guildId
+        );
+      } catch (e) {
+        console.error('Erreur update sondage db:', e);
+      }
+    } else {
+      createSondage({
+        id: sondageId,
+        guild_id: guildId,
+        channel_id: channelId,
+        results_channel_id: resultsChannelId || null,
+        title,
+        description,
+        rating_icon: ratingIcon,
+        text_type: textType,
+        color,
+        created_by: 'Dashboard',
+        sections,
+        has_general_remark: hasGeneralRemark ? 1 : 0,
+        avatar_image: avatarImage,
+        banner_image: bannerImage,
+        short_description: shortDescription,
+        mentions,
+        google_form_url: googleFormUrl || ''
+      });
+    }
 
     let sectionsListStr = '';
     if (Array.isArray(sections) && sections.length > 0) {
@@ -1341,7 +1354,7 @@ apiApp.post('/bot/send-sondage', async (req, res) => {
       .setDescription(
         (description ? `${description}\n` : '') +
         sectionsListStr +
-        `\n\n*Cliquez sur le bouton ci-dessous pour ouvrir le formulaire d'évaluation (${ratingIcon} 1 à 5) et laisser vos remarques !*`
+        `\n\n*Cliquez sur le bouton ci-dessous pour remplir l'évaluation !*`
       )
       .addFields({
         name: '📈 Statistiques en temps réel',
@@ -1351,13 +1364,28 @@ apiApp.post('/bot/send-sondage', async (req, res) => {
       .setFooter({ text: `ID Sondage : ${sondageId} • Bagbot Elite` })
       .setTimestamp();
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`sondage_vote:${sondageId}`)
-        .setLabel('📝 Participer au Sondage')
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji('📝')
-    );
+    const row = new ActionRowBuilder();
+    if (googleFormUrl && googleFormUrl.trim()) {
+      row.addComponents(
+        new ButtonBuilder()
+          .setLabel('📋 Formulaire Google Forms')
+          .setStyle(ButtonStyle.Link)
+          .setURL(googleFormUrl.trim()),
+        new ButtonBuilder()
+          .setCustomId(`sondage_vote:${sondageId}`)
+          .setLabel('⚡ Évaluation sur Discord')
+          .setStyle(ButtonStyle.Secondary)
+          .setEmoji('📝')
+      );
+    } else {
+      row.addComponents(
+        new ButtonBuilder()
+          .setCustomId(`sondage_vote:${sondageId}`)
+          .setLabel('📝 Participer au Sondage')
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji('📝')
+      );
+    }
 
     let sentMessage = null;
     if (existingSondageId) {
@@ -1500,6 +1528,136 @@ apiApp.post('/bot/submit-web-form', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Erreur submit-web-form:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiApp.post('/bot/submit-google-form', async (req, res) => {
+  try {
+    const { sondageId, userEmail, answers = [] } = req.body;
+    const { getSondage, saveSondageResponse, getSondageResponses } = require('./database/db');
+
+    const sondage = getSondage(sondageId);
+    if (!sondage) return res.status(404).json({ error: 'Sondage introuvable en base de données' });
+
+    let totalScore = 0;
+    let validScoresCount = 0;
+
+    const items = [];
+    const sectionScores = [];
+
+    answers.forEach(item => {
+      const qTitle = item.question || 'Question';
+      const ansVal = item.answer || '';
+      const rawAns = Array.isArray(ansVal) ? ansVal.join(', ') : String(ansVal);
+
+      let score = 5;
+      const icon = sondage.rating_icon || '⭐';
+      const escapedIcon = icon.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const starMatches = (rawAns.match(new RegExp(escapedIcon, 'g')) || []).length;
+      
+      if (starMatches > 0 && starMatches <= 5) {
+        score = starMatches;
+      } else {
+        const digitMatch = rawAns.match(/\b([1-5])\b/);
+        if (digitMatch) score = parseInt(digitMatch[1]);
+      }
+
+      totalScore += score;
+      validScoresCount++;
+
+      items.push({ name: qTitle, value: rawAns ? `*Réponse :* "${rawAns}"` : '*Pas de réponse*' });
+      sectionScores.push({ label: qTitle, rating: score, observation: rawAns });
+    });
+
+    const overallRating = validScoresCount > 0 ? (totalScore / validScoresCount).toFixed(1) : '5.0';
+
+    const responsePayload = {
+      overallRating,
+      sectionScores,
+      googleFormEmail: userEmail || ''
+    };
+
+    const userId = `gform_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    saveSondageResponse(sondageId, userId, Math.round(overallRating), JSON.stringify(responsePayload));
+
+    const guild = client.guilds.cache.get(sondage.guild_id);
+    if (guild) {
+      const channel = guild.channels.cache.get(sondage.channel_id);
+      if (channel && channel.isTextBased()) {
+        const responses = getSondageResponses(sondageId);
+        const totalVotes = responses.length;
+
+        let globalAvg = 0;
+        if (totalVotes > 0) {
+          const sum = responses.reduce((acc, r) => acc + (r.rating || 5), 0);
+          globalAvg = (sum / totalVotes).toFixed(1);
+        }
+
+        const icon = sondage.rating_icon || '⭐';
+
+        const embed = new EmbedBuilder()
+          .setTitle(`📊 ${sondage.title}`)
+          .setDescription(
+            (sondage.description ? `${sondage.description}\n\n` : '') +
+            `**📈 Statistiques Google Forms en Temps Réel :**\n` +
+            `• **Note globale moyenne :** ${globalAvg}/5 ${icon}\n` +
+            `• **Nombre de fiches d'évaluations :** ${totalVotes} réponse(s)`
+          )
+          .setColor(sondage.color || '#F1C40F')
+          .setFooter({ text: `ID Sondage : ${sondageId} • Bagbot Elite` })
+          .setTimestamp();
+
+        const messages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
+        if (messages) {
+          const origMsg = messages.find(m => m.embeds.length > 0 && m.embeds[0].footer && m.embeds[0].footer.text && m.embeds[0].footer.text.includes(sondageId));
+          if (origMsg && origMsg.editable) {
+            await origMsg.edit({ embeds: [embed] }).catch(() => null);
+          }
+        }
+      }
+
+      if (sondage.results_channel_id) {
+        const resultsChannel = guild.channels.cache.get(sondage.results_channel_id);
+        if (resultsChannel && resultsChannel.isTextBased()) {
+          let mentionsArr = [];
+          try {
+            mentionsArr = typeof sondage.mentions === 'string' ? JSON.parse(sondage.mentions || '[]') : (sondage.mentions || []);
+          } catch (e) {}
+
+          const mentionsContent = Array.isArray(mentionsArr) && mentionsArr.length > 0 ? mentionsArr.join(' ') : null;
+
+          const embedContent = items.map(item => `**${item.name}**\n${item.value}`).join('\n\n');
+          const shortDesc = sondage.short_description && sondage.short_description.trim() ? sondage.short_description.trim() : 'Voici la réponse reçue depuis Google Forms :';
+
+          const ficheEmbed = new EmbedBuilder()
+            .setTitle(sondage.title || 'Nouvelle réponse Google Forms')
+            .setDescription(`${shortDesc}\n\n${embedContent}`)
+            .setColor(sondage.color || '#78A8C6')
+            .setTimestamp();
+
+          if (sondage.avatar_image && sondage.avatar_image.trim()) {
+            ficheEmbed.setThumbnail(sondage.avatar_image.trim());
+          }
+
+          if (sondage.banner_image && sondage.banner_image.trim()) {
+            ficheEmbed.setImage(sondage.banner_image.trim());
+          }
+
+          const authorText = userEmail ? `Réponse Google Forms soumise par ${userEmail}` : `Réponse soumise via Google Forms`;
+          ficheEmbed.setFooter({ text: authorText });
+
+          await resultsChannel.send({
+            content: mentionsContent,
+            embeds: [ficheEmbed]
+          }).catch(console.error);
+        }
+      }
+    }
+
+    res.json({ success: true, message: 'Google Forms webhook processed successfully' });
+  } catch (err) {
+    console.error('Erreur submit-google-form:', err);
     res.status(500).json({ error: err.message });
   }
 });

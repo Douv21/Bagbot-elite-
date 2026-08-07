@@ -1824,7 +1824,7 @@ app.post('/api/config/send-sondage', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
-    const { existing_sondage_id, channel_id, results_channel_id, title, description, rating_icon, text_type, color, sections, has_general_remark, avatar_image, banner_image, short_description, mentions } = req.body || {};
+    const { existing_sondage_id, channel_id, results_channel_id, title, description, rating_icon, text_type, color, sections, has_general_remark, avatar_image, banner_image, short_description, mentions, google_form_url } = req.body || {};
     if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
     if (!title) return res.status(400).json({ error: 'Titre du sondage requis' });
 
@@ -1847,7 +1847,8 @@ app.post('/api/config/send-sondage', async (req, res) => {
         avatarImage: avatar_image || '',
         bannerImage: banner_image || '',
         shortDescription: short_description || '',
-        mentions: mentions || []
+        mentions: mentions || [],
+        googleFormUrl: google_form_url || ''
       })
     }).catch(() => null);
 
@@ -1858,6 +1859,37 @@ app.post('/api/config/send-sondage', async (req, res) => {
 
     const data = await botResponse.json();
     res.json({ success: true, sondageId: data.sondageId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/google-forms/webhook', async (req, res) => {
+  try {
+    const { sondageId, userEmail, answers } = req.body || {};
+    const querySondageId = req.query.sondage_id || sondageId;
+
+    if (!querySondageId) {
+      return res.status(400).json({ error: 'ID de sondage manquant dans la requête' });
+    }
+
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const botResponse = await fetch(`http://127.0.0.1:${botApiPort}/bot/submit-google-form`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sondageId: querySondageId,
+        userEmail: userEmail || '',
+        answers: answers || []
+      })
+    }).catch(() => null);
+
+    if (!botResponse || !botResponse.ok) {
+      const errText = botResponse ? await botResponse.text() : 'Le bot n\'est pas en ligne';
+      return res.status(500).json({ error: errText });
+    }
+
+    res.json({ success: true, message: 'Réponse transmise avec succès au Bot Discord !' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

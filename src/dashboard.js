@@ -1880,24 +1880,32 @@ app.get('/api/form/:sondageId', (req, res) => {
   }
 });
 
-app.post('/api/form/submit', async (req, res) => {
+app.post('/api/google-forms/webhook', async (req, res) => {
   try {
-    const { sondage_id, userTag, sectionScores, generalRemark } = req.body || {};
-    if (!sondage_id) return res.status(400).json({ error: 'ID de formulaire requis' });
+    const { sondageId, userEmail, answers } = req.body || {};
+    const querySondageId = req.query.sondage_id || sondageId;
+
+    if (!querySondageId) {
+      return res.status(400).json({ error: 'ID de sondage manquant dans la requête' });
+    }
 
     const botApiPort = process.env.BOT_API_PORT || 49605;
-    const botResponse = await fetch(`http://127.0.0.1:${botApiPort}/bot/submit-web-form`, {
+    const botResponse = await fetch(`http://127.0.0.1:${botApiPort}/bot/submit-google-form`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sondageId: sondage_id, userTag, sectionScores, generalRemark })
+      body: JSON.stringify({
+        sondageId: querySondageId,
+        userEmail: userEmail || '',
+        answers: answers || []
+      })
     }).catch(() => null);
 
     if (!botResponse || !botResponse.ok) {
-      const errText = botResponse ? await botResponse.text() : 'Erreur de communication avec le Bot';
+      const errText = botResponse ? await botResponse.text() : 'Le bot n\'est pas en ligne';
       return res.status(500).json({ error: errText });
     }
 
-    res.json({ success: true, message: 'Évaluation transmise avec succès !' });
+    res.json({ success: true, message: 'Réponse transmise avec succès au Bot Discord !' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
