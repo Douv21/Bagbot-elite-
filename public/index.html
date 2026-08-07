@@ -139,6 +139,7 @@
         <div class="sidebar-category">
           <div class="category-title"><i class="fa-solid fa-chart-line" style="color: #e67e22;"></i> NIVEAUX & ÉCONOMIE</div>
           <button class="tab-btn" data-tab="tab-leveling"><i class="fa-solid fa-arrow-trend-up"></i> Niveaux & XP</button>
+          <button class="tab-btn" data-tab="tab-role-boosters"><i class="fa-solid fa-rocket" style="color: #F47FFF;"></i> Rôles Boosters <span class="nav-badge badge-purple">BOOST</span></button>
           <button class="tab-btn" data-tab="tab-quests"><i class="fa-solid fa-scroll" style="color: #f1c40f;"></i> Système de Quêtes <span class="nav-badge badge-gold">NEW</span></button>
           <button class="tab-btn" data-tab="tab-karma"><i class="fa-solid fa-star"></i> Configuration Karma</button>
           <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique & Suites</button>
@@ -1236,23 +1237,6 @@
                       </select>
                     </div>
                   </div>
-
-                  <!-- Logs Invitations -->
-                  <div class="log-category-row" style="display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-bottom: 5px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 250px;">
-                      <h4 style="margin: 0; color: #fff;"><i class="fa-solid fa-user-plus" style="color: #2ecc71;"></i> Logs des Invitations (Invite Tracker)</h4>
-                      <p style="margin: 3px 0 0; font-size: 0.8rem; color: #8e9297;">Publie un message quand un membre rejoint (avec le nom du parrain) ou quitte le serveur.</p>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px; min-width: 250px;">
-                      <label class="switch-label" style="margin: 0;">
-                        <input type="checkbox" id="log_enable_invites" class="log-enable-checkbox" data-category="invites">
-                        <span class="slider"></span>
-                      </label>
-                      <select id="log_channel_invites" class="channel-select" style="min-width: 180px;">
-                        <option value="">Sélectionner un salon</option>
-                      </select>
-                    </div>
-                  </div>
                 </div>
               </div>
               <div class="actions-bar">
@@ -1663,10 +1647,12 @@
                 <button type="submit" class="btn btn-add"><i class="fa-solid fa-plus"></i> Associer le thème</button>
               </form>
             </div>
+          </div>
 
-            <!-- Role Boosters Section -->
-            <div class="card glass mt-4">
-              <h3>🚀 Multiplicateurs & Rôles Boosters (XP, Karma, Pièces)</h3>
+          <!-- Tab: Role Boosters -->
+          <div id="tab-role-boosters" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-rocket" style="color: #F47FFF;"></i> Multiplicateurs & Rôles Boosters (XP, Karma, Pièces)</h2>
+            <div class="card glass">
               <p class="form-help mb-3">Attribuez des multiplicateurs de gains (x1.5, x2.0, x2.5...) selon les rôles possédés par vos membres (ex: Rôle VIP, Booster Discord, Rôle Niveau, etc.).</p>
 
               <div class="table-container mb-3">

@@ -70,10 +70,7 @@ async function handleMemberJoinInvite(member) {
     .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
     .setTimestamp();
 
-  // 1. Envoyer via logs_config (catégorie invites)
-  sendLog(guild, 'invites', joinEmbed);
-
-  // 2. Envoyer via invite_config si un salon d'invitation spécifique est configuré
+  // Envoyer via invite_config si un salon d'invitation est configuré
   const config = getInviteConfig(guildId);
   if (config && config.enabled === 1 && config.log_channel_id) {
     const logChan = guild.channels.cache.get(config.log_channel_id);
@@ -109,10 +106,7 @@ async function handleMemberLeaveInvite(member) {
     .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
     .setTimestamp();
 
-  // 1. Envoyer via logs_config (catégorie invites)
-  sendLog(guild, 'invites', leaveEmbed);
-
-  // 2. Envoyer via invite_config
+  // Envoyer via invite_config si un salon d'invitation est configuré
   const config = getInviteConfig(guildId);
   if (config && config.enabled === 1 && config.log_channel_id) {
     const logChan = guild.channels.cache.get(config.log_channel_id);
