@@ -271,7 +271,8 @@ async function handleTicketInteraction(interaction, client) {
       const { createAgeVerificationSession } = require('../database/db');
       createAgeVerificationSession(token, interaction.guildId, interaction.user.id, ticketChannel.id, minAge);
 
-      const verifyUrl = `https://packs-stem-literature-stan.trycloudflare.com/verify-age.html?token=${token}`;
+      const baseVerifyUrl = process.env.PUBLIC_URL || `http://${process.env.PUBLIC_IP || '82.65.75.176'}:${process.env.DASHBOARD2_PORT || 49602}`;
+      const verifyUrl = `${baseVerifyUrl}/verify-age.html?token=${token}`;
 
       const ageVerifyEmbed = new EmbedBuilder()
         .setTitle('🔞 Vérification d\'Âge Requise')
@@ -379,7 +380,8 @@ async function handleTicketInteraction(interaction, client) {
     const { createAgeVerificationSession } = require('../database/db');
     createAgeVerificationSession(token, interaction.guildId, interaction.user.id, interaction.channelId, minAge);
 
-    const verifyUrl = `https://packs-stem-literature-stan.trycloudflare.com/verify-age.html?token=${token}`;
+    const baseVerifyUrl = process.env.PUBLIC_URL || `http://${process.env.PUBLIC_IP || '82.65.75.176'}:${process.env.DASHBOARD2_PORT || 49602}`;
+    const verifyUrl = `${baseVerifyUrl}/verify-age.html?token=${token}`;
 
     const embed = new EmbedBuilder()
       .setTitle('🔞 Vérification d\'Âge Requise')
