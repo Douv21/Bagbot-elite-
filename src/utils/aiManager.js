@@ -398,7 +398,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
       try {
         let result = null;
         if (imageUrl && category === 'vision') {
-          result = await callGroqVisionApi(keyObj.api_key, 'llama-3.2-11b-vision-preview', userPrompt, imageUrl, temperature, maxTokens);
+          result = await callGroqVisionApi(keyObj.api_key, groqModel || 'llama-3.2-90b-vision-preview', userPrompt, imageUrl, temperature, maxTokens);
         } else {
           result = await callGroqApi(keyObj.api_key, groqModel, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
         }
@@ -468,24 +468,24 @@ async function analyzeAgeWithAi(imageBase64, method, minAge = 18, birthDateInput
   }
 
   const prompt = method === 'facial'
-    ? `Tu es un expert biométrique légiste et dermatologique hyper-strict, spécialisé dans la protection des mineurs et la détection d'âge facial.
+    ? `Tu es un expert biométrique légiste et dermatologique spécialisé dans la détermination objective et précise de l'âge facial.
 
-RÈGLE DE SÉCURITÉ ABSOLUE (PROTECTION DES MINEURS) :
-- Tu dois analyser scrupuleusement si le visage présente des caractéristiques d'un adolescent ou d'un mineur (12 à 17 ans) : peau lisse sans rides, forme du visage juvénile, traits fins d'adolescent, absence de maturité faciale adulte claire.
-- Si le sujet a l'air jeune, adolescent ou s'il y a le MOINDRE DOUTE sur sa majorité, tu DOIS attribuer un âge strictement inférieur à 18 ans (ex: 15, 16 ou 17 ans) et définir "is_adult": false.
-- Ne surévalue JAMAIS l'âge d'un adolescent ou d'un jeune sous prétexte qu'il a du maquillage, une barbe naissante ou une posture d'adulte. En cas d'hésitation entre minorité et majorité, classe TOUJOURS comme MINEUR (is_adult: false).
-
-Étapes d'analyse :
-1. Recherche des signes d'adolescence ou de jeunesse (structure osseuse immature, finesse de la peau, absence de plis nasogéniens adultes).
-2. Estimation précise de l'âge (si adolescent/mineur -> attribuer impérativement un âge entre 12 et 17 ans).
-3. Détermination du statut de majorité (is_adult = true UNIQUEMENT si la maturité adulte de 18 ans ou plus est totalement indiscutable).
+CONSIGNES D'ANALYSE BIOMÉTRIQUE :
+1. Analyse objective des marqueurs de maturité :
+   - Structure osseuse du visage (arcade sourcilière, mâchoire, pommettes).
+   - Marqueurs cutanés et texture (rides d'expression, ridules autour des yeux, plis nasogéniens, maturité du grain de peau).
+   - Barbe/pilosite faciale, regard et maturité globale du sujet.
+2. Évaluation de l'âge numérique :
+   - Si le visage présente des traits adultes nets (ex: adulte de 25-40+ ans), attribue un âge adulte réaliste (ex: 30, 35, 38 ans) et définis "is_adult": true.
+   - Si le visage présente des traits juvéniles/adolescents marqués (ex: 12-17 ans) ou s'il s'agit visiblement d'un mineur, attribue un âge < 18 ans (ex: 15 ou 16 ans) et définis "is_adult": false.
+3. En cas de doute raisonnable (sujet borderline 17-18 ans), privilégie la sécurité ("is_adult": false).
 
 Réponds STRICTEMENT sous la forme d'un objet JSON unique au format :
 {
-  "reasoning": "<analyse des traits de jeunesse vs maturité faciale observés>",
-  "age": <nombre_entier_representant_l_age_estime>,
-  "is_adult": <true_si_18_ans_ou_plus_indiscutable_sinon_false>,
-  "reason": "<résumé court en 1 phrase en français sur l'évaluation des traits du visage>"
+  "reasoning": "<analyse des marqueurs faciaux observés>",
+  "age": <nombre_entier_estime>,
+  "is_adult": <true_si_18_ans_ou_plus_sinon_false>,
+  "reason": "<résumé en 1 sentence des éléments clés observés>"
 }`
     : `Tu es un expert en vérification de pièces d'identité (CNI, Passeport, Permis). Examine cette photo de document d'identité.
 Identifie la date de naissance si présente. Date déclarée : ${birthDateInput || 'Non renseignée'}.
