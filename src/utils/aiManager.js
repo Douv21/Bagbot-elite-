@@ -621,7 +621,7 @@ Réponds STRICTEMENT avec un objet JSON unique au format :
       userPrompt: prompt,
       imageUrl: cleanBase64,
       temperature: 0.0,
-      maxTokens: 350
+      maxTokens: 1000
     });
 
     // Timeout de sécurité de 25 secondes max
@@ -632,39 +632,72 @@ Réponds STRICTEMENT avec un objet JSON unique au format :
     const aiRes = await Promise.race([aiPromise, timeoutPromise]);
 
     if (aiRes) {
-      // Nettoyer les balises <think>...</think> générées par les modèles Qwen
+      console.log('[AI Vision Raw Output]:', aiRes.substring(0, 500));
       let cleanRes = aiRes.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
-      // Extraire le bloc JSON
+      // 1. Essai de parsing JSON standard
       const jsonMatch = cleanRes.match(/\{[\s\S]*?\}/);
+      let parsed = null;
       if (jsonMatch) {
         try {
-          const parsed = JSON.parse(jsonMatch[0]);
-          const rawAge = parsed.age ?? parsed.estimated_age ?? parsed.age_estime;
-
-          if (rawAge !== undefined && rawAge !== null) {
-            let calculatedAge = Math.max(1, Math.round(Number(rawAge) || 18));
-            
-            // Dans le mode document uniquement, validation par date de naissance si présente
-            if (method === 'document' && birthDateInput) {
-              const birthYear = new Date(birthDateInput).getFullYear();
-              if (!isNaN(birthYear) && birthYear > 1900 && birthYear <= new Date().getFullYear()) {
-                const declaredAge = new Date().getFullYear() - birthYear;
-                calculatedAge = Math.min(calculatedAge, declaredAge);
-              }
-            }
-
-            const isAdultFinal = (parsed.is_adult === false || calculatedAge < minAge) ? false : (parsed.is_adult === true && calculatedAge >= minAge);
-
-            return {
-              age: calculatedAge,
-              isAdult: isAdultFinal,
-              reason: parsed.reason || (isAdultFinal ? 'Majeur certifié par l\'analyse biométrique.' : 'Détecté comme mineur / adolescent.')
-            };
-          }
+          parsed = JSON.parse(jsonMatch[0]);
         } catch (jsonErr) {
-          console.warn('[AI Age Analysis] JSON parse error:', jsonErr.message, 'on raw:', jsonMatch[0]);
+          // Essai de réparation si JSON incomplet (fermeture de l'accolade manquante)
+          try {
+            parsed = JSON.parse(jsonMatch[0] + '}');
+          } catch (e2) {}
         }
+      }
+
+      let calculatedAge = null;
+      let isAdultFinal = null;
+      let reasonStr = '';
+
+      if (parsed) {
+        const rawAge = parsed.age ?? parsed.estimated_age ?? parsed.age_estime;
+        if (rawAge !== undefined && rawAge !== null) {
+          calculatedAge = Math.max(1, Math.round(Number(rawAge) || 18));
+          if (typeof parsed.is_adult === 'boolean') {
+            isAdultFinal = parsed.is_adult;
+          }
+          reasonStr = parsed.reason || '';
+        }
+      }
+
+      // 2. Fallback par expressions régulières (si le JSON est malformé ou tronqué)
+      if (calculatedAge === null) {
+        const ageMatch = cleanRes.match(/["']?age["']?\s*:\s*(\d+)/i) || cleanRes.match(/(\d{2})\s*ans/i);
+        if (ageMatch) {
+          calculatedAge = parseInt(ageMatch[1], 10);
+        }
+        const adultMatch = cleanRes.match(/["']?is_adult["']?\s*:\s*(true|false)/i);
+        if (adultMatch) {
+          isAdultFinal = adultMatch[1].toLowerCase() === 'true';
+        }
+        reasonStr = cleanRes.substring(0, 150);
+      }
+
+      if (calculatedAge !== null) {
+        // Dans le mode document uniquement, validation par date de naissance si présente
+        if (method === 'document' && birthDateInput) {
+          const birthYear = new Date(birthDateInput).getFullYear();
+          if (!isNaN(birthYear) && birthYear > 1900 && birthYear <= new Date().getFullYear()) {
+            const declaredAge = new Date().getFullYear() - birthYear;
+            calculatedAge = Math.min(calculatedAge, declaredAge);
+          }
+        }
+
+        if (isAdultFinal === null) {
+          isAdultFinal = calculatedAge >= minAge;
+        }
+
+        const isAdultResult = (isAdultFinal === false || calculatedAge < minAge) ? false : (isAdultFinal === true && calculatedAge >= minAge);
+
+        return {
+          age: calculatedAge,
+          isAdult: isAdultResult,
+          reason: reasonStr || (isAdultResult ? 'Majeur certifié par l\'analyse biométrique.' : 'Détecté comme mineur / adolescent.')
+        };
       }
     }
     throw new Error('Format de réponse IA invalide.');
