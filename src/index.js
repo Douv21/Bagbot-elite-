@@ -1400,7 +1400,7 @@ apiApp.post('/bot/age-verification-completed', async (req, res) => {
     await targetChannel.send({ content: `✅ Vérification d'âge validée pour <@${userId}> !`, embeds: [embed] }).catch(console.error);
 
     if (logChannel && ticketChannel && logChannel.id !== ticketChannel.id) {
-      await ticketChannel.send({ content: `✅ <@${userId}>, votre majorité (${estimatedAge} ans) a été validée avec succès ! Le rapport de sécurité a été transmis dans le salon <#${logChannel.id}>.` }).catch(console.error);
+      await ticketChannel.send({ content: `✅ <@${userId}>, votre vérification d'âge a été validée avec succès !` }).catch(console.error);
     }
 
     if (roleIdToAssign) {

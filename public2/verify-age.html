@@ -770,7 +770,7 @@
         if (data.success) {
           document.getElementById('mainFormView').style.display = 'none';
           document.getElementById('resultScreen').style.display = 'block';
-          document.getElementById('resDesc').textContent = `Votre majorité a été validée avec succès (${data.age} ans). Le compte-rendu a été transmis automatiquement dans votre ticket Discord !`;
+          document.getElementById('resDesc').textContent = 'Votre majorité a été validée avec succès ! Vous pouvez à présent fermer cette page et retourner sur Discord.';
         } else {
           alert('Vérification non validée : ' + (data.error || 'Échec de l\'analyse d\'âge.'));
           resetButtons();
