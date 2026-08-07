@@ -1,7 +1,7 @@
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const { getSondage, saveSondageResponse, getSondageResponses } = require('../database/db');
 
-// Map de stockage temporaire des votes en cours : key = `${guildId}:${userId}:${sondageId}`
+// Map de stockage temporaire des sessions de formulaire : key = `${guildId}:${userId}:${sondageId}`
 const userVoteSessions = new Map();
 
 function getStarRatingStr(score, ratingIcon = '⭐') {
@@ -13,7 +13,7 @@ function getStarRatingStr(score, ratingIcon = '⭐') {
   return score;
 }
 
-function buildInteractiveVotePayload(sondage, session) {
+function getSections(sondage) {
   let sections = [];
   try {
     sections = JSON.parse(sondage.sections || '[]');
@@ -21,67 +21,163 @@ function buildInteractiveVotePayload(sondage, session) {
   if (!sections || sections.length === 0) {
     sections = [{ id: 'sec1', label: sondage.title || 'Évaluation', type: 'rating_text' }];
   }
+  return sections;
+}
 
+function buildWizardStepPayload(sondage, session, stepIdx) {
+  const sections = getSections(sondage);
+  const currentSec = sections[stepIdx];
   const icon = sondage.rating_icon || '⭐';
+  const totalSteps = sections.length;
+
+  const ratingVal = session.ratings[stepIdx] || 0;
+  const obsVal = session.observations[stepIdx] || '';
+
+  const secType = currentSec.type || 'rating_text';
+
+  let descStr = `**📌 Question ${stepIdx + 1} / ${totalSteps}**\n\n`;
+  descStr += `### 🔹 ${currentSec.label}\n\n`;
+
+  if (secType === 'rating' || secType === 'rating_text') {
+    descStr += `**Vote par émoji :** ${ratingVal > 0 ? `${icon.repeat(ratingVal)} (**${ratingVal} / 5**)` : `*Veuillez cliquer sur un émoji ci-dessous*`}\n\n`;
+  }
+  if (secType === 'text' || secType === 'rating_text') {
+    descStr += `**Observation ci-dessous :** ${obsVal ? `\n> *"Messsage: ${obsVal}"*` : '\n*Aucune observation ajoutée (Optionnel)*'}\n`;
+  }
+
   const rows = [];
-  let descriptionStr = `Cliquez directement sur un bouton d'émoji **1 à 5 (${icon})** ci-dessous pour attribuer votre note à chaque critère :\n\n`;
 
-  const maxSections = Math.min(sections.length, 4);
-  sections.slice(0, maxSections).forEach((sec, secIdx) => {
-    const secType = sec.type || 'rating_text';
-    const currentVal = session.ratings ? (session.ratings[secIdx] || 0) : 0;
-    
-    descriptionStr += `• **${sec.label}** : ${currentVal > 0 ? `${icon.repeat(currentVal)} (${currentVal}/5)` : '*Cliquez sur un bouton ci-dessous*'}\n`;
+  // ActionRow 1: Boutons d'émojis 1 à 5
+  if (secType === 'rating' || secType === 'rating_text') {
+    const emojiRow = new ActionRowBuilder();
+    for (let val = 1; val <= 5; val++) {
+      const isSelected = ratingVal === val;
+      const btn = new ButtonBuilder()
+        .setCustomId(`sondage_step_rate:${sondage.id}:${stepIdx}:${val}`)
+        .setLabel(`${val}`)
+        .setStyle(isSelected ? ButtonStyle.Success : ButtonStyle.Secondary);
 
-    if (secType === 'rating' || secType === 'rating_text') {
-      const btnRow = new ActionRowBuilder();
-      for (let val = 1; val <= 5; val++) {
-        const isSelected = currentVal === val;
-        const btn = new ButtonBuilder()
-          .setCustomId(`sondage_rate:${sondage.id}:${secIdx}:${val}`)
-          .setLabel(`${val}`)
-          .setStyle(isSelected ? ButtonStyle.Success : ButtonStyle.Secondary);
-          
-        if (icon && !icon.includes('<') && !icon.includes(':')) {
-          try { btn.setEmoji(icon); } catch (e) {}
-        }
-        btnRow.addComponents(btn);
+      if (icon && !icon.includes('<') && !icon.includes(':')) {
+        try { btn.setEmoji(icon); } catch (e) {}
       }
-      rows.push(btnRow);
+      emojiRow.addComponents(btn);
     }
-  });
+    rows.push(emojiRow);
+  }
 
-  const actionRow = new ActionRowBuilder();
-  actionRow.addComponents(
-    new ButtonBuilder()
-      .setCustomId(`sondage_obs:${sondage.id}`)
-      .setLabel('💬 Remarques (Optionnel)')
-      .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId(`sondage_submit:${sondage.id}`)
-      .setLabel('✅ Valider mon Évaluation')
-      .setStyle(ButtonStyle.Success)
-  );
-  rows.push(actionRow);
+  // ActionRow 2: Navigation & Observation
+  const navRow = new ActionRowBuilder();
+
+  if (secType === 'text' || secType === 'rating_text') {
+    navRow.addComponents(
+      new ButtonBuilder()
+        .setCustomId(`sondage_step_obs:${sondage.id}:${stepIdx}`)
+        .setLabel(obsVal ? '✏️ Éditer l\'observation' : '💬 Ajouter une observation')
+        .setStyle(ButtonStyle.Primary)
+    );
+  }
+
+  if (stepIdx > 0) {
+    navRow.addComponents(
+      new ButtonBuilder()
+        .setCustomId(`sondage_step_nav:${sondage.id}:${stepIdx - 1}`)
+        .setLabel('⬅️ Précédent')
+        .setStyle(ButtonStyle.Secondary)
+    );
+  }
+
+  if (stepIdx < totalSteps - 1) {
+    navRow.addComponents(
+      new ButtonBuilder()
+        .setCustomId(`sondage_step_nav:${sondage.id}:${stepIdx + 1}`)
+        .setLabel('Question Suivante ➡️')
+        .setStyle(ButtonStyle.Success)
+    );
+  } else {
+    navRow.addComponents(
+      new ButtonBuilder()
+        .setCustomId(`sondage_step_nav:${sondage.id}:summary`)
+        .setLabel('Récapitulatif & Validation 📋')
+        .setStyle(ButtonStyle.Success)
+    );
+  }
+
+  rows.push(navRow);
 
   const embed = new EmbedBuilder()
-    .setTitle(`📊 ${sondage.title}`)
-    .setDescription(descriptionStr)
+    .setTitle(`📋 ${sondage.title}`)
+    .setDescription(descStr)
     .setColor(sondage.color || '#F1C40F')
-    .setFooter({ text: 'Sélectionnez vos notes avec les boutons émojis puis cliquez sur "Valider mon Évaluation"' });
+    .setFooter({ text: `Bagbot Elite • Étape ${stepIdx + 1} sur ${totalSteps}` });
+
+  return { embeds: [embed], components: rows };
+}
+
+function buildWizardSummaryPayload(sondage, session) {
+  const sections = getSections(sondage);
+  const icon = sondage.rating_icon || '⭐';
+
+  let descStr = `**📋 Récapitulatif de votre Évaluation :**\n\n`;
+
+  sections.forEach((sec, idx) => {
+    const score = session.ratings[idx] || 5;
+    const obs = session.observations[idx] || '';
+    descStr += `**${idx + 1}. ${sec.label}**\n`;
+    if (sec.type !== 'text') {
+      descStr += `• Note : ${icon.repeat(score)} (${score}/5)\n`;
+    }
+    if (obs) {
+      descStr += `• Observation : *"${obs}"*\n`;
+    }
+    descStr += `\n`;
+  });
+
+  if (sondage.has_general_remark !== 0) {
+    const gen = session.generalRemark || '';
+    descStr += `**📌 Remarques Générales :** ${gen ? `*"${gen}"*` : '*Aucune (Optionnel)*'}\n\n`;
+  }
+
+  descStr += `*Si tout vous convient, cliquez sur **"✅ Transmettre mon Évaluation"** ci-dessous !*`;
+
+  const rows = [];
+
+  const navRow = new ActionRowBuilder();
+  navRow.addComponents(
+    new ButtonBuilder()
+      .setCustomId(`sondage_step_nav:${sondage.id}:${sections.length - 1}`)
+      .setLabel('⬅️ Modifier des notes')
+      .setStyle(ButtonStyle.Secondary)
+  );
+
+  if (sondage.has_general_remark !== 0) {
+    navRow.addComponents(
+      new ButtonBuilder()
+        .setCustomId(`sondage_gen_modal:${sondage.id}`)
+        .setLabel(session.generalRemark ? '✏️ Remarques Générales' : '💬 Remarques Générales')
+        .setStyle(ButtonStyle.Primary)
+    );
+  }
+
+  navRow.addComponents(
+    new ButtonBuilder()
+      .setCustomId(`sondage_submit_final:${sondage.id}`)
+      .setLabel('✅ Transmettre mon Évaluation')
+      .setStyle(ButtonStyle.Success)
+  );
+
+  rows.push(navRow);
+
+  const embed = new EmbedBuilder()
+    .setTitle(`📊 ${sondage.title} — Validation`)
+    .setDescription(descStr)
+    .setColor(sondage.color || '#2ECC71')
+    .setFooter({ text: 'Vérifiez vos réponses et validez votre envoi' });
 
   return { embeds: [embed], components: rows };
 }
 
 async function finalizeSondageSubmission(interaction, sondage, session) {
-  let sections = [];
-  try {
-    sections = JSON.parse(sondage.sections || '[]');
-  } catch (e) {}
-  if (!sections || sections.length === 0) {
-    sections = [{ id: 'sec1', label: sondage.title || 'Évaluation', type: 'rating_text' }];
-  }
-
+  const sections = getSections(sondage);
   const sectionScores = [];
   let totalScore = 0;
   let validScoresCount = 0;
@@ -214,130 +310,154 @@ async function handleSondageInteraction(interaction) {
 
   // 1. Clic sur "Participer au Sondage"
   if (action === 'sondage_vote') {
-    let session = userVoteSessions.get(sessionKey);
-    if (!session) {
-      session = { ratings: {}, observations: {}, generalRemark: '' };
-      userVoteSessions.set(sessionKey, session);
-    }
+    let session = { currentStep: 0, ratings: {}, observations: {}, generalRemark: '' };
+    userVoteSessions.set(sessionKey, session);
 
-    const payload = buildInteractiveVotePayload(sondage, session);
+    const payload = buildWizardStepPayload(sondage, session, 0);
     await interaction.reply({ ...payload, ephemeral: true });
     return true;
   }
 
-  // 2. Clic sur un bouton d'étoiles/émoji (1 à 5)
-  if (action === 'sondage_rate') {
-    const secIdx = parseInt(parts[2]);
+  // 2. Clic sur un bouton d'étoiles (1 à 5)
+  if (action === 'sondage_step_rate') {
+    const stepIdx = parseInt(parts[2]);
     const val = parseInt(parts[3]);
 
     let session = userVoteSessions.get(sessionKey);
     if (!session) {
-      session = { ratings: {}, observations: {}, generalRemark: '' };
+      session = { currentStep: stepIdx, ratings: {}, observations: {}, generalRemark: '' };
       userVoteSessions.set(sessionKey, session);
     }
 
-    session.ratings[secIdx] = val;
-
-    const payload = buildInteractiveVotePayload(sondage, session);
+    session.ratings[stepIdx] = val;
+    const payload = buildWizardStepPayload(sondage, session, stepIdx);
     await interaction.update(payload);
     return true;
   }
 
-  // 3. Clic sur "💬 Remarques (Optionnel)" -> Ouvre la modale de texte
-  if (action === 'sondage_obs') {
-    let sections = [];
-    try {
-      sections = JSON.parse(sondage.sections || '[]');
-    } catch (e) {}
-    if (!sections || sections.length === 0) {
-      sections = [{ id: 'sec1', label: sondage.title || 'Évaluation', type: 'rating_text' }];
+  // 3. Navigation entre questions (Suivant, Précédent, Summary)
+  if (action === 'sondage_step_nav') {
+    const target = parts[2];
+    let session = userVoteSessions.get(sessionKey);
+    if (!session) {
+      session = { currentStep: 0, ratings: {}, observations: {}, generalRemark: '' };
+      userVoteSessions.set(sessionKey, session);
     }
+
+    if (target === 'summary') {
+      const payload = buildWizardSummaryPayload(sondage, session);
+      await interaction.update(payload);
+    } else {
+      const stepIdx = parseInt(target);
+      session.currentStep = stepIdx;
+      const payload = buildWizardStepPayload(sondage, session, stepIdx);
+      await interaction.update(payload);
+    }
+    return true;
+  }
+
+  // 4. Clic sur "💬 Ajouter/Éditer Remarque" -> Ouvre la modale pour cette question
+  if (action === 'sondage_step_obs') {
+    const stepIdx = parseInt(parts[2]);
+    const sections = getSections(sondage);
+    const sec = sections[stepIdx];
 
     const modal = new ModalBuilder()
-      .setCustomId(`sondage_obs_submit:${sondageId}`)
-      .setTitle(`💬 Remarques : ${sondage.title}`.substring(0, 45));
+      .setCustomId(`sondage_step_obs_submit:${sondageId}:${stepIdx}`)
+      .setTitle(`💬 Remarque : ${sec.label}`.substring(0, 45));
 
-    const rows = [];
-    const maxSections = Math.min(sections.length, 4);
+    const obsInput = new TextInputBuilder()
+      .setCustomId('step_obs_val')
+      .setLabel(`Vos observations (${sec.label})`.substring(0, 45))
+      .setPlaceholder('Rédigez vos remarques sur ce point...')
+      .setStyle(sondage.text_type === 'court' ? TextInputStyle.Short : TextInputStyle.Paragraph)
+      .setRequired(false);
 
-    sections.slice(0, maxSections).forEach((sec, idx) => {
-      const secType = sec.type || 'rating_text';
-      if ((secType === 'text' || secType === 'rating_text') && rows.length < 4) {
-        const obsInput = new TextInputBuilder()
-          .setCustomId(`obs_sec_${idx}`)
-          .setLabel(`Remarques : ${sec.label}`.substring(0, 45))
-          .setPlaceholder('Vos observations sur ce point...')
-          .setStyle(sondage.text_type === 'court' ? TextInputStyle.Short : TextInputStyle.Paragraph)
-          .setRequired(false);
-
-        let session = userVoteSessions.get(sessionKey);
-        if (session && session.observations && session.observations[idx]) {
-          obsInput.setValue(session.observations[idx]);
-        }
-
-        rows.push(new ActionRowBuilder().addComponents(obsInput));
-      }
-    });
-
-    if (sondage.has_general_remark !== 0 && rows.length < 5) {
-      const genInput = new TextInputBuilder()
-        .setCustomId('obs_general')
-        .setLabel('Remarques Générales'.substring(0, 45))
-        .setPlaceholder('Remarques tout en bas pour conclure votre avis...')
-        .setStyle(TextInputStyle.Paragraph)
-        .setRequired(false);
-
-      let session = userVoteSessions.get(sessionKey);
-      if (session && session.generalRemark) {
-        genInput.setValue(session.generalRemark);
-      }
-
-      rows.push(new ActionRowBuilder().addComponents(genInput));
+    let session = userVoteSessions.get(sessionKey);
+    if (session && session.observations && session.observations[stepIdx]) {
+      obsInput.setValue(session.observations[stepIdx]);
     }
 
-    modal.addComponents(rows);
+    modal.addComponents(new ActionRowBuilder().addComponents(obsInput));
     await interaction.showModal(modal);
     return true;
   }
 
-  // 4. Soumission de la modale de remarques
-  if (action === 'sondage_obs_submit') {
-    await interaction.deferReply({ ephemeral: true }).catch(() => null);
-
+  // 5. Soumission de la modale de remarque d'une étape
+  if (action === 'sondage_step_obs_submit') {
     let session = userVoteSessions.get(sessionKey);
+    const stepIdx = parseInt(parts[2]);
     if (!session) {
-      session = { ratings: {}, observations: {}, generalRemark: '' };
+      session = { currentStep: stepIdx, ratings: {}, observations: {}, generalRemark: '' };
       userVoteSessions.set(sessionKey, session);
     }
 
-    let sections = [];
+    let obsVal = '';
     try {
-      sections = JSON.parse(sondage.sections || '[]');
+      obsVal = interaction.fields.getTextInputValue('step_obs_val') || '';
     } catch (e) {}
 
-    sections.forEach((sec, idx) => {
-      try {
-        const val = interaction.fields.getTextInputValue(`obs_sec_${idx}`);
-        if (val) session.observations[idx] = val;
-      } catch (e) {}
+    session.observations[stepIdx] = obsVal.trim();
+
+    const payload = buildWizardStepPayload(sondage, session, stepIdx);
+    await interaction.reply({ ...payload, ephemeral: true }).catch(() => {
+      return interaction.followUp({ ...payload, ephemeral: true });
     });
-
-    try {
-      const genVal = interaction.fields.getTextInputValue('obs_general');
-      if (genVal) session.generalRemark = genVal;
-    } catch (e) {}
-
-    await finalizeSondageSubmission(interaction, sondage, session);
     return true;
   }
 
-  // 5. Clic sur "✅ Valider mon Évaluation"
-  if (action === 'sondage_submit') {
+  // 6. Clic sur "Remarques Générales" sur le récapitulatif
+  if (action === 'sondage_gen_modal') {
+    const modal = new ModalBuilder()
+      .setCustomId(`sondage_gen_submit:${sondageId}`)
+      .setTitle(`📌 Remarques Générales`.substring(0, 45));
+
+    const genInput = new TextInputBuilder()
+      .setCustomId('gen_obs_val')
+      .setLabel('Remarques & Suggestions Générales'.substring(0, 45))
+      .setPlaceholder('Remarques tout en bas pour conclure votre avis...')
+      .setStyle(TextInputStyle.Paragraph)
+      .setRequired(false);
+
+    let session = userVoteSessions.get(sessionKey);
+    if (session && session.generalRemark) {
+      genInput.setValue(session.generalRemark);
+    }
+
+    modal.addComponents(new ActionRowBuilder().addComponents(genInput));
+    await interaction.showModal(modal);
+    return true;
+  }
+
+  // 7. Soumission des Remarques Générales
+  if (action === 'sondage_gen_submit') {
+    let session = userVoteSessions.get(sessionKey);
+    if (!session) {
+      session = { currentStep: 0, ratings: {}, observations: {}, generalRemark: '' };
+      userVoteSessions.set(sessionKey, session);
+    }
+
+    let genVal = '';
+    try {
+      genVal = interaction.fields.getTextInputValue('gen_obs_val') || '';
+    } catch (e) {}
+
+    session.generalRemark = genVal.trim();
+
+    const payload = buildWizardSummaryPayload(sondage, session);
+    await interaction.reply({ ...payload, ephemeral: true }).catch(() => {
+      return interaction.followUp({ ...payload, ephemeral: true });
+    });
+    return true;
+  }
+
+  // 8. Validation finale du formulaire
+  if (action === 'sondage_submit_final') {
     await interaction.deferReply({ ephemeral: true }).catch(() => null);
 
     let session = userVoteSessions.get(sessionKey);
     if (!session) {
-      session = { ratings: {}, observations: {}, generalRemark: '' };
+      session = { currentStep: 0, ratings: {}, observations: {}, generalRemark: '' };
     }
 
     await finalizeSondageSubmission(interaction, sondage, session);
