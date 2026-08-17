@@ -6,6 +6,12 @@ const keyRotationIndex = {
   gemini: 0
 };
 
+function isRefusalResponse(text) {
+  if (!text || typeof text !== 'string') return true;
+  const lower = text.toLowerCase();
+  return lower.includes("i'm sorry") || lower.includes("i am sorry") || lower.includes("can't help") || lower.includes("cannot help") || lower.includes("cannot fulfill") || lower.includes("as an ai") || lower.includes("je ne peux pas") || lower.includes("désolé");
+}
+
 /**
  * Appelle l'API Groq (OpenAI Compatible)
  */
@@ -51,7 +57,11 @@ async function callGroqApi(apiKey, model, systemPrompt, userPrompt, temperature 
       if (response.ok) {
         const data = await response.json();
         if (data.choices && data.choices[0] && data.choices[0].message) {
-          return data.choices[0].message.content.trim();
+          const content = data.choices[0].message.content.trim();
+          if (!isRefusalResponse(content)) {
+            return content;
+          }
+          lastError = new Error(`Groq model returned safety refusal: ${content}`);
         }
       } else {
         const errorText = await response.text().catch(() => '');

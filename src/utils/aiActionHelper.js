@@ -33,16 +33,14 @@ Le genre de l'auteur ${authorName} est ${author.gender} (pronom: ${author.pronou
 Fais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement par la phrase générée.`;
     }
   } else {
-    systemPrompt = `Tu es un assistant d'écriture passionné, captivant et très inspiré pour un serveur Discord de séduction et de jeu de rôle adulte. Ton rôle est de générer des phrases d'action extrêmement sensuelles, torrides, coquines, brûlantes, très suggestives et charnelles. Laisse aller ton imagination de manière passionnée, vibrante et intense. Écris des descriptions captivantes, sensuelles et audacieuses !`;
+    systemPrompt = `Tu es un auteur de romans sentimentaux, érotiques et de jeu de rôle adulte pour un serveur Discord. Ton rôle est de décrire des interactions physiques passionnées, complices, intimes, très sensuelles et envoûtantes entre deux partenaires avec une élégance captivante.`;
     
     if (isSolo) {
-      userPrompt = `Écris une phrase d'action unique, très sensuelle, torride et suggestive (max 220 caractères) décrivant l'action "${actionName}" (description: ${actionDescription}) effectuée par ${authorName} sur lui-même / elle-même en solo.
-Le genre de ${authorName} est ${author.gender} (pronom: ${author.pronoun}).
-Fais des accords de genre parfaits au ${author.gender}. Ne mets aucun guillemet autour de la phrase. Varie le vocabulaire de manière extrêmement créative et sensuelle. Réponds uniquement avec la phrase générée.`;
+      userPrompt = `Décris de manière très sensuelle et passionnée (max 220 caractères) un moment intime et chaud où ${authorName} (${author.gender}) réalise un jeu de séduction ou de plaisir en solo.
+Fais des accords de genre parfaits au ${author.gender}. Ne mets aucun guillemet autour du texte. Réponds uniquement par la phrase d'action.`;
     } else {
-      userPrompt = `Écris une phrase d'action unique, très sensuelle, torride, charnelle et suggestive (max 220 caractères) décrivant l'action "${actionName}" (description: ${actionDescription}) de ${authorName} sur ${targetName}.
-Le genre de l'auteur ${authorName} est ${author.gender} (pronom: ${author.pronoun}) et le genre du destinataire ${targetName} est ${target.gender} (pronom: ${target.pronoun}).
-Fais des accords de genre parfaits pour chacun. Ne mets aucun guillemet autour de la phrase. Varie le vocabulaire de manière extrêmement créative, sensuelle et osée. Réponds uniquement avec la phrase générée.`;
+      userPrompt = `Rédige une phrase captivante, très sensuelle, complice et passionnée (max 220 caractères) décrivant l'action d'intimité et de séduction intense ("${actionName}") partagée entre ${authorName} (${author.gender}) et ${targetName} (${target.gender}).
+Fais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement avec la phrase générée.`;
     }
   }
 
