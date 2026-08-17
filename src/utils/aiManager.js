@@ -23,9 +23,9 @@ async function callGroqApi(apiKey, model, systemPrompt, userPrompt, temperature 
   }
 
   const modelsToTry = [
-    model || 'llama-3.3-70b-versatile',
-    'llama-3.3-70b-versatile',
-    'llama-3.1-8b-instant'
+    model || 'compound-beta-mini',
+    'compound-beta-mini',
+    'groq/compound-mini'
   ];
 
   const uniqueModels = [...new Set(modelsToTry)];
@@ -410,9 +410,9 @@ async function callPollinationsFallback(systemPrompt, userPrompt, messagesHistor
 async function generateAiCompletion({ guildId = null, category = 'text', systemPrompt = '', userPrompt = '', imageUrl = null, temperature = 0.7, maxTokens = 1000, messagesHistory = null }) {
   const config = guildId ? getAiConfig(guildId) : {
     preferred_provider: 'auto',
-    groq_text_model: 'llama-3.3-70b-versatile',
+    groq_text_model: 'compound-beta-mini',
     groq_vision_model: 'qwen/qwen3.6-27b',
-    groq_server_model: 'llama-3.1-8b-instant',
+    groq_server_model: 'compound-beta-mini',
     gemini_model: 'gemini-2.0-flash'
   };
 
@@ -422,7 +422,11 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
   const geminiKeys = activeKeys.filter(k => k.provider === 'gemini');
 
   // Déterminer les modèles à utiliser selon la catégorie
-  let groqModel = config.groq_text_model || 'llama-3.3-70b-versatile';
+  let groqModel = config.groq_text_model || 'compound-beta-mini';
+  if (!groqModel || groqModel.includes('llama-3.3') || groqModel.includes('llama-3.1')) {
+    groqModel = 'compound-beta-mini';
+  }
+
   // Force le bon modèle Vision (les anciens llama-3.2 et llama-4-scout sont inaccessibles avec cette clé)
   if (category === 'vision') {
     const visionModelFromDb = config.groq_vision_model || '';
@@ -436,7 +440,12 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
       ? 'qwen/qwen3.6-27b'
       : visionModelFromDb;
   }
-  if (category === 'server') groqModel = config.groq_server_model || 'llama-3.1-8b-instant';
+  if (category === 'server') {
+    groqModel = config.groq_server_model || 'compound-beta-mini';
+    if (!groqModel || groqModel.includes('llama-3.3') || groqModel.includes('llama-3.1')) {
+      groqModel = 'compound-beta-mini';
+    }
+  }
 
   const geminiModel = config.gemini_model || 'gemini-2.0-flash';
 
