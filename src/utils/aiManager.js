@@ -229,14 +229,11 @@ async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperatu
   ].filter(Boolean);
 
   const modelsToTry = [
-    model,
-    'smollm2:1.7b',
-    'smollm:1.7b',
+    model || 'qwen2.5:0.5b',
     'qwen2.5:0.5b',
+    'smollm2:1.7b',
     'smollm:360m',
-    'llama3.2:1b',
-    'tinyllama',
-    'qwen2.5:1.5b'
+    'tinyllama:latest'
   ].filter(Boolean);
 
   const uniqueHosts = [...new Set(hostsToTry)];
@@ -546,7 +543,17 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
     throw new Error("Aucune API Vision disponible (Groq, Gemini, Ollama local tous échoués).");
   }
 
-  // 1. Tenter en priorité absolue Groq (Ultra-rapide, réponse instantanée en 0.4s)
+  // Déterminer la priorité des fournisseurs selon preferred_provider
+  if (config.preferred_provider === 'ollama') {
+    console.log('[AI Manager] Exécution prioritaire sur Ollama Freebox (Qwen)...');
+    const resOllama = await tryOllamaPool();
+    if (resOllama) return resOllama;
+  } else if (config.preferred_provider === 'gemini') {
+    const resGemini = await tryGeminiPool();
+    if (resGemini) return resGemini;
+  }
+
+  // 1. Tenter en priorité Groq (Réponse instantanée)
   const resGroq = await tryGroqPool();
   if (resGroq) return resGroq;
 
@@ -554,7 +561,7 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
   const resGemini = await tryGeminiPool();
   if (resGemini) return resGemini;
 
-  // 3. Basculer sur Ollama Freebox (Secours local illimité)
+  // 3. Basculer sur Ollama Freebox (Secours local illimité Qwen)
   const resOllama = await tryOllamaPool();
   if (resOllama) return resOllama;
 
