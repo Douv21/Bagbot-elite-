@@ -8,6 +8,7 @@ module.exports = {
     .setName('69')
     .setDescription("Faire un 69 avec quelqu\'un")
     .addUserOption(option => option.setName('cible').setDescription('Personne ciblée (optionnel)').setRequired(false))
+    .setNSFW(true)
     .setDMPermission(true),
 
   async execute(interaction) {

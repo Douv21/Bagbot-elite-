@@ -8,6 +8,7 @@ module.exports = {
     .setName('deshabiller')
     .setDescription("Déshabiller quelqu\'un")
     .addUserOption(option => option.setName('cible').setDescription('Personne ciblée (optionnel)').setRequired(false))
+    .setNSFW(true)
     .setDMPermission(true),
 
   async execute(interaction) {

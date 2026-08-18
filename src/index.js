@@ -835,6 +835,19 @@ client.on('interactionCreate', async interaction => {
       console.error('Erreur lors du contrôle du rôle quarantaine:', e);
     }
 
+    // Vérification de sécurité NSFW pour toutes les commandes d'action et commandes adultes
+    const isCmdNsfw = command.data?.nsfw || (command.category === 'actions' && ![
+      'gifle', 'patpat', 'batailleoreiller', 'chatouiller', 'cuisiner', 'danser', 
+      'reconforter', 'reveiller', 'rose', 'vin', 'attrape', 'dormir', 'douche', 'reanimer', 'oups'
+    ].includes(interaction.commandName.toLowerCase()));
+
+    if (isCmdNsfw && interaction.guild && !interaction.channel?.nsfw) {
+      return interaction.reply({
+        content: `🔞 **Salon réservé aux adultes (NSFW) requis** : La commande \`/${interaction.commandName}\` contient du contenu pour adultes et ne peut être utilisée que dans un salon configuré comme soumis à la limite d'âge (salon NSFW).`,
+        ephemeral: true
+      });
+    }
+
     const member = interaction.member;
     const { PermissionsBitField } = require('discord.js');
     let userPerms = member?.permissions;
