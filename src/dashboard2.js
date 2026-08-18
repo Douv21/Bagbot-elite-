@@ -3,13 +3,20 @@ const express = require('express');
 const session = require('express-session');
 const path = require('path');
 const { PermissionFlagsBits, EmbedBuilder } = require('discord.js');
-// Safe mock client for Dashboard 2 (runs as standalone process on port 49602)
-const client = {
-  user: { displayAvatarURL: () => 'https://cdn.discordapp.com/embed/avatars/0.png', id: '1523016917588115566' },
-  commands: new Map(),
-  guilds: { cache: { get: () => null } },
-  syncExistingChannels: () => {}
-};
+// Dashboard 2 tourne comme un processus séparé du bot : il n'a pas accès au vrai client
+// Discord.js. Toutes les opérations qui ont besoin de données/actions live (guilds, salons,
+// membres, envoi de messages...) passent par le pont HTTP exposé par le bot (voir apiApp
+// dans src/index.js), via la fonction utilitaire ci-dessous.
+async function sendTicketPanelViaBot(panelId, force = false) {
+  const botApiPort = process.env.BOT_API_PORT || 49605;
+  const res = await fetch(`http://127.0.0.1:${botApiPort}/bot/tickets/panel/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ panelId, force })
+  }).catch(() => null);
+  if (!res) return { success: false, error: "Le bot n'est pas joignable" };
+  return res.json().catch(() => ({ success: false, error: 'Réponse invalide du bot' }));
+}
 const { 
   db, 
   getAllActionGifs, 
@@ -905,7 +912,8 @@ app.post('/api/config/tribunal', (req, res) => {
       autoDeleteMinutes: parseInt(auto_delete_minutes) || 5
     });
 
-    if (client.syncExistingChannels) client.syncExistingChannels();
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    fetch(`http://127.0.0.1:${botApiPort}/bot/sync-channels-hook`, { method: 'POST' }).catch(() => {});
 
     res.json({ success: true });
   } catch (error) {
@@ -924,7 +932,8 @@ app.post('/api/config/shop-settings', (req, res) => {
     const { updateShopConfig } = require('./database/db');
     updateShopConfig(guildId, private_suite_category_id || null, suite_channel_prefix || '👑┆suite-');
 
-    if (client.syncExistingChannels) client.syncExistingChannels();
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    fetch(`http://127.0.0.1:${botApiPort}/bot/sync-channels-hook`, { method: 'POST' }).catch(() => {});
 
     res.json({ success: true });
   } catch (error) {
@@ -933,13 +942,30 @@ app.post('/api/config/shop-settings', (req, res) => {
   }
 });
 
-// Resynchroniser manuellement tous les salons des suites privées et du tribunal
+// Resynchroniser manuellement tous les salons (suites privées, tribunal) et renvoyer à neuf
+// tous les panels d'embeds de tickets. NB : ces deux comportements vivaient auparavant dans
+// deux handlers Express enregistrés sur la même route ('/api/config/sync-channels'), ce qui
+// rendait le second totalement inatteignable (Express ne garde que le premier). On les fusionne
+// ici en un seul handler pour que les deux actions s'exécutent réellement.
 app.post('/api/config/sync-channels', async (req, res) => {
   try {
-    if (client.syncExistingChannels) {
-      await client.syncExistingChannels();
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    await fetch(`http://127.0.0.1:${botApiPort}/bot/sync-channels-hook`, { method: 'POST' }).catch(() => null);
+
+    let resendCount = 0;
+    const guildId = getReqGuildId(req);
+    if (guildId) {
+      const { getTicketPanels } = require('./database/db');
+      const panels = getTicketPanels(guildId);
+      for (const p of panels) {
+        if (p.channel_id) {
+          const result = await sendTicketPanelViaBot(p.id, true);
+          if (result.success) resendCount++;
+        }
+      }
     }
-    res.json({ success: true, message: 'Resynchronisation des salons effectuée !' });
+
+    res.json({ success: true, message: `Resynchronisation effectuée ! ${resendCount} panel(s) d'embeds renvoyé(s) à neuf dans vos salons.` });
   } catch (error) {
     console.error('Erreur resynchronisation manuelle:', error);
     res.status(500).json({ error: error.message });
@@ -1494,19 +1520,6 @@ app.post('/api/config/send-simple-embed', async (req, res) => {
 
     if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
 
-    const guild = client.guilds.cache.get(guildId);
-    if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
-
-    const channel = guild.channels.cache.get(channel_id);
-    if (!channel) return res.status(404).json({ error: 'Salon introuvable ou inaccessible' });
-
-    const embed = new EmbedBuilder();
-
-    if (title && title.trim()) embed.setTitle(title.trim());
-    if (description && description.trim()) embed.setDescription(description.trim());
-    if (color) embed.setColor(color);
-    else embed.setColor('#5865F2');
-
     const resolveUrl = (urlStr) => {
       if (!urlStr || typeof urlStr !== 'string') return null;
       const trimmed = urlStr.trim();
@@ -1519,65 +1532,48 @@ app.post('/api/config/send-simple-embed', async (req, res) => {
       return trimmed;
     };
 
+    let thumbnailMode = null;
+    let resolvedThumbnail = null;
     if (thumbnail_url) {
       if (thumbnail_url === 'user' && req.session.user) {
         const u = req.session.user;
-        const uAvatar = u.avatar 
-          ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png` 
+        resolvedThumbnail = u.avatar
+          ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png`
           : `https://cdn.discordapp.com/embed/avatars/${(BigInt(u.id) >> 22n) % 5n}.png`;
-        embed.setThumbnail(uAvatar);
       } else if (thumbnail_url === 'server') {
-        const icon = guild.iconURL({ dynamic: true });
-        if (icon) embed.setThumbnail(icon);
+        thumbnailMode = 'server';
       } else if (thumbnail_url === 'bot') {
-        embed.setThumbnail(client.user.displayAvatarURL({ dynamic: true }));
+        thumbnailMode = 'bot';
       } else {
-        const fullThumb = resolveUrl(thumbnail_url);
-        if (fullThumb) embed.setThumbnail(fullThumb);
+        resolvedThumbnail = resolveUrl(thumbnail_url);
       }
     }
-
-    const fullImg = resolveUrl(image_url);
-    if (fullImg) {
-      embed.setImage(fullImg);
-    }
-
-    if (author_name && author_name.trim()) {
-      const authorObj = { name: author_name.trim() };
-      const fullAuthIcon = resolveUrl(author_icon);
-      if (fullAuthIcon) {
-        authorObj.iconURL = fullAuthIcon;
-      }
-      embed.setAuthor(authorObj);
-    }
-
-    if (footer_text && footer_text.trim()) {
-      const footerObj = { text: footer_text.trim() };
-      const fullFooterIcon = resolveUrl(footer_icon);
-      if (fullFooterIcon) {
-        footerObj.iconURL = fullFooterIcon;
-      }
-      embed.setFooter(footerObj);
-    }
-
-    embed.setTimestamp();
 
     let contentPayload = undefined;
     if (ping_type === 'everyone') contentPayload = '@everyone';
     else if (ping_type === 'here') contentPayload = '@here';
 
-    let msgIdSaved = null;
-    if (existing_message_id && existing_message_id.trim()) {
-      const targetMsg = await channel.messages.fetch(existing_message_id.trim()).catch(() => null);
-      if (!targetMsg) {
-        return res.status(404).json({ error: 'Message existant introuvable dans ce salon' });
-      }
-      await targetMsg.edit({ content: contentPayload, embeds: [embed] });
-      msgIdSaved = targetMsg.id;
-    } else {
-      const sentMsg = await channel.send({ content: contentPayload, embeds: [embed] });
-      msgIdSaved = sentMsg.id;
-    }
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const bridgeRes = await fetch(`http://127.0.0.1:${botApiPort}/bot/channel/send-embed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        guildId, channelId: channel_id,
+        title, description, color,
+        thumbnailMode, thumbnailUrl: resolvedThumbnail,
+        imageUrl: resolveUrl(image_url),
+        authorName: author_name, authorIcon: resolveUrl(author_icon),
+        footerText: footer_text, footerIcon: resolveUrl(footer_icon),
+        content: contentPayload,
+        existingMessageId: existing_message_id
+      })
+    }).catch(() => null);
+
+    if (!bridgeRes) return res.status(502).json({ error: "Le bot n'est pas joignable" });
+    const bridgeData = await bridgeRes.json().catch(() => null);
+    if (!bridgeRes.ok) return res.status(bridgeRes.status).json(bridgeData || { error: 'Erreur du bot' });
+
+    const msgIdSaved = bridgeData.messageId;
 
     try {
       deleteAutoroleEmbed(guildId, msgIdSaved);
@@ -1613,104 +1609,12 @@ app.get('/api/config/embeds/fetch-channel-messages', async (req, res) => {
     const channelId = req.query.channelId;
     if (!channelId) return res.status(400).json({ error: 'Salon requis' });
 
-    const guild = client.guilds.cache.get(guildId);
-    if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
-
-    const channel = guild.channels.cache.get(channelId);
-    if (!channel || !channel.isTextBased()) return res.status(404).json({ error: 'Salon textuel introuvable' });
-
-    const messages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
-    if (!messages) return res.json([]);
-
-    const resultEmbeds = [];
-    messages.forEach(msg => {
-      const emb = msg.embeds.length > 0 ? msg.embeds[0] : null;
-      const options = [];
-
-      // Extraire les boutons / menus déroulants
-      if (msg.components && msg.components.length > 0) {
-        msg.components.forEach(row => {
-          if (row.components) {
-            row.components.forEach(comp => {
-              if (comp.type === 2) { // Button
-                const roleId = comp.customId ? comp.customId.replace('autorole_', '') : '';
-                let styleStr = 'PRIMARY';
-                if (comp.style === 2) styleStr = 'SECONDARY';
-                else if (comp.style === 3) styleStr = 'SUCCESS';
-                else if (comp.style === 4) styleStr = 'DANGER';
-                let emojiStr = '';
-                if (comp.emoji) {
-                  emojiStr = comp.emoji.id ? (comp.emoji.animated ? `<a:${comp.emoji.name}:${comp.emoji.id}>` : `<:${comp.emoji.name}:${comp.emoji.id}>`) : (comp.emoji.name || '');
-                }
-                options.push({
-                  role_id: roleId,
-                  label: comp.label || '',
-                  emoji: emojiStr,
-                  style: styleStr
-                });
-              } else if (comp.type === 3) { // Select Menu
-                if (comp.options) {
-                  comp.options.forEach(opt => {
-                    let emojiStr = '';
-                    if (opt.emoji) {
-                      emojiStr = opt.emoji.id ? (opt.emoji.animated ? `<a:${opt.emoji.name}:${opt.emoji.id}>` : `<:${opt.emoji.name}:${opt.emoji.id}>`) : (opt.emoji.name || '');
-                    }
-                    options.push({
-                      role_id: opt.value,
-                      label: opt.label || '',
-                      emoji: emojiStr,
-                      style: 'PRIMARY'
-                    });
-                  });
-                }
-              }
-            });
-          }
-        });
-      }
-
-      // Extraire les émojis de réaction sous le message s'il n'y a pas de composant
-      if (options.length === 0 && msg.reactions && msg.reactions.cache.size > 0) {
-        msg.reactions.cache.forEach(reaction => {
-          let emojiStr = reaction.emoji.id ? (reaction.emoji.animated ? `<a:${reaction.emoji.name}:${reaction.emoji.id}>` : `<:${reaction.emoji.name}:${reaction.emoji.id}>`) : (reaction.emoji.name || '');
-          options.push({
-            role_id: '',
-            label: '',
-            emoji: emojiStr,
-            style: 'PRIMARY'
-          });
-        });
-      }
-
-      // Déterminer l'image principale (depuis l'embed ou les pièces jointes/fichiers joints)
-      let imageUrl = '';
-      if (emb && emb.image && emb.image.url) {
-        imageUrl = emb.image.url;
-      } else if (msg.attachments && msg.attachments.size > 0) {
-        const firstAtt = msg.attachments.first();
-        if (firstAtt && firstAtt.url) {
-          imageUrl = firstAtt.url;
-        }
-      }
-
-      if (emb || options.length > 0 || msg.content || imageUrl) {
-        resultEmbeds.push({
-          id: msg.id,
-          channel_id: channel.id,
-          author: msg.author ? msg.author.tag : 'Inconnu',
-          is_bot_owner: msg.author && msg.author.id === client.user.id,
-          title: emb ? (emb.title || '') : '',
-          description: emb ? (emb.description || (msg.content || '')) : (msg.content || ''),
-          color: emb ? (emb.hexColor || '#5865F2') : '#5865F2',
-          thumbnail: (emb && emb.thumbnail) ? 1 : 0,
-          image_url: imageUrl,
-          options: options,
-          type: (msg.components && msg.components[0] && msg.components[0].components[0] && msg.components[0].components[0].type === 3) ? 'select' : (options.length > 0 && options[0].role_id === '' ? 'reactions' : 'buttons')
-        });
-      }
-    });
-
-    res.json(resultEmbeds);
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const bridgeRes = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/channels/${channelId}/embed-messages`).catch(() => null);
+    if (!bridgeRes) return res.status(502).json({ error: "Le bot n'est pas joignable" });
+    const data = await bridgeRes.json().catch(() => null);
+    if (!bridgeRes.ok) return res.status(bridgeRes.status).json(data || { error: 'Erreur du bot' });
+    res.json(data);
   } catch (error) {
     console.error('Erreur fetch-channel-messages:', error);
     res.status(500).json({ error: error.message });
@@ -1726,81 +1630,13 @@ app.get('/api/config/embeds/fetch-message-details', async (req, res) => {
     let channelId = req.query.channelId;
     if (!messageId) return res.status(400).json({ error: 'Message ID requis' });
 
-    const guild = client.guilds.cache.get(guildId);
-    if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
-
-    let message = null;
-    let channel = channelId ? guild.channels.cache.get(channelId) : null;
-    if (channel && channel.isTextBased()) {
-      message = await channel.messages.fetch(messageId).catch(() => null);
-    }
-
-    if (!message) {
-      const textChannels = Array.from(guild.channels.cache.values()).filter(ch => ch.isTextBased() && ch.id !== channelId);
-      const results = await Promise.all(textChannels.map(ch => ch.messages.fetch(messageId).then(m => ({ msg: m, ch })).catch(() => null)));
-      const found = results.find(r => r && r.msg);
-      if (found) {
-        message = found.msg;
-        channel = found.ch;
-      }
-    }
-
-    if (!message) return res.status(404).json({ error: 'Message introuvable sur le serveur' });
-
-    const emb = message.embeds.length > 0 ? message.embeds[0] : null;
-    const options = [];
-
-    if (message.components && message.components.length > 0) {
-      message.components.forEach(row => {
-        if (row.components) {
-          row.components.forEach(comp => {
-            if (comp.type === 2) {
-              const roleId = comp.customId ? comp.customId.replace('autorole_', '') : '';
-              let styleStr = 'PRIMARY';
-              if (comp.style === 2) styleStr = 'SECONDARY';
-              else if (comp.style === 3) styleStr = 'SUCCESS';
-              else if (comp.style === 4) styleStr = 'DANGER';
-              let emojiStr = comp.emoji ? (comp.emoji.id ? (comp.emoji.animated ? `<a:${comp.emoji.name}:${comp.emoji.id}>` : `<:${comp.emoji.name}:${comp.emoji.id}>`) : comp.emoji.name) : '';
-              options.push({ role_id: roleId, label: comp.label || '', emoji: emojiStr, style: styleStr });
-            } else if (comp.type === 3 && comp.options) {
-              comp.options.forEach(opt => {
-                let emojiStr = opt.emoji ? (opt.emoji.id ? (opt.emoji.animated ? `<a:${opt.emoji.name}:${opt.emoji.id}>` : `<:${opt.emoji.name}:${opt.emoji.id}>`) : opt.emoji.name) : '';
-                options.push({ role_id: opt.value, label: opt.label || '', emoji: emojiStr, style: 'PRIMARY' });
-              });
-            }
-          });
-        }
-      });
-    }
-
-    if (options.length === 0 && message.reactions && message.reactions.cache.size > 0) {
-      message.reactions.cache.forEach(reaction => {
-        let emojiStr = reaction.emoji.id ? (reaction.emoji.animated ? `<a:${reaction.emoji.name}:${reaction.emoji.id}>` : `<:${reaction.emoji.name}:${reaction.emoji.id}>`) : reaction.emoji.name;
-        options.push({ role_id: '', label: '', emoji: emojiStr, style: 'PRIMARY' });
-      });
-    }
-
-    let imageUrl = '';
-    if (emb && emb.image && emb.image.url) {
-      imageUrl = emb.image.url;
-    } else if (message.attachments && message.attachments.size > 0) {
-      const firstAtt = message.attachments.first();
-      if (firstAtt && firstAtt.url) imageUrl = firstAtt.url;
-    }
-
-    res.json({
-      id: message.id,
-      channel_id: channel.id,
-      author: message.author ? message.author.tag : 'Inconnu',
-      is_bot_owner: message.author && message.author.id === client.user.id,
-      title: emb ? (emb.title || '') : '',
-      description: emb ? (emb.description || (message.content || '')) : (message.content || ''),
-      color: emb ? (emb.hexColor || '#5865F2') : '#5865F2',
-      thumbnail: (emb && emb.thumbnail) ? 1 : 0,
-      image_url: imageUrl,
-      options: options,
-      type: (message.components && message.components[0] && message.components[0].components[0] && message.components[0].components[0].type === 3) ? 'select' : (options.length > 0 && options[0].role_id === '' ? 'reactions' : 'buttons')
-    });
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const qs = channelId ? `?channelId=${encodeURIComponent(channelId)}` : '';
+    const bridgeRes = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/messages/${messageId}${qs}`).catch(() => null);
+    if (!bridgeRes) return res.status(502).json({ error: "Le bot n'est pas joignable" });
+    const data = await bridgeRes.json().catch(() => null);
+    if (!bridgeRes.ok) return res.status(bridgeRes.status).json(data || { error: 'Erreur du bot' });
+    res.json(data);
   } catch (err) {
     console.error('Erreur fetch-message-details:', err);
     res.status(500).json({ error: err.message });
@@ -2013,7 +1849,7 @@ app.post('/api/config/autoroles-on-role/delete', (req, res) => {
 });
 
 // API Permisions & Contrôle d'accès des Commandes Slash
-app.get('/api/config/command-permissions', (req, res) => {
+app.get('/api/config/command-permissions', async (req, res) => {
   try {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
@@ -2025,32 +1861,34 @@ app.get('/api/config/command-permissions', (req, res) => {
       permMap.set(p.command_name, p);
     }
 
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const botCommandsRes = await fetch(`http://127.0.0.1:${botApiPort}/bot/commands`).catch(() => null);
+    const botCommands = (botCommandsRes && botCommandsRes.ok) ? await botCommandsRes.json().catch(() => []) : [];
+
     const commandList = [];
-    if (client && client.commands) {
-      client.commands.forEach((cmd, name) => {
-        const cmdName = cmd.data ? cmd.data.name : name;
-        const cmdDesc = cmd.data ? cmd.data.description : (cmd.description || '');
-        const cmdCat = cmd.category || 'Général';
+    botCommands.forEach(cmd => {
+      const cmdName = cmd.name;
+      const cmdDesc = cmd.description || '';
+      const cmdCat = cmd.category || 'Général';
 
-        const dbP = permMap.get(cmdName) || {};
-        let allowedRoles = [];
-        let deniedRoles = [];
-        let allowedUsers = [];
-        try { allowedRoles = JSON.parse(dbP.allowed_roles || '[]'); } catch (e) {}
-        try { deniedRoles = JSON.parse(dbP.denied_roles || '[]'); } catch (e) {}
-        try { allowedUsers = JSON.parse(dbP.allowed_users || '[]'); } catch (e) {}
+      const dbP = permMap.get(cmdName) || {};
+      let allowedRoles = [];
+      let deniedRoles = [];
+      let allowedUsers = [];
+      try { allowedRoles = JSON.parse(dbP.allowed_roles || '[]'); } catch (e) {}
+      try { deniedRoles = JSON.parse(dbP.denied_roles || '[]'); } catch (e) {}
+      try { allowedUsers = JSON.parse(dbP.allowed_users || '[]'); } catch (e) {}
 
-        commandList.push({
-          name: cmdName,
-          description: cmdDesc,
-          category: cmdCat,
-          enabled: dbP.enabled !== undefined ? Boolean(dbP.enabled) : true,
-          allowed_roles: allowedRoles,
-          denied_roles: deniedRoles,
-          allowed_users: allowedUsers
-        });
+      commandList.push({
+        name: cmdName,
+        description: cmdDesc,
+        category: cmdCat,
+        enabled: dbP.enabled !== undefined ? Boolean(dbP.enabled) : true,
+        allowed_roles: allowedRoles,
+        denied_roles: deniedRoles,
+        allowed_users: allowedUsers
       });
-    }
+    });
 
     commandList.sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
     res.json(commandList);
@@ -2159,41 +1997,16 @@ app.post('/api/config/autoroles-on-role/sync', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const guild = client.guilds.cache.get(guildId);
-    if (!guild) return res.status(404).json({ error: 'Guild not found' });
-
-    const { db } = require('./database/db');
-    const triggerRoles = db.prepare('SELECT trigger_role_id, target_role_id FROM autoroles_on_role WHERE guild_id = ?').all(guildId);
-    if (triggerRoles.length === 0) {
-      return res.json({ success: true, syncCount: 0, errorCount: 0, message: "Aucune liaison configurée" });
-    }
-
-    const members = await guild.members.fetch();
-    const botMember = guild.members.me;
-    let syncCount = 0;
-    let errorCount = 0;
-
-    for (const member of members.values()) {
-      if (member.user.bot) continue;
-
-      for (const rule of triggerRoles) {
-        if (member.roles.cache.has(rule.trigger_role_id)) {
-          if (!member.roles.cache.has(rule.target_role_id)) {
-            const targetRole = guild.roles.cache.get(rule.target_role_id);
-            if (targetRole && targetRole.position < botMember.roles.highest.position) {
-              try {
-                await member.roles.add(rule.target_role_id);
-                syncCount++;
-              } catch (e) {
-                errorCount++;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    res.json({ success: true, syncCount, errorCount });
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const bridgeRes = await fetch(`http://127.0.0.1:${botApiPort}/bot/autoroles-on-role/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guildId })
+    }).catch(() => null);
+    if (!bridgeRes) return res.status(502).json({ error: "Le bot n'est pas joignable" });
+    const data = await bridgeRes.json().catch(() => null);
+    if (!bridgeRes.ok) return res.status(bridgeRes.status).json(data || { error: 'Erreur du bot' });
+    res.json(data);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });
@@ -2253,49 +2066,16 @@ app.post('/api/config/announce-features', async (req, res) => {
     const { channel_id } = req.body || {};
     if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
 
-    const guild = client.guilds.cache.get(guildId);
-    if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
-
-    const channel = guild.channels.cache.get(channel_id);
-    if (!channel) return res.status(404).json({ error: 'Salon introuvable' });
-
-    const embed = new EmbedBuilder()
-      .setTitle(`✨ 👑 ${guild.name.toUpperCase()} — PRÉSENTATION DES FONCTIONNALITÉS EXCLUSIVES 👑 ✨`)
-      .setDescription(
-        `Bienvenue sur le serveur **${guild.name}** ! Voici un guide complet des fonctionnalités et systèmes exclusifs mis à votre disposition par notre bot :\n\n` +
-        `🍷 **1. Économie, Banque & Karma Séducteur**\n` +
-        `• Gagnez des pièces et du Karma en écrivant dans les salons et avec \`/work\`, \`/crime\`, \`/daily\`.\n` +
-        `• Économisez à la \`/banque\` et débloquez jusqu'à **-20% de réduction** automatique en boutique grâce à votre Karma.\n\n` +
-        `👑 **2. Suites Privées VIP Temporaires**\n` +
-        `• Louez votre propre havre de paix personnalisé pendant 24h, 7 jours ou 1 mois via \`/boutique\`.\n` +
-        `• Un salon textuel et un salon vocal privés sont créés automatiquement avec un panneau de contrôle pour inviter ou exclure des membres.\n\n` +
-        `💋 **3. Boutique & Cadeaux d'Intimité (IA)**\n` +
-        `• Catalogue d'objets sensuels, BDSM, sexy et réconfortants dans \`/boutique\`.\n` +
-        `• Offrez des cadeaux à d'autres membres : l'IA génère un **message d'offrande torride et unique** dans le salon !\n` +
-        `• Gerez et utilisez vos objets depuis votre \`/inventaire\` privé.\n\n` +
-        `🎲 **4. Action ou Vérité Adultes (NSFW)**\n` +
-        `• Lancez \`/action-verite\` (Niveaux Soft, Hard, Extrême, Couple) avec des questions et défis osés inédits.\n` +
-        `• Utilisez des commandes d'action (\`/calin\`, \`/embrasser\`, \`/fesser\`, \`/caresser\`, etc.) générées par l'IA et accompagnées de GIFs.\n\n` +
-        `⚖️ **5. Tribunal & Système de Jugement**\n` +
-        `• Ouvrez des procès avec \`/tribunal create\` : rôles attribués (Juge, Avocat, Accusé) et salon fermé après délibération.\n\n` +
-        `🔢 **6. Salons de Comptage & Jokers de Sauvegarde**\n` +
-        `• Participez aux salons de comptage (modes Normal, Inversé, Mathématique) et utilisez la \`🍀 Chance de Comptage\` pour sauver les erreurs !\n\n` +
-        `📜 **7. Système de Quêtes & Missions**\n` +
-        `• Accomplissez des missions hebdomadaires et montez en niveau pour débloquer des rôles et bonus d'XP.`
-      )
-      .setColor('#E74C3C');
-
-    const iconUrl = guild.iconURL({ dynamic: true });
-    if (iconUrl) {
-      embed.setThumbnail(iconUrl);
-      embed.setFooter({ text: '💋 B&G Elite • Système d\'Animation & Privilèges VIP', iconURL: iconUrl });
-    } else {
-      embed.setFooter({ text: '💋 B&G Elite • Système d\'Animation & Privilèges VIP' });
-    }
-    embed.setTimestamp();
-
-    await channel.send({ embeds: [embed] });
-    res.json({ success: true, message: 'Embed de présentation des fonctionnalités envoyé avec succès !' });
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const bridgeRes = await fetch(`http://127.0.0.1:${botApiPort}/bot/announce/features`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guildId, channelId: channel_id })
+    }).catch(() => null);
+    if (!bridgeRes) return res.status(502).json({ error: "Le bot n'est pas joignable" });
+    const data = await bridgeRes.json().catch(() => null);
+    if (!bridgeRes.ok) return res.status(bridgeRes.status).json(data || { error: 'Erreur du bot' });
+    res.json(data);
   } catch (error) {
     console.error('Erreur announce-features:', error);
     res.status(500).json({ error: error.message });
@@ -2310,88 +2090,16 @@ app.post('/api/config/announce-commands', async (req, res) => {
     const { channel_id } = req.body || {};
     if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
 
-    const guild = client.guilds.cache.get(guildId);
-    if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
-
-    const channel = guild.channels.cache.get(channel_id);
-    if (!channel) return res.status(404).json({ error: 'Salon introuvable' });
-
-    const iconUrl = guild.iconURL({ dynamic: true });
-
-    // 1. EMBED COMMANDES PUBLIQUES (POUR TOUS LES MEMBRES)
-    const embedPublic = new EmbedBuilder()
-      .setTitle(`📜 🤖 CATALOGUE DES COMMANDES — ACCESSIBLES À TOUS 🤖 📜`)
-      .setDescription(`Retrouvez ci-dessous l'ensemble des commandes et actions interactives disponibles pour tous les membres sur **${guild.name}** :`)
-      .addFields(
-        { 
-          name: '💰 Économie, Banque, Boutique & Inventaire', 
-          value: '`/solde` — Solde portefeuille & compte bancaire\n`/deposer` — Déposer des pièces à la banque\n`/retirer` — Retirer des pièces de la banque\n`/travailler` — Travailler pour gagner des pièces & karma\n`/daily` — Prime quotidienne gratuite\n`/pecher` — Attraper des poissons et des pièces\n`/crime` — Tenter un crime osé pour gagner gros\n`/voler` — Tenter de voler des pièces à un autre membre\n`/donner` — Transférer des pièces à un membre\n`/karma` — Consulter son Karma & réductions boutique\n`/quetes` — Missions & quêtes du serveur\n`/boutique` — Catalogue VIP & Louer des Suites Privées\n`/inventaire` — Sac à dos (Utiliser, Offrir, Jeter)',
-          inline: false 
-        },
-        { 
-          name: '🤝 Actions SFW & Amicales', 
-          value: '`/gifle` • `/patpat` • `/batailleoreiller` • `/chatouiller` • `/cuisiner` • `/danser` • `/reconforter` • `/reveiller` • `/rose` • `/vin` • `/attrape` • `/dormir` • `/douche` • `/reanimer` • `/oups`',
-          inline: false 
-        },
-        { 
-          name: '🍷 Actions RP Adulte, Torrides & Sensuelles (NSFW)', 
-          value: '`/calin` • `/embrasser` • `/caresser` • `/flirter` • `/seduire` • `/lit` • `/branler` • `/doigter` • `/fuck` • `/sodo` • `/sucer` • `/orgasme` • `/orgie` • `/deshabiller` • `/lecher` • `/masser` • `/mordre` • `/mouiller` • `/touche` • `/69` • `/collier` • `/laisse` • `/ordonner` • `/punir` • `/tirercheveux` • `/tromper` • `/agenouiller`',
-          inline: false 
-        },
-        { 
-          name: '🎮 Mini-Jeux, Fun & Confessions', 
-          value: '`/action-verite` — Partie Action ou Vérité (Soft, Hard, Extrême, Couple)\n`/confesser` — Envoyer une confession anonyme\n`/mot-cache` — Jeu du mot ou de la phrase mystère\n`/uno` — Jouer au UNO interactif avec cartes animées\n`/star` — Voir la star élue de la semaine et le classement\n`/lovecalc` — Calculer la compatibilité amoureuse\n`/proche` — Trouver le membre géographiquement le plus proche\n`/mapville` — Définir votre ville/localisation sur la carte des membres',
-          inline: false 
-        },
-        { 
-          name: '⚙️ Profil, Niveaux & Accès', 
-          value: '`/niveau` (ou `/level`) — Carte XP, Niveau & Rang actuel\n`/classement` — Classement général XP du serveur\n`/dashboard` — Lien d\'accès au panneau Web',
-          inline: false 
-        }
-      )
-      .setColor('#5865F2');
-
-    if (iconUrl) {
-      embedPublic.setThumbnail(iconUrl);
-      embedPublic.setFooter({ text: '🌐 Commandes Publiques • B&G Elite', iconURL: iconUrl });
-    } else {
-      embedPublic.setFooter({ text: '🌐 Commandes Publiques • B&G Elite' });
-    }
-    embedPublic.setTimestamp();
-
-    // 2. EMBED COMMANDES ADMINS & MODÉRATION (STAFF)
-    const embedStaff = new EmbedBuilder()
-      .setTitle(`🛡️ ⚖️ COMMANDES D'ADMINISTRATION & MODÉRATION STAFF ⚖️ 🛡️`)
-      .setDescription(`Guide réservé à l'équipe de modération et d'administration du serveur **${guild.name}** :`)
-      .addFields(
-        { 
-          name: '⚖️ Tribunal Discord & Procès', 
-          value: '`/tribunal create` — Ouvrir un procès (Salon dédié, Rôles Juge, Avocat, Accusé)\n`/tribunal verdict` — Rendre le jugement final et appliquer la sentence\n`/tribunal close` — Clore et archiver la session de procès',
-          inline: false 
-        },
-        { 
-          name: '🛡️ Sécurité, Sanctions & Quarantaine', 
-          value: '`/quarantaine` — Placer / Retirer un membre de quarantaine anti-raid\n`/clear` — Purge rapide de messages dans un salon\n`/warn` — Ajouter / Retirer / Voir les avertissements d\'un membre\n`/timeout` — Mettre en sourdine / Rendre la parole\n`/kick` — Expulser un membre du serveur\n`/ban` — Bannir / Débannir un membre\n`/massban` — Bannissement groupé d\'utilisateurs\n`/masskick` — Expulsion groupée d\'utilisateurs',
-          inline: false 
-        },
-        { 
-          name: '🛠️ Outils & Gestion du Bot', 
-          value: '`/ajoute` — Ajouter des pièces, du karma ou de l\'XP (Admin)\n`/sync-autoroles` — Synchroniser les rôles réaction rétroactivement\n`/drop-argent` — Largage de pièces dans le salon\n`/drop-karma` — Largage de karma dans le salon\n`/drop-xp` — Largage d\'XP dans le salon\n`Clic droit > Ajouter Émoji` — Ajouter un émoji sur le serveur depuis un message',
-          inline: false 
-        }
-      )
-      .setColor('#E74C3C');
-
-    if (iconUrl) {
-      embedStaff.setThumbnail(iconUrl);
-      embedStaff.setFooter({ text: '🛡️ Commandes Modération & Staff • B&G Elite', iconURL: iconUrl });
-    } else {
-      embedStaff.setFooter({ text: '🛡️ Commandes Modération & Staff • B&G Elite' });
-    }
-    embedStaff.setTimestamp();
-
-    await channel.send({ embeds: [embedPublic, embedStaff] });
-    res.json({ success: true, message: 'Embeds des commandes publiques et modération envoyés avec succès !' });
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const bridgeRes = await fetch(`http://127.0.0.1:${botApiPort}/bot/announce/commands`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guildId, channelId: channel_id })
+    }).catch(() => null);
+    if (!bridgeRes) return res.status(502).json({ error: "Le bot n'est pas joignable" });
+    const data = await bridgeRes.json().catch(() => null);
+    if (!bridgeRes.ok) return res.status(bridgeRes.status).json(data || { error: 'Erreur du bot' });
+    res.json(data);
   } catch (error) {
     console.error('Erreur announce-commands:', error);
     res.status(500).json({ error: error.message });
@@ -2406,19 +2114,28 @@ app.get('/api/config/map-locations', async (req, res) => {
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
     const locations = db.prepare('SELECT * FROM member_locations WHERE guild_id = ?').all(guildId);
-    
-    const guild = client.guilds.cache.get(guildId);
-    if (guild && locations.length > 0) {
+
+    let membersById = new Map();
+    if (locations.length > 0) {
+      const botApiPort = process.env.BOT_API_PORT || 49605;
       const userIds = locations.map(loc => loc.user_id);
-      await guild.members.fetch({ user: userIds }).catch(() => null);
+      const bridgeRes = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/members/fetch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds })
+      }).catch(() => null);
+      if (bridgeRes && bridgeRes.ok) {
+        const members = await bridgeRes.json().catch(() => []);
+        membersById = new Map(members.map(m => [m.id, m]));
+      }
     }
 
     const formatted = locations.map(loc => {
-      const member = guild ? guild.members.cache.get(loc.user_id) : null;
+      const member = membersById.get(loc.user_id);
       return {
         ...loc,
-        username: member ? (member.displayName || member.user.username) : `Utilisateur (${loc.user_id})`,
-        avatar: member ? member.user.displayAvatarURL({ dynamic: true }) : 'https://cdn.discordapp.com/embed/avatars/0.png'
+        username: member ? member.displayName : `Utilisateur (${loc.user_id})`,
+        avatar: member ? member.avatarURL : 'https://cdn.discordapp.com/embed/avatars/0.png'
       };
     });
 
@@ -2434,9 +2151,6 @@ app.post('/api/config/map-locations/delete', async (req, res) => {
     const guildId = (req.body && req.body.guild) || (req.body && req.body.guildId) || (req.session && req.session.selectedGuild);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const guild = client.guilds.cache.get(guildId);
-    if (!guild) return res.status(404).json({ error: 'Serveur introuvable' });
-
     if (!req.session.user) return res.status(401).json({ error: 'Non autorisé' });
 
     const { user_id } = req.body || {};
@@ -2445,8 +2159,11 @@ app.post('/api/config/map-locations/delete', async (req, res) => {
     // Si l'utilisateur supprime sa propre localisation, on autorise directement.
     // Sinon, on vérifie qu'il dispose des droits d'administrateur.
     if (req.session.user.id !== user_id) {
-      const member = await guild.members.fetch(req.session.user.id).catch(() => null);
-      if (!member || (!member.permissions.has(PermissionFlagsBits.Administrator) && guild.ownerId !== req.session.user.id)) {
+      const botApiPort = process.env.BOT_API_PORT || 49605;
+      const permRes = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/member-permissions/${req.session.user.id}`).catch(() => null);
+      if (!permRes || !permRes.ok) return res.status(404).json({ error: 'Serveur introuvable' });
+      const perms = await permRes.json().catch(() => null);
+      if (!perms || !perms.found || (!perms.hasAdministrator && !perms.isOwner)) {
         return res.status(403).json({ error: 'Permission refusée (Administrateur requis pour supprimer la position des autres)' });
       }
     }
@@ -2561,8 +2278,8 @@ app.post('/api/config/unlimited-forums', (req, res) => {
     updateUnlimitedForums(guildId, channels);
     
     // Déclencher le scan pour réouvrir sur-le-champ les fils archivés
-    const { scanAndReopenAllUnlimitedForums } = require('./utils/forums');
-    scanAndReopenAllUnlimitedForums(client).catch(console.error);
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    fetch(`http://127.0.0.1:${botApiPort}/bot/forums/scan-reopen`, { method: 'POST' }).catch(() => {});
 
     res.json({ success: true });
   } catch (error) {
@@ -2718,8 +2435,7 @@ app.post('/api/config/tickets/panel/add', async (req, res) => {
     const panelId = result.lastInsertRowid;
 
     if (channel_id) {
-      const { sendOrUpdateTicketPanel } = require('./utils/tickets');
-      const sendRes = await sendOrUpdateTicketPanel(panelId, client);
+      const sendRes = await sendTicketPanelViaBot(panelId);
       if (!sendRes.success) {
         return res.json({ success: true, panelId, warning: sendRes.error });
       }
@@ -2752,8 +2468,7 @@ app.post('/api/config/tickets/panel/update', async (req, res) => {
     });
 
     if (channel_id) {
-      const { sendOrUpdateTicketPanel } = require('./utils/tickets');
-      const sendRes = await sendOrUpdateTicketPanel(id, client, true);
+      const sendRes = await sendTicketPanelViaBot(id, true);
       if (!sendRes.success) {
         return res.json({ success: true, warning: sendRes.error });
       }
@@ -2775,8 +2490,7 @@ app.post('/api/config/tickets/panel/resend', async (req, res) => {
     const { id } = req.body || {};
     if (!id) return res.status(400).json({ error: 'ID de panel requis' });
 
-    const { sendOrUpdateTicketPanel } = require('./utils/tickets');
-    const sendRes = await sendOrUpdateTicketPanel(id, client, true);
+    const sendRes = await sendTicketPanelViaBot(id, true);
 
     if (!sendRes.success) {
       return res.status(400).json({ error: sendRes.error });
@@ -2789,30 +2503,6 @@ app.post('/api/config/tickets/panel/resend', async (req, res) => {
   }
 });
 
-// Endpoint de réactualisation & resynchronisation globale des salons et panels d'embeds
-app.post('/api/config/sync-channels', async (req, res) => {
-  try {
-    const guildId = getReqGuildId(req);
-    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
-
-    const { sendOrUpdateTicketPanel } = require('./utils/tickets');
-    const { getTicketPanels } = require('./database/db');
-    const panels = getTicketPanels(guildId);
-
-    let resendCount = 0;
-    for (const p of panels) {
-      if (p.channel_id) {
-        const result = await sendOrUpdateTicketPanel(p.id, client, true);
-        if (result.success) resendCount++;
-      }
-    }
-
-    res.json({ success: true, message: `Resynchronisation effectuée ! ${resendCount} panel(s) d'embeds renvoyé(s) à neuf dans vos salons.` });
-  } catch (error) {
-    console.error('Erreur /api/config/sync-channels:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
 app.post('/api/config/tickets/panel/delete', async (req, res) => {
   try {
@@ -2824,14 +2514,12 @@ app.post('/api/config/tickets/panel/delete', async (req, res) => {
 
     const panel = getTicketPanelById(id);
     if (panel && panel.channel_id && panel.message_id) {
-      const guild = client.guilds.cache.get(guildId);
-      if (guild) {
-        const channel = await guild.channels.fetch(panel.channel_id).catch(() => null);
-        if (channel) {
-          const msg = await channel.messages.fetch(panel.message_id).catch(() => null);
-          if (msg) await msg.delete().catch(() => null);
-        }
-      }
+      const botApiPort = process.env.BOT_API_PORT || 49605;
+      await fetch(`http://127.0.0.1:${botApiPort}/bot/tickets/panel/delete-message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guildId, channelId: panel.channel_id, messageId: panel.message_id })
+      }).catch(() => null);
     }
 
     deleteTicketPanel(id);
@@ -3120,8 +2808,7 @@ app.post('/api/config/tickets/options/add', async (req, res) => {
     const panels = getTicketPanels(guildId);
     for (const p of panels) {
       if (p.channel_id) {
-        const { sendOrUpdateTicketPanel } = require('./utils/tickets');
-        await sendOrUpdateTicketPanel(p.id, client, true).catch(console.error);
+        await sendTicketPanelViaBot(p.id, true).catch(console.error);
       }
     }
 
@@ -3146,8 +2833,7 @@ app.post('/api/config/tickets/options/delete', async (req, res) => {
     const panels = getTicketPanels(guildId);
     for (const p of panels) {
       if (p.channel_id) {
-        const { sendOrUpdateTicketPanel } = require('./utils/tickets');
-        await sendOrUpdateTicketPanel(p.id, client, true).catch(console.error);
+        await sendTicketPanelViaBot(p.id, true).catch(console.error);
       }
     }
 
@@ -3253,26 +2939,13 @@ app.get('/api/emojis', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const guild = client.guilds.cache.get(guildId);
-    if (!guild) return res.status(404).json({ error: 'Guild not found' });
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const bridgeRes = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/emojis`).catch(() => null);
+    if (!bridgeRes) return res.status(502).json({ error: "Le bot n'est pas joignable" });
+    const data = await bridgeRes.json().catch(() => null);
+    if (!bridgeRes.ok) return res.status(bridgeRes.status).json(data || { error: 'Erreur du bot' });
 
-    let emojisMap;
-    try {
-      emojisMap = await guild.emojis.fetch();
-    } catch (e) {
-      console.warn('Erreur guild.emojis.fetch(), fallback cache:', e.message);
-      emojisMap = guild.emojis.cache;
-    }
-
-    const emojis = emojisMap.map(e => ({
-      id: e.id,
-      name: e.name,
-      animated: e.animated,
-      url: e.imageURL({ size: 64 }) || `https://cdn.discordapp.com/emojis/${e.id}.${e.animated ? 'gif' : 'png'}`,
-      identifier: `<${e.animated ? 'a' : ''}:${e.name}:${e.id}>`
-    }));
-
-    res.json(emojis);
+    res.json(data);
   } catch (error) {
     console.error('Erreur GET /api/emojis:', error);
     res.status(500).json({ error: error.message });
@@ -3343,12 +3016,11 @@ app.post('/api/ai/chat', async (req, res) => {
 
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné.' });
 
-    const guild = client.guilds.cache.get(guildId);
-    if (!guild) return res.status(404).json({ error: 'Serveur Discord non trouvé.' });
+    const botApiPort = process.env.BOT_API_PORT || 49605;
 
     // Sécurité : Vérification souple Administrateur / Propriétaire (compatibilité IP Publique & OAuth2)
-    let isAuthorized = (guild.ownerId === req.session.user.id);
-    if (!isAuthorized && req.session.user.guilds) {
+    let isAuthorized = false;
+    if (req.session.user.guilds) {
       const gObj = req.session.user.guilds.find(g => g.id === guildId);
       if (gObj && (gObj.owner || (gObj.permissions & 0x8) === 0x8 || (gObj.permissions & 0x20) === 0x20)) {
         isAuthorized = true;
@@ -3356,8 +3028,10 @@ app.post('/api/ai/chat', async (req, res) => {
     }
 
     if (!isAuthorized) {
-      const member = guild.members.cache.get(req.session.user.id) || await guild.members.fetch(req.session.user.id).catch(() => null);
-      if (member && (member.permissions.has(PermissionFlagsBits.Administrator) || member.permissions.has(PermissionFlagsBits.ManageGuild))) {
+      const permRes = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/member-permissions/${req.session.user.id}`).catch(() => null);
+      if (!permRes || !permRes.ok) return res.status(404).json({ error: 'Serveur Discord non trouvé.' });
+      const perms = await permRes.json().catch(() => null);
+      if (perms && (perms.isOwner || perms.hasAdministrator || perms.hasManageGuild)) {
         isAuthorized = true;
       }
     }
@@ -3378,8 +3052,14 @@ app.post('/api/ai/chat', async (req, res) => {
       req.session.aiChatHistory = req.session.aiChatHistory.slice(-12);
     }
 
-    const { processAiCommand } = require('./utils/aiAssistant');
-    const result = await processAiCommand(guildId, req.session.user.id, message, client, req.session.aiChatHistory);
+    const aiBridgeRes = await fetch(`http://127.0.0.1:${botApiPort}/bot/ai/process-command`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guildId, userId: req.session.user.id, message, history: req.session.aiChatHistory })
+    }).catch(() => null);
+    if (!aiBridgeRes) return res.status(502).json({ error: "Le bot n'est pas joignable" });
+    const result = await aiBridgeRes.json().catch(() => null);
+    if (!aiBridgeRes.ok) return res.status(aiBridgeRes.status).json(result || { error: 'Erreur du bot' });
 
     if (result && result.reply) {
       const cleanReplyForHistory = result.reply.replace(/\[ACTIONS_START\][\s\S]*?\[ACTIONS_END\]/g, '').trim();
@@ -3508,17 +3188,17 @@ app.post('/api/star/force-election', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const guild = client.guilds.cache.get(guildId);
-    if (!guild) return res.status(404).json({ error: 'Guild not found' });
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const bridgeRes = await fetch(`http://127.0.0.1:${botApiPort}/bot/star/force-election`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guildId })
+    }).catch(() => null);
+    if (!bridgeRes) return res.status(502).json({ error: "Le bot n'est pas joignable" });
+    const data = await bridgeRes.json().catch(() => null);
+    if (!bridgeRes.ok) return res.status(bridgeRes.status).json(data || { error: 'Erreur du bot' });
 
-    const { runStarElection } = require('./utils/starManager');
-    const result = await runStarElection(guild, true);
-
-    if (!result) {
-      return res.status(400).json({ error: 'Aucun membre n\'a encore accumulé de points cette semaine.' });
-    }
-
-    res.json({ success: true, result });
+    res.json(data);
   } catch (error) {
     console.error('Error forcing star election:', error);
     res.status(500).json({ error: error.message });
