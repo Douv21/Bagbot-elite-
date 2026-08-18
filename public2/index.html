@@ -109,7 +109,16 @@
             <span class="sidebar-header-title">Navigation</span>
             <span class="sidebar-header-sub">Modules de configuration</span>
           </div>
+          <button type="button" id="sidebar-collapse-toggle" class="sidebar-collapse-toggle" title="Réduire le menu">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
         </div>
+
+        <!-- Retour vers le hub de catégories (page complète) -->
+        <button type="button" id="sidebar-back-btn" class="sidebar-back-btn" title="Retour aux catégories">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span class="sidebar-back-label">Catégories</span>
+        </button>
 
         <!-- Recherche rapide d'onglet -->
         <div class="sidebar-search-wrapper">
@@ -117,34 +126,6 @@
             <i class="fa-solid fa-magnifying-glass sidebar-search-icon"></i>
             <input type="text" id="sidebar-tab-search" placeholder="Rechercher une fonction...">
           </div>
-        </div>
-
-        <!-- Sélecteur de catégories (tuiles translucides, façon sélection de serveur) -->
-        <div id="category-selector" class="category-selector">
-          <button type="button" class="category-tile" data-category="accueil">
-            <span class="category-tile-icon"><i class="fa-solid fa-door-open" style="color: #5865F2;"></i></span>
-            <span class="category-tile-label">Accueil &amp; Communication</span>
-          </button>
-          <button type="button" class="category-tile" data-category="roles">
-            <span class="category-tile-icon"><i class="fa-solid fa-sitemap" style="color: #1abc9c;"></i></span>
-            <span class="category-tile-label">Rôles &amp; Structure</span>
-          </button>
-          <button type="button" class="category-tile" data-category="securite">
-            <span class="category-tile-icon"><i class="fa-solid fa-shield-halved" style="color: #ed4245;"></i></span>
-            <span class="category-tile-label">Sécurité &amp; Modération</span>
-          </button>
-          <button type="button" class="category-tile" data-category="divertissement">
-            <span class="category-tile-icon"><i class="fa-solid fa-gamepad" style="color: #2ecc71;"></i></span>
-            <span class="category-tile-label">Divertissement &amp; Jeux</span>
-          </button>
-          <button type="button" class="category-tile" data-category="niveaux">
-            <span class="category-tile-icon"><i class="fa-solid fa-chart-line" style="color: #e67e22;"></i></span>
-            <span class="category-tile-label">Niveaux &amp; Économie</span>
-          </button>
-          <button type="button" class="category-tile" data-category="communaute">
-            <span class="category-tile-icon"><i class="fa-solid fa-comments" style="color: #9b59b6;"></i></span>
-            <span class="category-tile-label">Communauté, Support &amp; IA</span>
-          </button>
         </div>
 
         <div class="sidebar-category" data-category="accueil">
@@ -211,6 +192,58 @@
           <p style="color: #8e9297; margin-bottom: 30px; font-size: 0.95rem;">Choisissez un serveur Discord ci-dessous pour gérer et configurer votre bot B&G Elite.</p>
           <div id="servers-grid" class="servers-grid">
             <!-- Rempli dynamiquement en JS -->
+          </div>
+        </div>
+
+        <!-- Hub de catégories : page complète affichée juste après la sélection du
+             serveur, avant d'entrer dans une catégorie précise (sidebar + formulaires). -->
+        <div id="category-hub" style="display: none;">
+          <div class="hub-header">
+            <div class="hub-guild-chip">
+              <div class="hub-guild-icon-wrapper">
+                <img id="hub-guild-icon" src="" alt="Serveur" class="hub-guild-icon-img" style="display: none;">
+                <div id="hub-guild-initials" class="hub-guild-initials-placeholder" style="display: none;"></div>
+              </div>
+              <span id="hub-guild-name">Serveur sélectionné</span>
+            </div>
+            <button type="button" id="btn-change-guild-hub" class="btn hub-change-guild-btn">
+              <i class="fa-solid fa-server"></i> Changer de serveur
+            </button>
+          </div>
+
+          <div class="hub-title-block text-center">
+            <h2>Sélectionnez une catégorie à configurer</h2>
+            <p style="color: #8e9297; font-size: 0.95rem;">Choisissez un module ci-dessous pour accéder à ses réglages.</p>
+          </div>
+
+          <!-- Sélecteur de catégories (tuiles), réutilisé par category-nav.js pour
+               piloter à la fois ce hub et la liste de la sidebar une fois entré
+               dans une catégorie. -->
+          <div id="category-selector" class="category-selector">
+            <button type="button" class="category-tile" data-category="accueil">
+              <span class="category-tile-icon"><i class="fa-solid fa-door-open" style="color: #5865F2;"></i></span>
+              <span class="category-tile-label">Accueil &amp; Communication</span>
+            </button>
+            <button type="button" class="category-tile" data-category="roles">
+              <span class="category-tile-icon"><i class="fa-solid fa-sitemap" style="color: #1abc9c;"></i></span>
+              <span class="category-tile-label">Rôles &amp; Structure</span>
+            </button>
+            <button type="button" class="category-tile" data-category="securite">
+              <span class="category-tile-icon"><i class="fa-solid fa-shield-halved" style="color: #ed4245;"></i></span>
+              <span class="category-tile-label">Sécurité &amp; Modération</span>
+            </button>
+            <button type="button" class="category-tile" data-category="divertissement">
+              <span class="category-tile-icon"><i class="fa-solid fa-gamepad" style="color: #2ecc71;"></i></span>
+              <span class="category-tile-label">Divertissement &amp; Jeux</span>
+            </button>
+            <button type="button" class="category-tile" data-category="niveaux">
+              <span class="category-tile-icon"><i class="fa-solid fa-chart-line" style="color: #e67e22;"></i></span>
+              <span class="category-tile-label">Niveaux &amp; Économie</span>
+            </button>
+            <button type="button" class="category-tile" data-category="communaute">
+              <span class="category-tile-icon"><i class="fa-solid fa-comments" style="color: #9b59b6;"></i></span>
+              <span class="category-tile-label">Communauté, Support &amp; IA</span>
+            </button>
           </div>
         </div>
 
