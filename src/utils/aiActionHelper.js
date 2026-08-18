@@ -1,10 +1,15 @@
 const { getMemberGender, getGenderInstruction } = require('./genderHelper');
 const { generateAiCompletion } = require('./aiManager');
 
-const SFW_ACTIONS = [
-  'gifle', 'patpat', 'batailleoreiller', 'chatouiller', 'cuisiner', 'danser', 
-  'reconforter', 'reveiller', 'rose', 'vin', 'attrape', 'dormir', 'douche', 'reanimer', 'oups'
+const NSFW_ACTIONS = [
+  '69', 'attrape', 'batailleoreiller', 'branler', 'collier', 'deshabiller', 'doigter',
+  'fuck', 'lecher', 'mordre', 'mouiller', 'ordonner', 'orgasme', 'orgie', 'punir',
+  'sodo', 'sucer', 'tirercheveux', 'touche', 'tromper', 'biffle', 'spank', 'vin'
 ];
+
+function isActionNsfw(actionName) {
+  return NSFW_ACTIONS.includes((actionName || '').toLowerCase().trim());
+}
 
 const ACTION_ALIAS_MAP = {
   '69': 'posture intime soixante-neuf sensuelle',
@@ -44,7 +49,7 @@ async function generateAiActionPhrase(actionName, actionDescription, authorMembe
   const guildId = authorMember ? authorMember.guild.id : null;
 
   const rawAction = (actionName || '').toLowerCase().trim();
-  const isSfw = isSfwOverride !== null ? isSfwOverride : SFW_ACTIONS.includes(rawAction);
+  const isSfw = isSfwOverride !== null ? isSfwOverride : !isActionNsfw(rawAction);
   const safeActionDisplay = ACTION_ALIAS_MAP[rawAction] || actionName;
   const safeDescription = (actionDescription || '')
     .replace(/69/gi, 'soixante-neuf')

@@ -8,6 +8,7 @@ module.exports = {
     .setName('batailleoreiller')
     .setDescription("Lancer une bataille d\'oreillers")
     .addUserOption(option => option.setName('cible').setDescription('Personne ciblée (optionnel)').setRequired(false))
+    .setNSFW(true)
     .setDMPermission(true),
 
   async execute(interaction) {

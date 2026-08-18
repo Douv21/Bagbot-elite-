@@ -8,7 +8,6 @@ module.exports = {
     .setName('laisse')
     .setDescription("Mettre une laisse à quelqu\'un")
     .addUserOption(option => option.setName('cible').setDescription('Personne ciblée (optionnel)').setRequired(false))
-    .setNSFW(true)
     .setDMPermission(true),
 
   async execute(interaction) {

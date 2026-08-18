@@ -846,11 +846,13 @@ client.on('interactionCreate', async interaction => {
       console.error('Erreur lors du contrôle du rôle quarantaine:', e);
     }
 
-    // Vérification de sécurité NSFW pour toutes les commandes d'action et commandes adultes
-    const isCmdNsfw = command.data?.nsfw || (command.category === 'actions' && ![
-      'gifle', 'patpat', 'batailleoreiller', 'chatouiller', 'cuisiner', 'danser', 
-      'reconforter', 'reveiller', 'rose', 'vin', 'attrape', 'dormir', 'douche', 'reanimer', 'oups'
-    ].includes(interaction.commandName.toLowerCase()));
+    // Vérification de sécurité NSFW pour les 23 commandes d'action restreintes et commandes adultes (+18)
+    const NSFW_ACTIONS_LIST = [
+      '69', 'attrape', 'batailleoreiller', 'branler', 'collier', 'deshabiller', 'doigter',
+      'fuck', 'lecher', 'mordre', 'mouiller', 'ordonner', 'orgasme', 'orgie', 'punir',
+      'sodo', 'sucer', 'tirercheveux', 'touche', 'tromper', 'biffle', 'spank', 'vin'
+    ];
+    const isCmdNsfw = command.data?.nsfw || (command.category === 'actions' && NSFW_ACTIONS_LIST.includes(interaction.commandName.toLowerCase()));
 
     if (isCmdNsfw && interaction.guild && !interaction.channel?.nsfw) {
       return interaction.reply({
