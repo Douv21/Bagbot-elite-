@@ -1250,15 +1250,13 @@ app.post('/api/config/action-rewards', (req, res) => {
     const { action_name, min_money, max_money, min_karma, max_karma } = req.body || {};
     if (!action_name) return res.status(400).json({ error: 'Nom de l\'action requis' });
 
-    const { setActionReward } = require('./database/db');
-    setActionReward(
-      guildId,
-      action_name,
-      min_money !== undefined ? parseInt(min_money) : 5,
-      max_money !== undefined ? parseInt(max_money) : 15,
-      min_karma !== undefined ? parseInt(min_karma) : 1,
-      max_karma !== undefined ? parseInt(max_karma) : 3
-    );
+    const { updateActionReward } = require('./database/db');
+    updateActionReward(guildId, action_name, {
+      min_money: min_money !== undefined ? parseInt(min_money) : 5,
+      max_money: max_money !== undefined ? parseInt(max_money) : 15,
+      min_karma: min_karma !== undefined ? parseInt(min_karma) : 1,
+      max_karma: max_karma !== undefined ? parseInt(max_karma) : 3
+    });
 
     res.json({ success: true, message: 'Récompenses de l\'action sauvegardées !' });
   } catch (error) {
