@@ -1096,7 +1096,7 @@ client.once('ready', async () => {
 // API server pour exposer les guilds du bot
 const express = require('express');
 const apiApp = express();
-const API_PORT = process.env.BOT_API_PORT || 49602;
+const API_PORT = process.env.BOT_API_PORT || 49605;
 
 apiApp.use(express.json());
 
