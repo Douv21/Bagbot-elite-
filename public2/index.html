@@ -121,16 +121,16 @@
 
         <!-- Sélecteur de catégories (tuiles translucides, façon sélection de serveur) -->
         <div id="category-selector" class="category-selector">
-          <button type="button" class="category-tile" data-category="assistant">
-            <span class="category-tile-icon"><i class="fa-solid fa-robot" style="color: #9b59b6;"></i></span>
-            <span class="category-tile-label">Assistant &amp; Star</span>
+          <button type="button" class="category-tile" data-category="accueil">
+            <span class="category-tile-icon"><i class="fa-solid fa-door-open" style="color: #5865F2;"></i></span>
+            <span class="category-tile-label">Accueil &amp; Communication</span>
           </button>
-          <button type="button" class="category-tile" data-category="gestion">
-            <span class="category-tile-icon"><i class="fa-solid fa-sliders" style="color: #5865F2;"></i></span>
-            <span class="category-tile-label">Gestion du Serveur</span>
+          <button type="button" class="category-tile" data-category="roles">
+            <span class="category-tile-icon"><i class="fa-solid fa-sitemap" style="color: #1abc9c;"></i></span>
+            <span class="category-tile-label">Rôles &amp; Structure</span>
           </button>
           <button type="button" class="category-tile" data-category="securite">
-            <span class="category-tile-icon"><i class="fa-solid fa-shield-halved" style="color: #e74c3c;"></i></span>
+            <span class="category-tile-icon"><i class="fa-solid fa-shield-halved" style="color: #ed4245;"></i></span>
             <span class="category-tile-label">Sécurité &amp; Modération</span>
           </button>
           <button type="button" class="category-tile" data-category="divertissement">
@@ -141,29 +141,23 @@
             <span class="category-tile-icon"><i class="fa-solid fa-chart-line" style="color: #e67e22;"></i></span>
             <span class="category-tile-label">Niveaux &amp; Économie</span>
           </button>
-          <button type="button" class="category-tile" data-category="support">
-            <span class="category-tile-icon"><i class="fa-solid fa-headset" style="color: #3498db;"></i></span>
-            <span class="category-tile-label">Support &amp; Mapping</span>
-          </button>
-          <button type="button" class="category-tile" data-category="ia">
-            <span class="category-tile-icon"><i class="fa-solid fa-brain" style="color: #1abc9c;"></i></span>
-            <span class="category-tile-label">Clés &amp; Paramètres IA</span>
+          <button type="button" class="category-tile" data-category="communaute">
+            <span class="category-tile-icon"><i class="fa-solid fa-comments" style="color: #9b59b6;"></i></span>
+            <span class="category-tile-label">Communauté, Support &amp; IA</span>
           </button>
         </div>
 
-        <div class="sidebar-category" data-category="assistant">
-          <div class="category-title"><i class="fa-solid fa-robot" style="color: #9b59b6;"></i> ASSISTANT & STAR</div>
-          <button class="tab-btn" data-tab="tab-assistant"><i class="fa-solid fa-robot"></i> Assistant IA Admin <span class="nav-badge badge-purple">IA VIP</span></button>
-          <button class="tab-btn" data-tab="tab-star"><i class="fa-solid fa-star" style="color: #f1c40f;"></i> Star de la Semaine <span class="nav-badge badge-gold">TOP</span></button>
-        </div>
-
-        <div class="sidebar-category" data-category="gestion">
-          <div class="category-title"><i class="fa-solid fa-sliders" style="color: #5865F2;"></i> GESTION DU SERVEUR</div>
+        <div class="sidebar-category" data-category="accueil">
+          <div class="category-title"><i class="fa-solid fa-door-open" style="color: #5865F2;"></i> ACCUEIL & COMMUNICATION</div>
           <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées & Départs</button>
           <button class="tab-btn" data-tab="tab-boost"><i class="fa-solid fa-rocket" style="color: #F47FFF;"></i> Remerciements Boost <span class="nav-badge badge-purple">VIP</span></button>
           <button class="tab-btn" data-tab="tab-announcements"><i class="fa-solid fa-bullhorn" style="color: #e74c3c;"></i> Annonces & Guides <span class="nav-badge badge-gold">VIP</span></button>
           <button class="tab-btn" data-tab="tab-sondage"><i class="fa-solid fa-square-poll-vertical" style="color: #f1c40f;"></i> Sondages & Évaluations <span class="nav-badge badge-gold">FORM</span></button>
           <button class="tab-btn" data-tab="tab-embed-sender"><i class="fa-solid fa-file-code" style="color: #9b59b6;"></i> Envoyeur d'Embeds <span class="nav-badge badge-purple">NOUVEAU</span></button>
+        </div>
+
+        <div class="sidebar-category" data-category="roles">
+          <div class="category-title"><i class="fa-solid fa-sitemap" style="color: #1abc9c;"></i> RÔLES & STRUCTURE</div>
           <button class="tab-btn" data-tab="tab-autoroles"><i class="fa-solid fa-user-plus"></i> Auto-Rôles à l'Arrivée</button>
           <button class="tab-btn" data-tab="tab-reactionroles"><i class="fa-solid fa-rectangle-list"></i> Rôles Réaction</button>
           <button class="tab-btn" data-tab="tab-autothread"><i class="fa-solid fa-hashtag"></i> Auto-Thread</button>
@@ -172,7 +166,7 @@
         </div>
 
         <div class="sidebar-category" data-category="securite">
-          <div class="category-title"><i class="fa-solid fa-shield-halved" style="color: #e74c3c;"></i> SÉCURITÉ & MODÉRATION</div>
+          <div class="category-title"><i class="fa-solid fa-shield-halved" style="color: #ed4245;"></i> SÉCURITÉ & MODÉRATION</div>
           <button class="tab-btn" data-tab="tab-quarantine"><i class="fa-solid fa-shield-halved"></i> Quarantaine Anti-Raid</button>
           <button class="tab-btn" data-tab="tab-automod"><i class="fa-solid fa-user-shield"></i> Auto-Modération</button>
           <button class="tab-btn" data-tab="tab-forums"><i class="fa-solid fa-comments"></i> Forums Illimités</button>
@@ -199,14 +193,12 @@
           <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique & Suites</button>
         </div>
 
-        <div class="sidebar-category" data-category="support">
-          <div class="category-title"><i class="fa-solid fa-headset" style="color: #3498db;"></i> SUPPORT & MAPPING</div>
+        <div class="sidebar-category" data-category="communaute">
+          <div class="category-title"><i class="fa-solid fa-comments" style="color: #9b59b6;"></i> COMMUNAUTÉ, SUPPORT & IA</div>
+          <button class="tab-btn" data-tab="tab-assistant"><i class="fa-solid fa-robot" style="color: #9b59b6;"></i> Assistant IA Admin <span class="nav-badge badge-purple">IA VIP</span></button>
+          <button class="tab-btn" data-tab="tab-star"><i class="fa-solid fa-star" style="color: #f1c40f;"></i> Star de la Semaine <span class="nav-badge badge-gold">TOP</span></button>
           <button class="tab-btn" data-tab="tab-tickets"><i class="fa-solid fa-ticket"></i> Support & Tickets</button>
           <button class="tab-btn" data-tab="tab-map"><i class="fa-solid fa-map-location-dot"></i> Carte des Membres</button>
-        </div>
-
-        <div class="sidebar-category" data-category="ia">
-          <div class="category-title"><i class="fa-solid fa-brain" style="color: #1abc9c;"></i> CLÉS & PARAMÈTRES IA</div>
           <button class="tab-btn" data-tab="tab-ai"><i class="fa-solid fa-brain"></i> Clés & Modèles IA</button>
         </div>
       </aside>
