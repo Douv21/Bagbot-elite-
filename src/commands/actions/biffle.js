@@ -96,20 +96,30 @@ module.exports = {
     }
     const mention = target && target.id !== userId ? `<@${target.id}>` : null;
 
-    try {
-      await interaction.editReply({
+    if (mention && interaction.guild && interaction.channel) {
+      await interaction.deleteReply().catch(() => null);
+      await interaction.channel.send({
         content: mention,
         embeds: [embed],
         files: files,
-        allowedMentions: mention ? { users: [target.id] } : { parse: [] }
+        allowedMentions: { users: [target.id] }
       });
-    } catch (dmErr) {
-      embed.setImage(null);
-      await interaction.editReply({
-        content: mention,
-        embeds: [embed],
-        allowedMentions: mention ? { users: [target.id] } : { parse: [] }
-      }).catch(e2 => console.error('[DM Reply]', e2.message));
+    } else {
+      try {
+        await interaction.editReply({
+          content: mention,
+          embeds: [embed],
+          files: files,
+          allowedMentions: mention ? { users: [target.id] } : { parse: [] }
+        });
+      } catch (dmErr) {
+        embed.setImage(null);
+        await interaction.editReply({
+          content: mention,
+          embeds: [embed],
+          allowedMentions: mention ? { users: [target.id] } : { parse: [] }
+        }).catch(e2 => console.error('[DM Reply]', e2.message));
+      }
     }
   }
 };

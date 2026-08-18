@@ -121,11 +121,21 @@ module.exports = {
 
     const mention = target && target.id !== userId ? `<@${target.id}>` : null;
 
-    await interaction.editReply({
-      content: mention,
-      embeds: [embed],
-      allowedMentions: mention ? { users: [target.id] } : { parse: [] }
-    });
+    if (mention && interaction.guild && interaction.channel) {
+      await interaction.deleteReply().catch(() => null);
+      await interaction.channel.send({
+        content: mention,
+        embeds: [embed],
+        allowedMentions: { users: [target.id] }
+      });
+    } else {
+      await interaction.editReply({
+        content: mention,
+        embeds: [embed],
+        allowedMentions: mention ? { users: [target.id] } : { parse: [] }
+      });
+    }
   }
 };
+
 
