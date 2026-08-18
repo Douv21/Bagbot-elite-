@@ -5,70 +5,6 @@ const { formatGenderMessage, getMemberGender } = require('./genderHelper');
 const fs = require('fs');
 const path = require('path');
 
-// Default fallback online GIF URLs for actions (used if DB has no GIF or local upload is missing)
-const DEFAULT_ACTION_GIFS = {
-  'fuck': [
-    'https://media.giphy.com/media/l0HlTLQTL34XA93P2/giphy.gif',
-    'https://media.giphy.com/media/3o7TKrEzvLbsVAud8I/giphy.gif'
-  ],
-  '69': [
-    'https://cdn.porngifs.com/img/38853',
-    'https://media.giphy.com/media/3o7TKT062Z6F6F6K3e/giphy.gif'
-  ],
-  'calin': [
-    'https://media.giphy.com/media/lrr975iy382SiM356h/giphy.gif',
-    'https://media.giphy.com/media/3M4NpbLCTxBqU/giphy.gif'
-  ],
-  'embrasser': [
-    'https://media.giphy.com/media/G3va39rn8E4A8/giphy.gif',
-    'https://media.giphy.com/media/FqZTgUKZRxvK8/giphy.gif'
-  ],
-  'gifle': [
-    'https://media0.giphy.com/media/v1.Y2lkPTZjMDliOTUybjdxMWFxMG9xYWVhOGNzc2h0eWo4MzJxM2tyeDkzMjFlejluMjhrbiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/srD8JByP9u3zW/giphy.gif',
-    'https://media2.giphy.com/media/v1.Y2lkPTZjMDliUyhkc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2Zhc2F2ZWJ1bS8xMDAvOTM2Nzk4MzQzMDA0NzIwOTEw.gif'
-  ],
-  'caresser': [
-    'https://media.giphy.com/media/PHiwq00v25V5EV5E1m/giphy.gif',
-    'https://media.giphy.com/media/10816j5p0Vf6yQ/giphy.gif'
-  ],
-  'sucer': [
-    'https://media.giphy.com/media/10916j5p0Vf6yQ/giphy.gif',
-    'https://media.giphy.com/media/l3q2K5jinAlChoCLS/giphy.gif'
-  ],
-  'sodo': [
-    'https://cdn.discordapp.com/attachments/1440419937314144476/1470538928045031654/image0.gif'
-  ],
-  'branler': [
-    'https://media.giphy.com/media/3o7TKT062Z6F6F6K3e/giphy.gif'
-  ],
-  'doigter': [
-    'https://media.giphy.com/media/3o7TKW5I2iM0W1S6lG/giphy.gif'
-  ],
-  'deshabiller': [
-    'https://media.giphy.com/media/l0HlU0N33d8G3v6g0/giphy.gif'
-  ],
-  'mordre': [
-    'https://media.giphy.com/media/qA9BwP0wU0jQ4/giphy.gif'
-  ],
-  'masser': [
-    'https://media.giphy.com/media/3o7TKU8RvQuomFfUUU/giphy.gif'
-  ],
-  'danser': [
-    'https://media.giphy.com/media/10hO3rDNqqg2Xe/giphy.gif'
-  ],
-  'dormir': [
-    'https://media.giphy.com/media/v2YxCO2fP8b84/giphy.gif'
-  ],
-  'douche': [
-    'https://media.giphy.com/media/3o7TKSjRrfIPjeiVyM/giphy.gif'
-  ]
-};
-
-const GENERIC_FALLBACK_GIFS = [
-  'https://media.giphy.com/media/lrr975iy382SiM356h/giphy.gif',
-  'https://media.giphy.com/media/3M4NpbLCTxBqU/giphy.gif'
-];
-
 /**
  * Resolves target user for DM and Guild contexts.
  * In DM, if NO target is selected, automatically targets the OTHER member in the DM channel!
@@ -105,7 +41,7 @@ async function resolveTarget(interaction) {
             return fullChannel.recipient;
           }
           if (fullChannel.recipients) {
-            const other = fullChannel.recipients.find(r => r.id !== userId);
+            const other = fullChannel.recipients.find(u => u.id !== userId);
             if (other) return other;
           }
         }
@@ -119,7 +55,9 @@ async function resolveTarget(interaction) {
 }
 
 /**
- * Gets a valid GIF URL for the specified action (checks DB first, verifies local disk existence, then defaults)
+ * Gets a valid custom GIF URL for the specified action.
+ * ONLY returns GIFs configured in the database for the guild (or any guild in MP).
+ * If NO custom GIF is configured, returns null (NO GIF will be displayed).
  */
 function getValidActionGifUrl(guildId, actionName) {
   let gifs = [];
@@ -131,7 +69,7 @@ function getValidActionGifUrl(guildId, actionName) {
     }
   } catch (e) {}
 
-  // Filter valid URLs
+  // Filter valid URLs (HTTP/HTTPS or existing local upload)
   const valid = [];
   if (gifs && gifs.length > 0) {
     for (const g of gifs) {
@@ -153,9 +91,8 @@ function getValidActionGifUrl(guildId, actionName) {
     return valid[Math.floor(Math.random() * valid.length)];
   }
 
-  // Fallback to default online GIFs
-  const defaults = DEFAULT_ACTION_GIFS[actionName] || GENERIC_FALLBACK_GIFS;
-  return defaults[Math.floor(Math.random() * defaults.length)];
+  // If no custom GIF is configured on the server (or DB in MP), return null (no GIF displayed)
+  return null;
 }
 
 /**
