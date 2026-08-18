@@ -284,16 +284,17 @@ async function triggerBotTurnIfNeeded(game, channel) {
 }
 
 module.exports = {
-  data: new SlashCommandBuilder()
+  data: new SlashCommandBuilder().setContexts([0, 1, 2]).setIntegrationTypes([0, 1])
     .setName('uno')
     .setDescription('🎮 Lancer ou rejoindre une partie de UNO interactif')
+    .setDMPermission(true)
     .addStringOption(option =>
       option.setName('mode')
         .setDescription('Mode de jeu (Solo VS Bot ou Multi-Joueurs)')
         .setRequired(false)
         .addChoices(
           { name: '🤖 Mode Solo (VS Bot UNO)', value: 'solo' },
-          { name: '👥 Mode Multi-Joueurs (Salon Public)', value: 'multi' }
+          { name: '👥 Mode Multi-Joueurs (Salon Public / MP)', value: 'multi' }
         )
     )
     .addStringOption(option =>
@@ -339,6 +340,26 @@ module.exports = {
     });
 
     game.addPlayer(interaction.user.id, interaction.user.username);
+
+    // En MP (DM) : si l'autre membre du DM est présent, l'ajouter automatiquement au lobby multi-joueurs
+    if (!interaction.guild && interaction.channel && mode === 'multi') {
+      try {
+        const channel = interaction.channel;
+        let recipient = channel.recipient;
+        if (!recipient && channel.recipients) {
+          recipient = channel.recipients.find(u => u.id !== interaction.user.id);
+        }
+        if (!recipient && channel.recipientId) {
+          recipient = await interaction.client.users.fetch(channel.recipientId).catch(() => null);
+        }
+        if (recipient && recipient.id !== interaction.user.id && !recipient.bot) {
+          game.addPlayer(recipient.id, recipient.username);
+        }
+      } catch (e) {
+        console.warn('[UNO DM Recipient]', e.message);
+      }
+    }
+
     activeGames.set(channelId, game);
 
     // Si mode Solo, lancer directement la partie !
