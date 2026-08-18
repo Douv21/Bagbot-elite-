@@ -85,9 +85,13 @@ Fais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement
       systemPrompt,
       userPrompt,
       temperature: 0.9,
-      maxTokens: 250
+      maxTokens: 250,
+      skipGroqForNsfw: !isSfw  // Contourne Groq pour les actions NSFW (trop de refus)
     });
-    if (!res || isRefusalText(res)) return null;
+    if (!res || isRefusalText(res)) {
+      console.warn(`[AI Action Helper] Génération échouée pour l'action '${actionName}' (isSfw=${isSfw}) - retour null`);
+      return null;
+    }
     return res.replace(/^["']|["']$/g, '');
   } catch (err) {
     console.warn('[AI Action Helper] Error:', err.message);

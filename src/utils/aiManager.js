@@ -159,6 +159,49 @@ async function callGroqVisionApi(apiKey, model, prompt, imageUrl, temperature = 
   throw lastError || new Error('Groq Vision API failed');
 }
 
+async function generateAiCompletion({ guildId, category = 'text', systemPrompt, userPrompt, temperature = 0.7, maxTokens = 1000, messagesHistory = null, imageUrl = null, skipGroqForNsfw = false } = {}) {
+  const { groqKeys, geminiKeys } = await getAiKeys();
+  const config = await getAiConfig(guildId);
+
+  // Pool Groq
+  const tryGroqPool = async () => {
+    if (!groqKeys || groqKeys.length === 0) throw new Error('No Groq keys');
+    const key = groqKeys[keyRotationIndex.groq % groqKeys.length];
+    keyRotationIndex.groq++;
+    if (imageUrl) return await callGroqVisionApi(key, config.groqModel, userPrompt, imageUrl, temperature, maxTokens);
+    return await callGroqApi(key, config.groqModel, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
+  };
+
+  // Pool Gemini
+  const tryGeminiPool = async () => {
+    if (!geminiKeys || geminiKeys.length === 0) throw new Error('No Gemini keys');
+    const key = geminiKeys[keyRotationIndex.gemini % geminiKeys.length];
+    keyRotationIndex.gemini++;
+    return await callGeminiApi(key, config.geminiModel, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory, imageUrl);
+  };
+
+  // Pool Ollama
+  const tryOllamaPool = async () => {
+    if (imageUrl) return await callOllamaVisionApi(userPrompt, imageUrl);
+    return await callOllamaApi(process.env.OLLAMA_HOST, 'qwen2.5:0.5b', systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
+  };
+
+  const providers = [];
+  if (!skipGroqForNsfw) providers.push(tryGroqPool);
+  providers.push(tryGeminiPool, tryOllamaPool);
+
+  let lastError;
+  for (const provider of providers) {
+    try {
+      return await provider();
+    } catch (err) {
+      console.error(`[AI Manager] Provider error: ${err.message}`);
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
+
 /**
  * Appelle l'API Google AI Studio Gemini
  */
@@ -466,24 +509,25 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
   const geminiModel = config.gemini_model || 'gemini-2.0-flash';
 
   const tryOllamaPool = async () => {
-    // Tenter en priorité le serveur local 192.168.1.145 (20ms) puis l'IP publique 82.65.75.176
+    // Utilise qwen2.5:0.5b (RAM-safe pour la Freebox VM ~900MB)
+    const freboxModel = 'qwen2.5:0.5b';
     try {
-      const resLocal = await callOllamaApi('http://192.168.1.145:11434', 'qwen2.5:1.5b', systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
-      if (resLocal) return resLocal;
+      const resLocal = await callOllamaApi('http://192.168.1.145:11434', freboxModel, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
+      if (resLocal && !isRefusalResponse(resLocal)) return resLocal;
     } catch (e) {}
 
     try {
-      const resPublic = await callOllamaApi('http://82.65.75.176:11434', 'qwen2.5:1.5b', systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
-      if (resPublic) return resPublic;
+      const resPublic = await callOllamaApi('http://82.65.75.176:11434', freboxModel, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
+      if (resPublic && !isRefusalResponse(resPublic)) return resPublic;
     } catch (e) {}
 
     if (ollamaKeys.length === 0) return null;
     for (const keyObj of ollamaKeys) {
       try {
         const hostUrl = keyObj.api_key || 'http://192.168.1.145:11434';
-        const model = keyObj.label || 'qwen2.5:1.5b';
+        const model = 'qwen2.5:0.5b';
         const result = await callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
-        return result;
+        if (result && !isRefusalResponse(result)) return result;
       } catch (err) {
         console.warn(`[AI Manager] Ollama (${keyObj.api_key}) échoué : ${err.message}`);
       }
@@ -562,23 +606,29 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
     if (resGemini) return resGemini;
   }
 
-  // 1. Tenter en priorité Groq (Réponse instantanée)
-  const resGroq = await tryGroqPool();
-  if (resGroq) return resGroq;
+  // Pour les actions NSFW : Groq censure systématiquement → passer directement sur Gemini
+  if (!skipGroqForNsfw) {
+    const resGroq = await tryGroqPool();
+    if (resGroq) return resGroq;
+  } else {
+    console.log('[AI Manager] Groq ignoré (NSFW) → tentative directe sur Gemini...');
+  }
 
-  // 2. Tenter Gemini
+  // 2. Tenter Gemini (accepte le contenu adulte avec le bon prompt)
   const resGemini = await tryGeminiPool();
   if (resGemini) return resGemini;
 
-  // 3. Basculer sur Ollama Freebox (Secours local illimité Qwen)
+  // 3. Basculer sur Ollama Freebox (Qwen 0.5b RAM-safe)
   const resOllama = await tryOllamaPool();
   if (resOllama) return resOllama;
 
-  // 4. Ultime secours illimité : Pollinations AI
-  const resPol = await callPollinationsFallback(systemPrompt, userPrompt, messagesHistory);
-  if (resPol) return resPol;
+  // 4. Ultime secours : Pollinations AI (si Groq/Gemini/Ollama indisponibles)
+  if (!skipGroqForNsfw) {
+    const resPol = await callPollinationsFallback(systemPrompt, userPrompt, messagesHistory);
+    if (resPol) return resPol;
+  }
 
-  throw new Error("Impossible de joindre Ollama Freebox ou les API distantes.");
+  throw new Error("Impossible de joindre Gemini/Ollama Freebox pour cette génération.");
 }
 
 /**
