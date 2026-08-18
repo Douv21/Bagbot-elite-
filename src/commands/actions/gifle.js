@@ -47,10 +47,14 @@ module.exports = {
     const targetMember = interaction.guild ? await interaction.guild.members.fetch(target.id).catch(() => null) : null;
     let actionMessage = "";
 
-    const { generateAiActionPhrase } = require('../../utils/aiActionHelper');
-    const aiPhrase = await generateAiActionPhrase('gifle', 'Donner une gifle théâtrale ou joueuse à quelqu\'un', interaction.member, targetMember);
-    if (aiPhrase) {
-      actionMessage = aiPhrase;
+    try {
+      const { generateAiActionPhrase } = require('../../utils/aiActionHelper');
+      const aiPhrase = await generateAiActionPhrase('gifle', 'Donner une gifle théâtrale ou joueuse à quelqu\'un', interaction.member, targetMember);
+      if (aiPhrase) {
+        actionMessage = aiPhrase;
+      }
+    } catch (e) {
+      console.warn('[Action GIFLE AI]', e.message);
     }
 
     if (!actionMessage) {
@@ -66,7 +70,6 @@ module.exports = {
       .setAuthor({ name: author.username, iconURL: author.displayAvatarURL({ dynamic: true }) })
       .setTimestamp();
 
-    const files = [];
     let gifs = guildId ? getActionGifs(guildId, 'gifle') : [];
     if (!gifs || gifs.length === 0) {
       try {
@@ -75,16 +78,12 @@ module.exports = {
     }
 
     if (gifs && gifs.length > 0) {
-      const randomGif = gifs[Math.floor(Math.random() * gifs.length)].gif_url;
-      if (randomGif.startsWith('/uploads/')) {
-        const absPath = path.join(__dirname, '../../../public', randomGif);
-        if (fs.existsSync(absPath)) {
-          const filename = path.basename(randomGif);
-          files.push(new AttachmentBuilder(absPath, { name: filename }));
-          embed.setImage(`attachment://${filename}`);
-        }
-      } else if (randomGif.startsWith('http://') || randomGif.startsWith('https://')) {
-        embed.setImage(randomGif);
+      const rawUrl = gifs[Math.floor(Math.random() * gifs.length)].gif_url;
+      if (rawUrl && rawUrl.startsWith('/')) {
+        const baseUrl = process.env.DASHBOARD_PUBLIC_URL || `http://${process.env.PUBLIC_IP || '82.65.75.176'}:49601`;
+        embed.setImage(`${baseUrl}${rawUrl}`);
+      } else if (rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://'))) {
+        embed.setImage(rawUrl);
       }
     }
 
@@ -97,7 +96,6 @@ module.exports = {
     await interaction.editReply({
       content: mention,
       embeds: [embed],
-      files: files,
       allowedMentions: mention ? { parse: ['users'], users: [target.id] } : { parse: [] }
     });
   }

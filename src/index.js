@@ -807,6 +807,17 @@ client.on('interactionCreate', async interaction => {
     }
   }
 
+  if (interaction.isAutocomplete()) {
+    const command = client.commands.get(interaction.commandName);
+    if (!command || !command.autocomplete) return;
+    try {
+      await command.autocomplete(interaction);
+    } catch (error) {
+      console.error(`Erreur autocomplétion pour ${interaction.commandName}:`, error);
+    }
+    return;
+  }
+
   if (!interaction.isChatInputCommand() && !interaction.isContextMenuCommand()) return;
 
   const command = client.commands.get(interaction.commandName);
