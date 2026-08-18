@@ -11,14 +11,11 @@ module.exports = {
     .setDMPermission(true),
 
   async execute(interaction) {
+    const { resolveTarget, getValidActionGifUrl, generateAiActionPhraseFast } = require('../../utils/actionRunner');
     await interaction.deferReply();
     const guildId = interaction.guild ? interaction.guild.id : null;
     const userId = interaction.user.id;
-    let target = interaction.options.getUser('cible');
-
-    if (!target) {
-      target = interaction.user;
-    }
+    const target = await resolveTarget(interaction);
 
     const author = interaction.user;
     
@@ -57,7 +54,7 @@ module.exports = {
     // Tenter de générer une phrase unique via l'IA en temps réel (solo ou avec cible)
     try {
       const { generateAiActionPhrase } = require('../../utils/aiActionHelper');
-      const aiPhrase = await generateAiActionPhrase('lit', 'Aller au lit avec quelqu\'un', interaction.member, targetMember);
+      const aiPhrase = await generateAiActionPhraseFast('lit', 'Aller au lit avec quelqu\'un', interaction.member, targetMember);
       if (aiPhrase) {
         actionMessage = aiPhrase;
       }
@@ -101,19 +98,10 @@ module.exports = {
     const files = [];
     const targetFiles = [];
     
-    let gifs = [];
-    if (guildId) {
-      gifs = getActionGifs(guildId, 'lit');
-    } else {
-      try {
-        gifs = getActionGifsAnyGuild('lit');
-      } catch (e) {
-        console.error('Erreur lecture gifs en MP:', e);
-      }
-    }
+    const gifUrl = getValidActionGifUrl(guildId, 'lit');
 
-    if (gifs && gifs.length > 0) {
-      const randomGif = gifs[Math.floor(Math.random() * gifs.length)].gif_url;
+    const randomGif = getValidActionGifUrl(guildId, 'lit');
+    if (randomGif) {
       if (randomGif.startsWith('/uploads/')) {
         const absPath = path.join(__dirname, '../../../public', randomGif);
         if (fs.existsSync(absPath)) {

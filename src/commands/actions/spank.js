@@ -10,14 +10,11 @@ module.exports = {
     .setDMPermission(true),
 
   async execute(interaction) {
+    const { resolveTarget, getValidActionGifUrl, generateAiActionPhraseFast } = require('../../utils/actionRunner');
     await interaction.deferReply();
     const guildId = interaction.guild ? interaction.guild.id : null;
     const userId = interaction.user.id;
-    let target = interaction.options.getUser('cible');
-
-    if (!target) {
-      target = interaction.user;
-    }
+    const target = await resolveTarget(interaction);
 
     const author = interaction.user;
     
@@ -55,7 +52,7 @@ module.exports = {
 
     try {
       const { generateAiActionPhrase } = require('../../utils/aiActionHelper');
-      const aiPhrase = await generateAiActionPhrase('spank', 'Donner une fessée claquante, sensuelle et coquine', interaction.member, targetMember);
+      const aiPhrase = await generateAiActionPhraseFast('spank', 'Donner une fessée claquante, sensuelle et coquine', interaction.member, targetMember);
       if (aiPhrase) {
         actionMessage = aiPhrase;
       }
