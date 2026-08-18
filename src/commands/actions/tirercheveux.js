@@ -137,7 +137,7 @@ module.exports = {
 
     const mention = target && target.id !== userId ? `<@${target.id}>` : null;
 
-    if (mention && interaction.channel) {
+    if (mention && interaction.guild && interaction.channel) {
       await interaction.deleteReply().catch(() => null);
       await interaction.channel.send({
         content: mention,

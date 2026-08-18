@@ -553,38 +553,35 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
     throw new Error("Aucune API Vision disponible (Groq, Gemini, Ollama local tous échoués).");
   }
 
-  // Déterminer la priorité des fournisseurs selon preferred_provider
-  if (config.preferred_provider === 'ollama') {
-    console.log('[AI Manager] Exécution prioritaire sur Ollama Freebox (Qwen)...');
-    const resOllama = await tryOllamaPool();
-    if (resOllama) return resOllama;
-  } else if (config.preferred_provider === 'gemini') {
-    const resGemini = await tryGeminiPool();
-    if (resGemini) return resGemini;
-  }
-
-  // Pour les actions NSFW : Groq censure systématiquement → passer directement sur Gemini
+  // Chaîne de fallback :
+  // SFW  : Groq (rapide) → Gemini → Ollama → Pollinations
+  // NSFW : Gemini (permissif) → Groq (fallback si Gemini indispo) → Ollama → Pollinations
   if (!skipGroqForNsfw) {
+    // SFW : Groq en priorité
     const resGroq = await tryGroqPool();
     if (resGroq) return resGroq;
-  } else {
-    console.log('[AI Manager] Groq ignoré (NSFW) → tentative directe sur Gemini...');
   }
 
-  // 2. Tenter Gemini (accepte le contenu adulte avec le bon prompt)
+  // Gemini (pour NSFW en priorité, ou SFW en fallback)
   const resGemini = await tryGeminiPool();
   if (resGemini) return resGemini;
 
-  // 3. Basculer sur Ollama Freebox (Qwen 0.5b RAM-safe)
+  // Si NSFW et Gemini indisponible → tenter Groq quand même (mieux que rien)
+  if (skipGroqForNsfw) {
+    console.log('[AI Manager] Gemini indisponible (NSFW) → tentative Groq en fallback...');
+    const resGroqFallback = await tryGroqPool();
+    if (resGroqFallback) return resGroqFallback;
+  }
+
+  // Ollama Freebox (Qwen 0.5b RAM-safe)
   const resOllama = await tryOllamaPool();
   if (resOllama) return resOllama;
 
-  // 4. Ultime secours : Pollinations AI (si Groq/Gemini/Ollama tous indisponibles)
-  // Pollinations accepte le contenu adulte → utilisé comme dernier recours même pour NSFW
+  // Ultime secours : Pollinations AI (accepte le contenu adulte)
   const resPol = await callPollinationsFallback(systemPrompt, userPrompt, messagesHistory);
   if (resPol) return resPol;
 
-  throw new Error("Impossible de joindre Gemini/Ollama Freebox pour cette génération.");
+  throw new Error("Aucun fournisseur IA disponible (Groq/Gemini/Ollama/Pollinations tous échoués).");
 }
 
 /**
