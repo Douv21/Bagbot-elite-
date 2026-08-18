@@ -2,13 +2,14 @@
 // Additive, standalone script for Dashboard 2. Owns three things, none of
 // which script.js is ever modified to support:
 //
-//   1. Making the "Envoyeur d'Embeds" (tab-embed-sender) and "Remerciements
-//      Boost" (tab-boost) sections editable directly from their live Discord
-//      embed preview — the same click-to-edit UX as the existing "Arrivées &
-//      Départs" welcome editor — including image upload via the existing
-//      POST /api/upload endpoint (reusing script.js's own generic
-//      `.file-upload-input` delegation wherever possible, so no new upload
-//      code is needed for images at all).
+//   1. Making the "Envoyeur d'Embeds" (tab-embed-sender), "Remerciements
+//      Boost" (tab-boost) and "Rôles Réaction" (tab-reactionroles) sections
+//      editable directly from their live Discord embed preview — the same
+//      click-to-edit UX as the existing "Arrivées & Départs" welcome editor
+//      — including image upload via the existing POST /api/upload endpoint
+//      (reusing script.js's own generic `.file-upload-input` delegation
+//      wherever possible, so no new upload code is needed for images at
+//      all).
 //   2. A small two-way bridge between the new preview-embedded text fields
 //      and the original hidden `<input>`/`<textarea>` elements that
 //      script.js's own submit/load logic actually reads and writes — so
@@ -19,6 +20,10 @@
 //      and removable chips, without changing what script.js reads from/
 //      writes to that same <select> element (.options / .selected /
 //      .selectedOptions all keep working exactly as before).
+//   4. The dashed-outline "editable zone" look shared by every clickable
+//      embed preview and its slim left icon rail (eye = toggle a "clean"
+//      read-only-looking view, palette = jump to the same color-bar click
+//      target) — pure CSS + generic delegated listeners, no per-section code.
 //
 // Like category-nav.js, this file never calls preventDefault/stopPropagation
 // on anything and only ever *adds* listeners, so script.js's own handling of
@@ -433,4 +438,79 @@ document.addEventListener('DOMContentLoaded', () => {
   enhanceMultiChannelSelect('quest_channel_ids', 'Tous les salons (aucune restriction)');
   enhanceMultiChannelSelect('star_selfie_channels', 'Sélectionner les salons "Selfie / Outfit"...');
   enhanceMultiChannelSelect('star_nude_channels', 'Sélectionner les salons "Nude / Tease"...');
+
+  // ===========================================================================
+  // 4) RÔLES RÉACTION — clickable preview <-> existing script.js field bridge.
+  //    Unlike the Simple Embed Sender above, script.js's own
+  //    updateAutorolePreview() (unmodified, script.js ~3578) already reads
+  //    straight from #autorole-embed-title / #autorole-embed-desc /
+  //    #autorole-embed-color / #autorole-embed-thumbnail / #autorole-embed-image
+  //    — there is no separate hidden-field layer to bridge here. Those exact
+  //    inputs were simply relocated into the clickable preview card in
+  //    index.html (same ids, same types), so no new sync code is needed for
+  //    title/description/color: typing directly changes the field script.js
+  //    already reads, and programmatic loads (`el.value = ...` from the
+  //    "Modifier" / "Charger" buttons) show up immediately because it's the
+  //    very same on-screen element. Only the thumbnail toggle (boolean
+  //    select, not a URL) and the image box's overlay/URL-paste affordances
+  //    need generic wiring, exactly like the other sections above.
+  // ===========================================================================
+  (function setupAutoroleThumbnailToggle() {
+    const box = document.getElementById('autorole-thumbnail-box');
+    const select = document.getElementById('autorole-embed-thumbnail');
+    const placeholder = document.getElementById('autorole-thumbnail-placeholder');
+    const thumbImg = document.getElementById('autorole-preview-thumbnail');
+    if (!box || !select) return;
+
+    box.addEventListener('click', () => {
+      select.value = select.value === '1' ? '0' : '1';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    if (thumbImg && placeholder) {
+      const syncPlaceholder = () => {
+        const hasImage = thumbImg.style.display !== 'none' && !!thumbImg.getAttribute('src');
+        placeholder.style.display = hasImage ? 'none' : 'flex';
+      };
+      new MutationObserver(syncPlaceholder).observe(thumbImg, { attributes: true, attributeFilter: ['style', 'src'] });
+      syncPlaceholder();
+    }
+  })();
+
+  wireImageOverlayToggle('autorole-image-box');
+  wireUrlPasteToggle(
+    'autorole-image-box',
+    'autorole-image-url-wrap',
+    'autorole-embed-image',
+    ['.url-upload-wrapper', '.btn-upload-label']
+  );
+
+  // ===========================================================================
+  // 5) EMBED ICON RAIL — generic delegated wiring shared by every
+  //    `.embed-editor-row` (Arrivées & Départs, Remerciements Boost,
+  //    Envoyeur d'Embeds, Rôles Réaction). Eye toggles a "clean" preview look
+  //    (`.embed-preview-clean`, purely visual, see style.css) that hides the
+  //    dashed editable-zone outlines without touching any field value;
+  //    palette simply clicks the embed's own existing `.embed-color-bar-hit`
+  //    color input, opening the exact same native color picker as clicking
+  //    the bar directly — no new color field is introduced.
+  // ===========================================================================
+  document.addEventListener('click', (e) => {
+    const eyeBtn = e.target.closest('.embed-rail-eye');
+    if (eyeBtn) {
+      const row = eyeBtn.closest('.embed-editor-row');
+      const container = row && row.querySelector('.discord-preview-container');
+      if (!container) return;
+      const clean = container.classList.toggle('embed-preview-clean');
+      eyeBtn.classList.toggle('active', clean);
+      eyeBtn.innerHTML = clean ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
+      return;
+    }
+    const paletteBtn = e.target.closest('.embed-rail-palette');
+    if (paletteBtn) {
+      const row = paletteBtn.closest('.embed-editor-row');
+      const colorInput = row && row.querySelector('.embed-color-bar-hit input[type="color"]');
+      if (colorInput) colorInput.click();
+    }
+  });
 });
