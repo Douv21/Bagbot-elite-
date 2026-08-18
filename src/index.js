@@ -468,7 +468,10 @@ client.on('interactionCreate', async interaction => {
       );
 
       try {
-        await interaction.update({ embeds: [embed], components: [row] });
+        // Poster un TOUT NOUVEAU message avec un nouvel embed + de nouveaux boutons,
+        // au lieu d'éditer le message existant (interaction.update() modifiait la
+        // question en place sur le même message à chaque clic).
+        await interaction.reply({ embeds: [embed], components: [row] });
       } catch (err) {
         console.error(err);
       }
