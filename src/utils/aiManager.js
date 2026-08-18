@@ -159,49 +159,6 @@ async function callGroqVisionApi(apiKey, model, prompt, imageUrl, temperature = 
   throw lastError || new Error('Groq Vision API failed');
 }
 
-async function generateAiCompletion({ guildId, category = 'text', systemPrompt, userPrompt, temperature = 0.7, maxTokens = 1000, messagesHistory = null, imageUrl = null, skipGroqForNsfw = false } = {}) {
-  const { groqKeys, geminiKeys } = await getAiKeys();
-  const config = await getAiConfig(guildId);
-
-  // Pool Groq
-  const tryGroqPool = async () => {
-    if (!groqKeys || groqKeys.length === 0) throw new Error('No Groq keys');
-    const key = groqKeys[keyRotationIndex.groq % groqKeys.length];
-    keyRotationIndex.groq++;
-    if (imageUrl) return await callGroqVisionApi(key, config.groqModel, userPrompt, imageUrl, temperature, maxTokens);
-    return await callGroqApi(key, config.groqModel, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
-  };
-
-  // Pool Gemini
-  const tryGeminiPool = async () => {
-    if (!geminiKeys || geminiKeys.length === 0) throw new Error('No Gemini keys');
-    const key = geminiKeys[keyRotationIndex.gemini % geminiKeys.length];
-    keyRotationIndex.gemini++;
-    return await callGeminiApi(key, config.geminiModel, systemPrompt, userPrompt, temperature, maxTokens, messagesHistory, imageUrl);
-  };
-
-  // Pool Ollama
-  const tryOllamaPool = async () => {
-    if (imageUrl) return await callOllamaVisionApi(userPrompt, imageUrl);
-    return await callOllamaApi(process.env.OLLAMA_HOST, 'qwen2.5:0.5b', systemPrompt, userPrompt, temperature, maxTokens, messagesHistory);
-  };
-
-  const providers = [];
-  if (!skipGroqForNsfw) providers.push(tryGroqPool);
-  providers.push(tryGeminiPool, tryOllamaPool);
-
-  let lastError;
-  for (const provider of providers) {
-    try {
-      return await provider();
-    } catch (err) {
-      console.error(`[AI Manager] Provider error: ${err.message}`);
-      lastError = err;
-    }
-  }
-  throw lastError;
-}
-
 /**
  * Appelle l'API Google AI Studio Gemini
  */
@@ -622,11 +579,10 @@ async function generateAiCompletion({ guildId = null, category = 'text', systemP
   const resOllama = await tryOllamaPool();
   if (resOllama) return resOllama;
 
-  // 4. Ultime secours : Pollinations AI (si Groq/Gemini/Ollama indisponibles)
-  if (!skipGroqForNsfw) {
-    const resPol = await callPollinationsFallback(systemPrompt, userPrompt, messagesHistory);
-    if (resPol) return resPol;
-  }
+  // 4. Ultime secours : Pollinations AI (si Groq/Gemini/Ollama tous indisponibles)
+  // Pollinations accepte le contenu adulte → utilisé comme dernier recours même pour NSFW
+  const resPol = await callPollinationsFallback(systemPrompt, userPrompt, messagesHistory);
+  if (resPol) return resPol;
 
   throw new Error("Impossible de joindre Gemini/Ollama Freebox pour cette génération.");
 }

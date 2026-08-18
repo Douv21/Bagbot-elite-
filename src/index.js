@@ -3,6 +3,7 @@ const { Client, GatewayIntentBits, Partials, Collection, REST, Routes, EmbedBuil
 const fs = require('fs');
 const path = require('path');
 const { initDatabase } = require('./database/db');
+const { sendLog } = require('./utils/helpers');
 
 // Initialiser la base de données
 initDatabase();
