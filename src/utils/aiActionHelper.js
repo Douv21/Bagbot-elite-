@@ -14,7 +14,9 @@ const ACTION_ALIAS_MAP = {
   'sucer': 'gâterie intime passionnée et très sensuelle',
   'doigter': 'caresse intime digitale très sensuelle',
   'orgasme': 'vague de plaisir et d\'extase intense',
-  'orgie': 'moment de séduction et d\'intimité collective'
+  'orgie': 'moment de séduction et d\'intimité collective',
+  'biffle': 'caresse masculine taquine et très osée',
+  'spank': 'fessée coquine et passionnée'
 };
 
 function isRefusalText(text) {
@@ -49,7 +51,9 @@ async function generateAiActionPhrase(actionName, actionDescription, authorMembe
     .replace(/sodo\w*/gi, 'caresse intime')
     .replace(/fuck/gi, 'union passionnée')
     .replace(/branler/gi, 'caresse manuelle')
-    .replace(/sucer/gi, 'gâterie intime');
+    .replace(/sucer/gi, 'gâterie intime')
+    .replace(/biffle/gi, 'caresse masculine osée')
+    .replace(/spank/gi, 'fessée coquine');
 
   let systemPrompt = "";
   let userPrompt = "";
