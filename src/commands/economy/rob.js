@@ -92,7 +92,13 @@ module.exports = {
     const gifs = getActionGifs(guildId, 'voler');
     let gifUrl = null;
     if (gifs && gifs.length > 0) {
-      gifUrl = gifs[Math.floor(Math.random() * gifs.length)].gif_url;
+      const rawUrl = gifs[Math.floor(Math.random() * gifs.length)].gif_url;
+      if (rawUrl && rawUrl.startsWith('/')) {
+        const baseUrl = process.env.DASHBOARD_PUBLIC_URL || `http://${process.env.PUBLIC_IP || '82.65.75.176'}:49601`;
+        gifUrl = `${baseUrl}${rawUrl}`;
+      } else if (rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://'))) {
+        gifUrl = rawUrl;
+      }
     }
 
     const embed = new EmbedBuilder()
