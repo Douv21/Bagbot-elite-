@@ -119,13 +119,45 @@
           </div>
         </div>
 
-        <div class="sidebar-category">
+        <!-- Sélecteur de catégories (tuiles translucides, façon sélection de serveur) -->
+        <div id="category-selector" class="category-selector">
+          <button type="button" class="category-tile" data-category="assistant">
+            <span class="category-tile-icon"><i class="fa-solid fa-robot" style="color: #9b59b6;"></i></span>
+            <span class="category-tile-label">Assistant &amp; Star</span>
+          </button>
+          <button type="button" class="category-tile" data-category="gestion">
+            <span class="category-tile-icon"><i class="fa-solid fa-sliders" style="color: #5865F2;"></i></span>
+            <span class="category-tile-label">Gestion du Serveur</span>
+          </button>
+          <button type="button" class="category-tile" data-category="securite">
+            <span class="category-tile-icon"><i class="fa-solid fa-shield-halved" style="color: #e74c3c;"></i></span>
+            <span class="category-tile-label">Sécurité &amp; Modération</span>
+          </button>
+          <button type="button" class="category-tile" data-category="divertissement">
+            <span class="category-tile-icon"><i class="fa-solid fa-gamepad" style="color: #2ecc71;"></i></span>
+            <span class="category-tile-label">Divertissement &amp; Jeux</span>
+          </button>
+          <button type="button" class="category-tile" data-category="niveaux">
+            <span class="category-tile-icon"><i class="fa-solid fa-chart-line" style="color: #e67e22;"></i></span>
+            <span class="category-tile-label">Niveaux &amp; Économie</span>
+          </button>
+          <button type="button" class="category-tile" data-category="support">
+            <span class="category-tile-icon"><i class="fa-solid fa-headset" style="color: #3498db;"></i></span>
+            <span class="category-tile-label">Support &amp; Mapping</span>
+          </button>
+          <button type="button" class="category-tile" data-category="ia">
+            <span class="category-tile-icon"><i class="fa-solid fa-brain" style="color: #1abc9c;"></i></span>
+            <span class="category-tile-label">Clés &amp; Paramètres IA</span>
+          </button>
+        </div>
+
+        <div class="sidebar-category" data-category="assistant">
           <div class="category-title"><i class="fa-solid fa-robot" style="color: #9b59b6;"></i> ASSISTANT & STAR</div>
           <button class="tab-btn" data-tab="tab-assistant"><i class="fa-solid fa-robot"></i> Assistant IA Admin <span class="nav-badge badge-purple">IA VIP</span></button>
           <button class="tab-btn" data-tab="tab-star"><i class="fa-solid fa-star" style="color: #f1c40f;"></i> Star de la Semaine <span class="nav-badge badge-gold">TOP</span></button>
         </div>
 
-        <div class="sidebar-category">
+        <div class="sidebar-category" data-category="gestion">
           <div class="category-title"><i class="fa-solid fa-sliders" style="color: #5865F2;"></i> GESTION DU SERVEUR</div>
           <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées & Départs</button>
           <button class="tab-btn" data-tab="tab-boost"><i class="fa-solid fa-rocket" style="color: #F47FFF;"></i> Remerciements Boost <span class="nav-badge badge-purple">VIP</span></button>
@@ -139,7 +171,7 @@
           <button class="tab-btn" data-tab="tab-logs"><i class="fa-solid fa-list-check"></i> Logs d'Activité</button>
         </div>
 
-        <div class="sidebar-category">
+        <div class="sidebar-category" data-category="securite">
           <div class="category-title"><i class="fa-solid fa-shield-halved" style="color: #e74c3c;"></i> SÉCURITÉ & MODÉRATION</div>
           <button class="tab-btn" data-tab="tab-quarantine"><i class="fa-solid fa-shield-halved"></i> Quarantaine Anti-Raid</button>
           <button class="tab-btn" data-tab="tab-automod"><i class="fa-solid fa-user-shield"></i> Auto-Modération</button>
@@ -148,7 +180,7 @@
           <button class="tab-btn" data-tab="tab-tribunal"><i class="fa-solid fa-gavel"></i> Tribunal Discord</button>
         </div>
 
-        <div class="sidebar-category">
+        <div class="sidebar-category" data-category="divertissement">
           <div class="category-title"><i class="fa-solid fa-gamepad" style="color: #2ecc71;"></i> DIVERTISSEMENT & JEUX</div>
           <button class="tab-btn" data-tab="tab-confessions"><i class="fa-solid fa-mask"></i> Confessions Anonymes</button>
           <button class="tab-btn" data-tab="tab-counting"><i class="fa-solid fa-calculator"></i> Salons de Comptage</button>
@@ -158,7 +190,7 @@
           <button class="tab-btn" data-tab="tab-gifs"><i class="fa-solid fa-file-video"></i> GIFs d'action</button>
         </div>
 
-        <div class="sidebar-category">
+        <div class="sidebar-category" data-category="niveaux">
           <div class="category-title"><i class="fa-solid fa-chart-line" style="color: #e67e22;"></i> NIVEAUX & ÉCONOMIE</div>
           <button class="tab-btn" data-tab="tab-leveling"><i class="fa-solid fa-arrow-trend-up"></i> Niveaux & XP</button>
           <button class="tab-btn" data-tab="tab-role-boosters"><i class="fa-solid fa-rocket" style="color: #F47FFF;"></i> Rôles Boosters <span class="nav-badge badge-purple">BOOST</span></button>
@@ -167,13 +199,13 @@
           <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique & Suites</button>
         </div>
 
-        <div class="sidebar-category">
+        <div class="sidebar-category" data-category="support">
           <div class="category-title"><i class="fa-solid fa-headset" style="color: #3498db;"></i> SUPPORT & MAPPING</div>
           <button class="tab-btn" data-tab="tab-tickets"><i class="fa-solid fa-ticket"></i> Support & Tickets</button>
           <button class="tab-btn" data-tab="tab-map"><i class="fa-solid fa-map-location-dot"></i> Carte des Membres</button>
         </div>
 
-        <div class="sidebar-category">
+        <div class="sidebar-category" data-category="ia">
           <div class="category-title"><i class="fa-solid fa-brain" style="color: #1abc9c;"></i> CLÉS & PARAMÈTRES IA</div>
           <button class="tab-btn" data-tab="tab-ai"><i class="fa-solid fa-brain"></i> Clés & Modèles IA</button>
         </div>
@@ -3417,5 +3449,6 @@ Il/Elle remporte le rôle {role} et brille sur le serveur !</textarea>
   <div id="toast" class="toast glass">Configuration enregistrée !</div>
 
   <script src="script.js?v=9.0.0"></script>
+  <script src="category-nav.js?v=1.0.0"></script>
 </body>
 </html>
