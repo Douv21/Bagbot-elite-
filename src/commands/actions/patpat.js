@@ -89,13 +89,22 @@ module.exports = {
       embed.setDescription(`${actionMessage}\n\n💰 **+${reward} pièces**  ·  ✨ **+${karmaReward} Karma**`);
       embed.setFooter({ text: `Solde: ${totalCoins} pièces · +${karmaReward} karma` });
     }
-
     const mention = target && target.id !== userId ? `<@${target.id}>` : null;
-    await interaction.editReply({
-      content: mention,
-      embeds: [embed],
-      files: files,
-      allowedMentions: { parse: ['users'] }
-    });
+
+    try {
+      await interaction.editReply({
+        content: mention,
+        embeds: [embed],
+        files: files,
+        allowedMentions: mention ? { users: [target.id] } : { parse: [] }
+      });
+    } catch (dmErr) {
+      embed.setImage(null);
+      await interaction.editReply({
+        content: mention,
+        embeds: [embed],
+        allowedMentions: mention ? { users: [target.id] } : { parse: [] }
+      }).catch(e2 => console.error('[DM Reply]', e2.message));
+    }
   }
 };

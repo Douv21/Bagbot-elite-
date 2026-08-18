@@ -119,10 +119,13 @@ module.exports = {
       );
     }
 
-    if (gifUrl) {
-      embed.setImage(gifUrl);
-    }
+    const mention = target && target.id !== userId ? `<@${target.id}>` : null;
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply({
+      content: mention,
+      embeds: [embed],
+      allowedMentions: mention ? { users: [target.id] } : { parse: [] }
+    });
   }
 };
+

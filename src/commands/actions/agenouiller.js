@@ -121,25 +121,22 @@ module.exports = {
     } else {
       embed.setFooter({ text: '💬 Exécuté en message privé (sans gain de pièces ou de karma)' });
     }
-
     const mention = target && target.id !== userId ? `<@${target.id}>` : null;
 
-    if (mention && interaction.guild && interaction.channel) {
-      await interaction.deleteReply().catch(() => null);
-      await interaction.channel.send({
+    try {
+      await interaction.editReply({
         content: mention,
         embeds: [embed],
         files: files,
-        allowedMentions: { parse: ['users'] }
+        allowedMentions: mention ? { users: [target.id] } : { parse: [] }
       });
-    } else {
-      try {
-        await interaction.editReply({ embeds: [embed], files: files });
-      } catch (dmErr) {
-        // Discord bloque le contenu explicite en DM ? retry sans image
-        embed.setImage(null);
-        await interaction.editReply({ embeds: [embed] }).catch(e2 => console.error('[DM Reply]', e2.message));
-      }
+    } catch (dmErr) {
+      embed.setImage(null);
+      await interaction.editReply({
+        content: mention,
+        embeds: [embed],
+        allowedMentions: mention ? { users: [target.id] } : { parse: [] }
+      }).catch(e2 => console.error('[DM Reply]', e2.message));
     }
   }
 };

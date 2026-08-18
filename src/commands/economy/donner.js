@@ -56,7 +56,9 @@ module.exports = {
     });
 
     return interaction.reply({
-      content: `💸 **Transfert réussi !** <@${senderId}> a donné **💰 ${montant} pièces** à <@${targetUser.id}> !`
+      content: `💸 **Transfert réussi !** <@${senderId}> a donné **💰 ${montant} pièces** à <@${targetUser.id}> !`,
+      allowedMentions: { users: [targetUser.id, senderId] }
     });
   }
 };
+
