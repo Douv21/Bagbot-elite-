@@ -146,10 +146,13 @@ module.exports = {
         allowedMentions: { parse: ['users'] }
       });
     } else {
-      await interaction.editReply({
-        embeds: [embed],
-        files: files
-      });
+      try {
+        await interaction.editReply({ embeds: [embed], files: files });
+      } catch (dmErr) {
+        // Discord bloque le contenu explicite en DM ? retry sans image
+        embed.setImage(null);
+        await interaction.editReply({ embeds: [embed] }).catch(e2 => console.error('[DM Reply]', e2.message));
+      }
     }
 
     if (!guildId && target && target.id !== userId) {
