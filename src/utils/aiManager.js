@@ -8,8 +8,17 @@ const keyRotationIndex = {
 
 function isRefusalResponse(text) {
   if (!text || typeof text !== 'string') return true;
-  const lower = text.toLowerCase();
-  return lower.includes("i'm sorry") || lower.includes("i am sorry") || lower.includes("can't help") || lower.includes("cannot help") || lower.includes("cannot fulfill") || lower.includes("as an ai") || lower.includes("je ne peux pas") || lower.includes("désolé");
+  const normalized = text.toLowerCase().replace(/[’'′`]/g, "'");
+  return (
+    normalized.includes("sorry") ||
+    normalized.includes("can't help") ||
+    normalized.includes("cannot help") ||
+    normalized.includes("cannot fulfill") ||
+    normalized.includes("as an ai") ||
+    normalized.includes("je ne peux pas") ||
+    normalized.includes("désolé") ||
+    normalized.includes("inappropriate")
+  );
 }
 
 /**

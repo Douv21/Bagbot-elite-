@@ -19,8 +19,17 @@ const ACTION_ALIAS_MAP = {
 
 function isRefusalText(text) {
   if (!text || typeof text !== 'string') return true;
-  const lower = text.toLowerCase();
-  return lower.includes("i'm sorry") || lower.includes("i am sorry") || lower.includes("can't help") || lower.includes("cannot help") || lower.includes("cannot fulfill") || lower.includes("as an ai") || lower.includes("je ne peux pas") || lower.includes("désolé");
+  const normalized = text.toLowerCase().replace(/[’'′`]/g, "'");
+  return (
+    normalized.includes("sorry") ||
+    normalized.includes("can't help") ||
+    normalized.includes("cannot help") ||
+    normalized.includes("cannot fulfill") ||
+    normalized.includes("as an ai") ||
+    normalized.includes("je ne peux pas") ||
+    normalized.includes("désolé") ||
+    normalized.includes("inappropriate")
+  );
 }
 
 async function generateAiActionPhrase(actionName, actionDescription, authorMember, targetMember, isSfwOverride = null) {
@@ -35,6 +44,12 @@ async function generateAiActionPhrase(actionName, actionDescription, authorMembe
   const rawAction = (actionName || '').toLowerCase().trim();
   const isSfw = isSfwOverride !== null ? isSfwOverride : SFW_ACTIONS.includes(rawAction);
   const safeActionDisplay = ACTION_ALIAS_MAP[rawAction] || actionName;
+  const safeDescription = (actionDescription || '')
+    .replace(/69/gi, 'soixante-neuf')
+    .replace(/sodo\w*/gi, 'caresse intime')
+    .replace(/fuck/gi, 'union passionnée')
+    .replace(/branler/gi, 'caresse manuelle')
+    .replace(/sucer/gi, 'gâterie intime');
 
   let systemPrompt = "";
   let userPrompt = "";
@@ -43,11 +58,11 @@ async function generateAiActionPhrase(actionName, actionDescription, authorMembe
     systemPrompt = `Tu es un assistant d'écriture amical, mignon, drôle, vivant et ludique pour un bot Discord. Ton rôle est de générer des phrases d'action simples, sympathiques, complices et amusantes (100% SFW / Tout public, STRICTEMENT NI SENSUELLES NI TORRIDES NI EROTIQUES). Ne génère AUCUN contenu à caractère érotique, sensuel, torride ou chaud.`;
 
     if (isSolo) {
-      userPrompt = `Écris une phrase d'action simple, mignonne, amusante et sympathique (max 200 caractères) décrivant l'action "${safeActionDisplay}" (description: ${actionDescription}) effectuée par ${authorName} sur lui-même / elle-même.
+      userPrompt = `Écris une phrase d'action simple, mignonne, amusante et sympathique (max 200 caractères) décrivant l'action "${safeActionDisplay}" (description: ${safeDescription}) effectuée par ${authorName} sur lui-même / elle-même.
 Le genre de ${authorName} est ${author.gender} (pronom: ${author.pronoun}).
 Fais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement par la phrase générée.`;
     } else {
-      userPrompt = `Écris une phrase d'action simple, mignonne, drôle et amicale (max 200 caractères) décrivant l'action "${safeActionDisplay}" (description: ${actionDescription}) de ${authorName} sur ${targetName}.
+      userPrompt = `Écris une phrase d'action simple, mignonne, drôle et amicale (max 200 caractères) décrivant l'action "${safeActionDisplay}" (description: ${safeDescription}) de ${authorName} sur ${targetName}.
 Le genre de l'auteur ${authorName} est ${author.gender} (pronom: ${author.pronoun}) et le genre du destinataire ${targetName} est ${target.gender} (pronom: ${target.pronoun}).
 Fais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement par la phrase générée.`;
     }
