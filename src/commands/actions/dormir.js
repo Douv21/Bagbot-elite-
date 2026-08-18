@@ -141,17 +141,5 @@ module.exports = {
         await interaction.editReply({ embeds: [embed] }).catch(e2 => console.error('[DM Reply]', e2.message));
       }
     }
-
-    if (!guildId && target && target.id !== userId) {
-      try {
-        await target.send({
-          content: `🔔 **<@${userId}>** vous a fait une action en MP !`,
-          embeds: [embed],
-          files: targetFiles
-        });
-      } catch (err) {
-        console.error('Impossible d\'envoyer le MP de l\'action à la cible :', err);
-      }
-    }
   }
 };
