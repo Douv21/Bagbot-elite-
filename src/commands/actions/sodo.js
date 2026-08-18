@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 module.exports = {
-  data: new SlashCommandBuilder()
+  data: new SlashCommandBuilder().setContexts([0, 1, 2]).setIntegrationTypes([0, 1])
     .setName('sodo')
     .setDescription("Faire une sodo à quelqu\'un")
     .addUserOption(option => option.setName('cible').setDescription('Personne ciblée (optionnel)').setRequired(false))

@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 module.exports = {
-  data: new SlashCommandBuilder()
+  data: new SlashCommandBuilder().setContexts([0, 1, 2]).setIntegrationTypes([0, 1])
     .setName('gifle')
     .setDescription("Donner une gifle à quelqu'un (SFW)")
     .addUserOption(option => option.setName('cible').setDescription('Personne ciblée').setRequired(false))

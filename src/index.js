@@ -1016,7 +1016,8 @@ client.on('interactionCreate', async interaction => {
     // Log de l'exécution de la commande dans la catégorie 'bots'
     if (interaction.guild) {
       try {
-        const { sendLog } = require('./utils/helpers');
+        let subcommand = null;
+        try { subcommand = interaction.options?.getSubcommand(false); } catch (_) {}
         let cmdDetails = `\`/${interaction.commandName}\``;
         if (subcommand) cmdDetails += ` \`${subcommand}\``;
 

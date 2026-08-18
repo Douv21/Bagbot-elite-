@@ -466,7 +466,7 @@ async function callPollinationsFallback(systemPrompt, userPrompt, messagesHistor
 /**
  * Moteur principal de génération d'IA avec Pool Multi-Clés et Basculement Automatique (Ollama Freebox -> Groq -> Gemini -> Fallback)
  */
-async function generateAiCompletion({ guildId = null, category = 'text', systemPrompt = '', userPrompt = '', imageUrl = null, temperature = 0.7, maxTokens = 1000, messagesHistory = null }) {
+async function generateAiCompletion({ guildId = null, category = 'text', systemPrompt = '', userPrompt = '', imageUrl = null, temperature = 0.7, maxTokens = 1000, messagesHistory = null, skipGroqForNsfw = false }) {
   const config = guildId ? getAiConfig(guildId) : {
     preferred_provider: 'auto',
     groq_text_model: 'compound-beta-mini',

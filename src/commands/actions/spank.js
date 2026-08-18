@@ -2,7 +2,7 @@ const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { getEconomy, updateEconomy, getActionReward, getActionGifs, db } = require('../../database/db');
 
 module.exports = {
-  data: new SlashCommandBuilder()
+  data: new SlashCommandBuilder().setContexts([0, 1, 2]).setIntegrationTypes([0, 1])
     .setName('spank')
     .setDescription("Donner une fessée coquine et passionnée (18+)")
     .addUserOption(option => option.setName('cible').setDescription('Personne ciblée (optionnel)').setRequired(false))
