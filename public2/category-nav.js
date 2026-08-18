@@ -265,6 +265,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Same idea, one level deeper: while searching, script.js's filter hides
+  // individual .tab-btn but has no notion of the .sidebar-subcategory
+  // grouping layer added on top of it, so a sub-header whose every button
+  // just got hidden would otherwise sit there on its own. Hide those too.
+  const subcategories = Array.from(document.querySelectorAll('.sidebar-subcategory'));
+  function updateEmptySubcategoriesVisibility() {
+    subcategories.forEach(sub => {
+      const anyVisible = Array.from(sub.querySelectorAll('.tab-btn'))
+        .some(btn => btn.style.display !== 'none');
+      sub.style.display = anyVisible ? '' : 'none';
+    });
+  }
+
   function activateCategory(slug, opts) {
     const options = opts || {};
     if (!getCategory(slug)) return;
@@ -344,12 +357,14 @@ document.addEventListener('DOMContentLoaded', () => {
         searchActive = false;
         selector.classList.remove('search-mode');
         categories.forEach(cat => cat.classList.remove('category-empty'));
+        subcategories.forEach(sub => { sub.style.display = ''; });
         showOnlyCategory(currentCategory, true);
       }
 
       if (searchActive) {
         // Re-evaluate on every keystroke, after script.js's own filter ran.
         updateEmptyCategoriesVisibility();
+        updateEmptySubcategoriesVisibility();
       }
     });
   }

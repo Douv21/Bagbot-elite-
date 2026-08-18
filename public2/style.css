@@ -1475,6 +1475,225 @@ body::after {
   background: rgba(0, 0, 0, 0.2) !important;
 }
 
+/* Envoyeur d'Embeds (tab-embed-sender) clickable preview — reuses the same
+   .discord-embed-* field classes as the Arrivées & Départs editor above.
+   script.js's own updatePreview() (unmodified) still toggles this author/
+   footer row's inline display based on whether the underlying hidden field
+   has text, exactly like it always has — but since editing now happens
+   directly inside these rows, they must stay visible even while empty so
+   there is always something to click into. The !important here beats that
+   inline style without touching script.js. */
+#simple-embed-preview-author,
+#simple-embed-preview-footer {
+  display: flex !important;
+}
+
+.embed-avatar-upload-wrap {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+.embed-avatar-upload-wrap img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.embed-avatar-upload-btn {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #5865f2;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5rem;
+  cursor: pointer;
+  border: 2px solid #2f3136;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.embed-avatar-upload-btn:hover {
+  background: #4752c4;
+  transform: scale(1.12);
+}
+
+/* --- Multi-channel select (trigger + search + scrollable checkbox panel +
+   removable chips), layered over a genuinely multi-value `<select multiple>`
+   channel field (embed-builder.js). --- */
+.multi-channel-select {
+  position: relative;
+  width: 100%;
+}
+
+.multi-channel-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #b9bbbe;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.multi-channel-trigger:hover {
+  border-color: rgba(88, 101, 242, 0.5);
+}
+
+.multi-channel-select.open .multi-channel-trigger {
+  border-color: #5865f2;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.multi-channel-select.open .multi-channel-trigger i.fa-chevron-down {
+  transform: rotate(180deg);
+}
+
+.multi-channel-trigger i.fa-chevron-down {
+  transition: transform 0.2s ease;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.multi-channel-select.has-selection .multi-channel-trigger-label {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.multi-channel-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.multi-channel-chips:empty {
+  margin-top: 0;
+}
+
+.multi-channel-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(88, 101, 242, 0.18);
+  border: 1px solid rgba(88, 101, 242, 0.4);
+  color: #dee0ff;
+  padding: 3px 6px 3px 9px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.multi-channel-chip i.fa-hashtag {
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+
+.multi-channel-chip button {
+  background: none;
+  border: none;
+  color: #b9bbbe;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.multi-channel-chip button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.multi-channel-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: #26272b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.multi-channel-select.open .multi-channel-panel {
+  display: block;
+}
+
+.multi-channel-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #72767d;
+}
+
+.multi-channel-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+
+.multi-channel-list {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.multi-channel-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #dcddde;
+}
+
+.multi-channel-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.multi-channel-option input {
+  cursor: pointer;
+  accent-color: #5865f2;
+}
+
+.multi-channel-empty {
+  padding: 12px;
+  text-align: center;
+  color: #72767d;
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
 /* Upload style elements */
 .url-upload-wrapper {
   display: inline-flex;
@@ -1950,6 +2169,47 @@ td.text-center, td[colspan] {
   margin-bottom: 6px;
   opacity: 0.5;
   text-transform: uppercase;
+}
+
+/* Sub-category grouping inside a sidebar feature list: a nested, secondary
+   heading level under .category-title, grouping a handful of related
+   .tab-btn together. Deliberately smaller/lighter than .category-title and
+   indented further so the two levels never get confused with one another
+   or with the top-level .category-tile hub cards. */
+.sidebar-subcategory {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 10px;
+}
+
+.sidebar-subcategory:last-child {
+  margin-bottom: 0;
+}
+
+.subcategory-title {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #b9bbbe;
+  letter-spacing: 0.6px;
+  padding-left: 22px;
+  margin-bottom: 2px;
+  opacity: 0.65;
+  text-transform: uppercase;
+  position: relative;
+}
+
+.subcategory-title::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
 }
 
 .sidebar-overlay {
@@ -2566,6 +2826,7 @@ td.text-center, td[colspan] {
 .dashboard-main.sidebar-collapsed .sidebar-header-text,
 .dashboard-main.sidebar-collapsed .sidebar-search-wrapper,
 .dashboard-main.sidebar-collapsed .category-title,
+.dashboard-main.sidebar-collapsed .subcategory-title,
 .dashboard-main.sidebar-collapsed .sidebar-back-label,
 .dashboard-main.sidebar-collapsed .nav-badge {
   display: none;
@@ -2591,7 +2852,8 @@ td.text-center, td[colspan] {
   font-size: 0;
 }
 
-.dashboard-main.sidebar-collapsed .sidebar-category {
+.dashboard-main.sidebar-collapsed .sidebar-category,
+.dashboard-main.sidebar-collapsed .sidebar-subcategory {
   align-items: center;
 }
 
