@@ -429,8 +429,8 @@ client.on('interactionCreate', async interaction => {
       const { getActionVeriteConfig, getRandomActionVeriteItem } = require('./database/db');
       const guildId = interaction.guild ? interaction.guild.id : 'DM';
 
-      // Bouton : Sélection du mode
-      if (customId === 'av_select_mode') {
+      // En MP uniquement : Bouton Sélection du mode
+      if (customId === 'av_select_mode' && !interaction.guild) {
         const rowMode = new ActionRowBuilder().addComponents(
           new ButtonBuilder().setCustomId('av_mode_sfw').setLabel('🟢 Mode SFW (Tout Public)').setStyle(ButtonStyle.Success),
           new ButtonBuilder().setCustomId('av_mode_nsfw').setLabel('🔞 Mode NSFW (Adulte +18)').setStyle(ButtonStyle.Danger)
@@ -445,8 +445,8 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ embeds: [embed], components: [rowMode], ephemeral: false });
       }
 
-      // Bouton : Clic sur "Mode SFW"
-      if (customId === 'av_mode_sfw') {
+      // En MP uniquement : Clic sur Mode SFW / NSFW
+      if (customId === 'av_mode_sfw' && !interaction.guild) {
         const rowSfw = new ActionRowBuilder().addComponents(
           new ButtonBuilder().setCustomId('av_action_sfw').setLabel('Action 🎬').setStyle(ButtonStyle.Success),
           new ButtonBuilder().setCustomId('av_verite_sfw').setLabel('Vérité 💬').setStyle(ButtonStyle.Primary),
@@ -463,15 +463,7 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ embeds: [embed], components: [rowSfw], ephemeral: false });
       }
 
-      // Bouton : Clic sur "Mode NSFW"
-      if (customId === 'av_mode_nsfw') {
-        if (interaction.guild && !interaction.channel?.nsfw) {
-          return interaction.reply({
-            content: '🔞 **Mode NSFW réservé** : Le mode NSFW ne peut être joué que dans les salons soumis à la limite d\'âge (+18) ou en Message Privé (DM).',
-            ephemeral: true
-          });
-        }
-
+      if (customId === 'av_mode_nsfw' && !interaction.guild) {
         const rowNsfw = new ActionRowBuilder().addComponents(
           new ButtonBuilder().setCustomId('av_action_nsfw').setLabel('Action 🔥').setStyle(ButtonStyle.Danger),
           new ButtonBuilder().setCustomId('av_verite_nsfw').setLabel('Vérité 💋').setStyle(ButtonStyle.Primary),
@@ -493,11 +485,7 @@ client.on('interactionCreate', async interaction => {
       const choix = parts[1] || 'action';
       let mode = parts[2] || 'sfw';
 
-      if (!parts[2]) {
-        mode = (interaction.guild && interaction.channel?.nsfw) ? 'nsfw' : 'sfw';
-      }
-
-      // Contrôle de salon configuré sur le serveur (si configuré)
+      // Sur le serveur : Mode déterminé 100% par le salon configuré dans le Dashboard
       if (interaction.guild) {
         const config = getActionVeriteConfig(guildId);
         if (config.sfw_channel_id || config.nsfw_channel_id) {
@@ -513,15 +501,9 @@ client.on('interactionCreate', async interaction => {
 
           if (isNsfwAllowed) mode = 'nsfw';
           else if (isSfwAllowed) mode = 'sfw';
+        } else {
+          mode = interaction.channel?.nsfw ? 'nsfw' : 'sfw';
         }
-      }
-
-      // Contrôle NSFW
-      if (mode === 'nsfw' && interaction.guild && !interaction.channel?.nsfw) {
-        return interaction.reply({
-          content: '🔞 **Mode NSFW réservé** : Le mode NSFW ne peut être joué que dans les salons soumis à la limite d\'âge (+18) ou en Message Privé (DM).',
-          ephemeral: true
-        });
       }
 
       const question = getRandomActionVeriteItem(guildId, choix, mode);
@@ -530,23 +512,20 @@ client.on('interactionCreate', async interaction => {
         .setTitle(`🎲 Action ou Vérité — ${choix === 'action' ? 'Action 🎬' : 'Vérité 💬'}`)
         .setDescription(`<@${interaction.user.id}>, voici ton défi :\n\n>>> **${question}**`)
         .setColor(mode === 'nsfw' ? '#E74C3C' : (choix === 'action' ? '#2ECC71' : '#3498DB'))
-        .setFooter({ text: `Mode : ${mode === 'sfw' ? 'SFW 🟢 (Tout public)' : 'NSFW 🔞 (Adulte +18)'}` })
+        .setFooter({ text: interaction.guild ? `Salon : ${mode.toUpperCase()}` : `MP : ${mode.toUpperCase()}` })
         .setTimestamp();
 
-      let row;
-      if (mode === 'sfw') {
-        row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId('av_action_sfw').setLabel('Action 🎬').setStyle(ButtonStyle.Success),
-          new ButtonBuilder().setCustomId('av_verite_sfw').setLabel('Vérité 💬').setStyle(ButtonStyle.Primary),
-          new ButtonBuilder().setCustomId('av_select_mode').setLabel('Changer de mode 🔄').setStyle(ButtonStyle.Secondary)
-        );
-      } else {
-        row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId('av_action_nsfw').setLabel('Action 🔥').setStyle(ButtonStyle.Danger),
-          new ButtonBuilder().setCustomId('av_verite_nsfw').setLabel('Vérité 💋').setStyle(ButtonStyle.Primary),
-          new ButtonBuilder().setCustomId('av_select_mode').setLabel('Changer de mode 🔄').setStyle(ButtonStyle.Secondary)
-        );
+      const components = [
+        new ButtonBuilder().setCustomId(`av_action_${mode}`).setLabel(mode === 'nsfw' ? 'Action 🔥' : 'Action 🎬').setStyle(mode === 'nsfw' ? ButtonStyle.Danger : ButtonStyle.Success),
+        new ButtonBuilder().setCustomId(`av_verite_${mode}`).setLabel(mode === 'nsfw' ? 'Vérité 💋' : 'Vérité 💬').setStyle(ButtonStyle.Primary)
+      ];
+
+      // Bouton "Changer de mode" uniquement en MP
+      if (!interaction.guild) {
+        components.push(new ButtonBuilder().setCustomId('av_select_mode').setLabel('Changer de mode 🔄').setStyle(ButtonStyle.Secondary));
       }
+
+      const row = new ActionRowBuilder().addComponents(components);
 
       try {
         await interaction.reply({ embeds: [embed], components: [row], ephemeral: false });
@@ -554,6 +533,7 @@ client.on('interactionCreate', async interaction => {
         console.error(err);
       }
       return;
+
     } else if (customId.startsWith('ticket_')) {
       const { handleTicketInteraction } = require('./utils/ticketHandler');
       return handleTicketInteraction(interaction, client);

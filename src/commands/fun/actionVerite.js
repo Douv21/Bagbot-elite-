@@ -9,7 +9,7 @@ module.exports = {
     .setIntegrationTypes([0, 1])
     .addStringOption(option =>
       option.setName('mode')
-        .setDescription('Mode de jeu en MP (SFW tout public ou NSFW +18)')
+        .setDescription('Mode de jeu en MP uniquement (SFW tout public ou NSFW +18)')
         .setRequired(false)
         .addChoices(
           { name: '🟢 SFW (Tout public)', value: 'sfw' },
@@ -19,9 +19,8 @@ module.exports = {
 
   async execute(interaction) {
     const guildId = interaction.guild ? interaction.guild.id : 'DM';
-    const chosenMode = interaction.options.getString('mode');
 
-    // ── SUR SERVEUR : Lancement direct sans option mode/type (Auto SFW/NSFW) ────
+    // ── SUR SERVEUR : Mode 100% géré par le salon du Dashboard (Pas de choix de mode) ────
     if (interaction.guild) {
       const config = getActionVeriteConfig(guildId);
       if (config.sfw_channel_id || config.nsfw_channel_id) {
@@ -36,9 +35,13 @@ module.exports = {
         }
       }
 
-      const isNsfw = Boolean(interaction.channel?.nsfw || (config.nsfw_channel_id && interaction.channel.id === config.nsfw_channel_id));
+      const isNsfw = Boolean(
+        (config.nsfw_channel_id && interaction.channel.id === config.nsfw_channel_id) ||
+        (!config.nsfw_channel_id && interaction.channel?.nsfw)
+      );
       const category = isNsfw ? 'nsfw' : 'sfw';
 
+      // Boutons Action / Vérité UNIQUEMENT sur serveur (pas de bouton de changement de mode)
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(`av_action_${category}`).setLabel('Action 🎬').setStyle(category === 'nsfw' ? ButtonStyle.Danger : ButtonStyle.Success),
         new ButtonBuilder().setCustomId(`av_verite_${category}`).setLabel('Vérité 💬').setStyle(ButtonStyle.Primary)
@@ -48,13 +51,14 @@ module.exports = {
         .setTitle(`🎲 Action ou Vérité ${isNsfw ? '🔞' : '🟢'}`)
         .setDescription(`<@${interaction.user.id}> a lancé une partie d'**Action ou Vérité** !\n\nCliquez ci-dessous pour tirer une **Action** ou une **Vérité** :`)
         .setColor(isNsfw ? '#E74C3C' : '#2ECC71')
-        .setFooter({ text: `B&G Elite • Mode ${category.toUpperCase()}` })
+        .setFooter({ text: `B&G Elite • Salon ${category.toUpperCase()}` })
         .setTimestamp();
 
       return interaction.reply({ embeds: [embed], components: [row] });
     }
 
     // ── EN MP (DM) : Sélection du mode si spécifié, sinon menu de choix ────────
+    const chosenMode = interaction.options.getString('mode');
     if (chosenMode) {
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(`av_action_${chosenMode}`).setLabel('Action 🎬').setStyle(chosenMode === 'nsfw' ? ButtonStyle.Danger : ButtonStyle.Success),
