@@ -63,8 +63,22 @@ for (const file of eventFiles) {
   }
 }
 
-// Initialiser le cache des invitations au démarrage et à la création/suppression
-client.once('ready', () => {
+// Initialiser le cache des invitations et enregistrer les commandes Slash au démarrage
+client.once('ready', async () => {
+  console.log(`[BOT] Connecté en tant que ${client.user.tag} (ID: ${client.user.id})`);
+
+  try {
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    console.log(`[SLASH COMMANDS] Enregistrement de ${commandsJSON.length} commandes auprès de l'API Discord...`);
+    await rest.put(
+      Routes.applicationCommands(client.user.id),
+      { body: commandsJSON }
+    );
+    console.log(`[SLASH COMMANDS] ${commandsJSON.length} commandes enregistrées avec succès !`);
+  } catch (err) {
+    console.error('[SLASH COMMANDS] Erreur lors de l\'enregistrement des commandes:', err);
+  }
+
   const { initInviteCache } = require('./utils/inviteTracker');
   initInviteCache(client).catch(console.error);
 });
