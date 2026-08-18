@@ -70,7 +70,7 @@ module.exports = {
     let gifs = guildId ? getActionGifs(guildId, 'patpat') : [];
     if (!gifs || gifs.length === 0) {
       try {
-        gifs = db.prepare('SELECT * FROM action_gifs WHERE action_name = ?').all('patpat');
+        gifs = getActionGifsAnyGuild('patpat');
       } catch (e) {}
     }
 

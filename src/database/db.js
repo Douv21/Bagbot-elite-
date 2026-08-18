@@ -1084,6 +1084,18 @@ const getActionGifs = (guildId, actionName) => {
   return db.prepare('SELECT * FROM action_gifs WHERE guild_id = ? AND action_name = ?').all(guildId, actionName);
 };
 
+// Pour les DMs : récupère les GIFs de toutes les guildes (mélangés aléatoirement)
+const getActionGifsAnyGuild = (actionName) => {
+  const gifs = db.prepare('SELECT * FROM action_gifs WHERE action_name = ?').all(actionName);
+  // Mélanger pour ne pas toujours montrer les gifs de la même guilde
+  for (let i = gifs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [gifs[i], gifs[j]] = [gifs[j], gifs[i]];
+  }
+  return gifs;
+};
+
+
 const getAllActionGifs = (guildId) => {
   return db.prepare('SELECT * FROM action_gifs WHERE guild_id = ?').all(guildId);
 };
@@ -1988,7 +2000,9 @@ module.exports = {
   getLevelingConfig,
   updateLevelingConfig,
   getActionGifs,
+  getActionGifsAnyGuild,
   getAllActionGifs,
+
   addActionGif,
   deleteActionGif,
   getConfessions,

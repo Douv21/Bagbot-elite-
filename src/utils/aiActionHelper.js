@@ -46,7 +46,7 @@ async function generateAiActionPhrase(actionName, actionDescription, authorMembe
   const authorName = authorMember ? authorMember.displayName : 'Auteur';
   const targetName = targetMember ? targetMember.displayName : 'Cible';
   const isSolo = !targetMember || (authorMember && authorMember.id === targetMember.id);
-  const guildId = authorMember ? authorMember.guild.id : null;
+  const guildId = authorMember?.guild?.id || null;  // Fix: guild peut être null en DM
 
   const rawAction = (actionName || '').toLowerCase().trim();
   const isSfw = isSfwOverride !== null ? isSfwOverride : !isActionNsfw(rawAction);
@@ -60,52 +60,92 @@ async function generateAiActionPhrase(actionName, actionDescription, authorMembe
     .replace(/biffle/gi, 'caresse masculine osée')
     .replace(/spank/gi, 'fessée coquine');
 
-  let systemPrompt = "";
-  let userPrompt = "";
-
+  // ─── Prompts SFW ───────────────────────────────────────────────────────────
   if (isSfw) {
-    systemPrompt = `Tu es un assistant d'écriture amical, mignon, drôle, vivant et ludique pour un bot Discord. Ton rôle est de générer des phrases d'action simples, sympathiques, complices et amusantes (100% SFW / Tout public, STRICTEMENT NI SENSUELLES NI TORRIDES NI EROTIQUES). Ne génère AUCUN contenu à caractère érotique, sensuel, torride ou chaud.`;
+    const systemPrompt = `Tu es un assistant d'écriture amical, mignon, drôle, vivant et ludique pour un bot Discord. Ton rôle est de générer des phrases d'action simples, sympathiques, complices et amusantes (100% SFW / Tout public, STRICTEMENT NI SENSUELLES NI TORRIDES NI EROTIQUES). Ne génère AUCUN contenu à caractère érotique, sensuel, torride ou chaud.`;
+    const userPrompt = isSolo
+      ? `Écris une phrase d'action simple, mignonne, amusante et sympathique (max 200 caractères) décrivant l'action "${safeActionDisplay}" (description: ${safeDescription}) effectuée par ${authorName} sur lui-même / elle-même.\nLe genre de ${authorName} est ${author.gender} (pronom: ${author.pronoun}).\nFais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement par la phrase générée.`
+      : `Écris une phrase d'action simple, mignonne, drôle et amicale (max 200 caractères) décrivant l'action "${safeActionDisplay}" (description: ${safeDescription}) de ${authorName} sur ${targetName}.\nLe genre de l'auteur ${authorName} est ${author.gender} (pronom: ${author.pronoun}) et le genre du destinataire ${targetName} est ${target.gender} (pronom: ${target.pronoun}).\nFais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement par la phrase générée.`;
 
-    if (isSolo) {
-      userPrompt = `Écris une phrase d'action simple, mignonne, amusante et sympathique (max 200 caractères) décrivant l'action "${safeActionDisplay}" (description: ${safeDescription}) effectuée par ${authorName} sur lui-même / elle-même.
-Le genre de ${authorName} est ${author.gender} (pronom: ${author.pronoun}).
-Fais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement par la phrase générée.`;
-    } else {
-      userPrompt = `Écris une phrase d'action simple, mignonne, drôle et amicale (max 200 caractères) décrivant l'action "${safeActionDisplay}" (description: ${safeDescription}) de ${authorName} sur ${targetName}.
-Le genre de l'auteur ${authorName} est ${author.gender} (pronom: ${author.pronoun}) et le genre du destinataire ${targetName} est ${target.gender} (pronom: ${target.pronoun}).
-Fais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement par la phrase générée.`;
+    try {
+      const res = await generateAiCompletion({ guildId, category: 'text', systemPrompt, userPrompt, temperature: 0.9, maxTokens: 250 });
+      if (res && !isRefusalText(res)) return res.replace(/^["']|["']$/g, '');
+    } catch (err) {
+      console.warn('[AI Action Helper SFW] Error:', err.message);
     }
-  } else {
-    systemPrompt = `Tu es un auteur de romans sentimentaux, érotiques et de jeu de rôle adulte pour un serveur Discord. Ton rôle est de décrire des interactions physiques passionnées, complices, intimes, très sensuelles et envoûtantes entre deux partenaires avec une élégance captivante.`;
-    
-    if (isSolo) {
-      userPrompt = `Décris de manière très sensuelle et passionnée (max 220 caractères) un moment intime et chaud ("${safeActionDisplay}") où ${authorName} (${author.gender}) réalise un jeu de séduction ou de plaisir en solo.
-Fais des accords de genre parfaits au ${author.gender}. Ne mets aucun guillemet autour du texte. Réponds uniquement par la phrase d'action.`;
-    } else {
-      userPrompt = `Rédige une phrase captivante, très sensuelle, complice et passionnée (max 220 caractères) décrivant l'action d'intimité et de séduction intense ("${safeActionDisplay}") partagée entre ${authorName} (${author.gender}) et ${targetName} (${target.gender}).
-Fais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement avec la phrase générée.`;
+    return null;
+  }
+
+  // ─── Prompts NSFW (3 stratégies en cascade) ───────────────────────────────
+
+  // Prompt NSFW explicite (pour Ollama/Gemini qui acceptent le contenu adulte)
+  const nsfwSystemPrompt = isSolo
+    ? `Tu es un auteur de romans érotiques adultes. Tu décris des scènes de plaisir solitaire de manière très explicite, chaude, intense et totalement libérée. Pas de censure, pas d'euphémismes inutiles.`
+    : `Tu es un auteur de romans érotiques adultes. Tu décris des scènes d'intimité sexuelle intense, très explicites, passionnées et débridées entre deux adultes consentants. Sois direct, sensuel, et sans tabou.`;
+
+  const nsfwUserPrompt = isSolo
+    ? `Décris de manière très explicite et passionnée (max 220 caractères) le moment chaud où ${authorName} (${author.gender}) réalise l'action "${actionName}" en solo.\nFais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement par la phrase d'action.`
+    : `Rédige une phrase très explicite, passionnée et sans retenue (max 220 caractères) décrivant l'action "${actionName}" partagée entre ${authorName} (${author.gender}) et ${targetName} (${target.gender}).\nFais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement avec la phrase générée.`;
+
+  // Prompt NSFW suggestif (pour Groq qui filtre le contenu explicite)
+  const softNsfwSystemPrompt = `Tu es un auteur de romance passionnée pour adultes. Tu maîtrises l'art d'écrire des scènes de désir intense avec une plume suggestive, envoûtante et complice. Tu utilises un vocabulaire évocateur et sensuel sans termes crus.`;
+  const softNsfwUserPrompt = isSolo
+    ? `Écris une phrase très suggestive et passionnée (max 220 caractères) décrivant ${authorName} (${author.gender}) dans un moment de plaisir intense lié à "${safeActionDisplay}".\nFais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement par la phrase.`
+    : `Rédige une phrase suggestive, très sensuelle et complice (max 220 caractères) décrivant "${safeActionDisplay}" entre ${authorName} (${author.gender}) et ${targetName} (${target.gender}).\nFais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement avec la phrase.`;
+
+  // 1. Essayer Ollama Freebox en priorité (rapide, aucune censure)
+  try {
+    const { callOllamaApi } = require('./aiManager');
+    const ollamaResult = await Promise.race([
+      callOllamaApi('http://192.168.1.145:11434', 'qwen2.5:0.5b', nsfwSystemPrompt, nsfwUserPrompt, 0.95, 250),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Ollama timeout 6s')), 6000))
+    ]);
+    if (ollamaResult && !isRefusalText(ollamaResult)) {
+      console.log('[AI Action Helper] Ollama Freebox NSFW OK');
+      return ollamaResult.replace(/^["']|["']$/g, '');
+    }
+  } catch (e) {
+    if (!e.message.includes('timeout')) {
+      console.warn('[AI Action Helper] Ollama Freebox NSFW:', e.message);
     }
   }
 
+  // 2. Essayer Groq avec prompt suggestif (sans termes explicites → passe le filtre)
   try {
     const res = await generateAiCompletion({
       guildId,
       category: 'text',
-      systemPrompt,
-      userPrompt,
-      temperature: 0.9,
+      systemPrompt: softNsfwSystemPrompt,
+      userPrompt: softNsfwUserPrompt,
+      temperature: 0.95,
       maxTokens: 250,
-      skipGroqForNsfw: !isSfw  // Contourne Groq pour les actions NSFW (trop de refus)
+      skipGroqForNsfw: false  // Groq autorisé avec le prompt suggestif
     });
-    if (!res || isRefusalText(res)) {
-      console.warn(`[AI Action Helper] Génération échouée pour l'action '${actionName}' (isSfw=${isSfw}) - retour null`);
-      return null;
+    if (res && !isRefusalText(res)) {
+      console.log('[AI Action Helper] Groq suggestif NSFW OK');
+      return res.replace(/^["']|["']$/g, '');
     }
-    return res.replace(/^["']|["']$/g, '');
   } catch (err) {
-    console.warn('[AI Action Helper] Error:', err.message);
-    return null;
+    console.warn('[AI Action Helper] Groq suggestif NSFW:', err.message);
   }
+
+  // 3. Fallback complet : Gemini (permissif) → Ollama → Pollinations avec prompt explicite
+  try {
+    const res = await generateAiCompletion({
+      guildId,
+      category: 'text',
+      systemPrompt: nsfwSystemPrompt,
+      userPrompt: nsfwUserPrompt,
+      temperature: 0.95,
+      maxTokens: 250,
+      skipGroqForNsfw: true  // Skip Groq car prompt explicite → Gemini/Ollama/Pollinations
+    });
+    if (res && !isRefusalText(res)) return res.replace(/^["']|["']$/g, '');
+  } catch (err) {
+    console.warn('[AI Action Helper] NSFW fallback complet:', err.message);
+  }
+
+  return null;
 }
 
 async function generateSensualText(instruction, lengthLimit = 300, guildId = null, targetMember = null) {

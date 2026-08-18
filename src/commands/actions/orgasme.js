@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } = require('discord.js');
-const { getEconomy, updateEconomy, getActionGifs, db } = require('../../database/db');
+const { getEconomy, updateEconomy, getActionGifs, getActionGifsAnyGuild, db } = require('../../database/db');
 const fs = require('fs');
 const path = require('path');
 
@@ -107,7 +107,7 @@ module.exports = {
       gifs = getActionGifs(guildId, 'orgasme');
     } else {
       try {
-        gifs = db.prepare('SELECT * FROM action_gifs WHERE action_name = ?').all('orgasme');
+        gifs = getActionGifsAnyGuild('orgasme');
       } catch (e) {
         console.error('Erreur lecture gifs en MP:', e);
       }
