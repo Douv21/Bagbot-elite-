@@ -385,7 +385,7 @@ async function callPollinationsFallback(systemPrompt, userPrompt, messagesHistor
 
       if (response.ok) {
         const text = await response.text();
-        if (text && text.trim().length > 0 && !text.toLowerCase().includes('error')) {
+        if (text && text.trim().length > 0 && !text.toLowerCase().includes('error') && !isRefusalResponse(text)) {
           return text.trim();
         }
       }
@@ -402,7 +402,7 @@ async function callPollinationsFallback(systemPrompt, userPrompt, messagesHistor
     });
     if (getRes.ok) {
       const text = await getRes.text();
-      if (text && text.trim().length > 0 && !text.toLowerCase().includes('error')) {
+      if (text && text.trim().length > 0 && !text.toLowerCase().includes('error') && !isRefusalResponse(text)) {
         return text.trim();
       }
     }

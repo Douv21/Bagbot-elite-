@@ -18,9 +18,14 @@ module.exports = {
 
     if (!target) {
       if (interaction.guild) {
-        const members = await interaction.guild.members.fetch({ limit: 100 }).catch(() => null);
-        const randomMember = members ? members.filter(m => m.id !== userId).random() : null;
-        target = randomMember ? randomMember.user : interaction.user;
+        const cached = interaction.guild.members.cache.filter(m => m.id !== userId && !m.user.bot);
+        if (cached.size > 0) {
+          target = cached.random().user;
+        } else {
+          const members = await interaction.guild.members.fetch({ limit: 50 }).catch(() => null);
+          const randomMember = members ? members.filter(m => m.id !== userId && !m.user.bot).random() : null;
+          target = randomMember ? randomMember.user : interaction.user;
+        }
       } else {
         target = interaction.user;
       }
@@ -61,13 +66,13 @@ module.exports = {
     let actionMessage = "";
 
     // Tenter de générer une phrase unique via l'IA en temps réel
-    if (target.id !== userId) {
+    try {
       const { generateAiActionPhrase } = require('../../utils/aiActionHelper');
       const aiPhrase = await generateAiActionPhrase('69', 'Faire un 69 avec quelqu\'un', interaction.member, targetMember);
       if (aiPhrase) {
         actionMessage = aiPhrase;
       }
-    }
+    } catch (e) {}
 
     // Fallback aux phrases configurées en base de données / par défaut
     if (!actionMessage) {
