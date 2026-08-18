@@ -36,14 +36,25 @@
 
   <!-- Login Section (Non Authenticated) -->
   <div id="login-container" class="card glass">
+    <div class="login-status-pill">
+      <span class="status-dot online"></span>
+      <span class="login-status-text">Système en ligne</span>
+    </div>
     <div class="brand">
-      <i class="fa-solid fa-crown logo-icon"></i>
+      <div class="logo-badge">
+        <i class="fa-solid fa-crown logo-icon"></i>
+      </div>
       <h1>Bagbot Elite</h1>
       <p>Configurez et gérez votre bot Discord en toute simplicité.</p>
     </div>
     <a href="/login" class="btn btn-discord">
       <i class="fa-brands fa-discord"></i> Se connecter avec Discord
     </a>
+    <div class="login-features">
+      <div class="login-feature"><i class="fa-solid fa-shield-halved"></i> Sécurité &amp; modération avancée</div>
+      <div class="login-feature"><i class="fa-solid fa-chart-line"></i> Niveaux, économie &amp; quêtes</div>
+      <div class="login-feature"><i class="fa-solid fa-robot"></i> Assistant IA d'administration</div>
+    </div>
   </div>
 
   <!-- Dashboard Container (Authenticated) -->
@@ -53,32 +64,34 @@
 
     <!-- Navigation Bar -->
     <header class="navbar glass">
-      <div style="display: flex; align-items: center; gap: 15px;">
+      <div class="navbar-left">
         <button id="mobile-hamburger" class="mobile-toggle-btn"><i class="fa-solid fa-bars"></i></button>
         <div class="nav-brand">
-          <i class="fa-solid fa-crown"></i>
+          <span class="nav-brand-icon"><i class="fa-solid fa-crown"></i></span>
           <span>Bagbot Elite</span>
         </div>
       </div>
-      
-      <!-- Bouton d'icône de serveur cliquable -->
-      <div id="active-guild-trigger" class="active-guild-trigger" style="display: none;">
-        <div class="active-guild-icon-wrapper">
-          <img id="active-guild-icon" src="" alt="Serveur" class="active-guild-icon-img">
-          <div id="active-guild-initials" class="active-guild-initials-placeholder" style="display: none;"></div>
+
+      <div class="navbar-right">
+        <!-- Bouton d'icône de serveur cliquable -->
+        <div id="active-guild-trigger" class="active-guild-trigger" style="display: none;">
+          <div class="active-guild-icon-wrapper">
+            <img id="active-guild-icon" src="" alt="Serveur" class="active-guild-icon-img">
+            <div id="active-guild-initials" class="active-guild-initials-placeholder" style="display: none;"></div>
+          </div>
+          <div class="active-guild-tooltip">Changer de serveur</div>
         </div>
-        <div class="active-guild-tooltip">Changer de serveur</div>
-      </div>
 
-      <!-- Select conservé masqué pour la compatibilité JS -->
-      <select id="guild-select" style="display: none;">
-        <option value="">-- Choisir un serveur --</option>
-      </select>
+        <!-- Select conservé masqué pour la compatibilité JS -->
+        <select id="guild-select" style="display: none;">
+          <option value="">-- Choisir un serveur --</option>
+        </select>
 
-      <div class="user-profile">
-        <img id="user-avatar" src="" alt="Avatar">
-        <span id="user-name">Username</span>
-        <a href="/logout" class="btn btn-logout" title="Se déconnecter"><i class="fa-solid fa-right-from-bracket"></i></a>
+        <div class="user-profile">
+          <img id="user-avatar" src="" alt="Avatar">
+          <span id="user-name">Username</span>
+          <a href="/logout" class="btn btn-logout" title="Se déconnecter"><i class="fa-solid fa-right-from-bracket"></i></a>
+        </div>
       </div>
     </header>
 
@@ -89,11 +102,20 @@
         <!-- Close button for mobile sidebar -->
         <button id="mobile-sidebar-close" class="mobile-sidebar-close-btn"><i class="fa-solid fa-xmark"></i></button>
 
+        <!-- En-tête du menu -->
+        <div class="sidebar-header">
+          <div class="sidebar-header-icon"><i class="fa-solid fa-layer-group"></i></div>
+          <div class="sidebar-header-text">
+            <span class="sidebar-header-title">Navigation</span>
+            <span class="sidebar-header-sub">Modules de configuration</span>
+          </div>
+        </div>
+
         <!-- Recherche rapide d'onglet -->
-        <div style="padding: 0 5px 15px 5px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 15px;">
+        <div class="sidebar-search-wrapper">
           <div style="position: relative;">
-            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #8e9297; font-size: 0.85rem;"></i>
-            <input type="text" id="sidebar-tab-search" placeholder="🔍 Rechercher une fonction..." style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 8px 10px 8px 32px; color: #fff; font-size: 0.85rem; outline: none;">
+            <i class="fa-solid fa-magnifying-glass sidebar-search-icon"></i>
+            <input type="text" id="sidebar-tab-search" placeholder="Rechercher une fonction...">
           </div>
         </div>
 
