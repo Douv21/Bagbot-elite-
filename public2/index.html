@@ -355,94 +355,75 @@
             </div>
 
             <form id="form-boost-config" class="inner-form">
-              <div class="row">
-                <div class="col-md-7">
-                  <div class="card glass mb-4">
-                    <h3 style="color: #fff; margin-bottom: 15px;">⚙️ Configuration de l'Annonce de Boost</h3>
-
-                    <div class="form-group" style="margin-bottom: 15px;">
-                      <label class="custom-checkbox-container" style="color: #fff; font-weight: 600;">
-                        <input type="checkbox" id="boost_enabled" checked>
-                        <span class="checkmark"></span>
-                        Activer l'annonce et les remerciements de Boost de serveur
-                      </label>
-                    </div>
-
-                    <div class="form-row">
-                      <div class="form-group">
-                        <label for="boost_channel"><i class="fa-solid fa-hashtag"></i> Salon d'annonce du Boost :</label>
-                        <select id="boost_channel" class="channel-select custom-select">
-                          <option value="">Sélectionner un salon...</option>
-                        </select>
-                      </div>
-                      <div class="form-group">
-                        <label for="boost_color"><i class="fa-solid fa-palette"></i> Couleur de l'Embed :</label>
-                        <input type="color" id="boost_color" value="#F47FFF" class="custom-input" style="height: 42px; padding: 2px; cursor: pointer;">
-                      </div>
-                    </div>
-
-                    <p class="description-text" style="font-size: 0.82rem; margin-bottom: 4px;">Le titre et le message se modifient directement dans l'aperçu Discord cliquable ci-contre.</p>
-                    <small style="color: #8e9297; display: block; margin-bottom: 12px;">
-                      Variables disponibles : <code>{user}</code>, <code>{user.mention}</code>, <code>{user.name}</code>, <code>{server}</code>, <code>{boosts.count}</code>, <code>{boosts.level}</code>
-                    </small>
-
-                    <div class="form-row">
-                      <div class="form-group">
-                        <label for="boost_reward_money"><i class="fa-solid fa-coins" style="color: #f1c40f;"></i> Bonus Pièces d'économie :</label>
-                        <input type="number" id="boost_reward_money" class="custom-input" placeholder="5000" value="5000" min="0">
-                      </div>
-                      <div class="form-group">
-                        <label for="boost_reward_karma"><i class="fa-solid fa-star" style="color: #e74c3c;"></i> Bonus Karma :</label>
-                        <input type="number" id="boost_reward_karma" class="custom-input" placeholder="50" value="50" min="0">
-                      </div>
-                    </div>
-
-                    <div class="form-group">
-                      <label for="boost_image_url"><i class="fa-solid fa-image"></i> URL de l'image / GIF (optionnel, ou cliquez sur l'icône de téléversement dans l'aperçu) :</label>
-                      <input type="url" id="boost_image_url" class="custom-input" placeholder="https://media.giphy.com/media/...">
-                    </div>
-
-                    <div style="margin-top: 20px;">
-                      <button type="submit" class="btn btn-save" style="background: #F47FFF; color: #fff;">
-                        <i class="fa-solid fa-floppy-disk"></i> Enregistrer la configuration Boost
-                      </button>
-                    </div>
+              <div class="card glass mb-4">
+                <div class="embed-control-strip">
+                  <div class="form-group strip-fixed">
+                    <label class="custom-checkbox-container" style="color: #fff; font-weight: 600;">
+                      <input type="checkbox" id="boost_enabled" checked>
+                      <span class="checkmark"></span>
+                      Activer
+                    </label>
                   </div>
+                  <div class="form-group strip-grow">
+                    <label for="boost_channel"><i class="fa-solid fa-hashtag"></i> Salon d'annonce du Boost :</label>
+                    <select id="boost_channel" class="channel-select custom-select">
+                      <option value="">Sélectionner un salon...</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="boost_reward_money"><i class="fa-solid fa-coins" style="color: #f1c40f;"></i> Bonus Pièces :</label>
+                    <input type="number" id="boost_reward_money" class="custom-input" placeholder="5000" value="5000" min="0">
+                  </div>
+                  <div class="form-group">
+                    <label for="boost_reward_karma"><i class="fa-solid fa-star" style="color: #e74c3c;"></i> Bonus Karma :</label>
+                    <input type="number" id="boost_reward_karma" class="custom-input" placeholder="50" value="50" min="0">
+                  </div>
+                  <button type="submit" class="btn btn-save" style="background: #F47FFF; color: #fff;">
+                    <i class="fa-solid fa-floppy-disk"></i> Enregistrer
+                  </button>
                 </div>
+                <small style="color: #8e9297; display: block; margin-top: 12px;">
+                  Variables disponibles : <code>{user}</code>, <code>{user.mention}</code>, <code>{user.name}</code>, <code>{server}</code>, <code>{boosts.count}</code>, <code>{boosts.level}</code>
+                </small>
+              </div>
 
-                <!-- Right: Live Discord Preview (cliquable) -->
-                <div class="col-md-5">
-                  <div class="card glass mb-4" style="position: sticky; top: 20px;">
-                    <h3>✨ Aperçu Discord en direct (cliquable)</h3>
-                    <p class="description-text" style="font-size: 0.78rem; margin-top: -4px;">Cliquez directement sur le titre, le message ou l'image ci-dessous pour les modifier.</p>
-                    <div class="discord-preview-container" style="margin-top: 15px; padding: 15px; background: #36393f; border-radius: 8px;">
-                      <div class="discord-message">
-                        <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="discord-avatar" alt="Bot Avatar" id="boost-preview-bot-avatar">
-                        <div class="discord-message-content">
-                          <div class="discord-message-header">
-                            <span class="discord-bot-name">Bagbot Elite</span>
-                            <span class="discord-bot-tag">BOT</span>
-                          </div>
+              <!-- Live Discord Preview (cliquable) — the ONLY place the embed's
+                   title, message, color and image are edited. -->
+              <div class="card glass mb-4 discord-embed-wide">
+                <h3>✨ Aperçu Discord en direct (cliquable)</h3>
+                <p class="description-text" style="font-size: 0.78rem; margin-top: -4px;">Cliquez directement sur le titre, le message, la barre de couleur ou l'image ci-dessous pour les modifier.</p>
+                <div class="discord-preview-container" style="margin-top: 15px; padding: 15px; background: #36393f; border-radius: 8px;">
+                  <div class="discord-message">
+                    <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="discord-avatar" alt="Bot Avatar" id="boost-preview-bot-avatar">
+                    <div class="discord-message-content">
+                      <div class="discord-message-header">
+                        <span class="discord-bot-name">Bagbot Elite</span>
+                        <span class="discord-bot-tag">BOT</span>
+                      </div>
 
-                          <div class="discord-embed" id="boost-preview-container" style="border-left: 4px solid #F47FFF; background: #2f3136; padding: 12px; border-radius: 4px;">
-                            <div class="discord-embed-title-container">
-                              <input type="text" id="boost_title" class="discord-embed-title-field" placeholder="🚀 Nouveau Boost de Serveur !" value="🚀 Nouveau Boost de Serveur !">
-                            </div>
-                            <div class="discord-embed-desc-container">
-                              <textarea id="boost_message" class="discord-embed-desc-field" rows="4" placeholder="Message de remerciement...">🎉 Un grand MERCI à {user.mention} d'avoir boosté **{server}** ! Grâce à toi, le serveur gagne en puissance ! 💖</textarea>
-                            </div>
-                            <div class="discord-embed-image-box" id="boost-image-box" style="min-height: 54px;">
-                              <img id="boost-preview-image" src="" alt="" style="display: none;">
-                              <div class="discord-image-input-overlay">
-                                <i class="fa-solid fa-image"></i>
-                                <span>Cliquez sur l'icône pour téléverser une image / GIF</span>
-                              </div>
-                              <label class="btn-upload-label" style="position: absolute; top: 8px; right: 8px; z-index: 2; padding: 6px 8px;" title="Téléverser une image">
-                                <i class="fa-solid fa-cloud-arrow-up"></i>
-                                <input type="file" class="file-upload-input" data-target="boost_image_url" accept="image/*" style="display: none;">
-                              </label>
-                            </div>
+                      <div class="discord-embed" id="boost-preview-container" style="border-left: 4px solid #F47FFF; background: #2f3136; padding: 12px; border-radius: 4px;">
+                        <div class="embed-color-bar-hit" title="Cliquer pour changer la couleur de l'embed">
+                          <input type="color" id="boost_color" value="#F47FFF">
+                        </div>
+                        <div class="discord-embed-title-container">
+                          <input type="text" id="boost_title" class="discord-embed-title-field" placeholder="🚀 Nouveau Boost de Serveur !" value="🚀 Nouveau Boost de Serveur !">
+                        </div>
+                        <div class="discord-embed-desc-container">
+                          <textarea id="boost_message" class="discord-embed-desc-field" rows="4" placeholder="Message de remerciement...">🎉 Un grand MERCI à {user.mention} d'avoir boosté **{server}** ! Grâce à toi, le serveur gagne en puissance ! 💖</textarea>
+                        </div>
+                        <div class="discord-embed-image-box" id="boost-image-box" style="min-height: 54px;">
+                          <img id="boost-preview-image" src="" alt="" style="display: none;">
+                          <div class="discord-image-input-overlay">
+                            <i class="fa-solid fa-image"></i>
+                            <span>Cliquez pour ajouter une image / GIF (URL) ou téléversez-la ci-contre</span>
                           </div>
+                          <div class="url-upload-wrapper" id="boost-image-url-wrap" style="display: none;">
+                            <input type="text" id="boost_image_url" placeholder="Lien de l'image / GIF (URL)..." class="discord-embed-image-url-field">
+                          </div>
+                          <label class="btn-upload-label" style="position: absolute; top: 8px; right: 8px; z-index: 2; padding: 6px 8px;" title="Téléverser une image">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <input type="file" class="file-upload-input" data-target="boost_image_url" accept="image/*" style="display: none;">
+                          </label>
                         </div>
                       </div>
                     </div>
@@ -478,14 +459,12 @@
                     <option value="">Immédiat (Tous les membres)</option>
                   </select>
                 </div>
-                <div class="form-group">
-                  <label for="embed-color-picker"><i class="fa-solid fa-palette"></i> Couleur de la barre :</label>
-                  <input type="color" id="embed-color-picker" value="#00ff00" style="padding: 2px; height: 42px; width: 100%;">
-                </div>
               </div>
 
-              <!-- Interactive Discord Embed Preview -->
-              <div class="card glass discord-preview-container">
+              <!-- Interactive Discord Embed Preview — the ONLY place the
+                   embed's title, message, color, thumbnail, author, image
+                   and footer are edited (click directly on each part). -->
+              <div class="card glass discord-preview-container discord-embed-wide">
                 <div class="discord-message">
                   <div class="discord-avatar-container" id="discord-avatar-click-container" title="Cliquez pour changer l'avatar du bot">
                     <img class="discord-avatar" id="bot-avatar-preview" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Bot Avatar">
@@ -507,9 +486,13 @@
 
                     <!-- Embed Card -->
                     <div class="discord-embed" id="discord-embed-card">
-                      <!-- Left color bar -->
-                      <div class="discord-embed-left-bar" id="discord-left-bar"></div>
-                      
+                      <!-- Left color bar — click it to open the native color
+                           picker for this exact same #embed-color-picker
+                           field (previously a separate side-panel input). -->
+                      <div class="discord-embed-left-bar embed-color-bar-hit" id="discord-left-bar" title="Cliquer pour changer la couleur de l'embed">
+                        <input type="color" id="embed-color-picker" value="#00ff00">
+                      </div>
+
                       <!-- Embed Author Area -->
                       <div class="discord-embed-author-container" id="discord-author-box">
                         <img id="embed-author-icon-img" src="" alt="" style="display:none;">
@@ -2690,184 +2673,158 @@
               </div>
             </div>
 
-            <div class="row">
-              <div class="col-md-7">
-                <div class="card glass mb-4">
-                  <h3>⚙️ Configuration du Message Embed</h3>
-                  <form id="form-simple-embed" class="inner-form">
-                    <div class="form-row">
-                      <div class="form-group">
-                        <label for="simple_embed_channel"><i class="fa-solid fa-hashtag"></i> Salon de destination :</label>
-                        <select id="simple_embed_channel" required class="channel-select custom-select">
-                          <option value="">Sélectionner un salon...</option>
-                        </select>
-                      </div>
-                      <div class="form-group" id="group_select_channel_embeds" style="display: none;">
-                        <label for="select_channel_embeds"><i class="fa-solid fa-list-check"></i> Charger un Embed existant de ce salon :</label>
-                        <select id="select_channel_embeds" class="custom-select">
-                          <option value="">-- Sélectionner un message existant à charger / modifier --</option>
-                        </select>
-                      </div>
-                      <div class="form-group">
-                        <label for="simple_embed_color"><i class="fa-solid fa-palette"></i> Couleur de la barre :</label>
-                        <input type="color" id="simple_embed_color" value="#5865f2" style="padding: 2px; height: 42px; width: 100%;">
-                      </div>
-                    </div>
-
-                    <!-- Titre et Description se modifient désormais directement depuis
-                         l'aperçu Discord cliquable ci-contre (comme pour l'éditeur
-                         Arrivées & Départs). Ces champs restent en DOM (cachés) car
-                         ce sont eux que le formulaire lit/enregistre réellement. -->
-                    <div style="display: none;">
-                      <input type="text" id="simple_embed_title">
-                      <textarea id="simple_embed_desc"></textarea>
-                    </div>
-
-                    <div class="form-row">
-                      <div class="form-group">
-                        <label for="simple_embed_thumbnail_option"><i class="fa-solid fa-image"></i> Miniature (Thumbnail) :</label>
-                        <select id="simple_embed_thumbnail_option" class="custom-select">
-                          <option value="none">Aucune miniature</option>
-                          <option value="user">Mon avatar Discord (Créateur)</option>
-                          <option value="server">Avatar du serveur</option>
-                          <option value="bot">Avatar du Bot</option>
-                          <option value="custom">URL Personnalisée / Téléversement</option>
-                        </select>
-                      </div>
-                      <div class="form-group" id="group_simple_embed_custom_thumb" style="display: none;">
-                        <label for="simple_embed_custom_thumb_url">Lien Miniature (URL ou Téléversement) :</label>
-                        <div style="display: flex; gap: 8px;">
-                          <input type="text" id="simple_embed_custom_thumb_url" class="inner-input" placeholder="https://.../thumbnail.png" style="flex: 1;">
-                          <label class="btn" style="background: #9b59b6; color: #fff; margin: 0; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 0 14px; border-radius: 8px; flex-shrink: 0; white-space: nowrap;">
-                            <i class="fa-solid fa-upload"></i> Téléverser
-                            <input type="file" id="simple_embed_custom_thumb_file" accept="image/*" style="display: none;">
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="form-group">
-                      <label for="simple_embed_image"><i class="fa-solid fa-file-image"></i> Image d'illustration en bas (URL ou Téléversement) :</label>
-                      <div style="display: flex; gap: 8px;">
-                        <input type="text" id="simple_embed_image" class="inner-input" placeholder="ex: https://.../image.png ou téléversez votre fichier ci-contre" style="flex: 1;">
-                        <label class="btn" style="background: #9b59b6; color: #fff; margin: 0; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 0 14px; border-radius: 8px; flex-shrink: 0; white-space: nowrap;">
-                          <i class="fa-solid fa-upload"></i> Téléverser image
-                          <input type="file" id="simple_embed_image_file" accept="image/*" style="display: none;">
-                        </label>
-                      </div>
-                    </div>
-
-                    <!-- Nom d'auteur et Footer se modifient désormais directement depuis
-                         l'aperçu cliquable ci-contre. Le bouton "Insérer mon profil" reste
-                         utile tel quel : il pré-remplit ces deux champs (cachés) d'un clic. -->
-                    <div class="form-group" style="display: flex; flex-direction: row; align-items: center; justify-content: flex-end; margin-bottom: 4px;">
-                      <button type="button" id="btn_simple_embed_use_my_profile" class="btn" style="background: linear-gradient(135deg, #7289da, #5865f2); color: #fff; font-size: 0.78rem; padding: 3px 10px; border-radius: 6px; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto;">
-                        <i class="fa-solid fa-user-check"></i> Insérer mon profil Discord comme auteur
-                      </button>
-                    </div>
-                    <div style="display: none;">
-                      <input type="text" id="simple_embed_author_name">
-                      <input type="text" id="simple_embed_footer_text">
-                    </div>
-                    <div class="form-group" id="group_simple_embed_author_icon">
-                      <label for="simple_embed_author_icon"><i class="fa-solid fa-circle-user"></i> Icône Auteur (URL ou Téléversement) :</label>
-                      <div style="display: flex; gap: 8px;">
-                        <input type="text" id="simple_embed_author_icon" class="inner-input" placeholder="https://..." style="flex: 1;">
-                        <label class="btn" style="background: #9b59b6; color: #fff; margin: 0; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 0 14px; border-radius: 8px; flex-shrink: 0; white-space: nowrap;">
-                          <i class="fa-solid fa-upload"></i>
-                          <input type="file" id="simple_embed_author_icon_file" accept="image/*" style="display: none;">
-                        </label>
-                      </div>
-                      <small class="help-text">Vous pouvez aussi cliquer directement sur l'avatar de l'auteur dans l'aperçu ci-contre pour téléverser une icône.</small>
-                    </div>
-
-                    <div class="form-row">
-                      <div class="form-group">
-                        <label for="simple_embed_ping"><i class="fa-solid fa-bell"></i> Notification / Mention :</label>
-                        <select id="simple_embed_ping" class="custom-select">
-                          <option value="none">Aucune mention</option>
-                          <option value="everyone">@everyone</option>
-                          <option value="here">@here</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div class="form-group" style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-top: 10px;">
-                      <label for="simple_embed_edit_msg_id"><i class="fa-solid fa-pen-to-square"></i> Modifier un Embed déjà existant (Optionnel) :</label>
-                      <input type="text" id="simple_embed_edit_msg_id" class="inner-input" placeholder="Insérer l'ID du message Discord pour le modifier...">
-                      <small class="help-text">Si rempli, le bot modifiera ce message existant au lieu d'en envoyer un nouveau.</small>
-                    </div>
-
-                    <div class="actions-bar" style="margin-top: 15px;">
-                      <button type="submit" class="btn btn-save" style="width: 100%; padding: 12px; font-size: 1rem;"><i class="fa-solid fa-paper-plane"></i> Envoyer le message Embed</button>
-                    </div>
-                  </form>
+            <form id="form-simple-embed" class="inner-form">
+              <!-- Slim control strip: only the fields that genuinely can't be
+                   represented by clicking on the embed preview itself. -->
+              <div class="card glass mb-4">
+                <div class="embed-control-strip">
+                  <div class="form-group strip-grow">
+                    <label for="simple_embed_channel"><i class="fa-solid fa-hashtag"></i> Salon de destination :</label>
+                    <select id="simple_embed_channel" required class="channel-select custom-select">
+                      <option value="">Sélectionner un salon...</option>
+                    </select>
+                  </div>
+                  <div class="form-group" id="group_select_channel_embeds" style="display: none;">
+                    <label for="select_channel_embeds"><i class="fa-solid fa-list-check"></i> Charger un Embed existant de ce salon :</label>
+                    <select id="select_channel_embeds" class="custom-select">
+                      <option value="">-- Sélectionner un message existant à charger / modifier --</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="simple_embed_ping"><i class="fa-solid fa-bell"></i> Notification / Mention :</label>
+                    <select id="simple_embed_ping" class="custom-select">
+                      <option value="none">Aucune mention</option>
+                      <option value="everyone">@everyone</option>
+                      <option value="here">@here</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="simple_embed_edit_msg_id"><i class="fa-solid fa-pen-to-square"></i> Modifier un Embed existant (ID, optionnel) :</label>
+                    <input type="text" id="simple_embed_edit_msg_id" class="inner-input" placeholder="ID du message à modifier...">
+                  </div>
+                  <button type="submit" class="btn btn-save"><i class="fa-solid fa-paper-plane"></i> Envoyer</button>
                 </div>
               </div>
 
-              <!-- Right: Live Discord Preview (cliquable, à la manière de
-                   l'éditeur Arrivées & Départs : les champs texte se modifient
-                   en cliquant directement dedans, les images se remplacent en
-                   cliquant sur leur icône de téléversement). -->
-              <div class="col-md-5">
-                <div class="card glass mb-4" style="position: sticky; top: 20px;">
-                  <h3>✨ Aperçu Discord en direct (cliquable)</h3>
-                  <p class="description-text" style="font-size: 0.78rem; margin-top: -4px;">Cliquez directement sur le titre, la description, l'auteur, l'image ou le bas de page ci-dessous pour les modifier.</p>
-                  <div class="discord-preview-container" style="margin-top: 15px; padding: 15px; background: #36393f; border-radius: 8px;">
-                    <div class="discord-message">
-                      <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="discord-avatar" alt="Bot Avatar" id="simple-embed-preview-bot-avatar">
-                      <div class="discord-message-content">
-                        <div class="discord-message-header">
-                          <span class="discord-bot-name" id="simple-embed-preview-bot-name">Bagbot Elite</span>
-                          <span class="discord-bot-tag">BOT</span>
+              <!-- Titre, Description, Nom d'auteur et Footer se modifient
+                   désormais directement depuis l'aperçu Discord cliquable
+                   ci-dessous. Ces champs restent en DOM (cachés) car ce sont
+                   eux que le formulaire lit/enregistre réellement. -->
+              <div style="display: none;">
+                <input type="text" id="simple_embed_title">
+                <textarea id="simple_embed_desc"></textarea>
+                <input type="text" id="simple_embed_author_name">
+                <input type="text" id="simple_embed_footer_text">
+              </div>
+
+              <!-- The live, clickable Discord preview is now the ONLY editor
+                   for this embed's visual content (title, description,
+                   color, thumbnail, author name/icon, image, footer). -->
+              <div class="card glass mb-4 discord-embed-wide">
+                <h3>✨ Aperçu Discord en direct (cliquable)</h3>
+                <p class="description-text" style="font-size: 0.78rem; margin-top: -4px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                  <span>Cliquez directement sur le titre, la description, la couleur, la miniature, l'auteur, l'image ou le bas de page ci-dessous pour les modifier.</span>
+                  <button type="button" id="btn_simple_embed_use_my_profile" class="btn-mini-action">
+                    <i class="fa-solid fa-user-check"></i> Insérer mon profil comme auteur
+                  </button>
+                </p>
+                <div class="discord-preview-container" style="margin-top: 15px; padding: 15px; background: #36393f; border-radius: 8px;">
+                  <div class="discord-message">
+                    <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="discord-avatar" alt="Bot Avatar" id="simple-embed-preview-bot-avatar">
+                    <div class="discord-message-content">
+                      <div class="discord-message-header">
+                        <span class="discord-bot-name" id="simple-embed-preview-bot-name">Bagbot Elite</span>
+                        <span class="discord-bot-tag">BOT</span>
+                      </div>
+                      <div id="simple-embed-preview-mention" style="color: #00aff4; font-size: 0.9rem; margin-bottom: 4px; display: none;"></div>
+
+                      <div class="discord-embed" id="simple-embed-preview-container" style="border-left: 4px solid #5865f2; background: #2f3136; padding: 12px; border-radius: 4px;">
+                        <div class="embed-color-bar-hit" title="Cliquer pour changer la couleur de l'embed">
+                          <input type="color" id="simple_embed_color" value="#5865f2">
                         </div>
-                        <div id="simple-embed-preview-mention" style="color: #00aff4; font-size: 0.9rem; margin-bottom: 4px; display: none;"></div>
 
-                        <div class="discord-embed" id="simple-embed-preview-container" style="border-left: 4px solid #5865f2; background: #2f3136; padding: 12px; border-radius: 4px;">
-                          <div id="simple-embed-preview-author" class="discord-embed-author-container">
-                            <div class="embed-avatar-upload-wrap">
-                              <img id="simple-embed-preview-author-icon" src="" alt="" style="display: none;">
-                              <label class="embed-avatar-upload-btn" title="Téléverser une icône d'auteur">
-                                <i class="fa-solid fa-camera"></i>
-                                <input type="file" class="file-upload-input" data-target="simple_embed_author_icon" accept="image/*" style="display: none;">
-                              </label>
-                            </div>
-                            <input type="text" id="simple-embed-preview-author-name" class="discord-embed-author-name-field" placeholder="Auteur (Nom du serveur, etc)...">
-                          </div>
-
-                          <div class="discord-embed-title-container">
-                            <input type="text" id="simple-embed-preview-title" class="discord-embed-title-field" placeholder="Cliquez pour ajouter un titre...">
-                          </div>
-
-                          <div style="display: flex; gap: 10px; justify-content: space-between; align-items: flex-start;">
-                            <div class="discord-embed-desc-container" style="flex-grow: 1; min-width: 0;">
-                              <textarea id="simple-embed-preview-desc" class="discord-embed-desc-field" rows="3" placeholder="Cliquez pour écrire le message..."></textarea>
-                            </div>
-                            <img id="simple-embed-preview-thumbnail" src="" alt="" style="width: 60px; height: 60px; border-radius: 4px; display: none; object-fit: cover; flex-shrink: 0;">
-                          </div>
-
-                          <div class="discord-embed-image-box" id="simple-embed-image-box" style="min-height: 54px;">
-                            <img id="simple-embed-preview-image" src="" alt="" style="display: none;">
-                            <div class="discord-image-input-overlay">
-                              <i class="fa-solid fa-image"></i>
-                              <span>Cliquez sur l'icône ci-contre pour téléverser une image</span>
-                            </div>
-                            <label class="btn-upload-label" style="position: absolute; top: 8px; right: 8px; z-index: 2; padding: 6px 8px;" title="Téléverser une image">
-                              <i class="fa-solid fa-cloud-arrow-up"></i>
-                              <input type="file" class="file-upload-input" data-target="simple_embed_image" accept="image/*" style="display: none;">
+                        <div id="simple-embed-preview-author" class="discord-embed-author-container">
+                          <div class="embed-avatar-upload-wrap" id="simple-embed-author-avatar-wrap" title="Cliquer pour coller un lien d'icône, ou téléverser via l'icône caméra">
+                            <img id="simple-embed-preview-author-icon" src="" alt="" style="display: none;">
+                            <label class="embed-avatar-upload-btn" title="Téléverser une icône d'auteur">
+                              <i class="fa-solid fa-camera"></i>
+                              <input type="file" class="file-upload-input" data-target="simple_embed_author_icon" accept="image/*" style="display: none;">
                             </label>
+                            <div class="url-upload-wrapper" id="simple-embed-author-icon-url-wrap" style="display: none; position: absolute; top: 100%; left: 0; z-index: 10;">
+                              <input type="text" id="simple_embed_author_icon" placeholder="Lien de l'icône de l'auteur (URL)..." class="discord-embed-author-icon-field" style="position: static; width: 220px !important;">
+                            </div>
+                          </div>
+                          <input type="text" id="simple-embed-preview-author-name" class="discord-embed-author-name-field" placeholder="Auteur (Nom du serveur, etc)...">
+                        </div>
+
+                        <div class="discord-embed-title-container">
+                          <input type="text" id="simple-embed-preview-title" class="discord-embed-title-field" placeholder="Cliquez pour ajouter un titre...">
+                        </div>
+
+                        <div style="display: flex; gap: 10px; justify-content: space-between; align-items: flex-start;">
+                          <div class="discord-embed-desc-container" style="flex-grow: 1; min-width: 0;">
+                            <textarea id="simple-embed-preview-desc" class="discord-embed-desc-field" rows="3" placeholder="Cliquez pour écrire le message..."></textarea>
                           </div>
 
-                          <div id="simple-embed-preview-footer" class="discord-embed-footer-container">
-                            <input type="text" id="simple-embed-preview-footer-text" class="discord-embed-footer-field" placeholder="Bas de page (Footer)...">
+                          <!-- Thumbnail: click opens a mini menu (aucune / mon
+                               avatar / avatar serveur / avatar bot / URL
+                               personnalisée) instead of a separate dropdown. -->
+                          <div class="discord-embed-thumbnail-wrap" id="simple-embed-thumbnail-wrap">
+                            <div class="discord-embed-thumbnail" id="simple-embed-thumbnail-box" title="Cliquer pour choisir une miniature">
+                              <img id="simple-embed-preview-thumbnail" src="" alt="" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                              <div class="thumbnail-toggle-overlay" id="simple-embed-thumbnail-placeholder" style="opacity: 1; position: static; background: rgba(0,0,0,0.15); height: 100%;">
+                                <i class="fa-solid fa-image"></i>
+                                <span>Miniature</span>
+                              </div>
+                            </div>
+                            <div class="thumbnail-option-popover" id="simple-embed-thumbnail-popover" style="display: none;">
+                              <button type="button" class="thumbnail-option-btn" data-thumb-mode="none"><i class="fa-solid fa-ban"></i> Aucune miniature</button>
+                              <button type="button" class="thumbnail-option-btn" data-thumb-mode="user"><i class="fa-solid fa-user"></i> Mon avatar Discord</button>
+                              <button type="button" class="thumbnail-option-btn" data-thumb-mode="server"><i class="fa-solid fa-server"></i> Avatar du serveur</button>
+                              <button type="button" class="thumbnail-option-btn" data-thumb-mode="bot"><i class="fa-solid fa-robot"></i> Avatar du Bot</button>
+                              <button type="button" class="thumbnail-option-btn" data-thumb-mode="custom"><i class="fa-solid fa-link"></i> URL personnalisée</button>
+                              <div class="thumbnail-custom-row" id="group_simple_embed_custom_thumb" style="display: none;">
+                                <input type="text" id="simple_embed_custom_thumb_url" placeholder="https://.../thumbnail.png">
+                                <label class="btn-upload-label" title="Téléverser">
+                                  <i class="fa-solid fa-cloud-arrow-up"></i>
+                                  <input type="file" id="simple_embed_custom_thumb_file" accept="image/*" style="display: none;">
+                                </label>
+                              </div>
+                            </div>
+                            <select id="simple_embed_thumbnail_option" style="display: none;">
+                              <option value="none">Aucune miniature</option>
+                              <option value="user">Mon avatar Discord (Créateur)</option>
+                              <option value="server">Avatar du serveur</option>
+                              <option value="bot">Avatar du Bot</option>
+                              <option value="custom">URL Personnalisée / Téléversement</option>
+                            </select>
                           </div>
+                        </div>
+
+                        <div class="discord-embed-image-box" id="simple-embed-image-box" style="min-height: 54px;">
+                          <img id="simple-embed-preview-image" src="" alt="" style="display: none;">
+                          <div class="discord-image-input-overlay">
+                            <i class="fa-solid fa-image"></i>
+                            <span>Cliquez pour ajouter une image (URL) ou téléversez-la ci-contre</span>
+                          </div>
+                          <div class="url-upload-wrapper" id="simple-embed-image-url-wrap" style="display: none;">
+                            <input type="text" id="simple_embed_image" placeholder="Lien de l'image (URL)..." class="discord-embed-image-url-field">
+                          </div>
+                          <label class="btn-upload-label" style="position: absolute; top: 8px; right: 8px; z-index: 2; padding: 6px 8px;" title="Téléverser une image">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <input type="file" class="file-upload-input" data-target="simple_embed_image" accept="image/*" style="display: none;">
+                          </label>
+                        </div>
+
+                        <div id="simple-embed-preview-footer" class="discord-embed-footer-container">
+                          <input type="text" id="simple-embed-preview-footer-text" class="discord-embed-footer-field" placeholder="Bas de page (Footer)...">
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </form>
           </div>
           <!-- Tab: Support & Tickets -->
           <div id="tab-tickets" class="tab-content">

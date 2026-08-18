@@ -1304,6 +1304,250 @@ body::after {
   outline: none !important;
 }
 
+/* ===========================================================================
+   PREVIEW-ONLY EMBED EDITOR LAYOUT (Arrivées & Départs, Envoyeur d'Embeds,
+   Remerciements Boost). The live clickable Discord preview is the ONLY
+   editing surface for an embed's visual content — no side-by-side
+   form+preview columns anymore. A slim horizontal strip holds only the
+   handful of fields that genuinely can't be represented by clicking on the
+   embed itself (destination channel, mention, save button...) directly
+   above a single, wider, full-width preview card.
+   =========================================================================== */
+.embed-control-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.embed-control-strip .form-group {
+  flex: 1 1 170px;
+  min-width: 150px;
+  margin-bottom: 0;
+}
+
+.embed-control-strip .form-group.strip-grow {
+  flex: 2 1 220px;
+}
+
+.embed-control-strip .form-group.strip-fixed {
+  flex: 0 0 auto;
+}
+
+.embed-control-strip > .btn,
+.embed-control-strip .form-group > .btn {
+  height: 42px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 768px) {
+  .embed-control-strip {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Preview card gets to be wider/full-width now that it no longer shares its
+   row with a side form column. */
+.discord-embed-wide .discord-embed,
+.discord-embed-wide .discord-embed-thumbnail,
+.discord-preview-container.discord-embed-wide {
+  max-width: 100%;
+}
+
+.discord-embed-wide .discord-embed {
+  max-width: 680px;
+  /* Allow the thumbnail/author-icon click-to-edit popovers added by this
+     preview-only layout to escape the card without being clipped. */
+  overflow: visible;
+}
+
+/* Small mini action button anchored near/under the preview instead of
+   living in its own form column (e.g. "Insérer mon profil Discord comme
+   auteur"). */
+.btn-mini-action {
+  background: linear-gradient(135deg, #7289da, #5865f2);
+  color: #fff;
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  transition: filter 0.15s ease;
+}
+
+.btn-mini-action:hover {
+  filter: brightness(1.12);
+}
+
+/* Clickable color swatch overlaid directly on the embed's left accent bar
+   (or the embed card's own colored left border) — this is the SAME
+   underlying <input type="color"> field/id that used to live in the
+   separate side form, just physically relocated so the click that opens
+   the native color picker happens right on the preview. */
+.embed-color-bar-hit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 14px;
+  cursor: pointer;
+  z-index: 3;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+  transition: background 0.15s ease;
+}
+
+.embed-color-bar-hit:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.embed-color-bar-hit input[type="color"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.embed-color-bar-hit::after {
+  content: '\f53f'; /* fa-solid fa-palette */
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.55rem;
+  color: rgba(255, 255, 255, 0.9);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.embed-color-bar-hit:hover::after {
+  opacity: 1;
+}
+
+/* Makes the JS-set `.style.borderColor` on the Arrivées & Départs preview's
+   dedicated left-bar div (id="discord-left-bar") actually paint something —
+   it needs a border-style declared for border-color to render. */
+.discord-embed-left-bar {
+  border-left: 4px solid transparent;
+}
+
+/* Thumbnail mini-menu popover (Envoyeur d'Embeds): click the thumbnail box
+   in the preview to choose "aucune / mon avatar / avatar serveur / avatar
+   bot / URL personnalisée" instead of a separate side-panel dropdown. */
+.discord-embed-thumbnail-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.thumbnail-option-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  background: rgba(20, 20, 24, 0.97);
+  border: 1px solid #5865f2;
+  border-radius: 8px;
+  padding: 6px;
+  min-width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.thumbnail-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: #dcddde;
+  font-size: 0.78rem;
+  padding: 7px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.thumbnail-option-btn:hover,
+.thumbnail-option-btn.active {
+  background: rgba(88, 101, 242, 0.25);
+  color: #ffffff;
+}
+
+.thumbnail-option-btn i {
+  width: 14px;
+  text-align: center;
+  color: #5865f2;
+}
+
+.thumbnail-custom-row {
+  display: flex;
+  gap: 6px;
+  padding: 6px 4px 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 4px;
+}
+
+.thumbnail-custom-row input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  background: rgba(0, 0, 0, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #fff !important;
+  font-size: 0.72rem !important;
+  padding: 6px 8px !important;
+  border-radius: 4px !important;
+  outline: none !important;
+}
+
+.thumbnail-custom-row .btn-upload-label {
+  padding: 6px 9px;
+  font-size: 0.72rem;
+}
+
+/* Small link-style URL-paste toggle button placed next to the existing
+   upload icon on image / avatar boxes, so pasting a URL stays possible
+   even though the standalone side-panel URL field was removed. */
+.btn-url-toggle {
+  position: absolute;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #b9bbbe;
+  border-radius: 4px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.15s ease;
+}
+
+.btn-url-toggle:hover {
+  background: rgba(88, 101, 242, 0.5);
+  color: #fff;
+}
+
 /* Action GIFs Tab styling */
 .gifs-grid {
   display: grid;

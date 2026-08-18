@@ -135,6 +135,111 @@ document.addEventListener('DOMContentLoaded', () => {
     wireImageOverlayToggle('simple-embed-image-box');
   })();
 
+  // ---------------------------------------------------------------------
+  // Generic "click box to reveal an inline URL-paste field" toggle, used
+  // everywhere a side-panel URL input was removed in favour of pasting
+  // the link directly on the preview (same underlying field/id as before,
+  // matching the reveal-on-click pattern the Arrivées & Départs editor's
+  // own script.js code already uses for its image/author-icon fields).
+  // ---------------------------------------------------------------------
+  function wireUrlPasteToggle(boxId, wrapId, fieldId, excludeSelectors) {
+    const box = document.getElementById(boxId);
+    const wrap = document.getElementById(wrapId);
+    const field = document.getElementById(fieldId);
+    if (!box || !wrap) return;
+    box.addEventListener('click', (e) => {
+      if ((excludeSelectors || []).some(sel => e.target.closest(sel))) return;
+      const isOpen = wrap.style.display !== 'none' && !!wrap.style.display;
+      if (!isOpen) {
+        wrap.style.display = 'flex';
+        if (field) field.focus();
+      } else if (!field || !field.value) {
+        wrap.style.display = 'none';
+      }
+    });
+  }
+
+  // ===========================================================================
+  // 1b) SIMPLE EMBED SENDER — thumbnail mini-menu (click the thumbnail in the
+  //     preview to choose "aucune / mon avatar / avatar serveur / avatar bot /
+  //     URL personnalisée" instead of the old separate side-panel dropdown).
+  //     Writes to the same hidden #simple_embed_thumbnail_option <select>
+  //     script.js's own updatePreview()/submit logic already reads — this
+  //     never re-implements that rendering, it only dispatches 'change' on
+  //     the exact same element.
+  // ===========================================================================
+  (function setupSimpleEmbedThumbnailMenu() {
+    const box = document.getElementById('simple-embed-thumbnail-box');
+    const popover = document.getElementById('simple-embed-thumbnail-popover');
+    const select = document.getElementById('simple_embed_thumbnail_option');
+    const placeholder = document.getElementById('simple-embed-thumbnail-placeholder');
+    const thumbImg = document.getElementById('simple-embed-preview-thumbnail');
+    if (!box || !popover || !select) return;
+
+    function closePopover() {
+      popover.style.display = 'none';
+    }
+
+    box.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = popover.style.display === 'flex';
+      document.querySelectorAll('.thumbnail-option-popover').forEach(p => { p.style.display = 'none'; });
+      popover.style.display = isOpen ? 'none' : 'flex';
+    });
+
+    // Clicks inside the popover (including the custom URL field) must not
+    // bubble to the document-level "click outside closes it" listener.
+    popover.addEventListener('click', (e) => e.stopPropagation());
+
+    popover.querySelectorAll('.thumbnail-option-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.getAttribute('data-thumb-mode');
+        select.value = mode;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        select.dispatchEvent(new Event('input', { bubbles: true }));
+        popover.querySelectorAll('.thumbnail-option-btn').forEach(b => b.classList.toggle('active', b === btn));
+        if (mode === 'custom') {
+          const customInput = document.getElementById('simple_embed_custom_thumb_url');
+          if (customInput) customInput.focus();
+        } else {
+          closePopover();
+        }
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!popover.contains(e.target) && !box.contains(e.target)) closePopover();
+    });
+
+    if (thumbImg && placeholder) {
+      const syncPlaceholder = () => {
+        const hasImage = thumbImg.style.display !== 'none' && !!thumbImg.getAttribute('src');
+        placeholder.style.display = hasImage ? 'none' : 'flex';
+      };
+      new MutationObserver(syncPlaceholder).observe(thumbImg, { attributes: true, attributeFilter: ['style', 'src'] });
+      syncPlaceholder();
+    }
+  })();
+
+  // ===========================================================================
+  // 1c) SIMPLE EMBED SENDER — URL-paste affordances for the large image and
+  //     the author icon, so pasting a link stays possible now that the
+  //     standalone side-panel URL fields are gone (upload already worked via
+  //     the existing camera/cloud-upload icons in the preview).
+  // ===========================================================================
+  wireUrlPasteToggle(
+    'simple-embed-image-box',
+    'simple-embed-image-url-wrap',
+    'simple_embed_image',
+    ['.url-upload-wrapper', '.btn-upload-label']
+  );
+  wireUrlPasteToggle(
+    'simple-embed-author-avatar-wrap',
+    'simple-embed-author-icon-url-wrap',
+    'simple_embed_author_icon',
+    ['.url-upload-wrapper', '.embed-avatar-upload-btn']
+  );
+
   // ===========================================================================
   // 2) REMERCIEMENTS BOOST — brand new clickable preview (no pre-existing
   //    preview logic in script.js for this section, so this is fully new,
@@ -171,6 +276,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     render();
     wireImageOverlayToggle('boost-image-box');
+    wireUrlPasteToggle(
+      'boost-image-box',
+      'boost-image-url-wrap',
+      'boost_image_url',
+      ['.url-upload-wrapper', '.btn-upload-label']
+    );
   })();
 
   // ===========================================================================
