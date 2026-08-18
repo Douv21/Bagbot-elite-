@@ -55,33 +55,73 @@ module.exports = {
       });
     }
 
-    // Création des 4 boutons interactifs SFW / NSFW
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('av_action_sfw').setLabel('Action SFW 🟢').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId('av_verite_sfw').setLabel('Vérité SFW 💬').setStyle(ButtonStyle.Primary),
-      new ButtonBuilder().setCustomId('av_action_nsfw').setLabel('Action NSFW 🔞').setStyle(ButtonStyle.Danger),
-      new ButtonBuilder().setCustomId('av_verite_nsfw').setLabel('Vérité NSFW 💋').setStyle(ButtonStyle.Secondary)
-    );
+    // Si mode SFW spécifié
+    if (chosenMode === 'sfw') {
+      const rowSfw = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('av_action_sfw').setLabel('Action 🎬').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId('av_verite_sfw').setLabel('Vérité 💬').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('av_select_mode').setLabel('Changer de mode 🔄').setStyle(ButtonStyle.Secondary)
+      );
 
-    // Si les deux options sont spécifiées directement via la commande slash
-    if (chosenType && chosenMode) {
-      const question = getRandomActionVeriteItem(guildId, chosenType, chosenMode);
+      if (chosenType) {
+        const question = getRandomActionVeriteItem(guildId, chosenType, 'sfw');
+        const embed = new EmbedBuilder()
+          .setTitle(`🎲 Action ou Vérité — ${chosenType === 'action' ? 'Action 🎬' : 'Vérité 💬'}`)
+          .setDescription(`<@${interaction.user.id}>, voici ton défi SFW :\n\n>>> **${question}**`)
+          .setColor(chosenType === 'action' ? '#2ECC71' : '#3498DB')
+          .setFooter({ text: 'Mode : SFW 🟢 (Tout public)' })
+          .setTimestamp();
+        return interaction.reply({ embeds: [embed], components: [rowSfw], ephemeral: false });
+      }
+
       const embed = new EmbedBuilder()
-        .setTitle(`🎲 Action ou Vérité — ${chosenType === 'action' ? 'Action 🎬' : 'Vérité 💬'}`)
-        .setDescription(`<@${interaction.user.id}>, voici ton défi :\n\n>>> **${question}**`)
-        .setColor(chosenMode === 'nsfw' ? '#E74C3C' : (chosenType === 'action' ? '#2ECC71' : '#3498DB'))
-        .setFooter({ text: `Mode : ${chosenMode === 'sfw' ? 'SFW 🟢 (Tout public)' : 'NSFW 🔞 (Adulte +18)'}` })
+        .setTitle('🎲 Action ou Vérité — Mode SFW 🟢')
+        .setDescription(`<@${interaction.user.id}> a lancé une partie en **Mode SFW 🟢** !\n\nCliquez ci-dessous pour tirer une **Action** ou une **Vérité** :`)
+        .setColor('#2ECC71')
+        .setFooter({ text: 'Mode : SFW 🟢 (Tout public)' })
         .setTimestamp();
-
-      return interaction.reply({ embeds: [embed], components: [row] });
+      return interaction.reply({ embeds: [embed], components: [rowSfw], ephemeral: false });
     }
 
-    // Sinon, afficher l'embed menu avec choix
+    // Si mode NSFW spécifié
+    if (chosenMode === 'nsfw') {
+      const rowNsfw = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('av_action_nsfw').setLabel('Action 🔥').setStyle(ButtonStyle.Danger),
+        new ButtonBuilder().setCustomId('av_verite_nsfw').setLabel('Vérité 💋').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('av_select_mode').setLabel('Changer de mode 🔄').setStyle(ButtonStyle.Secondary)
+      );
+
+      if (chosenType) {
+        const question = getRandomActionVeriteItem(guildId, chosenType, 'nsfw');
+        const embed = new EmbedBuilder()
+          .setTitle(`🎲 Action ou Vérité — ${chosenType === 'action' ? 'Action 🎬' : 'Vérité 💬'}`)
+          .setDescription(`<@${interaction.user.id}>, voici ton défi NSFW :\n\n>>> **${question}**`)
+          .setColor('#E74C3C')
+          .setFooter({ text: 'Mode : NSFW 🔞 (Adulte +18)' })
+          .setTimestamp();
+        return interaction.reply({ embeds: [embed], components: [rowNsfw], ephemeral: false });
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle('🎲 Action ou Vérité — Mode NSFW 🔞')
+        .setDescription(`<@${interaction.user.id}> a lancé une partie en **Mode NSFW 🔞** !\n\nCliquez ci-dessous pour tirer une **Action** ou une **Vérité** :`)
+        .setColor('#E74C3C')
+        .setFooter({ text: 'Mode : NSFW 🔞 (Adulte +18)' })
+        .setTimestamp();
+      return interaction.reply({ embeds: [embed], components: [rowNsfw], ephemeral: false });
+    }
+
+    // Si aucun mode spécifié : afficher le menu de sélection de mode
+    const rowMode = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('av_mode_sfw').setLabel('🟢 Mode SFW (Tout Public)').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId('av_mode_nsfw').setLabel('🔞 Mode NSFW (Adulte +18)').setStyle(ButtonStyle.Danger)
+    );
+
     const embed = new EmbedBuilder()
       .setTitle('🎲 Action ou Vérité (Truth or Dare)')
       .setDescription(
         `Prêt(e) à relever le défi ?\n` +
-        `Choisissez ci-dessous votre mode (**SFW** ou **NSFW**) et le type de défi (**Action** ou **Vérité**) !`
+        `Choisissez ci-dessous votre mode de jeu :`
       )
       .setColor('#7289DA')
       .addFields(
@@ -91,6 +131,6 @@ module.exports = {
       .setFooter({ text: 'B&G Elite • Action ou Vérité' })
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed], components: [row] });
+    await interaction.reply({ embeds: [embed], components: [rowMode], ephemeral: false });
   }
 };

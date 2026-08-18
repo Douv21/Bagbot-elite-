@@ -424,25 +424,81 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ content: '❌ Impossible de retirer les permissions de ce rôle.', ephemeral: true });
       }
     } else if (customId.startsWith('av_')) {
-      const parts = customId.split('_');
-      const choix = parts[1] || 'action'; // 'action' ou 'verite'
-      let mode = parts[2] || 'sfw'; // 'sfw' ou 'nsfw'
+      const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+      const { getActionVeriteConfig, getRandomActionVeriteItem } = require('./database/db');
       const guildId = interaction.guild ? interaction.guild.id : 'DM';
 
-      // Pour les anciens boutons `av_action` / `av_verite`
-      if (!parts[2]) {
-        if (interaction.guild && interaction.channel?.nsfw) {
-          mode = 'nsfw';
-        } else {
-          mode = 'sfw';
+      // Bouton : Sélection du mode
+      if (customId === 'av_select_mode') {
+        const rowMode = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('av_mode_sfw').setLabel('🟢 Mode SFW (Tout Public)').setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId('av_mode_nsfw').setLabel('🔞 Mode NSFW (Adulte +18)').setStyle(ButtonStyle.Danger)
+        );
+
+        const embed = new EmbedBuilder()
+          .setTitle('🎲 Action ou Vérité — Choix du Mode')
+          .setDescription(`<@${interaction.user.id}> souhaite choisir le mode de jeu !\n\nChoisissez ci-dessous :`)
+          .setColor('#7289DA')
+          .setTimestamp();
+
+        return interaction.reply({ embeds: [embed], components: [rowMode], ephemeral: false });
+      }
+
+      // Bouton : Clic sur "Mode SFW"
+      if (customId === 'av_mode_sfw') {
+        const rowSfw = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('av_action_sfw').setLabel('Action 🎬').setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId('av_verite_sfw').setLabel('Vérité 💬').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId('av_select_mode').setLabel('Changer de mode 🔄').setStyle(ButtonStyle.Secondary)
+        );
+
+        const embed = new EmbedBuilder()
+          .setTitle('🎲 Action ou Vérité — Mode SFW 🟢')
+          .setDescription(`<@${interaction.user.id}> a sélectionné le **Mode SFW 🟢** !\n\nCliquez ci-dessous pour tirer un défi :`)
+          .setColor('#2ECC71')
+          .setFooter({ text: 'Mode : SFW 🟢 (Tout public)' })
+          .setTimestamp();
+
+        return interaction.reply({ embeds: [embed], components: [rowSfw], ephemeral: false });
+      }
+
+      // Bouton : Clic sur "Mode NSFW"
+      if (customId === 'av_mode_nsfw') {
+        if (interaction.guild && !interaction.channel?.nsfw) {
+          return interaction.reply({
+            content: '🔞 **Mode NSFW réservé** : Le mode NSFW ne peut être joué que dans les salons soumis à la limite d\'âge (+18) ou en Message Privé (DM).',
+            ephemeral: true
+          });
         }
+
+        const rowNsfw = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('av_action_nsfw').setLabel('Action 🔥').setStyle(ButtonStyle.Danger),
+          new ButtonBuilder().setCustomId('av_verite_nsfw').setLabel('Vérité 💋').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId('av_select_mode').setLabel('Changer de mode 🔄').setStyle(ButtonStyle.Secondary)
+        );
+
+        const embed = new EmbedBuilder()
+          .setTitle('🎲 Action ou Vérité — Mode NSFW 🔞')
+          .setDescription(`<@${interaction.user.id}> a sélectionné le **Mode NSFW 🔞** !\n\nCliquez ci-dessous pour tirer un défi :`)
+          .setColor('#E74C3C')
+          .setFooter({ text: 'Mode : NSFW 🔞 (Adulte +18)' })
+          .setTimestamp();
+
+        return interaction.reply({ embeds: [embed], components: [rowNsfw], ephemeral: false });
+      }
+
+      // Boutons spécifiques de défi : av_action_sfw, av_verite_sfw, av_action_nsfw, av_verite_nsfw
+      const parts = customId.split('_');
+      const choix = parts[1] || 'action';
+      let mode = parts[2] || 'sfw';
+
+      if (!parts[2]) {
+        mode = (interaction.guild && interaction.channel?.nsfw) ? 'nsfw' : 'sfw';
       }
 
       // Contrôle de salon configuré sur le serveur (si configuré)
       if (interaction.guild) {
-        const { getActionVeriteConfig } = require('./database/db');
         const config = getActionVeriteConfig(guildId);
-        
         if (config.sfw_channel_id || config.nsfw_channel_id) {
           const isSfwAllowed = config.sfw_channel_id && interaction.channel.id === config.sfw_channel_id;
           const isNsfwAllowed = config.nsfw_channel_id && interaction.channel.id === config.nsfw_channel_id;
@@ -459,7 +515,7 @@ client.on('interactionCreate', async interaction => {
         }
       }
 
-      // Contrôle NSFW : Le mode NSFW nécessite un salon NSFW sur serveur ou d'être en DM
+      // Contrôle NSFW
       if (mode === 'nsfw' && interaction.guild && !interaction.channel?.nsfw) {
         return interaction.reply({
           content: '🔞 **Mode NSFW réservé** : Le mode NSFW ne peut être joué que dans les salons soumis à la limite d\'âge (+18) ou en Message Privé (DM).',
@@ -467,7 +523,6 @@ client.on('interactionCreate', async interaction => {
         });
       }
 
-      const { getRandomActionVeriteItem } = require('./database/db');
       const question = getRandomActionVeriteItem(guildId, choix, mode);
 
       const embed = new EmbedBuilder()
@@ -477,19 +532,23 @@ client.on('interactionCreate', async interaction => {
         .setFooter({ text: `Mode : ${mode === 'sfw' ? 'SFW 🟢 (Tout public)' : 'NSFW 🔞 (Adulte +18)'}` })
         .setTimestamp();
 
-      const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('av_action_sfw').setLabel('Action SFW 🟢').setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId('av_verite_sfw').setLabel('Vérité SFW 💬').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('av_action_nsfw').setLabel('Action NSFW 🔞').setStyle(ButtonStyle.Danger),
-        new ButtonBuilder().setCustomId('av_verite_nsfw').setLabel('Vérité NSFW 💋').setStyle(ButtonStyle.Secondary)
-      );
+      let row;
+      if (mode === 'sfw') {
+        row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('av_action_sfw').setLabel('Action 🎬').setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId('av_verite_sfw').setLabel('Vérité 💬').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId('av_select_mode').setLabel('Changer de mode 🔄').setStyle(ButtonStyle.Secondary)
+        );
+      } else {
+        row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('av_action_nsfw').setLabel('Action 🔥').setStyle(ButtonStyle.Danger),
+          new ButtonBuilder().setCustomId('av_verite_nsfw').setLabel('Vérité 💋').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId('av_select_mode').setLabel('Changer de mode 🔄').setStyle(ButtonStyle.Secondary)
+        );
+      }
 
       try {
-        // Poster un TOUT NOUVEAU message avec un nouvel embed + de nouveaux boutons,
-        // au lieu d'éditer le message existant (interaction.update() modifiait la
-        // question en place sur le même message à chaque clic).
-        await interaction.reply({ embeds: [embed], components: [row] });
+        await interaction.reply({ embeds: [embed], components: [row], ephemeral: false });
       } catch (err) {
         console.error(err);
       }
