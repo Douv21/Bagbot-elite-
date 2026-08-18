@@ -6,21 +6,12 @@ module.exports = {
     .setName('action-verite')
     .setDescription('Lancer une partie d\'Action ou Vérité (Truth or Dare)')
     .setContexts([0, 1, 2])
-    .setIntegrationTypes([0, 1])
-    .addStringOption(option =>
-      option.setName('mode')
-        .setDescription('Mode de jeu en MP uniquement (SFW tout public ou NSFW +18)')
-        .setRequired(false)
-        .addChoices(
-          { name: '🟢 SFW (Tout public)', value: 'sfw' },
-          { name: '🔞 NSFW (Adulte +18)', value: 'nsfw' }
-        )
-    ),
+    .setIntegrationTypes([0, 1]),
 
   async execute(interaction) {
     const guildId = interaction.guild ? interaction.guild.id : 'DM';
 
-    // ── SUR SERVEUR : Mode 100% géré par le salon du Dashboard (Pas de choix de mode) ────
+    // ── SUR SERVEUR : Mode 100% géré par le salon du Dashboard (Aucune option) ────
     if (interaction.guild) {
       const config = getActionVeriteConfig(guildId);
       if (config.sfw_channel_id || config.nsfw_channel_id) {
@@ -41,7 +32,6 @@ module.exports = {
       );
       const category = isNsfw ? 'nsfw' : 'sfw';
 
-      // Boutons Action / Vérité UNIQUEMENT sur serveur (pas de bouton de changement de mode)
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(`av_action_${category}`).setLabel('Action 🎬').setStyle(category === 'nsfw' ? ButtonStyle.Danger : ButtonStyle.Success),
         new ButtonBuilder().setCustomId(`av_verite_${category}`).setLabel('Vérité 💬').setStyle(ButtonStyle.Primary)
@@ -57,26 +47,7 @@ module.exports = {
       return interaction.reply({ embeds: [embed], components: [row] });
     }
 
-    // ── EN MP (DM) : Sélection du mode si spécifié, sinon menu de choix ────────
-    const chosenMode = interaction.options.getString('mode');
-    if (chosenMode) {
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`av_action_${chosenMode}`).setLabel('Action 🎬').setStyle(chosenMode === 'nsfw' ? ButtonStyle.Danger : ButtonStyle.Success),
-        new ButtonBuilder().setCustomId(`av_verite_${chosenMode}`).setLabel('Vérité 💬').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('av_select_mode').setLabel('Changer de mode 🔄').setStyle(ButtonStyle.Secondary)
-      );
-
-      const embed = new EmbedBuilder()
-        .setTitle(`🎲 Action ou Vérité en MP ${chosenMode === 'nsfw' ? '🔞' : '🟢'}`)
-        .setDescription(`<@${interaction.user.id}> a lancé une partie d'**Action ou Vérité** !\n\nCliquez ci-dessous pour tirer une **Action** ou une **Vérité** :`)
-        .setColor(chosenMode === 'nsfw' ? '#E74C3C' : '#2ECC71')
-        .setFooter({ text: `B&G Elite • MP (${chosenMode.toUpperCase()})` })
-        .setTimestamp();
-
-      return interaction.reply({ embeds: [embed], components: [row] });
-    }
-
-    // Si aucun mode spécifié en MP : afficher le choix SFW / NSFW
+    // ── EN MP (DM) : Afficher le choix interactif SFW / NSFW ──────────────────
     const rowMode = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('av_mode_sfw').setLabel('🟢 Mode SFW (Tout Public)').setStyle(ButtonStyle.Success),
       new ButtonBuilder().setCustomId('av_mode_nsfw').setLabel('🔞 Mode NSFW (Adulte +18)').setStyle(ButtonStyle.Danger)
