@@ -102,7 +102,7 @@ module.exports = {
     await interaction.editReply({
       content: mention,
       embeds: [embed],
-      allowedMentions: mention ? { parse: ['users'], users: [target.id] } : { parse: [] }
+      allowedMentions: { parse: ['users'] }
     });
   }
 };
