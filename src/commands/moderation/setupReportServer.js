@@ -391,7 +391,7 @@ module.exports = {
         .setDescription(
           `Bienvenue sur la plateforme centrale de signalement et de protection inter-serveurs.\n\n` +
           `**1. Utilité & Objectif :** Ce serveur permet de recenser, traiter et diffuser les signalements de comportements graves (harcèlement, forceurs, mineurs en danger, arnaqueurs, raids).\n\n` +
-          `**2. Preuves Obligatoires :** Tout signalement doit être accompagné de captures d'écran NON censurées et de l'ID Discord complet (` `<@ID>` `) des personnes ou serveurs incriminés.\n\n` +
+          `**2. Preuves Obligatoires :** Tout signalement doit être accompagné de captures d'écran NON censurées et de l'ID Discord complet des personnes ou serveurs incriminés.\n\n` +
           `**3. Interdiction Absolue de Faux Signalement :** Tout faux signalement ou diffamation entraînera un bannissement définitif immédiat et un blacklisting.\n\n` +
           `**4. Confidentialité :** Pour les cas extrêmement graves ou sensibles, utilisez le salon <#${chTicket.id}> pour échanger en privé avec la <@&${roleReportTeam.id}>.`
         )
