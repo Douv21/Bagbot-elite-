@@ -459,9 +459,9 @@ module.exports = {
           `🔒 **ÉTAPES D'ACCÈS AU SERVEUR :**\n` +
           `1️⃣ **Étape 1 :** Cliquez sur le bouton ci-dessous pour accepter le règlement et recevoir le rôle <@&${roleMembre.id}>. Cela débloquera l'accès à l'espace Ticket et aux salons de base.\n` +
           `2️⃣ **Étape 2 :** Rendez-vous dans <#${chTicket.id}> et ouvrez un **Ticket de Présentation**.\n` +
-          `3️⃣ **Étape 3 :** Un membre de l'**<@&${roleSafecordTeam.id}>** vérifiera votre serveur et vous attribuera vos accès exclusifs (` `<@&${roleOwnerOther.id}>` `, ` `<@&${roleCoOwnerOther.id}>` `, ` `<@&${roleStaffOther.id}>` `).\n\n` +
+          `3️⃣ **Étape 3 :** Un membre de l'**<@&${roleSafecordTeam.id}>** vérifiera votre serveur et vous attribuera vos accès exclusifs (<@&${roleOwnerOther.id}>, <@&${roleCoOwnerOther.id}>, <@&${roleStaffOther.id}>).\n\n` +
           `📌 **OBLIGATION PSEUDO & NOM DE SERVEUR :**\n` +
-          `Chaque membre arrivant sur ce serveur **DOIT obligatoirement ajouter le nom de son serveur à côté de son pseudo Discord** (Exemple : ` `Pseudo | NomDeVotreServeur` `).\n\n` +
+          `Chaque membre arrivant sur ce serveur **DOIT obligatoirement ajouter le nom de son serveur à côté de son pseudo Discord** (Exemple : **Pseudo | NomDeVotreServeur**).\n\n` +
           `**1. Respect des TOS Discord :** L'ensemble des membres et du staff doit respecter à 100 % les Conditions d'Utilisation de Discord (Terms of Service) et les Directives de la Communauté.\n\n` +
           `**2. Preuves Obligatoires :** Tout signalement doit être accompagné de captures d'écran NON censurées et de l'ID Discord complet des personnes ou serveurs incriminés.\n\n` +
           `**3. Interdiction Absolue de Faux Signalement :** Tout faux signalement ou diffamation entraînera un bannissement définitif immédiat et un blacklisting.`
@@ -484,7 +484,7 @@ module.exports = {
         .setTitle('🎭 OBTENTION DES RÔLES STAFF & FONDATEUR INTER-SERVEUR')
         .setDescription(
           `Afin de garantir la sécurité du réseau **Safecord**, les rôles de statut ne sont **PAS attribués automatiquement**.\n\n` +
-          `📌 **Condition préalable :** N'oubliez pas de renommer votre pseudo sur ce serveur sous la forme : ` `Pseudo | NomDeVotreServeur` `.\n\n` +
+          `📌 **Condition préalable :** N'oubliez pas de renommer votre pseudo sur ce serveur sous la forme : **Pseudo | NomDeVotreServeur**.\n\n` +
           `**Comment obtenir votre rôle ?**\n` +
           `Si vous êtes Fondateur, Co-Fondateur ou membre du Staff d'un autre serveur Discord, vous devez **ouvrir un ticket de présentation** dans <#${chTicket.id}>.\n\n` +
           `>>> **Rôles soumis à vérification par l'Équipe Safecord :**\n` +
@@ -635,9 +635,9 @@ module.exports = {
         .setTitle('📩 ESPACE TICKETS — PRÉSENTATION STAFF & SIGNALEMENT CONFIDENTIEL')
         .setDescription(
           `Bienvenue dans l'espace Ticket de **Safecord** !\n\n` +
-          `📌 **RAPPEL OBLIGATOIRE :** Avant d'ouvrir votre ticket, merci d'avoir ajouté le nom de votre serveur à côté de votre pseudo (Exemple : ` `Pseudo | NomDeVotreServeur` `).\n\n` +
+          `📌 **RAPPEL OBLIGATOIRE :** Avant d'ouvrir votre ticket, merci d'avoir ajouté le nom de votre serveur à côté de votre pseudo (Exemple : **Pseudo | NomDeVotreServeur**).\n\n` +
           `**Pourquoi ouvrir un ticket ?**\n` +
-          `• 🎭 **Présentation Staff / Fonda :** Pour vous présenter, nous indiquer votre serveur et votre rôle afin qu'un membre de l'**<@&${roleSafecordTeam.id}>** vous attribue vos accès officiels (` `<@&${roleOwnerOther.id}>` `, ` `<@&${roleCoOwnerOther.id}>` `, ` `<@&${roleStaffOther.id}>` `).\n` +
+          `• 🎭 **Présentation Staff / Fonda :** Pour vous présenter, nous indiquer votre serveur et votre rôle afin qu'un membre de l'**<@&${roleSafecordTeam.id}>** vous attribue vos accès officiels (<@&${roleOwnerOther.id}>, <@&${roleCoOwnerOther.id}>, <@&${roleStaffOther.id}>).\n` +
           `• 🔒 **Signalement Confidentiel :** Pour échanger en toute confidentialité avec la <@&${roleDirection.id}> et l'**<@&${roleSafecordTeam.id}>**.\n\n` +
           `Cliquez sur le bouton ci-dessous pour ouvrir votre salon de ticket privé !`
         )
