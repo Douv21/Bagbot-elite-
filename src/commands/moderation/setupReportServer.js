@@ -11,7 +11,7 @@ const {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('setup-serveur-report')
-    .setDescription('🔨 Créer et configurer automatiquement un serveur de Signalement & Protection Inter-Serveurs')
+    .setDescription('🔨 Créer et configurer automatiquement un serveur de Signalement & Protection Inter-Serveurs (Forums par thème)')
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
     .setDMPermission(false),
 
@@ -104,7 +104,7 @@ module.exports = {
         await interaction.member.roles.add(roleDirection).catch(() => null);
       }
 
-      await interaction.editReply({ content: '⚙️ **[2/4] Création des catégories et des salons de signalement...**' });
+      await interaction.editReply({ content: '⚙️ **[2/4] Création des catégories, forums par thème et salons...**' });
 
       // ── 2. CREATION DES CATEGORIES & SALONS ──────────────────────────────────
 
@@ -124,21 +124,114 @@ module.exports = {
       const chBienvenue = await guild.channels.create({ name: '👋-bienvenue', type: ChannelType.GuildText, parent: catAccueil.id });
       const chRoles = await guild.channels.create({ name: '🎭-rôles', type: ChannelType.GuildText, parent: catAccueil.id });
 
-      // CAT 2 : SIGNALEMENTS & REPORTS
-      const catSignalements = await guild.channels.create({
-        name: '🚨 │ SIGNALEMENTS & REPORTS',
+      // CAT 2 : SIGNALEMENTS MEMBRES (FORUMS PAR THÈME)
+      const catSignalementsMembres = await guild.channels.create({
+        name: '🚨 │ SIGNALEMENTS MEMBRES (FORUMS)',
         type: ChannelType.GuildCategory,
         permissionOverwrites: [
-          { id: everyoneRole.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.AttachFiles] },
-          { id: roleMuted.id, deny: [PermissionsBitField.Flags.SendMessages] }
+          { id: everyoneRole.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.SendMessagesInThreads, PermissionsBitField.Flags.CreatePublicThreads, PermissionsBitField.Flags.AttachFiles] },
+          { id: roleMuted.id, deny: [PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.SendMessagesInThreads] }
         ]
       });
 
-      const chSignalementMembre = await guild.channels.create({ name: '🚨-signalement-membre', type: ChannelType.GuildText, parent: catSignalements.id });
-      const chSignalementServeur = await guild.channels.create({ name: '⚠️-signalement-serveur', type: ChannelType.GuildText, parent: catSignalements.id });
-      const chPreuves = await guild.channels.create({ name: '📑-dossiers-et-preuves', type: ChannelType.GuildText, parent: catSignalements.id });
+      // Forum Harcèlement
+      const forumHarcèlement = await guild.channels.create({
+        name: '🚨-harcèlement-et-menaces',
+        type: ChannelType.GuildForum,
+        parent: catSignalementsMembres.id,
+        topic: 'Ouvrez un sujet pour signaler des faits de harcèlement, cyberharcèlement, menaces ou chantage.',
+        availableTags: [
+          { name: '🚨 Urgent', emoji: { name: '🚨' } },
+          { name: '💬 Harcèlement', emoji: { name: '💬' } },
+          { name: '⚠️ Menaces', emoji: { name: '⚠️' } },
+          { name: '✅ Traité', emoji: { name: '✅' } }
+        ]
+      });
 
-      // CAT 3 : ESPACE TICKETS & SUPPORT
+      // Forum Forceurs & Doxxing
+      const forumForceurs = await guild.channels.create({
+        name: '⛔-forceurs-et-doxxing',
+        type: ChannelType.GuildForum,
+        parent: catSignalementsMembres.id,
+        topic: 'Ouvrez un sujet pour signaler des forceurs insistants, doxxing, divulgation d\'informations privées ou comportement toxique.',
+        availableTags: [
+          { name: '⛔ Forceur', emoji: { name: '⛔' } },
+          { name: '🔒 Doxxing', emoji: { name: '🔒' } },
+          { name: '⚠️ Toxique', emoji: { name: '⚠️' } },
+          { name: '✅ Traité', emoji: { name: '✅' } }
+        ]
+      });
+
+      // Forum Danger Mineurs
+      const forumMineurs = await guild.channels.create({
+        name: '🔞-mineurs-et-danger',
+        type: ChannelType.GuildForum,
+        parent: catSignalementsMembres.id,
+        topic: 'Ouvrez un sujet pour signaler tout comportement inapproprié/suspect envers des mineurs ou mise en danger.',
+        availableTags: [
+          { name: '🔞 Danger Mineur', emoji: { name: '🔞' } },
+          { name: '🚨 Urgence Absolue', emoji: { name: '🚨' } },
+          { name: '🔒 Transmis Discord', emoji: { name: '🔒' } },
+          { name: '✅ Traité', emoji: { name: '✅' } }
+        ]
+      });
+
+      // Forum Arnaques & Vols
+      const forumArnaques = await guild.channels.create({
+        name: '💸-arnaques-et-vols',
+        type: ChannelType.GuildForum,
+        parent: catSignalementsMembres.id,
+        topic: 'Ouvrez un sujet pour signaler une arnaque, un vol de compte/serveur, ou des offres frauduleuses.',
+        availableTags: [
+          { name: '💸 Arnaque', emoji: { name: '💸' } },
+          { name: '🔑 Vol Compte/Serveur', emoji: { name: '🔑' } },
+          { name: '⚠️ Frauduleux', emoji: { name: '⚠️' } },
+          { name: '✅ Traité', emoji: { name: '✅' } }
+        ]
+      });
+
+      // CAT 3 : SIGNALEMENTS SERVEURS (FORUMS PAR THÈME)
+      const catSignalementsServeurs = await guild.channels.create({
+        name: '⚠️ │ SIGNALEMENTS SERVEURS (FORUMS)',
+        type: ChannelType.GuildCategory,
+        permissionOverwrites: [
+          { id: everyoneRole.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.SendMessagesInThreads, PermissionsBitField.Flags.CreatePublicThreads, PermissionsBitField.Flags.AttachFiles] },
+          { id: roleMuted.id, deny: [PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.SendMessagesInThreads] }
+        ]
+      });
+
+      // Forum Raids
+      const forumRaids = await guild.channels.create({
+        name: '⚔️-raids-et-attaques',
+        type: ChannelType.GuildForum,
+        parent: catSignalementsServeurs.id,
+        topic: 'Ouvrez un sujet pour signaler un raid de serveur, une attaque de bot malveillant, un nuke ou du spam massif.',
+        availableTags: [
+          { name: '⚔️ Raid En Cours', emoji: { name: '⚔️' } },
+          { name: '🤖 Bot Malveillant', emoji: { name: '🤖' } },
+          { name: '💥 Nuke', emoji: { name: '💥' } },
+          { name: '✅ Traité', emoji: { name: '✅' } }
+        ]
+      });
+
+      // Forum Serveurs Toxiques & Illégaux
+      const forumToxiques = await guild.channels.create({
+        name: '⚠️-serveurs-toxiques-ou-illégaux',
+        type: ChannelType.GuildForum,
+        parent: catSignalementsServeurs.id,
+        topic: 'Ouvrez un sujet pour signaler un serveur ne respectant pas les TOS Discord, du contenu illégal ou malveillant.',
+        availableTags: [
+          { name: '⚠️ Violation TOS', emoji: { name: '⚠️' } },
+          { name: '🔞 Contenu Illégal', emoji: { name: '🔞' } },
+          { name: '🏴‍☠️ Malveillant', emoji: { name: '🏴‍☠️' } },
+          { name: '✅ Traité', emoji: { name: '✅' } }
+        ]
+      });
+
+      // Salon Dépôt de Preuves
+      const chPreuves = await guild.channels.create({ name: '📑-dossiers-et-preuves', type: ChannelType.GuildText, parent: catSignalementsServeurs.id });
+
+      // CAT 4 : ESPACE TICKETS & SUPPORT
       const catTickets = await guild.channels.create({
         name: '📩 │ ESPACE TICKETS & SUPPORT',
         type: ChannelType.GuildCategory,
@@ -149,7 +242,7 @@ module.exports = {
 
       const chTicket = await guild.channels.create({ name: '🎫-ouvrir-un-ticket', type: ChannelType.GuildText, parent: catTickets.id });
 
-      // CAT 4 : ENTRAIDE INTER-SERVEURS
+      // CAT 5 : ENTRAIDE INTER-SERVEURS
       const catEntraide = await guild.channels.create({
         name: '🤝 │ ENTRAIDE INTER-SERVEURS',
         type: ChannelType.GuildCategory,
@@ -185,7 +278,7 @@ module.exports = {
         ]
       });
 
-      // CAT 5 : ESPACE COMMUNAUTÉ & ÉCHANGES
+      // CAT 6 : ESPACE COMMUNAUTÉ & ÉCHANGES
       const catCommunaute = await guild.channels.create({
         name: '🌐 │ ESPACE COMMUNAUTÉ & ÉCHANGES',
         type: ChannelType.GuildCategory,
@@ -226,7 +319,7 @@ module.exports = {
       const chRecensementStaff = await guild.channels.create({ name: '📋-recensement-staff', type: ChannelType.GuildText, parent: catCommunaute.id });
       const chJuridiqueSecu = await guild.channels.create({ name: '⚖️-juridique-et-sécurité', type: ChannelType.GuildText, parent: catCommunaute.id });
 
-      // CAT 6 : ÉQUIPE REPORT & INTERNE (Privé Staff Report)
+      // CAT 7 : ÉQUIPE REPORT & INTERNE (Privé Staff Report)
       const catInterne = await guild.channels.create({
         name: '🔒 │ ÉQUIPE REPORT & INTERNE',
         type: ChannelType.GuildCategory,
@@ -241,7 +334,7 @@ module.exports = {
       await guild.channels.create({ name: '🔒-traitement-signalements', type: ChannelType.GuildText, parent: catInterne.id });
       await guild.channels.create({ name: '🔒-logs-signalements', type: ChannelType.GuildText, parent: catInterne.id });
 
-      // CAT 7 : SALONS VOCAUX
+      // CAT 8 : SALONS VOCAUX
       const catVocaux = await guild.channels.create({
         name: '🔊 │ SALONS VOCAUX',
         type: ChannelType.GuildCategory,
@@ -297,7 +390,7 @@ module.exports = {
         .setDescription(
           `Bienvenue sur la plateforme centrale de signalement et de protection inter-serveurs.\n\n` +
           `**1. Utilité & Objectif :** Ce serveur permet de recenser, traiter et diffuser les signalements de comportements graves (harcèlement, forceurs, mineurs en danger, arnaqueurs, raids).\n\n` +
-          `**2. Preuves Obligatoires :** Tout signalement doit être accompagné de capturs d'écran NON censurées et de l'ID Discord complet (` `<@ID>` `) des personnes ou serveurs incriminés.\n\n` +
+          `**2. Preuves Obligatoires :** Tout signalement doit être accompagné de captures d'écran NON censurées et de l'ID Discord complet (` `<@ID>` `) des personnes ou serveurs incriminés.\n\n` +
           `**3. Interdiction Absolue de Faux Signalement :** Tout faux signalement ou diffamation entraînera un bannissement définitif immédiat et un blacklisting.\n\n` +
           `**4. Confidentialité :** Pour les cas extrêmement graves ou sensibles, utilisez le salon <#${chTicket.id}> pour échanger en privé avec la <@&${roleReportTeam.id}>.`
         )
@@ -307,23 +400,27 @@ module.exports = {
 
       await chReglement.send({ embeds: [embedReglement] });
 
-      // Embed Consignes
+      // Embed Consignes & Forums
       const embedConsignes = new EmbedBuilder()
-        .setTitle('📌 CONSIGNES POUR EFFECTUER UN SIGNALEMENT VALIDE')
+        .setTitle('📌 CONSIGNES POUR EFFECTUER UN SIGNALEMENT DANS LES FORUMS')
         .setDescription(
-          `Afin que votre signalement soit traité rapidement par la <@&${roleReportTeam.id}>, merci de respecter le format suivant :\n\n` +
-          `**Formats de Signalement :**\n` +
-          `• 👤 **Signalement Membre :** Publiez dans <#${chSignalementMembre.id}>\n` +
-          `• 🌐 **Signalement Serveur :** Publiez dans <#${chSignalementServeur.id}>\n` +
-          `• 📑 **Dépôt de Preuves :** Ajoutez vos screenshots dans <#${chPreuves.id}>\n\n` +
-          `>>> **Modèle de Message :**\n` +
-          `• **Type de grief :** (Harcèlement / Forceur / Mineur / Raid / Arnaque)\n` +
+          `Afin que votre signalement soit classé et traité rapidement par la <@&${roleReportTeam.id}>, rendez-vous dans le salon **FORUM** correspondant au thème de votre signalement :\n\n` +
+          `🚨 **SIGNALEMENTS MEMBRES :**\n` +
+          `• <#${forumHarcèlement.id}> : Harcèlement, cyberharcèlement, menaces ou chantage.\n` +
+          `• <#${forumForceurs.id}> : Forceurs insistants, doxxing, divulgation d'infos privées.\n` +
+          `• <#${forumMineurs.id}> : Danger mineur, comportement inapproprié envers mineurs.\n` +
+          `• <#${forumArnaques.id}> : Arnaques, vols de compte/serveur, offres frauduleuses.\n\n` +
+          `⚠️ **SIGNALEMENTS SERVEURS :**\n` +
+          `• <#${forumRaids.id}> : Raids en cours, spams massifs, bots malveillants, nukes.\n` +
+          `• <#${forumToxiques.id}> : Serveurs ne respectant pas les TOS Discord ou contenus illégaux.\n\n` +
+          `>>> **Format du Post Forum :**\n` +
+          `• **Titre du post :** [PSEUDO / NOM SERVEUR] - Motif du signalement\n` +
           `• **ID Discord du membre/serveur :** (Ex: 123456789012345678)\n` +
-          `• **Description rapide :** Explication claire des faits.\n` +
-          `• **Preuves :** Captures d'écran jointes.`
+          `• **Description :** Explication synthétique et précise des faits.\n` +
+          `• **Preuves :** Déposez les captures d'écran dans le post.`
         )
         .setColor('#3498DB')
-        .setFooter({ text: `${guild.name} • Protocoles de Signalement` })
+        .setFooter({ text: `${guild.name} • Protocoles de Signalement Forums` })
         .setTimestamp();
 
       await chConsignes.send({ embeds: [embedConsignes] });
@@ -370,34 +467,33 @@ module.exports = {
           .setStyle(ButtonStyle.Primary)
       );
 
-
       await chTicket.send({ embeds: [embedTicket], components: [btnTicket] });
 
       await interaction.editReply({ content: '⚙️ **[4/4] Finalisation de la configuration...**' });
 
       // ── 4. RESUME FINAL ─────────────────────────────────────────────────────
       const summaryEmbed = new EmbedBuilder()
-        .setTitle('✅ SERVEUR REPORT & PROTECTION CRÉÉ AVEC SUCCÈS !')
+        .setTitle('✅ SERVEUR REPORT (FORUMS PAR THÈME) CRÉÉ AVEC SUCCÈS !')
         .setDescription(
-          `Le serveur de signalement et de protection inter-serveurs est maintenant **100 % opérationnel** !\n\n` +
-          `**Rôles créés :**\n` +
-          `• <@&${roleDirection.id}> (Créateur / Direction)\n` +
-          `• <@&${roleReportTeam.id}> (Équipe Modération & Report)\n` +
-          `• <@&${roleOwnerOther.id}> (Fondateurs partenaires)\n` +
-          `• <@&${roleCoOwnerOther.id}> (Co-Fondateurs partenaires)\n` +
-          `• <@&${roleStaffOther.id}> (Staffs inter-serveurs)\n` +
-          `• <@&${roleMembre.id}> / <@&${roleMuted.id}>\n\n` +
+          `Le serveur de signalement et de protection inter-serveurs avec **Forums par Thème** est maintenant **100 % opérationnel** !\n\n` +
+          `**Forums Signalements Membres :**\n` +
+          `• <#${forumHarcèlement.id}>\n` +
+          `• <#${forumForceurs.id}>\n` +
+          `• <#${forumMineurs.id}>\n` +
+          `• <#${forumArnaques.id}>\n\n` +
+          `**Forums Signalements Serveurs :**\n` +
+          `• <#${forumRaids.id}>\n` +
+          `• <#${forumToxiques.id}>\n\n` +
           `**Salons clés :**\n` +
-          `• Règlement : <#${chReglement.id}>\n` +
           `• Consignes : <#${chConsignes.id}>\n` +
-          `• Signalements : <#${chSignalementMembre.id}> & <#${chSignalementServeur.id}>\n` +
+          `• Preuves : <#${chPreuves.id}>\n` +
           `• Tickets : <#${chTicket.id}>\n` +
           `• Entraide Staff : <#${chEntraideModo.id}> & <#${chEntraideFonda.id}>`
         )
         .setColor('#2ECC71')
         .setTimestamp();
 
-      return interaction.editReply({ content: '🎉 **Création terminée !**', embeds: [summaryEmbed] });
+      return interaction.editReply({ content: '🎉 **Création du Serveur Report (Forums) terminée !**', embeds: [summaryEmbed] });
 
     } catch (error) {
       console.error('Erreur lors du setup du serveur report :', error);
