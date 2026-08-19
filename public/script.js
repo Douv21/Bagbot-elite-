@@ -6344,49 +6344,91 @@ function loadServerBotProfile(guildId) {
     .catch(console.error);
 }
 
-(function initServerBotProfileListeners() {
-  const logoInput = document.getElementById('sbp-logo-url');
-  const previewImg = document.getElementById('sbp-preview-img');
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('#btn-upload-sbp-logo');
+  if (btn) {
+    e.preventDefault();
+    const fileInput = document.getElementById('sbp-file-input');
+    if (fileInput) fileInput.click();
+  }
+});
 
-  if (logoInput && previewImg) {
-    logoInput.addEventListener('input', () => {
-      const url = logoInput.value.trim();
+document.addEventListener('change', async (e) => {
+  if (e.target && e.target.id === 'sbp-file-input') {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const logoInput = document.getElementById('sbp-logo-url');
+    const previewImg = document.getElementById('sbp-preview-img');
+
+    try {
+      if (typeof showToast === 'function') showToast('⏳ Téléversement de l\'image en cours...');
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok && (data.url || data.path)) {
+        const uploadedUrl = data.url || data.path;
+        if (logoInput) logoInput.value = uploadedUrl;
+        if (previewImg) previewImg.src = uploadedUrl;
+        if (typeof showToast === 'function') showToast('✅ Image téléversée avec succès !');
+      } else {
+        if (typeof showToast === 'function') showToast(`❌ Erreur téléversement : ${data.error || 'Erreur inconnue'}`, true);
+      }
+    } catch (err) {
+      if (typeof showToast === 'function') showToast(`❌ Erreur réseau : ${err.message}`, true);
+    }
+  }
+});
+
+document.addEventListener('input', (e) => {
+  if (e.target && e.target.id === 'sbp-logo-url') {
+    const url = e.target.value.trim();
+    const previewImg = document.getElementById('sbp-preview-img');
+    if (previewImg) {
       if (url) {
         previewImg.src = url;
         previewImg.onerror = () => { previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; };
       } else {
         previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
       }
-    });
+    }
   }
+});
 
-  const form = document.getElementById('form-server-bot-profile');
-  if (form) {
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
-      if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
+document.addEventListener('submit', async (e) => {
+  if (e.target && e.target.id === 'form-server-bot-profile') {
+    e.preventDefault();
+    e.stopPropagation();
 
-      const custom_logo_url = document.getElementById('sbp-logo-url')?.value?.trim() || null;
-      const custom_name = document.getElementById('sbp-name-input')?.value?.trim() || null;
+    const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
+    if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
 
-      try {
-        const res = await fetch(`/api/bot/server-bot-profile/${guildId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ custom_logo_url, custom_name })
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          showToast('✅ Logo du bot enregistré !');
-        } else {
-          showToast(`❌ ${data.error || 'Erreur'}`, true);
-        }
-      } catch(err) {
-        showToast(`❌ Erreur réseau : ${err.message}`, true);
+    const custom_logo_url = document.getElementById('sbp-logo-url')?.value?.trim() || null;
+    const custom_name = document.getElementById('sbp-name-input')?.value?.trim() || null;
+
+    try {
+      if (typeof showToast === 'function') showToast('⏳ Enregistrement du logo et du nom...');
+      const res = await fetch(`/api/bot/server-bot-profile/${guildId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ custom_logo_url, custom_name })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (typeof showToast === 'function') showToast('✅ Logo et nom du bot enregistrés avec succès !');
+        if (typeof fetchBotInfo === 'function') fetchBotInfo(custom_logo_url);
+      } else {
+        if (typeof showToast === 'function') showToast(`❌ ${data.error || 'Erreur lors de l\'enregistrement'}`, true);
       }
-    });
+    } catch (err) {
+      console.error('Erreur enregistrement logo serveur:', err);
+      if (typeof showToast === 'function') showToast('❌ Erreur de connexion lors de l\'enregistrement.', true);
+    }
   }
-})();
+});
 
