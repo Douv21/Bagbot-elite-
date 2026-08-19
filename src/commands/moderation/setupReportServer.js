@@ -123,11 +123,12 @@ module.exports = {
         await interaction.member.roles.add(roleDirection).catch(() => null);
       }
 
-      await interaction.editReply({ content: '⚙️ **[3/6] Création des catégories, forums par thème, espace juridique et tickets...**' });
+      await interaction.editReply({ content: '⚙️ **[3/6] Création des catégories séquentiellement étanches avec permissions progressives...**' });
 
-      // ── 2. CREATION DES CATEGORIES & SALONS ──────────────────────────────────
+      // ── 2. CREATION DES CATEGORIES & SALONS AVEC PERMISSIONS PROGRESSIVES ───
 
       // CAT 1 : ACCUEIL & INFORMATIONS
+      // @everyone a accès UNIQUEMENT au règlement et à la bienvenue au départ !
       const catAccueil = await guild.channels.create({
         name: '📌 │ ACCUEIL & INFORMATIONS',
         type: ChannelType.GuildCategory,
@@ -139,16 +140,39 @@ module.exports = {
       });
 
       const chReglement = await guild.channels.create({ name: '📜-règlement-report', type: ChannelType.GuildText, parent: catAccueil.id });
-      const chConsignes = await guild.channels.create({ name: '📌-consignes-signalements', type: ChannelType.GuildText, parent: catAccueil.id });
       const chBienvenue = await guild.channels.create({ name: '👋-bienvenue', type: ChannelType.GuildText, parent: catAccueil.id });
-      const chRolesPres = await guild.channels.create({ name: '🎭-obtention-rôles-staff', type: ChannelType.GuildText, parent: catAccueil.id });
+      
+      const chConsignes = await guild.channels.create({
+        name: '📌-consignes-signalements',
+        type: ChannelType.GuildText,
+        parent: catAccueil.id,
+        permissionOverwrites: [
+          { id: everyoneRole.id, deny: [PermissionsBitField.Flags.ViewChannel] },
+          { id: roleMembre.id, allow: [PermissionsBitField.Flags.ViewChannel], deny: [PermissionsBitField.Flags.SendMessages] },
+          { id: roleSafecordTeam.id, allow: [PermissionsBitField.Flags.SendMessages] },
+          { id: roleDirection.id, allow: [PermissionsBitField.Flags.SendMessages] }
+        ]
+      });
 
-      // CAT 2 : SIGNALEMENTS MEMBRES (FORUMS PAR THÈME)
+      const chRolesPres = await guild.channels.create({
+        name: '🎭-obtention-rôles-staff',
+        type: ChannelType.GuildText,
+        parent: catAccueil.id,
+        permissionOverwrites: [
+          { id: everyoneRole.id, deny: [PermissionsBitField.Flags.ViewChannel] },
+          { id: roleMembre.id, allow: [PermissionsBitField.Flags.ViewChannel], deny: [PermissionsBitField.Flags.SendMessages] },
+          { id: roleSafecordTeam.id, allow: [PermissionsBitField.Flags.SendMessages] },
+          { id: roleDirection.id, allow: [PermissionsBitField.Flags.SendMessages] }
+        ]
+      });
+
+      // CAT 2 : SIGNALEMENTS MEMBRES (FORUMS PAR THÈME - Réservé Membres)
       const catSignalementsMembres = await guild.channels.create({
         name: '🚨 │ SIGNALEMENTS MEMBRES (FORUMS)',
         type: ChannelType.GuildCategory,
         permissionOverwrites: [
-          { id: everyoneRole.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.SendMessagesInThreads, PermissionsBitField.Flags.CreatePublicThreads, PermissionsBitField.Flags.AttachFiles] },
+          { id: everyoneRole.id, deny: [PermissionsBitField.Flags.ViewChannel] },
+          { id: roleMembre.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.SendMessagesInThreads, PermissionsBitField.Flags.CreatePublicThreads, PermissionsBitField.Flags.AttachFiles] },
           { id: roleMuted.id, deny: [PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.SendMessagesInThreads] }
         ]
       });
@@ -205,12 +229,13 @@ module.exports = {
         ]
       });
 
-      // CAT 3 : SIGNALEMENTS SERVEURS (FORUMS PAR THÈME)
+      // CAT 3 : SIGNALEMENTS SERVEURS (FORUMS PAR THÈME - Réservé Membres)
       const catSignalementsServeurs = await guild.channels.create({
         name: '⚠️ │ SIGNALEMENTS SERVEURS (FORUMS)',
         type: ChannelType.GuildCategory,
         permissionOverwrites: [
-          { id: everyoneRole.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.SendMessagesInThreads, PermissionsBitField.Flags.CreatePublicThreads, PermissionsBitField.Flags.AttachFiles] },
+          { id: everyoneRole.id, deny: [PermissionsBitField.Flags.ViewChannel] },
+          { id: roleMembre.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.SendMessagesInThreads, PermissionsBitField.Flags.CreatePublicThreads, PermissionsBitField.Flags.AttachFiles] },
           { id: roleMuted.id, deny: [PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.SendMessagesInThreads] }
         ]
       });
@@ -243,12 +268,13 @@ module.exports = {
 
       const chPreuves = await guild.channels.create({ name: '📑-dossiers-et-preuves', type: ChannelType.GuildText, parent: catSignalementsServeurs.id });
 
-      // CAT 4 : ESPACE TICKETS & SUPPORT
+      // CAT 4 : ESPACE TICKETS & SUPPORT (Accessible après obtention du rôle Membre)
       const catTickets = await guild.channels.create({
         name: '📩 │ ESPACE TICKETS & SUPPORT',
         type: ChannelType.GuildCategory,
         permissionOverwrites: [
-          { id: everyoneRole.id, allow: [PermissionsBitField.Flags.ViewChannel], deny: [PermissionsBitField.Flags.SendMessages] }
+          { id: everyoneRole.id, deny: [PermissionsBitField.Flags.ViewChannel] },
+          { id: roleMembre.id, allow: [PermissionsBitField.Flags.ViewChannel], deny: [PermissionsBitField.Flags.SendMessages] }
         ]
       });
 
@@ -265,12 +291,13 @@ module.exports = {
         ]
       });
 
-      // CAT 5 : ESPACE JURIDIQUE & SÉCURITÉ (ÉLARGI)
+      // CAT 5 : ESPACE JURIDIQUE & SÉCURITÉ (ÉLARGI - Réservé Membres)
       const catJuridique = await guild.channels.create({
         name: '⚖️ │ ESPACE JURIDIQUE & SÉCURITÉ',
         type: ChannelType.GuildCategory,
         permissionOverwrites: [
-          { id: everyoneRole.id, allow: [PermissionsBitField.Flags.ViewChannel], deny: [PermissionsBitField.Flags.SendMessages] }
+          { id: everyoneRole.id, deny: [PermissionsBitField.Flags.ViewChannel] },
+          { id: roleMembre.id, allow: [PermissionsBitField.Flags.ViewChannel], deny: [PermissionsBitField.Flags.SendMessages] }
         ]
       });
 
@@ -280,7 +307,7 @@ module.exports = {
       const chDoxxingJuridique = await guild.channels.create({ name: '⛔-forceurs-doxxing-et-vie-privée', type: ChannelType.GuildText, parent: catJuridique.id });
       const chAutoritesOfficiels = await guild.channels.create({ name: '🛡️-signalements-autorités-officiels', type: ChannelType.GuildText, parent: catJuridique.id });
 
-      // CAT 6 : ENTRAIDE INTER-SERVEURS
+      // CAT 6 : ENTRAIDE INTER-SERVEURS (Strictement réservé aux Staffs & Fondateurs vérifiés)
       const catEntraide = await guild.channels.create({
         name: '🤝 │ ENTRAIDE INTER-SERVEURS',
         type: ChannelType.GuildCategory,
@@ -316,12 +343,13 @@ module.exports = {
         ]
       });
 
-      // CAT 7 : ESPACE COMMUNAUTÉ & ÉCHANGES
+      // CAT 7 : ESPACE COMMUNAUTÉ & ÉCHANGES (Réservé Membres)
       const catCommunaute = await guild.channels.create({
         name: '🌐 │ ESPACE COMMUNAUTÉ & ÉCHANGES',
         type: ChannelType.GuildCategory,
         permissionOverwrites: [
-          { id: everyoneRole.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] }
+          { id: everyoneRole.id, deny: [PermissionsBitField.Flags.ViewChannel] },
+          { id: roleMembre.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] }
         ]
       });
 
@@ -372,12 +400,13 @@ module.exports = {
       const chSignalementsDiscordDirect = await guild.channels.create({ name: '🚨-signalements-officiels-discord', type: ChannelType.GuildText, parent: catInterne.id });
       await guild.channels.create({ name: '🔒-logs-signalements', type: ChannelType.GuildText, parent: catInterne.id });
 
-      // CAT 9 : SALONS VOCAUX
+      // CAT 9 : SALONS VOCAUX (Réservé Membres & Staff)
       const catVocaux = await guild.channels.create({
         name: '🔊 │ SALONS VOCAUX',
         type: ChannelType.GuildCategory,
         permissionOverwrites: [
-          { id: everyoneRole.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak] }
+          { id: everyoneRole.id, deny: [PermissionsBitField.Flags.ViewChannel] },
+          { id: roleMembre.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak] }
         ]
       });
 
@@ -422,18 +451,23 @@ module.exports = {
 
       // ── 3. PUBLICATION DES EMBEDS D'INFORMATIONS & REGLEMENT ────────────────
 
-      // Embed Règlement avec Bouton Auto-Rôle MEMBRE Uniquement
+      // Embed Règlement avec Auto-Rôle MEMBRE Uniquement & Règle du Pseudo NomDeServeur
       const embedReglement = new EmbedBuilder()
         .setTitle('📜 RÈGLEMENT OFFICIEL SAFECORD & CHARTE DISCORD TOS')
         .setDescription(
           `Bienvenue sur le réseau central de protection et de signalement **Safecord**.\n\n` +
+          `🔒 **ÉTAPES D'ACCÈS AU SERVEUR :**\n` +
+          `1️⃣ **Étape 1 :** Cliquez sur le bouton ci-dessous pour accepter le règlement et recevoir le rôle <@&${roleMembre.id}>. Cela débloquera l'accès à l'espace Ticket et aux salons de base.\n` +
+          `2️⃣ **Étape 2 :** Rendez-vous dans <#${chTicket.id}> et ouvrez un **Ticket de Présentation**.\n` +
+          `3️⃣ **Étape 3 :** Un membre de l'**<@&${roleSafecordTeam.id}>** vérifiera votre serveur et vous attribuera vos accès exclusifs (` `<@&${roleOwnerOther.id}>` `, ` `<@&${roleCoOwnerOther.id}>` `, ` `<@&${roleStaffOther.id}>` `).\n\n` +
+          `📌 **OBLIGATION PSEUDO & NOM DE SERVEUR :**\n` +
+          `Chaque membre arrivant sur ce serveur **DOIT obligatoirement ajouter le nom de son serveur à côté de son pseudo Discord** (Exemple : ` `Pseudo | NomDeVotreServeur` `).\n\n` +
           `**1. Respect des TOS Discord :** L'ensemble des membres et du staff doit respecter à 100 % les Conditions d'Utilisation de Discord (Terms of Service) et les Directives de la Communauté.\n\n` +
           `**2. Preuves Obligatoires :** Tout signalement doit être accompagné de captures d'écran NON censurées et de l'ID Discord complet des personnes ou serveurs incriminés.\n\n` +
-          `**3. Interdiction Absolue de Faux Signalement :** Tout faux signalement ou diffamation entraînera un bannissement définitif immédiat et un blacklisting.\n\n` +
-          `**4. Validation :** Pour accéder à l'ensemble du serveur et valider le règlement, cliquez sur le bouton ci-dessous pour recevoir votre rôle <@&${roleMembre.id}>.`
+          `**3. Interdiction Absolue de Faux Signalement :** Tout faux signalement ou diffamation entraînera un bannissement définitif immédiat et un blacklisting.`
         )
         .setColor('#E74C3C')
-        .setFooter({ text: `${guild.name} • Protection & Sécurité Safecord` })
+        .setFooter({ text: `${guild.name} • Protection & Accès Sécurisé Safecord` })
         .setTimestamp();
 
       const btnReglementMembre = new ActionRowBuilder().addComponents(
@@ -450,6 +484,7 @@ module.exports = {
         .setTitle('🎭 OBTENTION DES RÔLES STAFF & FONDATEUR INTER-SERVEUR')
         .setDescription(
           `Afin de garantir la sécurité du réseau **Safecord**, les rôles de statut ne sont **PAS attribués automatiquement**.\n\n` +
+          `📌 **Condition préalable :** N'oubliez pas de renommer votre pseudo sur ce serveur sous la forme : ` `Pseudo | NomDeVotreServeur` `.\n\n` +
           `**Comment obtenir votre rôle ?**\n` +
           `Si vous êtes Fondateur, Co-Fondateur ou membre du Staff d'un autre serveur Discord, vous devez **ouvrir un ticket de présentation** dans <#${chTicket.id}>.\n\n` +
           `>>> **Rôles soumis à vérification par l'Équipe Safecord :**\n` +
@@ -497,7 +532,7 @@ module.exports = {
       const embedTos = new EmbedBuilder()
         .setTitle('📜 TOS DISCORD & DIRECTIVES DE LA COMMUNAUTÉ')
         .setDescription(
-          `Ce serveur applique et fait respecter strictly les règles officielles de Discord :\n\n` +
+          `Ce serveur applique et fait respecter strictement les règles officielles de Discord :\n\n` +
           `• **Conditions d'utilisation (TOS) :** https://dis.gd/tos\n` +
           `• **Directives de la Communauté :** https://dis.gd/guidelines\n\n` +
           `**Règles Clés :**\n` +
@@ -600,8 +635,9 @@ module.exports = {
         .setTitle('📩 ESPACE TICKETS — PRÉSENTATION STAFF & SIGNALEMENT CONFIDENTIEL')
         .setDescription(
           `Bienvenue dans l'espace Ticket de **Safecord** !\n\n` +
+          `📌 **RAPPEL OBLIGATOIRE :** Avant d'ouvrir votre ticket, merci d'avoir ajouté le nom de votre serveur à côté de votre pseudo (Exemple : ` `Pseudo | NomDeVotreServeur` `).\n\n` +
           `**Pourquoi ouvrir un ticket ?**\n` +
-          `• 🎭 **Présentation Staff / Fonda :** Pour vous présenter, nous indiquer votre serveur et votre rôle afin qu'un membre de l'**<@&${roleSafecordTeam.id}>** vous attribue vos accès officiels.\n` +
+          `• 🎭 **Présentation Staff / Fonda :** Pour vous présenter, nous indiquer votre serveur et votre rôle afin qu'un membre de l'**<@&${roleSafecordTeam.id}>** vous attribue vos accès officiels (` `<@&${roleOwnerOther.id}>` `, ` `<@&${roleCoOwnerOther.id}>` `, ` `<@&${roleStaffOther.id}>` `).\n` +
           `• 🔒 **Signalement Confidentiel :** Pour échanger en toute confidentialité avec la <@&${roleDirection.id}> et l'**<@&${roleSafecordTeam.id}>**.\n\n` +
           `Cliquez sur le bouton ci-dessous pour ouvrir votre salon de ticket privé !`
         )
@@ -622,25 +658,20 @@ module.exports = {
 
       // ── 5. RESUME FINAL ─────────────────────────────────────────────────────
       const summaryEmbed = new EmbedBuilder()
-        .setTitle('✅ SERVEUR SAFECORD (RÔLE SAFECORD + BIND TICKETS) CRÉÉ AVEC SUCCÈS !')
+        .setTitle('✅ SERVEUR SAFECORD SÉCURISÉ CRÉÉ AVEC SUCCÈS !')
         .setDescription(
           `Le serveur de signalement et de protection inter-serveurs **Safecord** est maintenant **100 % opérationnel** !\n\n` +
-          `**Rôles créés :**\n` +
-          `• <@&${roleDirection.id}> (Direction)\n` +
-          `• <@&${roleSafecordTeam.id}> (Équipe Safecord)\n` +
-          `• <@&${roleOwnerOther.id}> (Owner Inter-Serveur - via ticket)\n` +
-          `• <@&${roleCoOwnerOther.id}> (Co-Owner Inter-Serveur - via ticket)\n` +
-          `• <@&${roleStaffOther.id}> (Staff Inter-Serveur - via ticket)\n` +
-          `• <@&${roleMembre.id}> (Auto-rôle sous règlement dans <#${chReglement.id}>)\n\n` +
-          `**Nouveautés :**\n` +
-          `• Validation du règlement -> Attribution automatique du rôle <@&${roleMembre.id}>\n` +
-          `• Demande de rôles Staff/Owner -> Via Ticket dans <#${chTicket.id}>\n` +
-          `• Équipe Modération -> **<@&${roleSafecordTeam.id}>**`
+          `🔒 **PERMISSIONS EN ARRIVANT :**\n` +
+          `• Les nouveaux membres ont accès **UNIQUEMENT** à <#${chReglement.id}>.\n` +
+          `• Clic sur la validation du règlement -> Obtention du rôle <@&${roleMembre.id}>.\n` +
+          `• Le rôle <@&${roleMembre.id}> débloque le salon de tickets <#${chTicket.id}> et la communauté de base.\n` +
+          `• Les salons Staff/Fonda (<#${chGeneralStaff.id}>, <#${chGeneralFonda.id}>...) sont **dévérouillés uniquement après vérification par l'Équipe Safecord dans un Ticket** !\n\n` +
+          `📌 **RÈGLE DU PSEUDO :** Mentionnée dans le règlement (` `Pseudo | NomDeVotreServeur` `).`
         )
         .setColor('#2ECC71')
         .setTimestamp();
 
-      await interaction.editReply({ content: '🎉 **Purge complète et création du Serveur Safecord terminées avec succès !**', embeds: [summaryEmbed] });
+      await interaction.editReply({ content: '🎉 **Purge complète et création du Serveur Safecord (Permissions progressives + Ticket obligatoire) terminées avec succès !**', embeds: [summaryEmbed] });
 
       // Supprimer l'ancien salon de lancement s'il existe toujours
       if (currentChannelId && guild.channels.cache.has(currentChannelId)) {
