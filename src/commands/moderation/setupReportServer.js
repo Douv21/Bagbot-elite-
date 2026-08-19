@@ -11,10 +11,9 @@ const {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('setup-serveur-report')
-    .setDescription('🔨 Créer un serveur de Signalement & Protection Inter-Serveurs (Forums)')
+    .setDescription('🔨 Créer un serveur complet de Signalement, Protection & Juridique Inter-Serveurs')
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
     .setDMPermission(false),
-
 
   async execute(interaction) {
     if (!interaction.guild) {
@@ -36,7 +35,7 @@ module.exports = {
     const currentChannelId = interaction.channelId;
 
     try {
-      await interaction.editReply({ content: '🧹 **[1/5] Purge complète et suppression de tous les anciens salons...**' });
+      await interaction.editReply({ content: '🧹 **[1/6] Purge complète et suppression de tous les anciens salons...**' });
 
       // ── 0. PURGE COMPLETE DE TOUS LES SALONS ET CATEGORIES ─────────────────
       const existingChannels = Array.from(guild.channels.cache.values());
@@ -46,8 +45,7 @@ module.exports = {
         }
       }
 
-      await interaction.editReply({ content: '⚙️ **[2/5] Création des rôles en cours...**' });
-
+      await interaction.editReply({ content: '⚙️ **[2/6] Création des rôles et autorôles en cours...**' });
 
       // ── 1. CREATION DES ROLES ────────────────────────────────────────────────
       const roleDirection = await guild.roles.create({
@@ -99,6 +97,14 @@ module.exports = {
         reason: 'Setup Serveur Report'
       });
 
+      const roleAlerte = await guild.roles.create({
+        name: '🔔 Alerte Signalements',
+        color: '#F39C12',
+        hoist: true,
+        mentionable: true,
+        reason: 'Setup Serveur Report'
+      });
+
       const roleMembre = await guild.roles.create({
         name: '✨ Membre',
         color: '#95A5A6',
@@ -117,7 +123,7 @@ module.exports = {
         await interaction.member.roles.add(roleDirection).catch(() => null);
       }
 
-      await interaction.editReply({ content: '⚙️ **[2/4] Création des catégories, forums par thème et salons...**' });
+      await interaction.editReply({ content: '⚙️ **[3/6] Création des catégories, forums par thème, espace juridique et tickets...**' });
 
       // ── 2. CREATION DES CATEGORIES & SALONS ──────────────────────────────────
 
@@ -147,7 +153,6 @@ module.exports = {
         ]
       });
 
-      // Forum Harcèlement
       const forumHarcèlement = await guild.channels.create({
         name: '🚨-harcèlement-et-menaces',
         type: ChannelType.GuildForum,
@@ -161,7 +166,6 @@ module.exports = {
         ]
       });
 
-      // Forum Forceurs & Doxxing
       const forumForceurs = await guild.channels.create({
         name: '⛔-forceurs-et-doxxing',
         type: ChannelType.GuildForum,
@@ -175,7 +179,6 @@ module.exports = {
         ]
       });
 
-      // Forum Danger Mineurs
       const forumMineurs = await guild.channels.create({
         name: '🔞-mineurs-et-danger',
         type: ChannelType.GuildForum,
@@ -189,7 +192,6 @@ module.exports = {
         ]
       });
 
-      // Forum Arnaques & Vols
       const forumArnaques = await guild.channels.create({
         name: '💸-arnaques-et-vols',
         type: ChannelType.GuildForum,
@@ -213,7 +215,6 @@ module.exports = {
         ]
       });
 
-      // Forum Raids
       const forumRaids = await guild.channels.create({
         name: '⚔️-raids-et-attaques',
         type: ChannelType.GuildForum,
@@ -227,7 +228,6 @@ module.exports = {
         ]
       });
 
-      // Forum Serveurs Toxiques & Illégaux
       const forumToxiques = await guild.channels.create({
         name: '⚠️-serveurs-toxiques-ou-illégaux',
         type: ChannelType.GuildForum,
@@ -241,7 +241,6 @@ module.exports = {
         ]
       });
 
-      // Salon Dépôt de Preuves
       const chPreuves = await guild.channels.create({ name: '📑-dossiers-et-preuves', type: ChannelType.GuildText, parent: catSignalementsServeurs.id });
 
       // CAT 4 : ESPACE TICKETS & SUPPORT
@@ -255,7 +254,33 @@ module.exports = {
 
       const chTicket = await guild.channels.create({ name: '🎫-ouvrir-un-ticket', type: ChannelType.GuildText, parent: catTickets.id });
 
-      // CAT 5 : ENTRAIDE INTER-SERVEURS
+      // Catégorie réservée où les nouveaux tickets seront créés
+      const catTicketsOuverts = await guild.channels.create({
+        name: '📩 │ TICKETS OUVERTS',
+        type: ChannelType.GuildCategory,
+        permissionOverwrites: [
+          { id: everyoneRole.id, deny: [PermissionsBitField.Flags.ViewChannel] },
+          { id: roleReportTeam.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
+          { id: roleDirection.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] }
+        ]
+      });
+
+      // CAT 5 : ESPACE JURIDIQUE & SÉCURITÉ (ÉLARGI)
+      const catJuridique = await guild.channels.create({
+        name: '⚖️ │ ESPACE JURIDIQUE & SÉCURITÉ',
+        type: ChannelType.GuildCategory,
+        permissionOverwrites: [
+          { id: everyoneRole.id, allow: [PermissionsBitField.Flags.ViewChannel], deny: [PermissionsBitField.Flags.SendMessages] }
+        ]
+      });
+
+      const chTosDiscord = await guild.channels.create({ name: '📜-tos-et-charte-discord', type: ChannelType.GuildText, parent: catJuridique.id });
+      const chMineursJuridique = await guild.channels.create({ name: '🔞-protection-des-mineurs', type: ChannelType.GuildText, parent: catJuridique.id });
+      const chHarcèlementJuridique = await guild.channels.create({ name: '⚖️-harcèlement-et-cybercriminalité', type: ChannelType.GuildText, parent: catJuridique.id });
+      const chDoxxingJuridique = await guild.channels.create({ name: '⛔-forceurs-doxxing-et-vie-privée', type: ChannelType.GuildText, parent: catJuridique.id });
+      const chAutoritesOfficiels = await guild.channels.create({ name: '🛡️-signalements-autorités-officiels', type: ChannelType.GuildText, parent: catJuridique.id });
+
+      // CAT 6 : ENTRAIDE INTER-SERVEURS
       const catEntraide = await guild.channels.create({
         name: '🤝 │ ENTRAIDE INTER-SERVEURS',
         type: ChannelType.GuildCategory,
@@ -291,7 +316,7 @@ module.exports = {
         ]
       });
 
-      // CAT 6 : ESPACE COMMUNAUTÉ & ÉCHANGES
+      // CAT 7 : ESPACE COMMUNAUTÉ & ÉCHANGES
       const catCommunaute = await guild.channels.create({
         name: '🌐 │ ESPACE COMMUNAUTÉ & ÉCHANGES',
         type: ChannelType.GuildCategory,
@@ -330,9 +355,8 @@ module.exports = {
 
       const chPresentationServeurs = await guild.channels.create({ name: '📜-présentation-serveurs', type: ChannelType.GuildText, parent: catCommunaute.id });
       const chRecensementStaff = await guild.channels.create({ name: '📋-recensement-staff', type: ChannelType.GuildText, parent: catCommunaute.id });
-      const chJuridiqueSecu = await guild.channels.create({ name: '⚖️-juridique-et-sécurité', type: ChannelType.GuildText, parent: catCommunaute.id });
 
-      // CAT 7 : ÉQUIPE REPORT & INTERNE (Privé Staff Report)
+      // CAT 8 : ÉQUIPE REPORT & INTERNE (Privé Staff Report)
       const catInterne = await guild.channels.create({
         name: '🔒 │ ÉQUIPE REPORT & INTERNE',
         type: ChannelType.GuildCategory,
@@ -345,9 +369,10 @@ module.exports = {
 
       await guild.channels.create({ name: '🔒-discussion-interne', type: ChannelType.GuildText, parent: catInterne.id });
       await guild.channels.create({ name: '🔒-traitement-signalements', type: ChannelType.GuildText, parent: catInterne.id });
+      const chSignalementsDiscordDirect = await guild.channels.create({ name: '🚨-signalements-officiels-discord', type: ChannelType.GuildText, parent: catInterne.id });
       await guild.channels.create({ name: '🔒-logs-signalements', type: ChannelType.GuildText, parent: catInterne.id });
 
-      // CAT 8 : SALONS VOCAUX
+      // CAT 9 : SALONS VOCAUX
       const catVocaux = await guild.channels.create({
         name: '🔊 │ SALONS VOCAUX',
         type: ChannelType.GuildCategory,
@@ -393,16 +418,39 @@ module.exports = {
         ]
       });
 
-      await interaction.editReply({ content: '⚙️ **[3/4] Publication des Embeds d\'information et de règlement...**' });
+      await interaction.editReply({ content: '⚙️ **[4/6] Configuration des Autorôles et publication des Embeds d\'information...**' });
 
-      // ── 3. PUBLICATION DES EMBEDS D'INFORMATIONS ────────────────────────────
+      // ── 3. PUBLICATION DES EMBEDS D'INFORMATIONS & AUTOROLES ─────────────────
 
-      // Embed Règlement
+      // Embed Autorôles
+      const embedRoles = new EmbedBuilder()
+        .setTitle('🎭 RÔLES INTERACTIFS & SÉLECTION DE STATUT')
+        .setDescription(
+          `Cliquez sur les boutons ci-dessous pour obtenir ou retirer vos rôles d'identification et de notification :\n\n` +
+          `• <@&${roleOwnerOther.id}> : Fondateur d'un autre serveur\n` +
+          `• <@&${roleCoOwnerOther.id}> : Co-Fondateur d'un autre serveur\n` +
+          `• <@&${roleStaffOther.id}> : Membre du Staff d'un autre serveur\n` +
+          `• <@&${roleAlerte.id}> : Recevoir les alertes de nouveaux signalements`
+        )
+        .setColor('#9B59B6')
+        .setFooter({ text: `${guild.name} • Auto-Rôles` })
+        .setTimestamp();
+
+      const btnRoles = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`autorole_${roleOwnerOther.id}`).setLabel('👑 Owner').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId(`autorole_${roleCoOwnerOther.id}`).setLabel('🤝 Co-Owner').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId(`autorole_${roleStaffOther.id}`).setLabel('⚡ Staff').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId(`autorole_${roleAlerte.id}`).setLabel('🔔 Notifications').setStyle(ButtonStyle.Secondary)
+      );
+
+      await chRoles.send({ embeds: [embedRoles], components: [btnRoles] });
+
+      // Embed Règlement + TOS Discord
       const embedReglement = new EmbedBuilder()
-        .setTitle('📜 RÈGLEMENT OFFICIEL — SERVEUR DE SIGNALEMENT & PROTECTION')
+        .setTitle('📜 RÈGLEMENT OFFICIEL & CHARTE DISCORD TOS')
         .setDescription(
           `Bienvenue sur la plateforme centrale de signalement et de protection inter-serveurs.\n\n` +
-          `**1. Utilité & Objectif :** Ce serveur permet de recenser, traiter et diffuser les signalements de comportements graves (harcèlement, forceurs, mineurs en danger, arnaqueurs, raids).\n\n` +
+          `**1. Respect des TOS Discord :** L'ensemble des membres et du staff doit respecter à 100 % les Conditions d'Utilisation de Discord (Terms of Service) et les Directives de la Communauté.\n\n` +
           `**2. Preuves Obligatoires :** Tout signalement doit être accompagné de captures d'écran NON censurées et de l'ID Discord complet des personnes ou serveurs incriminés.\n\n` +
           `**3. Interdiction Absolue de Faux Signalement :** Tout faux signalement ou diffamation entraînera un bannissement définitif immédiat et un blacklisting.\n\n` +
           `**4. Confidentialité :** Pour les cas extrêmement graves ou sensibles, utilisez le salon <#${chTicket.id}> pour échanger en privé avec la <@&${roleReportTeam.id}>.`
@@ -438,20 +486,102 @@ module.exports = {
 
       await chConsignes.send({ embeds: [embedConsignes] });
 
-      // Embed Juridique & Sécurité
-      const embedJuridique = new EmbedBuilder()
-        .setTitle('⚖️ JURIDIQUE, SÉCURITÉ & CONDITIONS DISCORD (TOS)')
+      await interaction.editReply({ content: '⚙️ **[5/6] Publication des Embeds Juridiques complets et du Système de Tickets...**' });
+
+      // ── 4. PUBLICATION DES EMBEDS JURIDIQUES COMPLETS ──────────────────────────
+
+      // 1. TOS Discord
+      const embedTos = new EmbedBuilder()
+        .setTitle('📜 TOS DISCORD & DIRECTIVES DE LA COMMUNAUTÉ')
         .setDescription(
-          `Ce serveur opère dans le respect strict des Conditions d'Utilisation de Discord (TOS) et de la législation en vigueur.\n\n` +
-          `• 🛡️ **Protection des Mineurs :** Tout contenu suspect impliquant des mineurs est immédiatement transmis et signalé aux autorités compétentes et à l'équipe Discord Trust & Safety.\n` +
-          `• ⚖️ **Harcèlement & Cyberharcèlement :** Le harcèlement ciblé est sévèrement réprimé par les lois sur la cybercriminalité.\n` +
-          `• 🔒 **Droit à l'image & Données Personnelles :** Le doxxing (divulgation d'informations personnelles privées telles qu'adresse ou identité réelle) est formellement interdit.`
+          `Ce serveur applique et fait respecter strictement les règles officielles de Discord :\n\n` +
+          `• **Conditions d'utilisation (TOS) :** https://dis.gd/tos\n` +
+          `• **Directives de la Communauté :** https://dis.gd/guidelines\n\n` +
+          `**Règles Clés :**\n` +
+          `1. Interdiction d'utiliser des comptes d'auto-bot ou de raider des serveurs.\n` +
+          `2. Interdiction de diffuser du contenu piraté ou d'encourager la fraude.\n` +
+          `3. Obligation de signaler tout contenu à caractère pédopornographique ou illégal.`
         )
-        .setColor('#F1C40F')
-        .setFooter({ text: `${guild.name} • Cadre Légal & Sécurité` })
+        .setColor('#5865F2')
+        .setFooter({ text: `${guild.name} • TOS Discord` })
         .setTimestamp();
 
-      await chJuridiqueSecu.send({ embeds: [embedJuridique] });
+      await chTosDiscord.send({ embeds: [embedTos] });
+
+      // 2. Protection des Mineurs
+      const embedMineurs = new EmbedBuilder()
+        .setTitle('🔞 PROTECTION DES MINEURS & CADRE LÉGAL')
+        .setDescription(
+          `La protection des mineurs est la priorité absolue du réseau.\n\n` +
+          `• **Article 227-23 du Code Pénal :** La fixation, l'enregistrement ou la transmission d'images à caractère pornographique d'un mineur est punie de 5 ans d'emprisonnement et 75 000 € d'amende.\n` +
+          `• **Grooming & Sollicitation :** Tout propos à caractère sexuel ou inapproprié orienté vers un mineur entraîne un bannissement immédiat et un signalement direct aux autorités.`
+        )
+        .setColor('#E74C3C')
+        .setFooter({ text: `${guild.name} • Protection Mineurs` })
+        .setTimestamp();
+
+      await chMineursJuridique.send({ embeds: [embedMineurs] });
+
+      // 3. Harcèlement & Cybercriminalité
+      const embedHarcèlement = new EmbedBuilder()
+        .setTitle('⚖️ CYBERHARCÈLEMENT, MENACES & DIFFAMATION')
+        .setDescription(
+          `Le harcèlement en ligne et les menaces répétées constituent des délits graves pénalement sanctionnés.\n\n` +
+          `• **Article 222-33-2-2 du Code Pénal :** Le fait de harceler une personne par des propos ou comportements répétés est puni de 2 ans d'emprisonnement et 30 000 € d'amende.\n` +
+          `• **Menaces et Chantage :** Les menaces de mort ou d'atteinte aux personnes font l'objet d'un dépôt de plainte immédiat.`
+        )
+        .setColor('#E67E22')
+        .setFooter({ text: `${guild.name} • Lutte Cyberharcèlement` })
+        .setTimestamp();
+
+      await chHarcèlementJuridique.send({ embeds: [embedHarcèlement] });
+
+      // 4. Forceurs, Doxxing & Atteinte à la vie privée
+      const embedDoxxing = new EmbedBuilder()
+        .setTitle('⛔ DOXXING, FORCEURS & ATTEINTE À LA VIE PRIVÉE')
+        .setDescription(
+          `Le respect de la vie privée et des données personnelles est garanti par la loi.\n\n` +
+          `• **Article 226-1 du Code Pénal :** La divulgation d'informations personnelles (nom réel, adresse, téléphone, photos privées) sans le consentement de la personne est punie d'1 an d'emprisonnement et 45 000 € d'amende.\n` +
+          `• **Forceurs & Comportement Intrusif :** Harceler en privé une personne malgré son refus constitue une atteinte au droit au respect de la vie privée.`
+        )
+        .setColor('#C0392B')
+        .setFooter({ text: `${guild.name} • Protection Vie Privée` })
+        .setTimestamp();
+
+      await chDoxxingJuridique.send({ embeds: [embedDoxxing] });
+
+      // 5. Autorités & Organismes Officiels
+      const embedAutorites = new EmbedBuilder()
+        .setTitle('🛡️ ORGANISMES OFFICIELS & SIGNALEMENT GOUVERNEMENTAL')
+        .setDescription(
+          `En cas de danger immédiat ou de délit grave, contactez les plateformes officielles :\n\n` +
+          `• 🌐 **PHAROS (Gouvernement Français) :** https://www.internet-signalement.gouv.fr\n` +
+          `• 📞 **3018 (Net Écoute - Cyberharcèlement Mineurs) :** Appel gratuit au 3018\n` +
+          `• 🚨 **Police / Gendarmerie :** Composez le 17 ou le 112 en cas d'urgence.\n` +
+          `• 🛡️ **Cybermalveillance.gouv.fr :** Assistance aux victimes de cyberattaques.`
+        )
+        .setColor('#2ECC71')
+        .setFooter({ text: `${guild.name} • Liens Officiels` })
+        .setTimestamp();
+
+      await chAutoritesOfficiels.send({ embeds: [embedAutorites] });
+
+      // 6. Signalements Directs Discord Trust & Safety (Espace Interne Staff Report)
+      const embedDiscordDirect = new EmbedBuilder()
+        .setTitle('🚨 TRANSMISSION DIRECTE DISCORD TRUST & SAFETY')
+        .setDescription(
+          `Guide pour l'<@&${roleReportTeam.id}> afin de transmettre un dossier grave directement à Discord Trust & Safety :\n\n` +
+          `1. 🌐 **Lien du Formulaire Officiel Discord :** https://dis.gd/report\n` +
+          `2. 📄 **Sélectionner la catégorie :** (Trust & Safety / Child Safety / Harassment / Hateful Conduct)\n` +
+          `3. 🔗 **Copier le lien du message Discord :** (Clic droit sur le message incriminé -> Copier le lien du message)\n` +
+          `4. 🆔 **Fournir les IDs :** ID du membre incriminé, ID du salon, ID du serveur.\n` +
+          `5. 🛡️ **En cas de danger mineur (CSAM) :** Signaler également sur https://report.cybertip.org`
+        )
+        .setColor('#E74C3C')
+        .setFooter({ text: `${guild.name} • Procédure Interne Discord T&S` })
+        .setTimestamp();
+
+      await chSignalementsDiscordDirect.send({ embeds: [embedDiscordDirect] });
 
       // Enregistrer l'option de ticket dans la base de données
       const { db } = require('../../database/db');
@@ -459,7 +589,7 @@ module.exports = {
         db.prepare(`
           INSERT OR REPLACE INTO ticket_options (guild_id, value, label, description, emoji, category_id, support_role_id)
           VALUES (?, 'report', 'Signalement & Support', 'Ouvrir un ticket de signalement confidentiel', '🎫', ?, ?)
-        `).run(guild.id, catTickets.id, roleReportTeam.id);
+        `).run(guild.id, catTicketsOuverts.id, roleReportTeam.id);
       } catch (e) {}
 
       // Embed Ticket
@@ -482,31 +612,23 @@ module.exports = {
 
       await chTicket.send({ embeds: [embedTicket], components: [btnTicket] });
 
-      await interaction.editReply({ content: '⚙️ **[4/4] Finalisation de la configuration...**' });
+      await interaction.editReply({ content: '⚙️ **[6/6] Finalisation de la configuration...**' });
 
-      // ── 4. RESUME FINAL ─────────────────────────────────────────────────────
+      // ── 5. RESUME FINAL ─────────────────────────────────────────────────────
       const summaryEmbed = new EmbedBuilder()
-        .setTitle('✅ SERVEUR REPORT (FORUMS PAR THÈME) CRÉÉ AVEC SUCCÈS !')
+        .setTitle('✅ SERVEUR REPORT, PROTECTION & JURIDIQUE CRÉÉ AVEC SUCCÈS !')
         .setDescription(
-          `Le serveur de signalement et de protection inter-serveurs avec **Forums par Thème** est maintenant **100 % opérationnel** !\n\n` +
-          `**Forums Signalements Membres :**\n` +
-          `• <#${forumHarcèlement.id}>\n` +
-          `• <#${forumForceurs.id}>\n` +
-          `• <#${forumMineurs.id}>\n` +
-          `• <#${forumArnaques.id}>\n\n` +
-          `**Forums Signalements Serveurs :**\n` +
-          `• <#${forumRaids.id}>\n` +
-          `• <#${forumToxiques.id}>\n\n` +
-          `**Salons clés :**\n` +
-          `• Consignes : <#${chConsignes.id}>\n` +
-          `• Preuves : <#${chPreuves.id}>\n` +
-          `• Tickets : <#${chTicket.id}>\n` +
-          `• Entraide Staff : <#${chEntraideModo.id}> & <#${chEntraideFonda.id}>`
+          `Le serveur de signalement et de protection inter-serveurs avec **Forums**, **Espace Juridique Élargi**, **Auto-Rôles** et **Système de Tickets** est maintenant **100 % opérationnel** !\n\n` +
+          `**Nouveau :**\n` +
+          `• Auto-rôles interactifs dans <#${chRoles.id}>\n` +
+          `• Catégorie Juridique complète dans <#${chTosDiscord.id}>, <#${chMineursJuridique.id}>, <#${chHarcèlementJuridique.id}>...\n` +
+          `• Transmission directe Discord Trust & Safety dans <#${chSignalementsDiscordDirect.id}>\n` +
+          `• Catégorie de tickets réservée : **${catTicketsOuverts.name}**`
         )
         .setColor('#2ECC71')
         .setTimestamp();
 
-      await interaction.editReply({ content: '🎉 **Purge complète et création du Serveur Report (Forums) terminées avec succès !**', embeds: [summaryEmbed] });
+      await interaction.editReply({ content: '🎉 **Purge complète et création du Serveur Report (Forums + Juridique + Auto-rôles) terminées avec succès !**', embeds: [summaryEmbed] });
 
       // Supprimer l'ancien salon de lancement s'il existe toujours
       if (currentChannelId && guild.channels.cache.has(currentChannelId)) {
@@ -519,7 +641,6 @@ module.exports = {
       return;
 
     } catch (error) {
-
       console.error('Erreur lors du setup du serveur report :', error);
       return interaction.editReply({
         content: `❌ Une erreur est survenue lors de la création du serveur report : ${error.message}`
