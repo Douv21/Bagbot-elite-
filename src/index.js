@@ -163,6 +163,50 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId) => {
   }
 };
 
+// Helper pour l'attribution des rôles multi-sélection
+const handleMultiRoleSelect = async (interaction, selectedRoleIds, messageId) => {
+  const { db } = require('./database/db');
+  const member = interaction.member;
+  const guild = interaction.guild;
+  const botMember = guild.members.me;
+
+  const allOptions = db.prepare('SELECT role_id FROM autorole_options WHERE message_id = ?').all(messageId);
+  const possibleRoleIds = allOptions.map(o => o.role_id);
+
+  const added = [];
+  const removed = [];
+  const errors = [];
+
+  for (const rId of possibleRoleIds) {
+    const role = guild.roles.cache.get(rId);
+    if (!role) continue;
+
+    if (role.position >= botMember.roles.highest.position) {
+      errors.push(role.name);
+      continue;
+    }
+
+    const shouldHave = selectedRoleIds.includes(rId);
+    const hasRole = member.roles.cache.has(rId);
+
+    if (shouldHave && !hasRole) {
+      await member.roles.add(rId).catch(() => errors.push(role.name));
+      added.push(role.name);
+    } else if (!shouldHave && hasRole) {
+      await member.roles.remove(rId).catch(() => errors.push(role.name));
+      removed.push(role.name);
+    }
+  }
+
+  let msg = '✅ **Vos rôles ont été mis à jour !**';
+  if (added.length > 0) msg += `\n➕ **Ajoutés :** ${added.map(n => `\`${n}\``).join(', ')}`;
+  if (removed.length > 0) msg += `\n➖ **Retirés :** ${removed.map(n => `\`${n}\``).join(', ')}`;
+  if (added.length === 0 && removed.length === 0) msg += '\n*Aucun changement de rôle.*';
+  if (errors.length > 0) msg += `\n⚠️ **Erreur (permissions insuffisantes) :** ${errors.map(n => `\`${n}\``).join(', ')}`;
+
+  return interaction.editReply({ content: msg });
+};
+
 // Événement d'interaction (Slash Commands)
 client.on('interactionCreate', async interaction => {
   // Prise en charge directe des boutons, sélecteurs et modaux du Tribunal
@@ -633,13 +677,19 @@ client.on('interactionCreate', async interaction => {
     } else if (interaction.customId.startsWith('ticket_')) {
       const { handleTicketInteraction } = require('./utils/ticketHandler');
       return handleTicketInteraction(interaction, client);
-    } else if (interaction.customId === 'autorole_select_menu') {
-      const roleId = interaction.values[0];
-      if (!roleId) return;
-
+    } else if (interaction.customId === 'autorole_select_menu' || interaction.customId === 'autorole_multi_select_menu') {
       try {
         await interaction.deferReply({ ephemeral: true });
-        await handleRoleModeAssignment(interaction, roleId, interaction.message.id);
+        if (interaction.customId === 'autorole_multi_select_menu') {
+          await handleMultiRoleSelect(interaction, interaction.values || [], interaction.message.id);
+        } else {
+          const roleId = interaction.values[0];
+          if (roleId) {
+            await handleRoleModeAssignment(interaction, roleId, interaction.message.id);
+          } else {
+            await interaction.editReply({ content: '❌ Aucun rôle sélectionné.' });
+          }
+        }
       } catch (err) {
         console.error('Erreur select menu autorole:', err);
       }
@@ -1266,11 +1316,16 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
           row.addComponents(btn);
         });
       }
-    } else if (type === 'select') {
+    } else if (type === 'select' || type === 'multi_select') {
       if (options && options.length > 0) {
         const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId('autorole_select_menu')
-          .setPlaceholder('Sélectionnez un rôle...');
+          .setCustomId(type === 'multi_select' ? 'autorole_multi_select_menu' : 'autorole_select_menu')
+          .setPlaceholder(type === 'multi_select' ? 'Sélectionnez un ou plusieurs rôles...' : 'Sélectionnez un rôle...');
+
+        if (type === 'multi_select') {
+          selectMenu.setMinValues(0);
+          selectMenu.setMaxValues(options.length);
+        }
 
         const selectOptions = options.map(opt => {
           const optionObj = {
@@ -1454,8 +1509,8 @@ apiApp.post('/bot/send-sondage', async (req, res) => {
       .setTimestamp();
 
     const hostIp = process.env.PUBLIC_IP || '82.65.75.176';
-    const dashPort = process.env.DASHBOARD2_PORT || 49602;
-    const formUrl = (googleFormUrl && googleFormUrl.trim()) ? googleFormUrl.trim() : `http://${hostIp}:${dashPort}/form.html?id=${sondageId}`;
+    const dashPort = process.env.PORT || process.env.DASHBOARD_PORT || 49601;
+    const formUrl = (googleFormUrl && googleFormUrl.trim()) ? googleFormUrl.trim() : (process.env.PUBLIC_URL || process.env.DASHBOARD_PUBLIC_URL || `http://${hostIp}:${dashPort}/form.html?id=${sondageId}`);
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -2125,7 +2180,9 @@ apiApp.get('/guilds/:guildId/messages/:messageId', async (req, res) => {
       thumbnail: (emb && emb.thumbnail) ? 1 : 0,
       image_url: imageUrl,
       options: options,
-      type: (message.components && message.components[0] && message.components[0].components[0] && message.components[0].components[0].type === 3) ? 'select' : (options.length > 0 && options[0].role_id === '' ? 'reactions' : 'buttons')
+      type: (message.components && message.components[0] && message.components[0].components[0] && message.components[0].components[0].type === 3) 
+        ? ((message.components[0].components[0].maxValues && message.components[0].components[0].maxValues > 1) ? 'multi_select' : 'select') 
+        : (options.length > 0 && options[0].role_id === '' ? 'reactions' : 'buttons')
     });
   } catch (error) {
     console.error('Erreur message-details bridge:', error);

@@ -3485,7 +3485,7 @@ document.addEventListener('DOMContentLoaded', () => {
           pBtn.innerHTML = `<span>${btn.emoji || ''}</span> <span>${btn.label}</span>`;
           previewButtonsContainer.appendChild(pBtn);
         });
-      } else if (type === 'select') {
+      } else if (type === 'select' || type === 'multi_select') {
         if (autoroleButtonsList.length > 0) {
           const selectSim = document.createElement('div');
           selectSim.style.width = '100%';
@@ -3500,7 +3500,7 @@ document.addEventListener('DOMContentLoaded', () => {
           selectSim.style.fontSize = '0.9rem';
           selectSim.style.cursor = 'default';
           selectSim.innerHTML = `
-            <span>Sélectionnez un rôle... (${autoroleButtonsList.length} options)</span>
+            <span>${type === 'multi_select' ? 'Sélectionnez un ou plusieurs rôles...' : 'Sélectionnez un rôle...'} (${autoroleButtonsList.length} options)</span>
             <i class="fa-solid fa-chevron-down" style="font-size: 0.8rem; color: #b9bbbe;"></i>
           `;
           previewButtonsContainer.appendChild(selectSim);
@@ -6843,4 +6843,217 @@ if (formInvitesConfig) {
 document.addEventListener('DOMContentLoaded', () => {
   initSondageModule();
 });
+
+// ============================================================
+// 🤖 COMMANDES PERSONNALISÉES (DASHBOARD 2)
+// ============================================================
+function loadCustomCommands(guildId) {
+  if (!guildId) return;
+  fetch(`/api/bot/custom-commands/${guildId}`)
+    .then(r => r.json())
+    .then(data => {
+      const settings = data.settings || {};
+      const commands = data.commands || [];
+
+      const prefixInput = document.getElementById('cc-prefix-input');
+      if (prefixInput) prefixInput.value = settings.prefix || '/';
+
+      renderCustomCommands(commands, guildId);
+    })
+    .catch(console.error);
+}
+
+function renderCustomCommands(commands, guildId) {
+  const tbody = document.getElementById('cc-table-tbody');
+  if (!tbody) return;
+
+  if (!commands || !commands.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#b9bbbe; padding:20px;">Aucune commande personnalisée créée.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = commands.map(cmd => {
+    let actions = [];
+    try { actions = JSON.parse(cmd.actions_json || '[]'); } catch(e) {}
+    const textAction = actions.find(a => a.type === 'text' || a.type === 'reply');
+    const preview = textAction ? (textAction.content || textAction.text || '').substring(0, 60) + ((textAction.content || textAction.text || '').length > 60 ? '…' : '') : '—';
+    return `<tr>
+      <td><strong style="color:#5865F2;">/${cmd.command_name}</strong></td>
+      <td style="color:#b9bbbe; font-size:0.85rem;">${cmd.description || '—'}</td>
+      <td style="color:#dcddde; font-size:0.85rem;">${preview}</td>
+      <td style="text-align:center;">
+        <button type="button" class="btn btn-danger" style="padding:5px 10px; font-size:0.78rem;" onclick="deleteCustomCommand('${guildId}','${cmd.command_name}')">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function deleteCustomCommand(guildId, commandName) {
+  if (!confirm(`Supprimer la commande /${commandName} ?`)) return;
+  fetch(`/api/bot/custom-commands/${guildId}/${encodeURIComponent(commandName)}`, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(() => { showToast('✅ Commande supprimée.'); loadCustomCommands(guildId); })
+    .catch(() => showToast('❌ Erreur lors de la suppression.', true));
+}
+window.deleteCustomCommand = deleteCustomCommand;
+window.loadCustomCommands = loadCustomCommands;
+
+(function initCustomCommandsListeners() {
+  const form = document.getElementById('form-add-custom-command');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
+      if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
+
+      const commandName = document.getElementById('cc-name-input')?.value?.trim().replace(/^\//, '');
+      const description = document.getElementById('cc-desc-input')?.value?.trim();
+      const textReply = document.getElementById('cc-text-reply')?.value?.trim();
+
+      if (!commandName) return showToast('❌ Nom de commande requis.', true);
+
+      const actions = [];
+      if (textReply) actions.push({ type: 'text', content: textReply });
+
+      try {
+        const res = await fetch(`/api/bot/custom-commands/${guildId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command_name: commandName, description, actions_json: JSON.stringify(actions) })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast('✅ Commande créée !');
+          form.reset();
+          loadCustomCommands(guildId);
+        } else {
+          showToast(`❌ ${data.error || 'Erreur création commande'}`, true);
+        }
+      } catch(err) {
+        showToast(`❌ Erreur réseau : ${err.message}`, true);
+      }
+    });
+  }
+
+  const saveSettingsBtn = document.getElementById('cc-save-settings-btn');
+  if (saveSettingsBtn) {
+    saveSettingsBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
+      if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
+      const prefix = document.getElementById('cc-prefix-input')?.value || '/';
+      try {
+        const res = await fetch(`/api/bot/custom-commands/settings/${guildId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prefix })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast('✅ Préfixe enregistré !');
+        } else {
+          showToast(`❌ ${data.error || 'Erreur'}`, true);
+        }
+      } catch(err) {
+        showToast(`❌ Erreur réseau : ${err.message}`, true);
+      }
+    });
+  }
+})();
+
+// ============================================================
+// 💬 RÉACTIONS DE MOTS (DASHBOARD 2)
+// ============================================================
+function loadWordReactions(guildId) {
+  if (!guildId) return;
+  fetch(`/api/bot/word-reactions/${guildId}`)
+    .then(r => r.json())
+    .then(data => {
+      const settings = data.settings || {};
+      const reactions = data.reactions || [];
+
+      const globalToggle = document.getElementById('wr-global-toggle');
+      if (globalToggle) globalToggle.checked = settings.is_enabled !== false;
+
+      renderWordReactions(reactions, guildId);
+    })
+    .catch(console.error);
+}
+
+function renderWordReactions(reactions, guildId) {
+  const container = document.getElementById('wr-container-list');
+  if (!container) return;
+
+  if (!reactions || !reactions.length) {
+    container.innerHTML = `<p style="color:#b9bbbe; text-align:center; padding:20px;">Aucune réaction de mot configurée.</p>`;
+    return;
+  }
+
+  container.innerHTML = reactions.map(r => {
+    let emojis = [];
+    try { emojis = JSON.parse(r.emojis_json || '[]'); } catch(e) {}
+    const emojiStr = Array.isArray(emojis) ? emojis.join(' ') : (r.emojis_json || '');
+    return `<div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:rgba(47,49,54,0.6); border-radius:8px; border:1px solid rgba(255,255,255,0.08); margin-bottom:10px; flex-wrap:wrap; gap:10px;">
+      <div>
+        <strong style="color:#dcddde;">🔤 ${r.trigger_word}</strong>
+        <span style="color:#b9bbbe; font-size:0.85rem; margin-left:12px;">→ ${emojiStr || '(aucun)'}</span>
+      </div>
+      <button type="button" class="btn btn-danger" style="padding:5px 10px; font-size:0.78rem;" onclick="deleteWordReaction('${guildId}','${r.id}')">
+        <i class="fa-solid fa-trash"></i> Supprimer
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function deleteWordReaction(guildId, id) {
+  if (!confirm('Supprimer cette réaction ?')) return;
+  fetch(`/api/bot/word-reactions/${guildId}/${id}`, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(() => { showToast('✅ Réaction supprimée.'); loadWordReactions(guildId); })
+    .catch(() => showToast('❌ Erreur lors de la suppression.', true));
+}
+window.deleteWordReaction = deleteWordReaction;
+window.loadWordReactions = loadWordReactions;
+
+(function initWordReactionsListeners() {
+  const form = document.getElementById('form-add-word-reaction');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
+      if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
+
+      const triggerWord = document.getElementById('wr-trigger-input')?.value?.trim();
+      const emojisRaw = document.getElementById('wr-emojis-input')?.value?.trim();
+
+      if (!triggerWord || !emojisRaw) return showToast('❌ Mot et émojis requis.', true);
+
+      const emojis = emojisRaw.split(/[\s,]+/).filter(Boolean);
+
+      try {
+        const res = await fetch(`/api/bot/word-reactions/${guildId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trigger_word: triggerWord, emojis_json: JSON.stringify(emojis) })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast('✅ Réaction de mot ajoutée !');
+          form.reset();
+          loadWordReactions(guildId);
+        } else {
+          showToast(`❌ ${data.error || 'Erreur création réaction'}`, true);
+        }
+      } catch(err) {
+        showToast(`❌ Erreur réseau : ${err.message}`, true);
+      }
+    });
+  }
+})();
+
 

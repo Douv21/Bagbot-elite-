@@ -3425,7 +3425,7 @@ document.addEventListener('DOMContentLoaded', () => {
           pBtn.innerHTML = `<span>${btn.emoji || ''}</span> <span>${btn.label}</span>`;
           previewButtonsContainer.appendChild(pBtn);
         });
-      } else if (type === 'select') {
+      } else if (type === 'select' || type === 'multi_select') {
         if (autoroleButtonsList.length > 0) {
           const selectSim = document.createElement('div');
           selectSim.style.width = '100%';
@@ -3440,7 +3440,7 @@ document.addEventListener('DOMContentLoaded', () => {
           selectSim.style.fontSize = '0.9rem';
           selectSim.style.cursor = 'default';
           selectSim.innerHTML = `
-            <span>Sélectionnez un rôle... (${autoroleButtonsList.length} options)</span>
+            <span>${type === 'multi_select' ? 'Sélectionnez un ou plusieurs rôles...' : 'Sélectionnez un rôle...'} (${autoroleButtonsList.length} options)</span>
             <i class="fa-solid fa-chevron-down" style="font-size: 0.8rem; color: #b9bbbe;"></i>
           `;
           previewButtonsContainer.appendChild(selectSim);
@@ -6139,6 +6139,8 @@ function deleteCustomCommand(guildId, commandName) {
     .then(() => { showToast('✅ Commande supprimée.'); loadCustomCommands(guildId); })
     .catch(() => showToast('❌ Erreur lors de la suppression.', true));
 }
+window.deleteCustomCommand = deleteCustomCommand;
+window.loadCustomCommands = loadCustomCommands;
 
 // Form: Créer une commande
 (function initCustomCommandsListeners() {
@@ -6258,6 +6260,8 @@ function deleteWordReaction(guildId, id) {
     .then(() => { showToast('✅ Réaction supprimée.'); loadWordReactions(guildId); })
     .catch(() => showToast('❌ Erreur lors de la suppression.', true));
 }
+window.deleteWordReaction = deleteWordReaction;
+window.loadWordReactions = loadWordReactions;
 
 (function initWordReactionsListeners() {
   const form = document.getElementById('form-add-word-reaction');

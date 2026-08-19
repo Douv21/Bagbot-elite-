@@ -18,6 +18,18 @@
   - `[x]` Créer les commandes de statistiques solde, karma, niveau reprenant les rangs de Bagbot-lite
   - `[x]` Intégrer le système de rendu de cartes graphiques Canvas pour `/solde`, `/karma`, et `/niveau`
   - `[x]` Renommer le jeu de devinette en `/mot-cache` et `/mot-cache-admin`
+  - `[x]` Commandes personnalisées (Dashboard 2)
+  - `[x]` Base de données (`custom_commands_settings`, `custom_commands`)
+  - `[x]` Routes API REST (`/api/bot/custom-commands/...`)
+  - `[x]` Gestionnaire d'événement Discord (`messageCreate.js` pour traiter les commandes avec préfixe configurable)
+  - `[x]` Interface Dashboard 2 (`public2/index.html` et `public2/script.js`)
+  - `[x]` Réactions de Mots (Dashboard 2)
+  - `[x]` Base de données (`word_reactions_settings`, `word_reactions`)
+  - `[x]` Routes API REST (`/api/bot/word-reactions/...`)
+  - `[x]` Gestionnaire d'événement Discord (`messageCreate.js` pour ajouter les réactions émojis automatiques)
+  - `[x]` Interface Dashboard 2 (`public2/index.html` et `public2/script.js`)
+  - `[x]` Dashboard 2 (`public2/`) integration
+  - `[x]` Vérification globale du fonctionnement et syntaxe
 - `[x]` Étape 4 : Git et GitHub
   - `[x]` Pousser le code final et les ressources sur le dépôt GitHub `https://github.com/Douv21/Bagbot-elite-`
 - `[x]` Étape 5 : Déploiement sur Debian

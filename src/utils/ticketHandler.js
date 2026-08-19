@@ -271,7 +271,7 @@ async function handleTicketInteraction(interaction, client) {
       const { createAgeVerificationSession } = require('../database/db');
       createAgeVerificationSession(token, interaction.guildId, interaction.user.id, ticketChannel.id, minAge);
 
-      const baseVerifyUrl = process.env.PUBLIC_URL || `http://${process.env.PUBLIC_IP || '82.65.75.176'}:${process.env.DASHBOARD2_PORT || 49602}`;
+      const baseVerifyUrl = process.env.PUBLIC_URL || process.env.DASHBOARD_PUBLIC_URL || `http://${process.env.PUBLIC_IP || '82.65.75.176'}:${process.env.PORT || process.env.DASHBOARD_PORT || 49601}`;
       const verifyUrl = `${baseVerifyUrl}/verify-age.html?token=${token}`;
 
       const ageVerifyEmbed = new EmbedBuilder()
@@ -380,7 +380,7 @@ async function handleTicketInteraction(interaction, client) {
     const { createAgeVerificationSession } = require('../database/db');
     createAgeVerificationSession(token, interaction.guildId, interaction.user.id, interaction.channelId, minAge);
 
-    const baseVerifyUrl = process.env.PUBLIC_URL || `http://${process.env.PUBLIC_IP || '82.65.75.176'}:${process.env.DASHBOARD2_PORT || 49602}`;
+    const baseVerifyUrl = process.env.PUBLIC_URL || process.env.DASHBOARD_PUBLIC_URL || `http://${process.env.PUBLIC_IP || '82.65.75.176'}:${process.env.PORT || process.env.DASHBOARD_PORT || 49601}`;
     const verifyUrl = `${baseVerifyUrl}/verify-age.html?token=${token}`;
 
     const embed = new EmbedBuilder()

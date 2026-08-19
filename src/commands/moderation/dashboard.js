@@ -19,7 +19,8 @@ module.exports = {
       console.error('Erreur récupération IP dans /dashboard:', e);
     }
 
-    const dashboardUrl = `http://${ip}:49601`;
+    const dashPort = process.env.PORT || process.env.DASHBOARD_PORT || 49601;
+    const dashboardUrl = process.env.PUBLIC_URL || process.env.DASHBOARD_PUBLIC_URL || `http://${ip}:${dashPort}`;
 
     const embed = new EmbedBuilder()
       .setTitle('👑 Bagbot Elite - Dashboard')
