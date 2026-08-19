@@ -20,10 +20,10 @@ module.exports = {
       return interaction.reply({ content: '❌ Cette commande doit être exécutée sur un serveur.', ephemeral: true });
     }
 
-    const perms = interaction.memberPermissions || interaction.member?.permissions;
-    if (!perms?.has(PermissionsBitField.Flags.Administrator)) {
+    // Restriction stricte : Seul le propriétaire du serveur (Owner) peut exécuter cette commande
+    if (interaction.user.id !== interaction.guild.ownerId) {
       return interaction.reply({
-        content: '❌ Vous devez posséder la permission **Administrateur** pour exécuter la création globale du serveur de report.',
+        content: '❌ **Accès Refusé :** Seul le **Propriétaire du serveur (Owner 👑)** peut exécuter la commande de réinitialisation et de création globale du serveur Safecord.',
         ephemeral: true
       });
     }
