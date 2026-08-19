@@ -99,16 +99,18 @@ module.exports = {
     if (isQuarantined && quarantineConfig && quarantineConfig.role_id) {
       const role = member.guild.roles.cache.get(quarantineConfig.role_id);
       if (role) {
-        // Retirer tous ses autres rôles actuels et lui remettre le rôle de quarantaine
-        const memberRoles = member.roles.cache.filter(r => r.id !== member.guild.id);
+        const botMember = member.guild.members.me;
+        const currentRoles = member.roles.cache.filter(r => r.id !== member.guild.id);
+        const unremovableRoles = currentRoles.filter(r => r.managed || r.position >= botMember.roles.highest.position);
         
-        // Enlever les rôles actuels
-        for (const [id, r] of memberRoles) {
-          await member.roles.remove(r).catch(() => {});
-        }
-
-        // Ajouter le rôle de quarantaine
-        await member.roles.add(role).catch(console.error);
+        await member.roles.set(Array.from(new Set([role.id, ...unremovableRoles.keys()]))).catch(async () => {
+          for (const [id, r] of currentRoles) {
+            if (id !== role.id && !r.managed && r.position < botMember.roles.highest.position) {
+              await member.roles.remove(r).catch(() => {});
+            }
+          }
+          await member.roles.add(role.id).catch(() => {});
+        });
 
         // Envoyer une notification dans le salon de quarantaine
         if (quarantineConfig.channel_id) {
