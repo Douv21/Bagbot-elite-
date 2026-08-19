@@ -263,8 +263,37 @@ async function addXP(guild, member, xpToAdd, channelToNotify = null) {
   }
 }
 
+// Récupérer dynamiquement l'URL publique active (en interrogeant cloudflared si Quick Tunnel actif)
+async function getActivePublicUrl() {
+  // 1. Essayer Cloudflare Quick Tunnel métriques en temps réel
+  try {
+    const fetch = require('node-fetch');
+    const res = await fetch('http://127.0.0.1:20241/metrics', { timeout: 1500 }).then(r => r.text());
+    const match = res.match(/userHostname="([^"]+trycloudflare\.com[^"]*)"/);
+    if (match && match[1]) {
+      const activeUrl = match[1].startsWith('http') ? match[1] : `https://${match[1]}`;
+      return activeUrl;
+    }
+  } catch (_) {}
+
+  // 2. Si PUBLIC_URL ou DASHBOARD_PUBLIC_URL est défini (et pas périmé)
+  if (process.env.PUBLIC_URL && !process.env.PUBLIC_URL.includes('trycloudflare.com')) {
+    return process.env.PUBLIC_URL;
+  }
+  if (process.env.DASHBOARD_PUBLIC_URL && !process.env.DASHBOARD_PUBLIC_URL.includes('trycloudflare.com')) {
+    return process.env.DASHBOARD_PUBLIC_URL;
+  }
+  if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL;
+
+  // 3. Fallback IP / Port local
+  const ip = process.env.PUBLIC_IP || '82.65.75.176';
+  const port = process.env.PORT || process.env.DASHBOARD_PORT || 49601;
+  return `http://${ip}:${port}`;
+}
+
 module.exports = {
   formatWelcomeLeaveMessage,
   sendLog,
-  addXP
+  addXP,
+  getActivePublicUrl
 };
