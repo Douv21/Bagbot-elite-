@@ -2655,8 +2655,19 @@ function saveWordReactionSettings(guildId, isEnabled) {
 
 // Helper functions for Server Bot Profile (Custom Logo)
 function getServerBotProfile(guildId) {
+  if (!guildId) return { custom_logo_url: null, custom_name: null };
   const row = db.prepare('SELECT * FROM server_bot_profile WHERE guild_id = ?').get(guildId);
-  return row || { custom_logo_url: null, custom_name: null };
+  let logo = row ? row.custom_logo_url : null;
+  let name = row ? row.custom_name : null;
+
+  if (!logo) {
+    try {
+      const wl = db.prepare('SELECT custom_bot_avatar FROM welcome_leave WHERE guild_id = ?').get(guildId);
+      if (wl && wl.custom_bot_avatar) logo = wl.custom_bot_avatar;
+    } catch (_) {}
+  }
+
+  return { custom_logo_url: logo || null, custom_name: name || null };
 }
 
 function saveServerBotProfile(guildId, customLogoUrl, customName) {
@@ -2667,6 +2678,15 @@ function saveServerBotProfile(guildId, customLogoUrl, customName) {
       custom_logo_url = excluded.custom_logo_url,
       custom_name = excluded.custom_name
   `).run(guildId, customLogoUrl, customName);
+
+  try {
+    let wl = db.prepare('SELECT * FROM welcome_leave WHERE guild_id = ?').get(guildId);
+    if (!wl) {
+      db.prepare('INSERT INTO welcome_leave (guild_id, custom_bot_avatar) VALUES (?, ?)').run(guildId, customLogoUrl || null);
+    } else {
+      db.prepare('UPDATE welcome_leave SET custom_bot_avatar = ? WHERE guild_id = ?').run(customLogoUrl || null, guildId);
+    }
+  } catch (_) {}
 }
 
 module.exports = {

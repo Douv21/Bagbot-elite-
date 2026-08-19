@@ -1263,12 +1263,29 @@ app.get('/api/bot/server-bot-profile/:guildId', (req, res) => {
   res.json(getServerBotProfile(guildId));
 });
 
-app.post('/api/bot/server-bot-profile/:guildId', (req, res) => {
+app.post('/api/bot/server-bot-profile/:guildId', async (req, res) => {
   const { guildId } = req.params;
   const { custom_logo_url, custom_name } = req.body || {};
   const { saveServerBotProfile } = require('./database/db');
   saveServerBotProfile(guildId, custom_logo_url || null, custom_name || null);
-  res.json({ success: true });
+
+  try {
+    const { client } = require('./index');
+    if (client && client.guilds) {
+      const guild = client.guilds.cache.get(guildId);
+      if (guild && guild.members && guild.members.me) {
+        if (custom_name && custom_name.trim()) {
+          await guild.members.me.setNickname(custom_name.trim()).catch(() => null);
+        } else {
+          await guild.members.me.setNickname(null).catch(() => null);
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Erreur mise à jour surnom bot:', e);
+  }
+
+  res.json({ success: true, custom_logo_url: custom_logo_url || null, custom_name: custom_name || null });
 });
 
 // 11. Sauvegarder la configuration du jeu Mot Caché
