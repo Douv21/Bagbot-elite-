@@ -496,6 +496,55 @@ function initDatabase() {
     )
   `).run();
 
+  // 45. Commandes Personnalisées
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS custom_commands (
+      guild_id TEXT,
+      command_name TEXT,
+      description TEXT,
+      actions_json TEXT,
+      PRIMARY KEY (guild_id, command_name)
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS custom_command_settings (
+      guild_id TEXT PRIMARY KEY,
+      prefix TEXT DEFAULT '/',
+      delete_trigger INTEGER DEFAULT 0
+    )
+  `).run();
+
+  // 46. Réactions de Mots (Word Reactions)
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS word_reactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT,
+      trigger_word TEXT,
+      emojis_json TEXT,
+      allowed_roles_json TEXT DEFAULT '[]',
+      forbidden_roles_json TEXT DEFAULT '[]',
+      allowed_channels_json TEXT DEFAULT '[]',
+      forbidden_channels_json TEXT DEFAULT '[]'
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS word_reaction_settings (
+      guild_id TEXT PRIMARY KEY,
+      is_enabled INTEGER DEFAULT 1
+    )
+  `).run();
+
+  // 47. Logo / Profil du Bot par Serveur
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS server_bot_profile (
+      guild_id TEXT PRIMARY KEY,
+      custom_logo_url TEXT,
+      custom_name TEXT
+    )
+  `).run();
+
   db.prepare(`
     CREATE TABLE IF NOT EXISTS ticket_panels (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2532,6 +2581,94 @@ function getInviteLeaderboard(guildId, limit = 10) {
   }).sort((a, b) => b.total - a.total).slice(0, limit);
 }
 
+// Helper functions for Custom Commands
+function getCustomCommands(guildId) {
+  return db.prepare('SELECT * FROM custom_commands WHERE guild_id = ?').all(guildId);
+}
+
+function saveCustomCommand(guildId, commandName, description, actionsJson) {
+  db.prepare(`
+    INSERT INTO custom_commands (guild_id, command_name, description, actions_json)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(guild_id, command_name) DO UPDATE SET
+      description = excluded.description,
+      actions_json = excluded.actions_json
+  `).run(guildId, commandName.toLowerCase(), description, actionsJson);
+}
+
+function deleteCustomCommand(guildId, commandName) {
+  db.prepare('DELETE FROM custom_commands WHERE guild_id = ? AND LOWER(command_name) = LOWER(?)').run(guildId, commandName);
+}
+
+function getCustomCommandSettings(guildId) {
+  const row = db.prepare('SELECT * FROM custom_command_settings WHERE guild_id = ?').get(guildId);
+  return row || { prefix: '/', delete_trigger: 0 };
+}
+
+function saveCustomCommandSettings(guildId, prefix, deleteTrigger) {
+  db.prepare(`
+    INSERT INTO custom_command_settings (guild_id, prefix, delete_trigger)
+    VALUES (?, ?, ?)
+    ON CONFLICT(guild_id) DO UPDATE SET
+      prefix = excluded.prefix,
+      delete_trigger = excluded.delete_trigger
+  `).run(guildId, prefix, deleteTrigger ? 1 : 0);
+}
+
+// Helper functions for Word Reactions
+function getWordReactions(guildId) {
+  return db.prepare('SELECT * FROM word_reactions WHERE guild_id = ?').all(guildId);
+}
+
+function addWordReaction(guildId, triggerWord, emojisJson, allowedRolesJson, forbiddenRolesJson, allowedChannelsJson, forbiddenChannelsJson) {
+  return db.prepare(`
+    INSERT INTO word_reactions (guild_id, trigger_word, emojis_json, allowed_roles_json, forbidden_roles_json, allowed_channels_json, forbidden_channels_json)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    guildId,
+    triggerWord.toLowerCase(),
+    emojisJson,
+    allowedRolesJson || '[]',
+    forbiddenRolesJson || '[]',
+    allowedChannelsJson || '[]',
+    forbiddenChannelsJson || '[]'
+  );
+}
+
+function deleteWordReaction(guildId, id) {
+  db.prepare('DELETE FROM word_reactions WHERE guild_id = ? AND id = ?').run(guildId, id);
+}
+
+function getWordReactionSettings(guildId) {
+  const row = db.prepare('SELECT * FROM word_reaction_settings WHERE guild_id = ?').get(guildId);
+  return row || { is_enabled: 1 };
+}
+
+function saveWordReactionSettings(guildId, isEnabled) {
+  db.prepare(`
+    INSERT INTO word_reaction_settings (guild_id, is_enabled)
+    VALUES (?, ?)
+    ON CONFLICT(guild_id) DO UPDATE SET
+      is_enabled = excluded.is_enabled
+  `).run(guildId, isEnabled ? 1 : 0);
+}
+
+// Helper functions for Server Bot Profile (Custom Logo)
+function getServerBotProfile(guildId) {
+  const row = db.prepare('SELECT * FROM server_bot_profile WHERE guild_id = ?').get(guildId);
+  return row || { custom_logo_url: null, custom_name: null };
+}
+
+function saveServerBotProfile(guildId, customLogoUrl, customName) {
+  db.prepare(`
+    INSERT INTO server_bot_profile (guild_id, custom_logo_url, custom_name)
+    VALUES (?, ?, ?)
+    ON CONFLICT(guild_id) DO UPDATE SET
+      custom_logo_url = excluded.custom_logo_url,
+      custom_name = excluded.custom_name
+  `).run(guildId, customLogoUrl, customName);
+}
+
 module.exports = {
   ...module.exports,
   createAgeVerificationSession,
@@ -2546,5 +2683,17 @@ module.exports = {
   recordInviteJoin,
   recordInviteLeave,
   getUserInviteStats,
-  getInviteLeaderboard
+  getInviteLeaderboard,
+  getCustomCommands,
+  saveCustomCommand,
+  deleteCustomCommand,
+  getCustomCommandSettings,
+  saveCustomCommandSettings,
+  getWordReactions,
+  addWordReaction,
+  deleteWordReaction,
+  getWordReactionSettings,
+  saveWordReactionSettings,
+  getServerBotProfile,
+  saveServerBotProfile
 };

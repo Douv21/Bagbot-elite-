@@ -879,6 +879,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Charger les thèmes de cartes par rôle
         loadRoleThemes();
+
+        // Charger les fonctionnalités avancées
+        try { loadCustomCommands(targetGuildId); } catch(e) {}
+        try { loadWordReactions(targetGuildId); } catch(e) {}
+        try { loadServerBotProfile(targetGuildId); } catch(e) {}
       })
       .catch(console.error);
   }
@@ -6069,3 +6074,301 @@ function initSimpleEmbedSender() {
   });
 }
 
+
+// ============================================================
+// ⚡ COMMANDES PERSONNALISÉES
+// ============================================================
+
+function loadCustomCommands(guildId) {
+  if (!guildId) return;
+  fetch(`/bot/custom-commands/${guildId}`)
+    .then(r => r.json())
+    .then(data => {
+      const settings = data.settings || {};
+      const commands = data.commands || [];
+
+      // Préfixe
+      const prefixInput = document.getElementById('cc-prefix-input');
+      if (prefixInput) prefixInput.value = settings.prefix || '/';
+
+      renderCustomCommands(commands, guildId);
+    })
+    .catch(console.error);
+}
+
+function renderCustomCommands(commands, guildId) {
+  const tbody = document.getElementById('cc-table-tbody');
+  if (!tbody) return;
+
+  if (!commands.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#b9bbbe; padding:20px;">Aucune commande personnalisée créée.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = commands.map(cmd => {
+    let actions = [];
+    try { actions = JSON.parse(cmd.actions_json || '[]'); } catch(e) {}
+    const textAction = actions.find(a => a.type === 'text');
+    const preview = textAction ? textAction.content.substring(0, 60) + (textAction.content.length > 60 ? '…' : '') : '—';
+    return `<tr>
+      <td><strong style="color:#5865F2;">/${cmd.command_name}</strong></td>
+      <td style="color:#b9bbbe; font-size:0.85rem;">${cmd.description || '—'}</td>
+      <td style="color:#dcddde; font-size:0.85rem;">${preview}</td>
+      <td style="text-align:center;">
+        <button class="btn btn-danger" style="padding:5px 10px; font-size:0.78rem;" onclick="deleteCustomCommand('${guildId}','${cmd.command_name}')">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function deleteCustomCommand(guildId, commandName) {
+  if (!confirm(`Supprimer la commande /${commandName} ?`)) return;
+  fetch(`/bot/custom-commands/${guildId}/${encodeURIComponent(commandName)}`, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(() => { showToast('✅ Commande supprimée.'); loadCustomCommands(guildId); })
+    .catch(() => showToast('❌ Erreur lors de la suppression.', true));
+}
+
+// Form: Créer une commande
+(function initCustomCommandsListeners() {
+  const form = document.getElementById('form-add-custom-command');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const guildId = document.getElementById('guild-select')?.value || guildSelect?.value;
+      if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
+
+      const commandName = document.getElementById('cc-name-input')?.value?.trim().replace(/^\//, '');
+      const description = document.getElementById('cc-desc-input')?.value?.trim();
+      const textReply = document.getElementById('cc-text-reply')?.value?.trim();
+
+      if (!commandName) return showToast('❌ Nom de commande requis.', true);
+
+      const actions = [];
+      if (textReply) actions.push({ type: 'text', content: textReply });
+
+      try {
+        const res = await fetch(`/bot/custom-commands/${guildId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command_name: commandName, description, actions_json: JSON.stringify(actions) })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast('✅ Commande créée !');
+          form.reset();
+          loadCustomCommands(guildId);
+        } else {
+          showToast(`❌ ${data.error || 'Erreur création commande'}`, true);
+        }
+      } catch(err) {
+        showToast(`❌ Erreur réseau : ${err.message}`, true);
+      }
+    });
+  }
+
+  const saveSettingsBtn = document.getElementById('cc-save-settings-btn');
+  if (saveSettingsBtn) {
+    saveSettingsBtn.addEventListener('click', async () => {
+      const guildId = document.getElementById('guild-select')?.value || guildSelect?.value;
+      if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
+      const prefix = document.getElementById('cc-prefix-input')?.value || '/';
+      try {
+        const res = await fetch(`/bot/custom-commands/settings/${guildId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prefix })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast('✅ Préfixe enregistré !');
+        } else {
+          showToast(`❌ ${data.error || 'Erreur'}`, true);
+        }
+      } catch(err) {
+        showToast(`❌ Erreur réseau : ${err.message}`, true);
+      }
+    });
+  }
+})();
+
+// ============================================================
+// 💬 RÉACTIONS DE MOTS
+// ============================================================
+
+function loadWordReactions(guildId) {
+  if (!guildId) return;
+  fetch(`/bot/word-reactions/${guildId}`)
+    .then(r => r.json())
+    .then(data => {
+      const settings = data.settings || {};
+      const reactions = data.reactions || [];
+
+      const globalToggle = document.getElementById('wr-global-toggle');
+      if (globalToggle) globalToggle.checked = settings.is_enabled !== false;
+
+      renderWordReactions(reactions, guildId);
+    })
+    .catch(console.error);
+}
+
+function renderWordReactions(reactions, guildId) {
+  const container = document.getElementById('wr-container-list');
+  if (!container) return;
+
+  if (!reactions.length) {
+    container.innerHTML = `<p style="color:#b9bbbe; text-align:center; padding:20px;">Aucune réaction de mot configurée.</p>`;
+    return;
+  }
+
+  container.innerHTML = reactions.map(r => {
+    let emojis = [];
+    try { emojis = JSON.parse(r.emojis_json || '[]'); } catch(e) {}
+    const emojiStr = Array.isArray(emojis) ? emojis.join(' ') : (r.emojis_json || '');
+    return `<div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:rgba(47,49,54,0.6); border-radius:8px; border:1px solid rgba(255,255,255,0.08); margin-bottom:10px; flex-wrap:wrap; gap:10px;">
+      <div>
+        <strong style="color:#dcddde;">🔤 ${r.trigger_word}</strong>
+        <span style="color:#b9bbbe; font-size:0.85rem; margin-left:12px;">→ ${emojiStr || '(aucun)'}</span>
+      </div>
+      <button class="btn btn-danger" style="padding:5px 10px; font-size:0.78rem;" onclick="deleteWordReaction('${guildId}','${r.id}')">
+        <i class="fa-solid fa-trash"></i> Supprimer
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function deleteWordReaction(guildId, id) {
+  if (!confirm('Supprimer cette réaction ?')) return;
+  fetch(`/bot/word-reactions/${guildId}/${id}`, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(() => { showToast('✅ Réaction supprimée.'); loadWordReactions(guildId); })
+    .catch(() => showToast('❌ Erreur lors de la suppression.', true));
+}
+
+(function initWordReactionsListeners() {
+  const form = document.getElementById('form-add-word-reaction');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const guildId = document.getElementById('guild-select')?.value || guildSelect?.value;
+      if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
+
+      const trigger = document.getElementById('wr-trigger-input')?.value?.trim();
+      const emojisRaw = document.getElementById('wr-emojis-input')?.value?.trim();
+      if (!trigger || !emojisRaw) return showToast('❌ Mot déclencheur et émojis requis.', true);
+
+      // Séparer les émojis par virgule ou espace
+      const emojis = emojisRaw.split(/[,\s]+/).filter(Boolean);
+
+      try {
+        const res = await fetch(`/bot/word-reactions/${guildId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            trigger_word: trigger,
+            emojis_json: JSON.stringify(emojis),
+            allowed_roles_json: '[]',
+            forbidden_roles_json: '[]',
+            allowed_channels_json: '[]',
+            forbidden_channels_json: '[]'
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast('✅ Réaction ajoutée !');
+          form.reset();
+          loadWordReactions(guildId);
+        } else {
+          showToast(`❌ ${data.error || 'Erreur'}`, true);
+        }
+      } catch(err) {
+        showToast(`❌ Erreur réseau : ${err.message}`, true);
+      }
+    });
+  }
+
+  const globalToggle = document.getElementById('wr-global-toggle');
+  if (globalToggle) {
+    globalToggle.addEventListener('change', async () => {
+      const guildId = document.getElementById('guild-select')?.value || guildSelect?.value;
+      if (!guildId) return;
+      try {
+        await fetch(`/bot/word-reactions/settings/${guildId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_enabled: globalToggle.checked })
+        });
+        showToast(globalToggle.checked ? '✅ Réactions activées.' : '⚠️ Réactions désactivées.');
+      } catch(err) {
+        showToast(`❌ Erreur : ${err.message}`, true);
+      }
+    });
+  }
+})();
+
+// ============================================================
+// 🖼️ LOGO & IDENTITÉ BOT PAR SERVEUR
+// ============================================================
+
+function loadServerBotProfile(guildId) {
+  if (!guildId) return;
+  fetch(`/bot/server-bot-profile/${guildId}`)
+    .then(r => r.json())
+    .then(profile => {
+      const logoInput = document.getElementById('sbp-logo-url');
+      const nameInput = document.getElementById('sbp-name-input');
+      const previewImg = document.getElementById('sbp-preview-img');
+
+      if (logoInput) logoInput.value = profile.custom_logo_url || '';
+      if (nameInput) nameInput.value = profile.custom_name || '';
+      if (previewImg && profile.custom_logo_url) previewImg.src = profile.custom_logo_url;
+    })
+    .catch(console.error);
+}
+
+(function initServerBotProfileListeners() {
+  const logoInput = document.getElementById('sbp-logo-url');
+  const previewImg = document.getElementById('sbp-preview-img');
+
+  if (logoInput && previewImg) {
+    logoInput.addEventListener('input', () => {
+      const url = logoInput.value.trim();
+      if (url) {
+        previewImg.src = url;
+        previewImg.onerror = () => { previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; };
+      } else {
+        previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
+      }
+    });
+  }
+
+  const form = document.getElementById('form-server-bot-profile');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const guildId = document.getElementById('guild-select')?.value || guildSelect?.value;
+      if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
+
+      const custom_logo_url = document.getElementById('sbp-logo-url')?.value?.trim() || null;
+      const custom_name = document.getElementById('sbp-name-input')?.value?.trim() || null;
+
+      try {
+        const res = await fetch(`/bot/server-bot-profile/${guildId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ custom_logo_url, custom_name })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast('✅ Logo du bot enregistré !');
+        } else {
+          showToast(`❌ ${data.error || 'Erreur'}`, true);
+        }
+      } catch(err) {
+        showToast(`❌ Erreur réseau : ${err.message}`, true);
+      }
+    });
+  }
+})();

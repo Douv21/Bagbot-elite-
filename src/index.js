@@ -2450,6 +2450,207 @@ apiApp.post('/bot/star/force-election', async (req, res) => {
   }
 });
 
+// Commandes Personnalisées API
+apiApp.get('/bot/custom-commands/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { getCustomCommands, getCustomCommandSettings } = require('./database/db');
+  res.json({
+    commands: getCustomCommands(guildId),
+    settings: getCustomCommandSettings(guildId)
+  });
+});
+
+apiApp.post('/bot/custom-commands/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { command_name, description, actions_json } = req.body;
+  if (!command_name) return res.status(400).json({ error: 'Command name required' });
+  const { saveCustomCommand } = require('./database/db');
+  saveCustomCommand(guildId, command_name, description || '', typeof actions_json === 'string' ? actions_json : JSON.stringify(actions_json || []));
+  res.json({ success: true });
+});
+
+apiApp.delete('/bot/custom-commands/:guildId/:commandName', (req, res) => {
+  const { guildId, commandName } = req.params;
+  const { deleteCustomCommand } = require('./database/db');
+  deleteCustomCommand(guildId, commandName);
+  res.json({ success: true });
+});
+
+apiApp.post('/bot/custom-commands/settings/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { prefix, delete_trigger } = req.body;
+  const { saveCustomCommandSettings } = require('./database/db');
+  saveCustomCommandSettings(guildId, prefix || '/', delete_trigger);
+  res.json({ success: true });
+});
+
+// Word Reactions API
+apiApp.get('/bot/word-reactions/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { getWordReactions, getWordReactionSettings } = require('./database/db');
+  res.json({
+    reactions: getWordReactions(guildId),
+    settings: getWordReactionSettings(guildId)
+  });
+});
+
+apiApp.post('/bot/word-reactions/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { trigger_word, emojis_json, allowed_roles_json, forbidden_roles_json, allowed_channels_json, forbidden_channels_json } = req.body;
+  if (!trigger_word || !emojis_json) return res.status(400).json({ error: 'Trigger word and emojis required' });
+  const { addWordReaction } = require('./database/db');
+  addWordReaction(
+    guildId,
+    trigger_word,
+    typeof emojis_json === 'string' ? emojis_json : JSON.stringify(emojis_json),
+    typeof allowed_roles_json === 'string' ? allowed_roles_json : JSON.stringify(allowed_roles_json || []),
+    typeof forbidden_roles_json === 'string' ? forbidden_roles_json : JSON.stringify(forbidden_roles_json || []),
+    typeof allowed_channels_json === 'string' ? allowed_channels_json : JSON.stringify(allowed_channels_json || []),
+    typeof forbidden_channels_json === 'string' ? forbidden_channels_json : JSON.stringify(forbidden_channels_json || [])
+  );
+  res.json({ success: true });
+});
+
+apiApp.delete('/bot/word-reactions/:guildId/:id', (req, res) => {
+  const { guildId, id } = req.params;
+  const { deleteWordReaction } = require('./database/db');
+  deleteWordReaction(guildId, id);
+  res.json({ success: true });
+});
+
+apiApp.post('/bot/word-reactions/settings/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { is_enabled } = req.body;
+  const { saveWordReactionSettings } = require('./database/db');
+  saveWordReactionSettings(guildId, is_enabled);
+  res.json({ success: true });
+});
+
+// Server Bot Profile API (Custom Logo)
+apiApp.get('/bot/server-bot-profile/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { getServerBotProfile } = require('./database/db');
+  res.json(getServerBotProfile(guildId));
+});
+
+apiApp.post('/bot/server-bot-profile/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { custom_logo_url, custom_name } = req.body;
+  const { saveServerBotProfile } = require('./database/db');
+  saveServerBotProfile(guildId, custom_logo_url || null, custom_name || null);
+  res.json({ success: true });
+});
+
+// ── GESTIONNAIRE DES MESSAGES (COMMANDES PERSONNALISÉES & RÉACTIONS DE MOTS) ──
+client.on('messageCreate', async (message) => {
+  if (!message.guild || message.author.bot) return;
+
+  const guildId = message.guild.id;
+
+  // 1. RÉACTIONS DE MOTS (WORD REACTIONS)
+  try {
+    const { getWordReactionSettings, getWordReactions } = require('./database/db');
+    const wordSettings = getWordReactionSettings(guildId);
+
+    if (wordSettings && wordSettings.is_enabled) {
+      const reactions = getWordReactions(guildId);
+      if (reactions && reactions.length > 0) {
+        const messageContent = message.content.toLowerCase();
+        const memberRoles = message.member ? Array.from(message.member.roles.cache.keys()) : [];
+
+        for (const rule of reactions) {
+          if (!rule.trigger_word) continue;
+
+          let allowedChannels = [];
+          let forbiddenChannels = [];
+          try { allowedChannels = JSON.parse(rule.allowed_channels_json || '[]'); } catch (e) {}
+          try { forbiddenChannels = JSON.parse(rule.forbidden_channels_json || '[]'); } catch (e) {}
+
+          if (allowedChannels.length > 0 && !allowedChannels.includes(message.channel.id)) continue;
+          if (forbiddenChannels.length > 0 && forbiddenChannels.includes(message.channel.id)) continue;
+
+          let allowedRoles = [];
+          let forbiddenRoles = [];
+          try { allowedRoles = JSON.parse(rule.allowed_roles_json || '[]'); } catch (e) {}
+          try { forbiddenRoles = JSON.parse(rule.forbidden_roles_json || '[]'); } catch (e) {}
+
+          if (allowedRoles.length > 0 && !memberRoles.some(r => allowedRoles.includes(r))) continue;
+          if (forbiddenRoles.length > 0 && memberRoles.some(r => forbiddenRoles.includes(r))) continue;
+
+          const trigger = rule.trigger_word.toLowerCase();
+          if (messageContent.startsWith(trigger) || messageContent.includes(trigger)) {
+            let emojis = [];
+            try {
+              emojis = JSON.parse(rule.emojis_json || '[]');
+            } catch (e) {
+              if (rule.emojis_json) emojis = [rule.emojis_json];
+            }
+
+            for (const emoji of emojis) {
+              if (emoji) {
+                await message.react(emoji.trim()).catch(() => null);
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Erreur traitement réactions de mots:', err);
+  }
+
+  // 2. COMMANDES PERSONNALISÉES (CUSTOM COMMANDS)
+  try {
+    const { getCustomCommandSettings, getCustomCommands } = require('./database/db');
+    const cmdSettings = getCustomCommandSettings(guildId);
+    const prefix = cmdSettings.prefix || '/';
+
+    let triggeredCommandName = null;
+    if (message.content.startsWith(prefix)) {
+      triggeredCommandName = message.content.slice(prefix.length).trim().split(/ +/)[0].toLowerCase();
+    } else {
+      triggeredCommandName = message.content.trim().split(/ +/)[0].toLowerCase();
+    }
+
+    if (triggeredCommandName) {
+      const customCmds = getCustomCommands(guildId);
+      const matchedCmd = customCmds.find(c => c.command_name.toLowerCase() === triggeredCommandName);
+
+      if (matchedCmd) {
+        let actions = [];
+        try {
+          actions = JSON.parse(matchedCmd.actions_json || '[]');
+        } catch (e) {}
+
+        for (const action of actions) {
+          if (action.type === 'reply' && action.text) {
+            await message.channel.send(action.text);
+          } else if (action.type === 'embed') {
+            const { EmbedBuilder } = require('discord.js');
+            const embed = new EmbedBuilder()
+              .setColor(action.color || '#5865F2')
+              .setTimestamp();
+            if (action.title) embed.setTitle(action.title);
+            if (action.description) embed.setDescription(action.description);
+            if (action.imageUrl) embed.setImage(action.imageUrl);
+            await message.channel.send({ embeds: [embed] });
+          } else if (action.type === 'add_role' && action.roleId) {
+            await message.member?.roles.add(action.roleId).catch(() => null);
+          } else if (action.type === 'remove_role' && action.roleId) {
+            await message.member?.roles.remove(action.roleId).catch(() => null);
+          }
+        }
+
+        if (cmdSettings.delete_trigger) {
+          await message.delete().catch(() => null);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Erreur traitement commande personnalisée:', err);
+  }
+});
+
 apiApp.listen(API_PORT, '127.0.0.1', () => {
   console.log(`✓ Bot Local API running on port ${API_PORT}`);
 });
