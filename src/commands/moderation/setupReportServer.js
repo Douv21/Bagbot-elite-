@@ -33,9 +33,21 @@ module.exports = {
 
     const guild = interaction.guild;
     const everyoneRole = guild.roles.everyone;
+    const currentChannelId = interaction.channelId;
 
     try {
-      await interaction.editReply({ content: '⚙️ **[1/4] Création des rôles en cours...**' });
+      await interaction.editReply({ content: '🧹 **[1/5] Purge complète et suppression de tous les anciens salons...**' });
+
+      // ── 0. PURGE COMPLETE DE TOUS LES SALONS ET CATEGORIES ─────────────────
+      const existingChannels = Array.from(guild.channels.cache.values());
+      for (const ch of existingChannels) {
+        if (ch.id !== currentChannelId) {
+          await ch.delete('Purge automatique avant Setup Server Report').catch(() => null);
+        }
+      }
+
+      await interaction.editReply({ content: '⚙️ **[2/5] Création des rôles en cours...**' });
+
 
       // ── 1. CREATION DES ROLES ────────────────────────────────────────────────
       const roleDirection = await guild.roles.create({
@@ -494,9 +506,20 @@ module.exports = {
         .setColor('#2ECC71')
         .setTimestamp();
 
-      return interaction.editReply({ content: '🎉 **Création du Serveur Report (Forums) terminée !**', embeds: [summaryEmbed] });
+      await interaction.editReply({ content: '🎉 **Purge complète et création du Serveur Report (Forums) terminées avec succès !**', embeds: [summaryEmbed] });
+
+      // Supprimer l'ancien salon de lancement s'il existe toujours
+      if (currentChannelId && guild.channels.cache.has(currentChannelId)) {
+        setTimeout(async () => {
+          const oldCh = guild.channels.cache.get(currentChannelId);
+          if (oldCh) await oldCh.delete('Nettoyage final salon de lancement').catch(() => null);
+        }, 4000);
+      }
+
+      return;
 
     } catch (error) {
+
       console.error('Erreur lors du setup du serveur report :', error);
       return interaction.editReply({
         content: `❌ Une erreur est survenue lors de la création du serveur report : ${error.message}`
