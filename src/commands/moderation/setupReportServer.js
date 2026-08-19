@@ -11,9 +11,10 @@ const {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('setup-serveur-report')
-    .setDescription('🔨 Créer et configurer automatiquement un serveur de Signalement & Protection Inter-Serveurs (Forums par thème)')
+    .setDescription('🔨 Créer un serveur de Signalement & Protection Inter-Serveurs (Forums)')
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
     .setDMPermission(false),
+
 
   async execute(interaction) {
     if (!interaction.guild) {
