@@ -2759,10 +2759,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Helper Save function
   function saveConfig(endpoint, data) {
-    fetch(endpoint, {
+    const selectedGuild = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
+    const bodyData = (typeof data === 'object' && data !== null) ? { ...data } : {};
+    if (selectedGuild && !bodyData.guildId) {
+      bodyData.guildId = selectedGuild;
+    }
+    const targetUrl = selectedGuild 
+      ? (endpoint.includes('?') ? `${endpoint}&guildId=${selectedGuild}` : `${endpoint}?guildId=${selectedGuild}`) 
+      : endpoint;
+
+    fetch(targetUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: JSON.stringify(bodyData)
     })
       .then(res => res.json())
       .then(resData => {
