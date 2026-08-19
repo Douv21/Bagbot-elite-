@@ -108,12 +108,10 @@
           <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées & Départs</button>
           <button class="tab-btn" data-tab="tab-boost"><i class="fa-solid fa-rocket" style="color: #F47FFF;"></i> Remerciements Boost <span class="nav-badge badge-purple">VIP</span></button>
           <button class="tab-btn" data-tab="tab-announcements"><i class="fa-solid fa-bullhorn" style="color: #e74c3c;"></i> Annonces & Guides <span class="nav-badge badge-gold">VIP</span></button>
-          <button class="tab-btn" data-tab="tab-sondage"><i class="fa-solid fa-square-poll-vertical" style="color: #f1c40f;"></i> Sondages & Évaluations <span class="nav-badge badge-gold">FORM</span></button>
           <button class="tab-btn" data-tab="tab-embed-sender"><i class="fa-solid fa-file-code" style="color: #9b59b6;"></i> Envoyeur d'Embeds <span class="nav-badge badge-purple">NOUVEAU</span></button>
           <button class="tab-btn" data-tab="tab-autoroles"><i class="fa-solid fa-user-plus"></i> Auto-Rôles à l'Arrivée</button>
           <button class="tab-btn" data-tab="tab-reactionroles"><i class="fa-solid fa-rectangle-list"></i> Rôles Réaction</button>
           <button class="tab-btn" data-tab="tab-autothread"><i class="fa-solid fa-hashtag"></i> Auto-Thread</button>
-          <button class="tab-btn" data-tab="tab-invites"><i class="fa-solid fa-user-plus" style="color: #2ecc71;"></i> Suivi Invitations <span class="nav-badge badge-green">TRACKER</span></button>
           <button class="tab-btn" data-tab="tab-logs"><i class="fa-solid fa-list-check"></i> Logs d'Activité</button>
         </div>
 
@@ -139,7 +137,6 @@
         <div class="sidebar-category">
           <div class="category-title"><i class="fa-solid fa-chart-line" style="color: #e67e22;"></i> NIVEAUX & ÉCONOMIE</div>
           <button class="tab-btn" data-tab="tab-leveling"><i class="fa-solid fa-arrow-trend-up"></i> Niveaux & XP</button>
-          <button class="tab-btn" data-tab="tab-role-boosters"><i class="fa-solid fa-rocket" style="color: #F47FFF;"></i> Rôles Boosters <span class="nav-badge badge-purple">BOOST</span></button>
           <button class="tab-btn" data-tab="tab-quests"><i class="fa-solid fa-scroll" style="color: #f1c40f;"></i> Système de Quêtes <span class="nav-badge badge-gold">NEW</span></button>
           <button class="tab-btn" data-tab="tab-karma"><i class="fa-solid fa-star"></i> Configuration Karma</button>
           <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique & Suites</button>
@@ -524,15 +521,6 @@
                       <div class="form-group" style="flex: 1;">
                         <label for="autorole-embed-existing-msg"><i class="fa-solid fa-key"></i> ID d'un message existant (Optionnel) :</label>
                         <input type="text" id="autorole-embed-existing-msg" placeholder="Ex: 112233445566778899 (Optionnel)">
-                      </div>
-                    </div>
-
-                    <div class="form-row" id="group_select_channel_autoroles" style="display: none; margin-bottom: 15px;">
-                      <div class="form-group" style="flex: 1;">
-                        <label for="select_channel_autoroles"><i class="fa-solid fa-list"></i> Messages du salon (Charger / Copier / Modifier) :</label>
-                        <select id="select_channel_autoroles" class="channel-select" style="width: 100%;">
-                          <option value="">-- Sélectionner un message à charger dans le formulaire --</option>
-                        </select>
                       </div>
                     </div>
 
@@ -1170,57 +1158,6 @@
                     </div>
                   </div>
 
-                  <!-- Logs Tickets -->
-                  <div class="log-category-row" style="display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 250px;">
-                      <h4 style="margin: 0; color: #fff;"><i class="fa-solid fa-ticket" style="color: #f1c40f;"></i> Transcripts de Tickets</h4>
-                      <p style="margin: 3px 0 0; font-size: 0.8rem; color: #8e9297;">Transcripts HTML riches générés lors de la fermeture des tickets de support.</p>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px; min-width: 250px;">
-                      <label class="switch-label" style="margin: 0;">
-                        <input type="checkbox" id="log_enable_tickets" class="log-enable-checkbox" data-category="tickets">
-                        <span class="slider"></span>
-                      </label>
-                      <select id="log_channel_tickets" class="channel-select" style="min-width: 180px;">
-                        <option value="">Sélectionner un salon</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <!-- Logs Pseudos -->
-                  <div class="log-category-row" style="display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 250px;">
-                      <h4 style="margin: 0; color: #fff;"><i class="fa-solid fa-id-card" style="color: #1abc9c;"></i> Logs des Pseudos & Noms</h4>
-                      <p style="margin: 3px 0 0; font-size: 0.8rem; color: #8e9297;">Modifications de surnoms (nicknames) et de noms d'affichage des membres.</p>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px; min-width: 250px;">
-                      <label class="switch-label" style="margin: 0;">
-                        <input type="checkbox" id="log_enable_pseudo" class="log-enable-checkbox" data-category="pseudo">
-                        <span class="slider"></span>
-                      </label>
-                      <select id="log_channel_pseudo" class="channel-select" style="min-width: 180px;">
-                        <option value="">Sélectionner un salon</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <!-- Logs Rôles -->
-                  <div class="log-category-row" style="display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 250px;">
-                      <h4 style="margin: 0; color: #fff;"><i class="fa-solid fa-user-tag" style="color: #9b59b6;"></i> Logs des Rôles Membres</h4>
-                      <p style="margin: 3px 0 0; font-size: 0.8rem; color: #8e9297;">Rôles ajoutés (obtenus) et rôles retirés aux membres du serveur.</p>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px; min-width: 250px;">
-                      <label class="switch-label" style="margin: 0;">
-                        <input type="checkbox" id="log_enable_roles" class="log-enable-checkbox" data-category="roles">
-                        <span class="slider"></span>
-                      </label>
-                      <select id="log_channel_roles" class="channel-select" style="min-width: 180px;">
-                        <option value="">Sélectionner un salon</option>
-                      </select>
-                    </div>
-                  </div>
-
                   <!-- Logs Confessions -->
                   <div class="log-category-row" style="display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-bottom: 5px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 250px;">
@@ -1645,77 +1582,6 @@
                   </select>
                 </div>
                 <button type="submit" class="btn btn-add"><i class="fa-solid fa-plus"></i> Associer le thème</button>
-              </form>
-            </div>
-          </div>
-
-          <!-- Tab: Role Boosters -->
-          <div id="tab-role-boosters" class="tab-content">
-            <h2 class="section-title"><i class="fa-solid fa-rocket" style="color: #F47FFF;"></i> Multiplicateurs & Rôles Boosters (XP, Karma, Pièces)</h2>
-            <div class="card glass">
-              <p class="form-help mb-3">Attribuez des multiplicateurs de gains (x1.5, x2.0, x2.5...) selon les rôles possédés par vos membres (ex: Rôle VIP, Booster Discord, Rôle Niveau, etc.).</p>
-
-              <div class="table-container mb-3">
-                <table class="premium-table">
-                  <thead>
-                    <tr>
-                      <th>Rôle Concerné</th>
-                      <th>Multiplicateur XP</th>
-                      <th>Multiplicateur Karma</th>
-                      <th>Multiplicateur Pièces</th>
-                      <th style="width: 100px; text-align: center;">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody id="role-boosters-list">
-                    <tr>
-                      <td colspan="5" class="text-center">Aucun rôle booster configuré.</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <!-- Add Role Booster Form -->
-              <h4 class="mb-2">Ajouter / Modifier un Rôle Booster</h4>
-              <form id="form-add-role-booster" class="inner-form">
-                <div class="form-row">
-                  <div class="form-group" style="flex: 1.5; min-width: 200px;">
-                    <label for="booster_role">Rôle :</label>
-                    <select id="booster_role" class="role-select custom-select" required>
-                      <option value="">Sélectionner un rôle...</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="booster_xp">Multiplier XP :</label>
-                    <select id="booster_xp" class="custom-select">
-                      <option value="1.0">x1.0 (Normal)</option>
-                      <option value="1.25">x1.25 (+25%)</option>
-                      <option value="1.5">x1.5 (+50%)</option>
-                      <option value="1.75">x1.75 (+75%)</option>
-                      <option value="2.0">x2.0 (Double)</option>
-                      <option value="2.5">x2.5 (+150%)</option>
-                      <option value="3.0">x3.0 (Triple)</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="booster_karma">Multiplier Karma :</label>
-                    <select id="booster_karma" class="custom-select">
-                      <option value="1.0">x1.0 (Normal)</option>
-                      <option value="1.5">x1.5 (+50%)</option>
-                      <option value="2.0">x2.0 (Double)</option>
-                      <option value="3.0">x3.0 (Triple)</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="booster_money">Multiplier Pièces :</label>
-                    <select id="booster_money" class="custom-select">
-                      <option value="1.0">x1.0 (Normal)</option>
-                      <option value="1.5">x1.5 (+50%)</option>
-                      <option value="2.0">x2.0 (Double)</option>
-                      <option value="3.0">x3.0 (Triple)</option>
-                    </select>
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-add" style="margin-top: 10px;"><i class="fa-solid fa-rocket"></i> Enregistrer le Rôle Booster</button>
               </form>
             </div>
           </div>
@@ -2154,22 +2020,6 @@
                 </div>
 
                 <div class="form-row" style="margin-top: 15px;">
-                  <div class="form-group" style="flex: 1;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                      <label style="margin: 0;"><i class="fa-solid fa-hashtag"></i> Salons autorisés pour la recherche de lettres :</label>
-                      <div style="display: flex; gap: 8px;">
-                        <button type="button" class="btn" onclick="toggleAllGameChannels(true)" style="padding: 3px 10px; font-size: 0.75rem; background: rgba(88, 101, 242, 0.3); border: 1px solid #5865F2; color: #fff; border-radius: 4px; cursor: pointer;">Tout cocher</button>
-                        <button type="button" class="btn" onclick="toggleAllGameChannels(false)" style="padding: 3px 10px; font-size: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.2); color: #ccc; border-radius: 4px; cursor: pointer;">Tout décocher</button>
-                      </div>
-                    </div>
-                    <div id="game_allowed_channels_checkboxes_container" style="max-height: 180px; overflow-y: auto; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 6px;">
-                      <!-- Rempli en JS avec des cases à cocher -->
-                    </div>
-                    <small style="color: #b9bbbe; display: block; margin-top: 4px;">Cochez les salons autorisés. Laisser tout décoché autorise la recherche dans tous les salons du serveur.</small>
-                  </div>
-                </div>
-
-                <div class="form-row" style="margin-top: 15px;">
                   <div class="form-group checkbox-group">
                     <label class="switch-label" style="color: #ff4757;">
                       <input type="checkbox" id="game_reset_progress">
@@ -2301,218 +2151,6 @@
                     <!-- Rempli en JS -->
                   </tbody>
                 </table>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tab: Sondages & Évaluations -->
-          <div id="tab-sondage" class="tab-content">
-            <h2 class="section-title"><i class="fa-solid fa-square-poll-vertical" style="color: #f1c40f;"></i> Créateur de Sondages & Évaluations par Formulaire</h2>
-            
-            <div class="card glass mb-4">
-              <p style="color: #b9bbbe; font-size: 0.9rem; margin-bottom: 15px;">Configurez et publiez un formulaire de sondage interactif dans un salon Discord. Les membres cliquent sur le bouton pour noter de 1 à 5 étoiles (ou icônes personnalisées) et laisser leur avis.</p>
-              <h3 style="margin-bottom: 12px; font-size: 1rem; color: #fff;"><i class="fa-solid fa-list-check" style="color: #f1c40f;"></i> Sondages Actifs du Serveur</h3>
-              <div id="sondages-saved-list" style="display: flex; flex-direction: column; gap: 10px;">
-                <p style="color: #8e9297; font-style: italic;">Chargement des sondages...</p>
-              </div>
-            </div>
-
-            <div class="row">
-              <!-- Formulaire à gauche -->
-              <div class="col-md-7">
-                <div class="card glass mb-4">
-                  <h3>⚙️ Paramètres du Sondage</h3>
-                  <form id="form-sondage" class="inner-form">
-                    <input type="hidden" id="sondage_edit_id" value="">
-                    <div id="sondage-edit-banner" style="display: none; background: rgba(52, 152, 219, 0.15); border: 1px solid rgba(52, 152, 219, 0.4); color: #3498db; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
-                      <span><i class="fa-solid fa-pen-to-square"></i> Modification du sondage en cours...</span>
-                      <button type="button" id="btn-cancel-sondage-edit" style="background: none; border: none; color: #e74c3c; cursor: pointer; font-weight: 600;">Annuler</button>
-                    </div>
-                    <div class="form-row">
-                      <div class="form-group">
-                        <label for="sondage_channel"><i class="fa-solid fa-hashtag"></i> Salon d'envoi du Sondage :</label>
-                        <select id="sondage_channel" required class="channel-select custom-select">
-                          <option value="">Sélectionner un salon...</option>
-                        </select>
-                      </div>
-                      <div class="form-group">
-                        <label for="sondage_results_channel"><i class="fa-solid fa-inbox"></i> Salon de transmission des avis (Optionnel) :</label>
-                        <select id="sondage_results_channel" class="channel-select custom-select">
-                          <option value="">-- Aucun (Résultats uniquement sur l'embed) --</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div class="form-group mb-3">
-                      <label for="sondage_google_url"><i class="fa-brands fa-google"></i> Lien du Formulaire Google Forms (Optionnel) :</label>
-                      <input type="url" id="sondage_google_url" class="inner-input" placeholder="https://docs.google.com/forms/d/e/.../viewform">
-                      <p style="font-size: 0.8rem; color: #8e9297; margin-top: 4px;">Si renseigné, un bouton redirigera les membres directement vers votre Google Form. Les réponses seront automatiquement renvoyées vers votre serveur !</p>
-                    </div>
-
-                    <div id="google-script-box" style="background: rgba(212, 175, 55, 0.08); border: 1px dashed rgba(212, 175, 55, 0.4); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
-                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="font-weight: 600; font-size: 0.85rem; color: #ffd700;"><i class="fa-solid fa-code"></i> Script d'interconnexion Google Apps Script :</span>
-                        <button type="button" id="btn-copy-apps-script" style="background: #d4af37; color: #000; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border: none; border-radius: 4px; cursor: pointer;">📋 Copier le Script</button>
-                      </div>
-                      <p style="font-size: 0.8rem; color: #b9bbbe; margin-bottom: 6px;">Dans votre Google Form, allez dans <strong>3 petits points ➔ Éditeur de script</strong>, collez ce code et ajoutez un déclencheur <em>"Lors de l'envoi du formulaire"</em>.</p>
-                      <textarea id="apps-script-code" readonly style="width: 100%; height: 70px; background: rgba(0,0,0,0.5); color: #2ecc71; font-family: monospace; font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 6px; resize: none;"></textarea>
-                    </div>
-
-                    <div class="form-row">
-                      <div class="form-group">
-                        <label for="sondage_icon"><i class="fa-solid fa-icons"></i> Icône de notation (1 à 5) :</label>
-                        <select id="sondage_icon" class="custom-select">
-                          <option value="⭐">⭐ Étoiles</option>
-                          <option value="❤️">❤️ Cœurs</option>
-                          <option value="👍">👍 Pouces</option>
-                          <option value="🔥">🔥 Flammes</option>
-                          <option value="🎯">🎯 Cibles</option>
-                          <option value="💎">💎 Diamants</option>
-                          <option value="👑">👑 Couronnes</option>
-                          <option value="🌟">🌟 Étoiles Dorées</option>
-                          <option value="🏆">🏆 Trophées</option>
-                          <option value="📌">📌 Épingles</option>
-                          <option value="✨">✨ Étincelles</option>
-                          <option value="custom">✏️ Personnalisé...</option>
-                        </select>
-                        <input type="text" id="sondage_icon_custom" placeholder="Entrez un émoji..." style="display: none; margin-top: 5px;" class="inner-input">
-                      </div>
-                      <div class="form-group">
-                        <label for="sondage_text_type"><i class="fa-solid fa-align-left"></i> Format du champ commentaire :</label>
-                        <select id="sondage_text_type" class="custom-select">
-                          <option value="long">Explication longue (Paragraphe / Multiligne)</option>
-                          <option value="court">Explication courte (Ligne unique)</option>
-                        </select>
-                      </div>
-                      <div class="form-group">
-                        <label for="sondage_color"><i class="fa-solid fa-palette"></i> Couleur de l'embed :</label>
-                        <input type="color" id="sondage_color" value="#78A8C6" style="padding: 2px; height: 42px; width: 100%;">
-                      </div>
-                    </div>
-
-                    <div class="form-group">
-                      <label for="sondage_title"><i class="fa-solid fa-heading"></i> Titre du Sondage / Évaluation :</label>
-                      <input type="text" id="sondage_title" required class="inner-input" placeholder="ex: 📊 Avis sur l'Événement du Serveur">
-                    </div>
-
-                    <div class="form-group">
-                      <label for="sondage_desc"><i class="fa-solid fa-paragraph"></i> Description / Consignes pour les membres :</label>
-                      <textarea id="sondage_desc" rows="2" class="inner-input" placeholder="Consignes affichées dans l'embed au-dessus du bouton..." style="resize: vertical;"></textarea>
-                    </div>
-
-                    <!-- Options de l'Embed de Résultat Transmis -->
-                    <div class="card glass mb-3" style="background: rgba(0,0,0,0.25); border: 1px solid rgba(120, 168, 198, 0.3); padding: 12px 15px; border-radius: 8px;">
-                      <h4 style="color: #78a8c6; margin-bottom: 8px; font-size: 0.9rem;"><i class="fa-solid fa-file-invoice"></i> Personnalisation du Message de Résultat Transmis (Salon Avis)</h4>
-                      
-                      <div class="form-group mb-2">
-                        <label for="sondage_short_desc" style="font-size: 0.8rem;"><i class="fa-solid fa-quote-left"></i> Texte d'introduction (au-dessus des réponses) :</label>
-                        <input type="text" id="sondage_short_desc" class="inner-input" placeholder="ex: Voici les réponses reçues :" value="Voici les réponses reçues :">
-                      </div>
-
-                      <div class="form-row" style="display: flex; gap: 10px;">
-                        <div class="form-group" style="flex: 1;">
-                          <label for="sondage_avatar_image" style="font-size: 0.8rem;"><i class="fa-solid fa-image"></i> Miniature (Petite image / Avatar) :</label>
-                          <div style="display: flex; gap: 5px;">
-                            <input type="text" id="sondage_avatar_image" class="inner-input" placeholder="URL ou image hébergée..." style="flex: 1;">
-                            <label class="btn-upload-file" style="cursor: pointer; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 6px 10px; border-radius: 4px; color: #fff;">
-                              <i class="fa-solid fa-cloud-arrow-up"></i>
-                              <input type="file" accept="image/*" style="display: none;" onchange="handleImgUpload(event, 'sondage_avatar_image')">
-                            </label>
-                          </div>
-                        </div>
-                        <div class="form-group" style="flex: 1;">
-                          <label for="sondage_banner_image" style="font-size: 0.8rem;"><i class="fa-solid fa-panorama"></i> Grande image de fond (Banner) :</label>
-                          <div style="display: flex; gap: 5px;">
-                            <input type="text" id="sondage_banner_image" class="inner-input" placeholder="URL ou image hébergée..." style="flex: 1;">
-                            <label class="btn-upload-file" style="cursor: pointer; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 6px 10px; border-radius: 4px; color: #fff;">
-                              <i class="fa-solid fa-cloud-arrow-up"></i>
-                              <input type="file" accept="image/*" style="display: none;" onchange="handleImgUpload(event, 'sondage_banner_image')">
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="form-group mt-2">
-                        <label for="sondage_mentions" style="font-size: 0.8rem;"><i class="fa-solid fa-at"></i> Mentions de Rôles / Membres (Pings lors d'une réponse) :</label>
-                        <input type="text" id="sondage_mentions" class="inner-input" placeholder="ex: <@&1101763528626544760> <@&1101763528626544759>">
-                      </div>
-                    </div>
-
-                    <!-- Sections / Questions Dynamiques -->
-                    <div class="card glass mb-3" style="background: rgba(0,0,0,0.2); border: 1px dashed rgba(255,255,255,0.15); padding: 12px 15px;">
-                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <h4 style="color: #f1c40f; margin: 0; font-size: 0.9rem;"><i class="fa-solid fa-list-check"></i> Questions & Catégories Personnalisables</h4>
-                        <button type="button" id="btn-add-sondage-question" class="btn-secondary" style="padding: 2px 8px; font-size: 0.75rem;"><i class="fa-solid fa-plus"></i> Ajouter une question</button>
-                      </div>
-                      <p style="color: #b9bbbe; font-size: 0.8rem; margin-bottom: 10px;">Chaque question apparaîtra dans le formulaire interactif du bot avec évaluation par étoiles/émojis.</p>
-                      
-                      <div id="sondage-questions-container" style="display: flex; flex-direction: column; gap: 8px;">
-                        <!-- Questions injectées dynamiquement -->
-                      </div>
-
-                      <div class="form-group mt-2" style="display: flex; align-items: center; gap: 8px;">
-                        <input type="checkbox" id="sondage_has_general_remark" checked style="width: 18px; height: 18px; cursor: pointer;">
-                        <label for="sondage_has_general_remark" style="margin: 0; cursor: pointer; color: #fff; font-size: 0.85rem;">Ajouter une section "Remarques & Observations Générales" tout en bas</label>
-                      </div>
-                    </div>
-
-                    <button type="submit" class="btn-save" style="margin-top: 15px; width: 100%;"><i class="fa-solid fa-paper-plane"></i> Publier le Sondage dans le Salon</button>
-                  </form>
-                </div>
-              </div>
-
-              <!-- Aperçu Discord en Temps Réel à droite -->
-              <div class="col-md-5">
-                <div class="card glass sticky-top" style="top: 20px;">
-                  <h3><i class="fa-solid fa-eye"></i> Aperçu Discord en Temps Réel</h3>
-                  <div class="discord-preview-box mt-3" style="background: #36393f; border-radius: 8px; padding: 15px; border-left: 4px solid #f1c40f;" id="sondage-preview-border">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                      <img src="https://cdn.discordapp.com/embed/avatars/0.png" style="width: 32px; height: 32px; border-radius: 50%;" id="sondage-bot-avatar">
-                      <div>
-                        <span style="color: #fff; font-weight: 600; font-size: 0.95rem;">Bagbot Elite</span>
-                        <span style="background: #5865f2; color: #fff; font-size: 0.65rem; padding: 1px 4px; border-radius: 3px; margin-left: 4px;">BOT</span>
-                      </div>
-                    </div>
-
-                    <h4 id="sondage-preview-title" style="color: #fff; margin: 5px 0; font-size: 1rem;">📊 Avis sur l'Événement du Serveur</h4>
-                    <p id="sondage-preview-desc" style="color: #dcddde; font-size: 0.85rem; white-space: pre-wrap; margin-bottom: 12px;">Consignes affichées dans l'embed au-dessus du bouton...</p>
-                    
-                    <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; margin-bottom: 12px;">
-                      <div style="color: #b9bbbe; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px;">📈 Statistiques en temps réel</div>
-                      <div style="color: #dcddde; font-size: 0.8rem;">
-                        <strong>Note moyenne :</strong> 4.8/5 <span class="sondage-preview-icon-item">⭐</span><br>
-                        <strong>Nombre de participants :</strong> 12<br>
-                        5 <span class="sondage-preview-icon-item">⭐</span> : ████████░░ 8 (67%)<br>
-                        4 <span class="sondage-preview-icon-item">⭐</span> : ███░░░░░░░ 3 (25%)<br>
-                        3 <span class="sondage-preview-icon-item">⭐</span> : █░░░░░░░░░ 1 (8%)
-                      </div>
-                    </div>
-
-                    <!-- Bouton Discord dans l'aperçu -->
-                    <div style="display: flex; gap: 8px;">
-                      <button type="button" style="background: #5865f2; color: #fff; border: none; padding: 8px 14px; border-radius: 4px; font-size: 0.85rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                        <span>📝</span> Participer au Sondage
-                      </button>
-                    </div>
-
-                    <!-- Formulaire Modal aperçu miniature -->
-                    <div style="margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.15); padding-top: 12px;">
-                      <div style="color: #b9bbbe; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; margin-bottom: 6px;">Aperçu du Formulaire Modal (Discord Popup)</div>
-                      <div style="background: #2f3136; padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
-                        <div style="color: #fff; font-size: 0.8rem; font-weight: 600; margin-bottom: 8px;" id="sondage-modal-preview-title">Modal : Avis sur l'Événement du Serveur</div>
-                        <div style="margin-bottom: 6px;">
-                          <label style="color: #b9bbbe; font-size: 0.75rem; display: block;">Votre Note de 1 à 5 (<span class="sondage-preview-icon-item">⭐</span>)</label>
-                          <div style="background: #202225; color: #72767d; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">Entrez un chiffre de 1 à 5 (ex: 5)</div>
-                        </div>
-                        <div>
-                          <label style="color: #b9bbbe; font-size: 0.75rem; display: block;">Explication / Vos remarques (<span id="sondage-modal-text-type">Paragraphe Multiligne</span>)</label>
-                          <div style="background: #202225; color: #72767d; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;" id="sondage-modal-placeholder">Rédigez ici vos explications...</div>
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -2929,32 +2567,6 @@
                   </div>
                 </div>
 
-                <div class="card glass mb-3" style="background: rgba(212, 175, 55, 0.05); border: 1px solid rgba(212, 175, 55, 0.2); padding: 15px; border-radius: 8px; margin-top: 15px;">
-                  <h4 style="color: #ffd700; margin-bottom: 10px; font-size: 0.95rem;"><i class="fa-solid fa-user-shield"></i> Vérification d'Âge & Majorité (+18)</h4>
-                  <div class="form-row" style="display: flex; gap: 15px; flex-wrap: wrap;">
-                    <div class="form-group" style="flex: 1; min-width: 200px; display: flex; align-items: center; gap: 10px;">
-                      <input type="checkbox" id="ticket_opt_require_age_verification" style="width: 20px; height: 20px; cursor: pointer;">
-                      <label for="ticket_opt_require_age_verification" style="margin: 0; cursor: pointer; color: #fff; font-weight: 600;">Exiger la vérification d'âge 🔐</label>
-                    </div>
-                    <div class="form-group" style="flex: 1; min-width: 140px;">
-                      <label for="ticket_opt_min_age_required">Âge minimum requis :</label>
-                      <input type="number" id="ticket_opt_min_age_required" class="inner-input" value="18" min="13" max="99">
-                    </div>
-                    <div class="form-group" style="flex: 1.5; min-width: 220px;">
-                      <label for="ticket_opt_age_verified_role_id">Rôle attribué une fois vérifié :</label>
-                      <select id="ticket_opt_age_verified_role_id" class="role-select custom-select">
-                        <option value="">-- Aucun rôle spécifique --</option>
-                      </select>
-                    </div>
-                    <div class="form-group" style="flex: 1.5; min-width: 220px;">
-                      <label for="ticket_opt_age_verification_log_channel">Salon d'envoi du rapport d'âge (Logs) :</label>
-                      <select id="ticket_opt_age_verification_log_channel" class="channel-select custom-select">
-                        <option value="">-- Même salon (Ticket du membre) --</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
                 <div class="actions-bar" style="margin-top: 15px; display: flex; gap: 10px;">
                   <button type="submit" class="btn btn-save" id="btn-ticket-submit" style="background: #2ecc71;"><i class="fa-solid fa-plus"></i> Ajouter cette Catégorie</button>
                   <button type="button" class="btn btn-logout" id="btn-ticket-cancel-edit" style="display: none; background: #e74c3c;"><i class="fa-solid fa-xmark"></i> Annuler la modification</button>
@@ -3019,58 +2631,6 @@
                 </button>
               </div>
             </form>
-          </div>
-
-          <!-- Tab: Tracker d'Invitations -->
-          <div id="tab-invites" class="tab-content">
-            <h2 class="section-title"><i class="fa-solid fa-user-plus" style="color: #2ecc71;"></i> Suivi des Invitations (Invite Tracker)</h2>
-
-            <div class="card glass mb-4">
-              <h3>⚙️ Configuration du Suivi d'Invitations</h3>
-              <p class="form-help mb-3">Identifiez automatiquement qui a invité chaque membre sur votre serveur et publiez des logs d'arrivée/départ détaillés avec le nombre total d'invitations.</p>
-              
-              <form id="form-invites-config" class="inner-form">
-                <div class="form-row">
-                  <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-                    <input type="checkbox" id="invites_enabled" style="width: 20px; height: 20px; cursor: pointer;" checked>
-                    <label for="invites_enabled" style="margin: 0; cursor: pointer; color: #fff; font-weight: 600;">Activer le Suivi des Invitations 📩</label>
-                  </div>
-                  <div class="form-group" style="flex: 1; min-width: 250px;">
-                    <label for="invites_log_channel"><i class="fa-solid fa-hashtag"></i> Salon de logs des invitations :</label>
-                    <select id="invites_log_channel" class="channel-select custom-select">
-                      <option value="">-- Désactiver les annonces d'invitations --</option>
-                    </select>
-                  </div>
-                </div>
-
-                <button type="submit" class="btn btn-save" style="margin-top: 10px; width: auto;">
-                  <i class="fa-solid fa-floppy-disk"></i> Enregistrer les paramètres d'invitations
-                </button>
-              </form>
-            </div>
-
-            <!-- Leaderboard -->
-            <div class="card glass">
-              <h3>🏆 Classement des Meilleurs Inviteurs du Serveur</h3>
-              <div style="overflow-x: auto;">
-                <table class="premium-table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Membre Inviteur</th>
-                      <th>Invitations Réelles</th>
-                      <th>Quittés</th>
-                      <th>Total Net</th>
-                    </tr>
-                  </thead>
-                  <tbody id="invite-leaderboard-list">
-                    <tr>
-                      <td colspan="5" class="text-center">Chargement du classement...</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </div>
 
           <!-- Tab: Star de la Semaine -->
@@ -3394,6 +2954,6 @@ Il/Elle remporte le rôle {role} et brille sur le serveur !</textarea>
 
   <div id="toast" class="toast glass">Configuration enregistrée !</div>
 
-  <script src="script.js?v=9.0.0"></script>
+  <script src="script.js?v=7.0.0"></script>
 </body>
 </html>

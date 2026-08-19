@@ -2755,7 +2755,11 @@ async function applyColorRole(interaction, hexColor) {
 }
 
 // Connexion du bot
-client.login(process.env.DISCORD_TOKEN);
+if (process.env.DISCORD_TOKEN) {
+  client.login(process.env.DISCORD_TOKEN).catch(console.error);
+} else {
+  console.log('⚠️ Aucun DISCORD_TOKEN configuré dans .env - Le Dashboard fonctionne en mode web.');
+}
 
 // Nettoyage automatique des salons de tribunal fermés expirés
 setInterval(() => {

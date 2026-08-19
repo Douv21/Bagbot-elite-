@@ -496,9 +496,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Populate Game Allowed Channels Checkboxes
-    renderGameAllowedChannels();
-
     // Populate Ticket Category Select (type 4 is GuildCategory)
     const ticketCatSelect = document.getElementById('ticket_opt_category');
     if (ticketCatSelect) {
@@ -557,50 +554,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof updatePermissionsRoleBadges === 'function') {
       updatePermissionsRoleBadges();
     }
-  }
-
-  let currentAllowedGameChannels = [];
-
-  function renderGameAllowedChannels(allowedArray = null) {
-    if (allowedArray !== null) {
-      if (Array.isArray(allowedArray)) {
-        currentAllowedGameChannels = allowedArray;
-      } else if (typeof allowedArray === 'string') {
-        try {
-          currentAllowedGameChannels = JSON.parse(allowedArray);
-        } catch (e) {
-          currentAllowedGameChannels = allowedArray.split(',').map(s => s.trim()).filter(Boolean);
-        }
-      }
-    }
-
-    const container = document.getElementById('game_allowed_channels_checkboxes_container');
-    if (!container) return;
-
-    if (!channelsList || channelsList.length === 0) {
-      container.innerHTML = '<p style="font-size: 0.85rem; color: #72767d; margin: 0;">Aucun salon trouvé ou chargement des salons...</p>';
-      return;
-    }
-
-    const textChannels = channelsList.filter(ch => ch.type === 0 || ch.type === 5 || ch.type === undefined);
-    if (textChannels.length === 0) {
-      container.innerHTML = '<p style="font-size: 0.85rem; color: #72767d; margin: 0;">Aucun salon textuel disponible.</p>';
-      return;
-    }
-
-    container.innerHTML = textChannels.map(ch => {
-      const isChecked = currentAllowedGameChannels.length === 0 || currentAllowedGameChannels.includes(ch.id) || currentAllowedGameChannels.includes(String(ch.id));
-      return `
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; color: #e0e0e0; cursor: pointer; padding: 5px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
-          <input type="checkbox" class="game-allowed-channel-cb" value="${ch.id}" ${isChecked ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px; accent-color: #5865F2;">
-          <span># ${ch.name}</span>
-        </label>
-      `;
-    }).join('');
-  }
-
-  function toggleAllGameChannels(checked) {
-    document.querySelectorAll('.game-allowed-channel-cb').forEach(cb => cb.checked = checked);
   }
 
   function safeSetVal(id, val) {
@@ -671,7 +624,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         safeSetCheck('game_ephemeral_letters', (game.ephemeral_letters === undefined || game.ephemeral_letters === null) ? true : !!game.ephemeral_letters);
         safeSetCheck('game_reset_progress', false);
-        try { renderGameAllowedChannels(game.allowed_channels); } catch (e) { console.error('Erreur render game channels:', e); }
 
         // Quarantaine
         const quar = config.quarantine || {};
@@ -694,7 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const activeCategories = logs.events ? logs.events.split(',') : [];
         const isLegacyAll = !logs.events || logs.events === 'all';
-        const categories = ['messages', 'members', 'voice', 'moderation', 'structure', 'bots', 'tickets', 'pseudo', 'roles', 'confessions'];
+        const categories = ['messages', 'members', 'voice', 'moderation', 'structure', 'bots', 'confessions'];
         
         categories.forEach(cat => {
           safeSetCheck(`log_enable_${cat}`, isLegacyAll ? true : activeCategories.includes(cat));
@@ -927,8 +879,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Charger les thèmes de cartes par rôle
         loadRoleThemes();
-        loadRoleBoosters();
-        loadInviteTracker();
       })
       .catch(console.error);
   }
@@ -1566,10 +1516,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('ticket_opt_image_url').value = opt.image_url || '';
         document.getElementById('ticket_opt_show_member').checked = opt.show_member_button !== 0;
         document.getElementById('ticket_opt_show_certify').checked = opt.show_certify_button !== 0;
-        document.getElementById('ticket_opt_require_age_verification').checked = opt.require_age_verification === 1;
-        document.getElementById('ticket_opt_min_age_required').value = opt.min_age_required || 18;
-        document.getElementById('ticket_opt_age_verified_role_id').value = opt.age_verified_role_id || '';
-        document.getElementById('ticket_opt_age_verification_log_channel').value = opt.age_verification_log_channel || '';
 
         // Rôles support
         let sRoles = [];
@@ -1628,7 +1574,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Synchroniser les custom selects du formulaire
-        ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users', 'ticket_opt_member_roles_add', 'ticket_opt_member_roles_remove', 'ticket_opt_certify_roles_add', 'ticket_opt_certify_roles_remove', 'ticket_opt_age_verified_role_id', 'ticket_opt_age_verification_log_channel'].forEach(id => {
+        ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users', 'ticket_opt_member_roles_add', 'ticket_opt_member_roles_remove', 'ticket_opt_certify_roles_add', 'ticket_opt_certify_roles_remove'].forEach(id => {
           const selectEl = document.getElementById(id);
           if (selectEl && selectEl.syncCustomSelect) {
             selectEl.syncCustomSelect();
@@ -1804,7 +1750,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // 7. Jeu du Mot Caché
   formGame.addEventListener('submit', (e) => {
     e.preventDefault();
-    const selectedChannels = Array.from(document.querySelectorAll('.game-allowed-channel-cb:checked')).map(cb => cb.value);
     const data = {
       is_active: document.getElementById('game_is_active').checked,
       secret_phrase: document.getElementById('game_secret_phrase').value,
@@ -1816,8 +1761,7 @@ document.addEventListener('DOMContentLoaded', () => {
       letter_emoji: document.getElementById('game_letter_emoji').value || '🔍',
       announce_channel: document.getElementById('game_announce_channel').value || '',
       ephemeral_letters: document.getElementById('game_ephemeral_letters').checked,
-      reset_progress: document.getElementById('game_reset_progress').checked,
-      allowed_channels: selectedChannels
+      reset_progress: document.getElementById('game_reset_progress').checked
     };
 
     fetch('/api/config/game', {
@@ -2452,11 +2396,7 @@ document.addEventListener('DOMContentLoaded', () => {
       certify_roles_add,
       certify_roles_remove,
       show_member_button: document.getElementById('ticket_opt_show_member').checked ? 1 : 0,
-      show_certify_button: document.getElementById('ticket_opt_show_certify').checked ? 1 : 0,
-      require_age_verification: document.getElementById('ticket_opt_require_age_verification').checked ? 1 : 0,
-      min_age_required: parseInt(document.getElementById('ticket_opt_min_age_required').value) || 18,
-      age_verified_role_id: document.getElementById('ticket_opt_age_verified_role_id').value || null,
-      age_verification_log_channel: document.getElementById('ticket_opt_age_verification_log_channel').value || null
+      show_certify_button: document.getElementById('ticket_opt_show_certify').checked ? 1 : 0
     };
 
     fetch('/api/config/tickets/options/add', {
@@ -2477,7 +2417,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btn-ticket-cancel-edit').style.display = 'none';
 
         // Synchroniser tous les custom selects pour réinitialisation
-        ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users', 'ticket_opt_member_roles_add', 'ticket_opt_member_roles_remove', 'ticket_opt_certify_roles_add', 'ticket_opt_certify_roles_remove', 'ticket_opt_age_verified_role_id', 'ticket_opt_age_verification_log_channel'].forEach(selId => {
+        ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users', 'ticket_opt_member_roles_add', 'ticket_opt_member_roles_remove', 'ticket_opt_certify_roles_add', 'ticket_opt_certify_roles_remove'].forEach(selId => {
           const selectEl = document.getElementById(selId);
           if (selectEl && selectEl.syncCustomSelect) {
             selectEl.syncCustomSelect();
@@ -2503,7 +2443,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btnTicketCancelEdit.style.display = 'none';
 
       // Synchroniser tous les custom selects pour réinitialisation
-      ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users', 'ticket_opt_member_roles_add', 'ticket_opt_member_roles_remove', 'ticket_opt_certify_roles_add', 'ticket_opt_certify_roles_remove', 'ticket_opt_age_verified_role_id', 'ticket_opt_age_verification_log_channel'].forEach(selId => {
+      ['ticket_opt_style', 'ticket_opt_category', 'ticket_opt_view_role', 'ticket_opt_support_roles', 'ticket_opt_ping_users', 'ticket_opt_member_roles_add', 'ticket_opt_member_roles_remove', 'ticket_opt_certify_roles_add', 'ticket_opt_certify_roles_remove'].forEach(selId => {
         const selectEl = document.getElementById(selId);
         if (selectEl && selectEl.syncCustomSelect) {
           selectEl.syncCustomSelect();
@@ -2645,7 +2585,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 4. Logs
   formLogs.addEventListener('submit', (e) => {
     e.preventDefault();
-    const categories = ['messages', 'members', 'voice', 'moderation', 'structure', 'bots', 'tickets', 'pseudo', 'roles', 'confessions'];
+    const categories = ['messages', 'members', 'voice', 'moderation', 'structure', 'bots', 'confessions'];
     const channelMap = {};
     const checkedEvents = [];
 
@@ -3584,11 +3524,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const existingMsgId = document.getElementById('autorole-embed-existing-msg').value.trim();
     const embedCard = document.getElementById('autorole-discord-embed');
 
-    // Aperçu visuel de l'embed
-    embedCard.style.display = 'block';
-
-    let banner = document.getElementById('autorole-preview-existing-banner');
+    // Gestion du message existant
     if (existingMsgId) {
+      embedCard.style.display = 'none';
+      let banner = document.getElementById('autorole-preview-existing-banner');
       if (!banner) {
         banner = document.createElement('div');
         banner.id = 'autorole-preview-existing-banner';
@@ -3601,10 +3540,12 @@ document.addEventListener('DOMContentLoaded', () => {
         banner.style.marginBottom = '10px';
         embedCard.parentNode.insertBefore(banner, embedCard);
       }
-      banner.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Mode Édition : Modification du message Discord <strong>${existingMsgId}</strong>.`;
+      banner.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Les contrôles seront ajoutés directement sur le message Discord existant <strong>${existingMsgId}</strong>.`;
       banner.style.display = 'block';
-    } else if (banner) {
-      banner.style.display = 'none';
+    } else {
+      embedCard.style.display = 'block';
+      const banner = document.getElementById('autorole-preview-existing-banner');
+      if (banner) banner.style.display = 'none';
     }
 
     document.getElementById('autorole-preview-title').textContent = title;
@@ -3836,39 +3777,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const editBtn = card.querySelector('.btn-edit-embed');
         if (editBtn) {
           editBtn.addEventListener('click', () => {
-            const autoroleTabBtn = document.querySelector('.tab-btn[data-tab="tab-reactionroles"]');
-            if (autoroleTabBtn) autoroleTabBtn.click();
-            
-            const chanEl = document.getElementById('autorole-embed-channel');
-            if (chanEl) chanEl.value = item.channel_id;
-            const msgEl = document.getElementById('autorole-embed-existing-msg');
-            if (msgEl) msgEl.value = item.message_id;
-            const titleEl = document.getElementById('autorole-embed-title');
-            if (titleEl) titleEl.value = item.title === '(Message Existant)' ? '' : (item.title || '');
-            const descEl = document.getElementById('autorole-embed-desc');
-            if (descEl) descEl.value = item.description === '(Pas d\'embed)' ? '' : (item.description || '');
-            const colorEl = document.getElementById('autorole-embed-color');
-            if (colorEl) colorEl.value = item.color || '#5865F2';
-            const thumbEl = document.getElementById('autorole-embed-thumbnail');
-            if (thumbEl) thumbEl.value = item.thumbnail ? '1' : '0';
-            const imgEl = document.getElementById('autorole-embed-image');
-            if (imgEl) imgEl.value = item.image_url || '';
-            const typeEl = document.getElementById('autorole-embed-type');
-            if (typeEl) typeEl.value = item.type || 'buttons';
-            const modeEl = document.getElementById('autorole-embed-mode');
-            if (modeEl) modeEl.value = item.mode || 'normal';
-
-            autoroleButtonsList = (item.options || []).map(opt => ({
-              role_id: opt.role_id,
-              label: opt.label || '',
-              emoji: opt.emoji || '',
-              style: opt.style || 'PRIMARY'
-            }));
-
-            if (typeof renderButtonsCreatorList === 'function') renderButtonsCreatorList();
-            if (typeof renderButtonsCreatorPreview === 'function') renderButtonsCreatorPreview();
-            if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
-            showToast('Panneau d\'auto-rôle chargé pour modification !');
+            const embedSenderBtn = document.querySelector('.tab-btn[data-tab="tab-embed-sender"]');
+            if (embedSenderBtn) embedSenderBtn.click();
+            safeSetVal('simple_embed_channel', item.channel_id);
+            safeSetVal('simple_embed_edit_msg_id', item.message_id);
+            safeSetVal('simple_embed_title', item.title || '');
+            safeSetVal('simple_embed_desc', item.description || '');
+            safeSetVal('simple_embed_color', item.color || '#5865F2');
+            safeSetVal('simple_embed_image', item.image_url || '');
+            showToast('Embed chargé dans l\'éditeur !');
           });
         }
 
@@ -6151,682 +6068,4 @@ function initSimpleEmbedSender() {
     }
   });
 }
-
-// --- SYSTÈME DE SONDAGE ET ÉVALUATIONS PAR FORMULAIRE MULTI-SECTIONS ---
-function addSondageQuestionInput(labelVal = '', typeVal = 'rating_text', optionsVal = []) {
-  const container = document.getElementById('sondage-questions-container');
-  if (!container) return;
-  const qIndex = container.children.length + 1;
-  const div = document.createElement('div');
-  div.className = 'sondage-question-row';
-  div.style.display = 'flex';
-  div.style.flexDirection = 'column';
-  div.style.gap = '6px';
-  div.style.background = 'rgba(255,255,255,0.03)';
-  div.style.padding = '8px 10px';
-  div.style.borderRadius = '6px';
-  div.style.border = '1px solid rgba(255,255,255,0.08)';
-
-  const optionsStr = Array.isArray(optionsVal) ? optionsVal.join(', ') : (optionsVal || '');
-
-  div.innerHTML = `
-    <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
-      <input type="text" class="inner-input sondage-q-label" placeholder="ex: ${qIndex}. Intitulé de la question..." value="${labelVal}" style="flex: 1;">
-      <select class="custom-select sondage-q-type" style="width: 200px;">
-        <option value="rating_text" ${typeVal === 'rating_text' ? 'selected' : ''}>⭐ Étoiles (1-5) + Remarque</option>
-        <option value="rating" ${typeVal === 'rating' ? 'selected' : ''}>⭐ Étoiles seules (1-5)</option>
-        <option value="radio" ${typeVal === 'radio' ? 'selected' : ''}>🔘 Choix Unique (Radio)</option>
-        <option value="checkbox" ${typeVal === 'checkbox' ? 'selected' : ''}>☑️ Choix Multiples (Checkboxes)</option>
-        <option value="scale" ${typeVal === 'scale' ? 'selected' : ''}>📊 Échelle de 1 à 10</option>
-        <option value="text" ${typeVal === 'text' ? 'selected' : ''}>💬 Texte Libre (Réponse écrite)</option>
-      </select>
-      <button type="button" class="btn-remove-q" style="padding: 6px 10px; border: none; background: rgba(231,76,60,0.2); color: #e74c3c; border-radius: 4px; cursor: pointer;" title="Supprimer la question"><i class="fa-solid fa-trash"></i></button>
-    </div>
-    <div class="sondage-q-options-row" style="display: ${['radio', 'checkbox'].includes(typeVal) ? 'block' : 'none'}; margin-top: 2px;">
-      <input type="text" class="inner-input sondage-q-options" placeholder="Entrez les choix séparés par des virgules (ex: Oui, Non, Peut-être)" value="${optionsStr}" style="width: 100%; font-size: 0.82rem;">
-    </div>
-  `;
-
-  const typeSel = div.querySelector('.sondage-q-type');
-  const optsRow = div.querySelector('.sondage-q-options-row');
-
-  typeSel.addEventListener('change', () => {
-    if (['radio', 'checkbox'].includes(typeSel.value)) {
-      optsRow.style.display = 'block';
-    } else {
-      optsRow.style.display = 'none';
-    }
-    updateSondagePreview();
-  });
-
-  div.querySelector('.btn-remove-q').addEventListener('click', () => {
-    div.remove();
-    updateSondagePreview();
-  });
-  div.querySelector('.sondage-q-label').addEventListener('input', updateSondagePreview);
-
-  container.appendChild(div);
-  updateSondagePreview();
-}
-
-function updateSondagePreview() {
-  const inputTitle = document.getElementById('sondage_title');
-  const inputDesc = document.getElementById('sondage_desc');
-  const selectIcon = document.getElementById('sondage_icon');
-  const customIconInput = document.getElementById('sondage_icon_custom');
-  const selectTextType = document.getElementById('sondage_text_type');
-  const inputColor = document.getElementById('sondage_color');
-
-  const previewBorder = document.getElementById('sondage-preview-border');
-  const previewTitle = document.getElementById('sondage-preview-title');
-  const previewDesc = document.getElementById('sondage-preview-desc');
-  const modalTitle = document.getElementById('sondage-modal-preview-title');
-  const modalTextType = document.getElementById('sondage-modal-text-type');
-
-  if (previewBorder && inputColor) previewBorder.style.borderLeftColor = inputColor.value || '#78A8C6';
-  if (previewTitle && inputTitle) previewTitle.textContent = inputTitle.value.trim() ? `📊 ${inputTitle.value.trim()}` : "📊 Avis sur l'Événement du Serveur";
-  if (previewDesc && inputDesc) previewDesc.textContent = inputDesc.value.trim() ? inputDesc.value.trim() : "Consignes affichées dans l'embed au-dessus du bouton...";
-  if (modalTitle && inputTitle) modalTitle.textContent = `Modal : ${inputTitle.value.trim() || "Avis sur l'Événement du Serveur"}`;
-  
-  if (modalTextType && selectTextType) {
-    modalTextType.textContent = selectTextType.value === 'court' ? 'Ligne unique' : 'Paragraphe Multiligne';
-  }
-
-  let iconVal = '⭐';
-  if (selectIcon) {
-    if (selectIcon.value === 'custom') {
-      if (customIconInput) customIconInput.style.display = 'block';
-      iconVal = (customIconInput && customIconInput.value.trim()) ? customIconInput.value.trim() : '⭐';
-    } else {
-      if (customIconInput) customIconInput.style.display = 'none';
-      iconVal = selectIcon.value;
-    }
-  }
-
-  document.querySelectorAll('.sondage-preview-icon-item').forEach(el => {
-    el.textContent = iconVal;
-  });
-}
-
-function renderSondagesSavedList(sondages) {
-  const container = document.getElementById('sondages-saved-list');
-  if (!container) return;
-  container.innerHTML = '';
-
-  if (!sondages || sondages.length === 0) {
-    container.innerHTML = '<p style="color: #8e9297; font-style: italic; font-size: 0.85rem;">Aucun sondage enregistré pour le moment. Publiez-en un avec le formulaire ci-dessous !</p>';
-    return;
-  }
-
-  sondages.forEach(s => {
-    const channelName = typeof getChannelName === 'function' ? getChannelName(s.channel_id) : s.channel_id;
-    const card = document.createElement('div');
-    card.style.background = 'rgba(255,255,255,0.03)';
-    card.style.border = '1px solid rgba(255,255,255,0.08)';
-    card.style.padding = '10px 14px';
-    card.style.borderRadius = '8px';
-    card.style.display = 'flex';
-    card.style.alignItems = 'center';
-    card.style.justifyContent = 'space-between';
-    card.style.gap = '10px';
-
-    card.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;">
-        <div style="font-weight: 600; color: #fff; font-size: 0.95rem;">📊 ${s.title}</div>
-        <div style="font-size: 0.8rem; color: #b9bbbe;">
-          Salon: <strong>#${channelName}</strong> · Note : <strong>${s.avg_rating || 0}/5 ${s.rating_icon || '⭐'}</strong> (${s.total_votes || 0} votes)
-        </div>
-      </div>
-      <div style="display: flex; gap: 6px;">
-        <button type="button" class="btn btn-sm btn-edit-sondage" style="background: #3498db; color: #fff; border: none; padding: 6px 12px; font-size: 0.82rem; border-radius: 6px; cursor: pointer;">
-          <i class="fa-solid fa-pen-to-square"></i> Modifier
-        </button>
-        <button type="button" class="btn btn-sm btn-delete-sondage" style="background: #e74c3c; color: #fff; border: none; padding: 6px 12px; font-size: 0.82rem; border-radius: 6px; cursor: pointer;">
-          <i class="fa-solid fa-trash"></i> Supprimer
-        </button>
-      </div>
-    `;
-
-    card.querySelector('.btn-edit-sondage').addEventListener('click', () => {
-      safeSetVal('sondage_edit_id', s.id);
-      const editBanner = document.getElementById('sondage-edit-banner');
-      if (editBanner) editBanner.style.display = 'flex';
-
-      safeSetVal('sondage_channel', s.channel_id);
-      safeSetVal('sondage_results_channel', s.results_channel_id || '');
-      safeSetVal('sondage_title', s.title || '');
-      safeSetVal('sondage_desc', s.description || '');
-
-      const iconSel = document.getElementById('sondage_icon');
-      const customIconInput = document.getElementById('sondage_icon_custom');
-      if (iconSel) {
-        const standardIcons = ['⭐', '❤️', '👍', '🔥', '🎯', '💎', '👑', '🌟', '🏆', '📌', '✨'];
-        if (standardIcons.includes(s.rating_icon)) {
-          iconSel.value = s.rating_icon;
-          if (customIconInput) customIconInput.style.display = 'none';
-        } else {
-          iconSel.value = 'custom';
-          if (customIconInput) {
-            customIconInput.style.display = 'block';
-            customIconInput.value = s.rating_icon || '';
-          }
-        }
-      }
-
-      safeSetVal('sondage_text_type', s.text_type || 'long');
-      safeSetVal('sondage_color', s.color || '#F1C40F');
-      safeSetVal('sondage_short_desc', s.short_description || '');
-      safeSetVal('sondage_avatar_image', s.avatar_image || '');
-      safeSetVal('sondage_banner_image', s.banner_image || '');
-
-      let mentionsStr = '';
-      try {
-        const mArr = typeof s.mentions === 'string' ? JSON.parse(s.mentions || '[]') : (s.mentions || []);
-        mentionsStr = Array.isArray(mArr) ? mArr.join(' ') : '';
-      } catch (e) {}
-      safeSetVal('sondage_mentions', mentionsStr);
-
-      const hasGenCheck = document.getElementById('sondage_has_general_remark');
-      if (hasGenCheck) hasGenCheck.checked = s.has_general_remark !== 0;
-
-      const qContainer = document.getElementById('sondage-questions-container');
-      if (qContainer) {
-        qContainer.innerHTML = '';
-        let secArr = [];
-        try {
-          secArr = typeof s.sections === 'string' ? JSON.parse(s.sections || '[]') : (s.sections || []);
-        } catch (e) {}
-
-        if (Array.isArray(secArr) && secArr.length > 0) {
-          secArr.forEach(sec => {
-            addSondageQuestionInput(sec.label || '', sec.type || 'rating_text', sec.options || []);
-          });
-        } else {
-          addSondageQuestionInput('Accueil & Organisation', 'rating_text');
-        }
-      }
-
-      safeSetVal('sondage_google_url', s.google_form_url || '');
-      updateGoogleAppsScriptCode(s.id);
-
-      updateSondagePreview();
-      if (typeof showToast === 'function') showToast(`Formulaire "${s.title}" chargé pour modification dans l'éditeur ci-dessous.`);
-      
-      const formEl = document.getElementById('form-sondage');
-      if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
-    });
-
-    card.querySelector('.btn-delete-sondage').addEventListener('click', async () => {
-      if (!confirm('Supprimer ce sondage de la base de données ?')) return;
-      try {
-        const res = await fetch('/api/config/delete-sondage', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sondage_id: s.id })
-        });
-        const data = await res.json();
-        if (data.success) {
-          if (typeof showToast === 'function') showToast('Sondage supprimé !');
-          loadSondagesSavedList();
-        } else {
-          if (typeof showToast === 'function') showToast(`Erreur : ${data.error}`, true);
-        }
-      } catch (err) {
-        if (typeof showToast === 'function') showToast(`Erreur : ${err.message}`, true);
-      }
-    });
-
-    container.appendChild(card);
-  });
-}
-
-function updateGoogleAppsScriptCode(sondageId) {
-  const codeBox = document.getElementById('apps-script-code');
-  if (!codeBox) return;
-  const sId = sondageId || 'VOTRE_ID_SONDAGE';
-  const scriptCode = `function onFormSubmit(e) {
-  var response = e.response;
-  var itemResponses = response.getItemResponses();
-  var answers = [];
-  for (var i = 0; i < itemResponses.length; i++) {
-    answers.push({
-      question: itemResponses[i].getItem().getTitle(),
-      answer: itemResponses[i].getResponse()
-    });
-  }
-  var payload = {
-    sondageId: '${sId}',
-    userEmail: response.getRespondentEmail() || '',
-    answers: answers
-  };
-  UrlFetchApp.fetch('http://82.65.75.176:49602/api/google-forms/webhook?sondage_id=${sId}', {
-    method: 'post',
-    contentType: 'application/json',
-    payload: JSON.stringify(payload)
-  });
-}`;
-  codeBox.value = scriptCode;
-}
-
-async function loadSondagesSavedList() {
-  try {
-    const res = await fetch('/api/config/sondages');
-    const sondages = await res.json();
-    renderSondagesSavedList(sondages);
-  } catch (e) {
-    console.error('Erreur chargement sondages:', e);
-  }
-}
-
-function initSondageModule() {
-  const form = document.getElementById('form-sondage');
-  const inputTitle = document.getElementById('sondage_title');
-  const inputDesc = document.getElementById('sondage_desc');
-  const selectIcon = document.getElementById('sondage_icon');
-  const customIconInput = document.getElementById('sondage_icon_custom');
-  const selectTextType = document.getElementById('sondage_text_type');
-  const inputColor = document.getElementById('sondage_color');
-  const hasGeneralRemark = document.getElementById('sondage_has_general_remark');
-  const btnAddQ = document.getElementById('btn-add-sondage-question');
-  const qContainer = document.getElementById('sondage-questions-container');
-
-  const btnCopyScript = document.getElementById('btn-copy-apps-script');
-  if (btnCopyScript) {
-    btnCopyScript.addEventListener('click', () => {
-      const codeBox = document.getElementById('apps-script-code');
-      if (codeBox && codeBox.value) {
-        navigator.clipboard.writeText(codeBox.value);
-        if (typeof showToast === 'function') showToast('📋 Script Google Apps Script copié dans le presse-papier !');
-      }
-    });
-  }
-
-  updateGoogleAppsScriptCode(document.getElementById('sondage_edit_id') ? document.getElementById('sondage_edit_id').value : '');
-
-  if (qContainer && qContainer.children.length === 0) {
-    addSondageQuestionInput('Accueil & Organisation', 'rating_text');
-    addSondageQuestionInput('Ambiance & Animations', 'rating_text');
-  }
-
-  if (btnAddQ) {
-    btnAddQ.addEventListener('click', () => addSondageQuestionInput('', 'rating_text'));
-  }
-
-  const btnCancelEdit = document.getElementById('btn-cancel-sondage-edit');
-  if (btnCancelEdit) {
-    btnCancelEdit.addEventListener('click', () => {
-      safeSetVal('sondage_edit_id', '');
-      const editBanner = document.getElementById('sondage-edit-banner');
-      if (editBanner) editBanner.style.display = 'none';
-      if (form) form.reset();
-      updateGoogleAppsScriptCode('');
-      updateSondagePreview();
-      if (typeof showToast === 'function') showToast('Modification annulée.');
-    });
-  }
-
-  if (inputTitle) inputTitle.addEventListener('input', updateSondagePreview);
-  if (inputDesc) inputDesc.addEventListener('input', updateSondagePreview);
-  if (selectIcon) selectIcon.addEventListener('change', updateSondagePreview);
-  if (customIconInput) customIconInput.addEventListener('input', updateSondagePreview);
-  if (selectTextType) selectTextType.addEventListener('change', updateSondagePreview);
-  if (inputColor) inputColor.addEventListener('input', updateSondagePreview);
-
-  if (form) {
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const existing_sondage_id = document.getElementById('sondage_edit_id') ? document.getElementById('sondage_edit_id').value : null;
-      const channel_id = document.getElementById('sondage_channel').value;
-      const results_channel_id = document.getElementById('sondage_results_channel').value;
-      const title = inputTitle.value;
-      const description = inputDesc.value;
-      const google_form_url = document.getElementById('sondage_google_url') ? document.getElementById('sondage_google_url').value.trim() : '';
-
-      let rating_icon = '⭐';
-      if (selectIcon) {
-        rating_icon = selectIcon.value === 'custom' ? (customIconInput ? customIconInput.value.trim() || '⭐' : '⭐') : selectIcon.value;
-      }
-
-      const text_type = selectTextType ? selectTextType.value : 'long';
-      const color = inputColor ? inputColor.value : '#78A8C6';
-      const short_description = document.getElementById('sondage_short_desc') ? document.getElementById('sondage_short_desc').value : '';
-      const avatar_image = document.getElementById('sondage_avatar_image') ? document.getElementById('sondage_avatar_image').value.trim() : '';
-      const banner_image = document.getElementById('sondage_banner_image') ? document.getElementById('sondage_banner_image').value.trim() : '';
-      const mentionsInput = document.getElementById('sondage_mentions') ? document.getElementById('sondage_mentions').value.trim() : '';
-
-      const mentions = mentionsInput ? mentionsInput.split(/\s+/).filter(Boolean) : [];
-
-      const qRows = document.querySelectorAll('.sondage-question-row');
-      const sections = [];
-      qRows.forEach((row, idx) => {
-        const lbl = row.querySelector('.sondage-q-label').value.trim();
-        const typ = row.querySelector('.sondage-q-type').value;
-        const optsInput = row.querySelector('.sondage-q-options');
-        const optsRaw = optsInput ? optsInput.value.trim() : '';
-        const options = optsRaw ? optsRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
-
-        if (lbl) {
-          sections.push({ id: `sec_${idx + 1}`, label: lbl, type: typ, options: options });
-        }
-      });
-
-      if (sections.length === 0) {
-        sections.push({ id: 'sec_1', label: title || 'Évaluation', type: 'rating_text' });
-      }
-
-      if (!channel_id) return showToast('⚠️ Veuillez choisir un salon de destination.', true);
-      if (!title.trim()) return showToast('⚠️ Le titre du sondage est requis.', true);
-
-      try {
-        const res = await fetch('/api/config/send-sondage', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            existing_sondage_id,
-            channel_id,
-            results_channel_id: results_channel_id || null,
-            title,
-            description,
-            rating_icon,
-            text_type,
-            color,
-            sections,
-            has_general_remark: hasGeneralRemark ? hasGeneralRemark.checked : true,
-            avatar_image,
-            banner_image,
-            short_description,
-            mentions,
-            google_form_url
-          })
-        });
-
-        const data = await res.json();
-        if (res.ok && data.success) {
-          if (typeof showToast === 'function') showToast(existing_sondage_id ? '✅ Sondage mis à jour avec succès !' : '✅ Sondage publié avec succès dans le salon !');
-          form.reset();
-          safeSetVal('sondage_edit_id', '');
-          const editBanner = document.getElementById('sondage-edit-banner');
-          if (editBanner) editBanner.style.display = 'none';
-          if (qContainer) {
-            qContainer.innerHTML = '';
-            addSondageQuestionInput('Accueil & Organisation', 'rating_text');
-            addSondageQuestionInput('Ambiance & Animations', 'rating_text');
-          }
-          updateSondagePreview();
-          loadSondagesSavedList();
-        } else {
-          if (typeof showToast === 'function') showToast(`❌ Erreur : ${data.error}`, true);
-        }
-      } catch (err) {
-        if (typeof showToast === 'function') showToast(`❌ Erreur réseau : ${err.message}`, true);
-      }
-    });
-  }
-
-  // --- SELECTION MESSAGE RÔLES RÉACTION ---
-  const autoroleChanSelect = document.getElementById('autorole-embed-channel');
-  const selectChannelAutorolesGroup = document.getElementById('group_select_channel_autoroles');
-  const selectChannelAutoroles = document.getElementById('select_channel_autoroles');
-  const existingMsgInput = document.getElementById('autorole-embed-existing-msg');
-  let fetchedChannelMessagesList = [];
-
-  const loadMessageDetailsIntoForm = (item) => {
-    if (!item) return;
-    if (existingMsgInput) existingMsgInput.value = item.id;
-    const titleEl = document.getElementById('autorole-embed-title');
-    if (titleEl) titleEl.value = item.title || '';
-    const descEl = document.getElementById('autorole-embed-desc');
-    if (descEl) descEl.value = item.description || '';
-    const colorEl = document.getElementById('autorole-embed-color');
-    if (colorEl) colorEl.value = item.color || '#5865F2';
-    const thumbEl = document.getElementById('autorole-embed-thumbnail');
-    if (thumbEl) thumbEl.value = item.thumbnail ? '1' : '0';
-    const imgEl = document.getElementById('autorole-embed-image');
-    if (imgEl) imgEl.value = item.image_url || '';
-    const typeEl = document.getElementById('autorole-embed-type');
-    if (typeEl) typeEl.value = item.type || 'buttons';
-
-    if (Array.isArray(item.options)) {
-      autoroleButtonsList = item.options.map(opt => ({
-        role_id: opt.role_id,
-        label: opt.label || '',
-        emoji: opt.emoji || '',
-        style: opt.style || 'PRIMARY'
-      }));
-    }
-
-    if (typeof renderButtonsCreatorPreview === 'function') renderButtonsCreatorPreview();
-    if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
-    showToast('Message existant et ses rôles/boutons chargés dans le formulaire !');
-  };
-
-  if (autoroleChanSelect) {
-    autoroleChanSelect.addEventListener('change', () => {
-      const channelId = autoroleChanSelect.value;
-      if (!channelId) {
-        if (selectChannelAutorolesGroup) selectChannelAutorolesGroup.style.display = 'none';
-        if (selectChannelAutoroles) selectChannelAutoroles.innerHTML = '<option value="">-- Sélectionner un message --</option>';
-        fetchedChannelMessagesList = [];
-        return;
-      }
-
-      fetch(`/api/config/embeds/fetch-channel-messages?channelId=${channelId}`)
-        .then(res => res.json())
-        .then(data => {
-          fetchedChannelMessagesList = Array.isArray(data) ? data : [];
-          if (selectChannelAutoroles) {
-            selectChannelAutoroles.innerHTML = '<option value="">-- Sélectionner un message à charger / modifier / copier --</option>';
-            if (fetchedChannelMessagesList.length > 0) {
-              fetchedChannelMessagesList.forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m.id;
-                const textPreview = m.title || (m.description ? m.description.slice(0, 40) : `Message ${m.id}`);
-                opt.textContent = `${m.author} : ${textPreview} (${m.id})`;
-                selectChannelAutoroles.appendChild(opt);
-              });
-              if (selectChannelAutorolesGroup) selectChannelAutorolesGroup.style.display = 'block';
-            } else {
-              if (selectChannelAutorolesGroup) selectChannelAutorolesGroup.style.display = 'none';
-            }
-          }
-        })
-        .catch(console.error);
-    });
-  }
-
-  if (selectChannelAutoroles) {
-    selectChannelAutoroles.addEventListener('change', () => {
-      const msgId = selectChannelAutoroles.value;
-      if (!msgId) return;
-
-      const item = fetchedChannelMessagesList.find(m => m.id === msgId);
-      if (item) {
-        loadMessageDetailsIntoForm(item);
-      } else {
-        fetch(`/api/config/embeds/fetch-message-details?messageId=${msgId}`)
-          .then(res => res.json())
-          .then(det => {
-            if (det && det.id) loadMessageDetailsIntoForm(det);
-          })
-          .catch(console.error);
-      }
-    });
-  }
-
-  if (existingMsgInput) {
-    let fetchTimeout = null;
-    existingMsgInput.addEventListener('input', () => {
-      const msgId = existingMsgInput.value.trim();
-      if (!msgId || msgId.length < 15) return;
-      clearTimeout(fetchTimeout);
-      fetchTimeout = setTimeout(() => {
-        const item = fetchedChannelMessagesList.find(m => m.id === msgId);
-        if (item) {
-          loadMessageDetailsIntoForm(item);
-        } else {
-          fetch(`/api/config/embeds/fetch-message-details?messageId=${msgId}`)
-            .then(res => res.json())
-            .then(det => {
-              if (det && det.id) loadMessageDetailsIntoForm(det);
-            })
-            .catch(console.error);
-        }
-      }, 500);
-    });
-  }
-
-  loadSondagesSavedList();
-}
-
-// --- ROLE BOOSTERS & INVITE TRACKER MODULES ---
-
-function loadRoleBoosters() {
-  fetch('/api/config/role-boosters')
-    .then(r => r.json())
-    .then(boosters => {
-      const list = document.getElementById('role-boosters-list');
-      if (!list) return;
-      if (!Array.isArray(boosters) || boosters.length === 0) {
-        list.innerHTML = '<tr><td colspan="5" class="text-center">Aucun rôle booster configuré.</td></tr>';
-        return;
-      }
-      list.innerHTML = boosters.map(b => {
-        const role = rolesList.find(r => r.id === b.role_id);
-        const roleName = role ? role.name : (b.role_id || 'Rôle inconnu');
-        return `
-          <tr>
-            <td><strong>@${roleName}</strong></td>
-            <td><span class="nav-badge badge-gold" style="font-size: 0.85rem;">x${b.xp_multiplier}</span></td>
-            <td><span class="nav-badge badge-purple" style="font-size: 0.85rem;">x${b.karma_multiplier}</span></td>
-            <td><span class="nav-badge badge-green" style="font-size: 0.85rem;">x${b.money_multiplier}</span></td>
-            <td class="text-center">
-              <button type="button" class="btn btn-sm btn-logout" onclick="deleteRoleBooster('${b.role_id}')">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    })
-    .catch(console.error);
-}
-
-window.deleteRoleBooster = function(roleId) {
-  if (!confirm('Supprimer ce rôle booster ?')) return;
-  fetch('/api/config/role-boosters/delete', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ role_id: roleId })
-  })
-  .then(r => r.json())
-  .then(res => {
-    if (res.success) {
-      showToast('Rôle booster supprimé !');
-      loadRoleBoosters();
-    } else {
-      showToast('Erreur: ' + res.error, true);
-    }
-  })
-  .catch(err => showToast('Erreur: ' + err.message, true));
-};
-
-const formAddRoleBooster = document.getElementById('form-add-role-booster');
-if (formAddRoleBooster) {
-  formAddRoleBooster.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const role_id = document.getElementById('booster_role').value;
-    const xp_multiplier = parseFloat(document.getElementById('booster_xp').value) || 1.0;
-    const karma_multiplier = parseFloat(document.getElementById('booster_karma').value) || 1.0;
-    const money_multiplier = parseFloat(document.getElementById('booster_money').value) || 1.0;
-
-    if (!role_id) return showToast('Sélectionnez un rôle', true);
-
-    fetch('/api/config/role-boosters/add', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role_id, xp_multiplier, karma_multiplier, money_multiplier })
-    })
-    .then(r => r.json())
-    .then(res => {
-      if (res.success) {
-        showToast('Rôle booster enregistré !');
-        formAddRoleBooster.reset();
-        loadRoleBoosters();
-      } else {
-        showToast('Erreur: ' + res.error, true);
-      }
-    })
-    .catch(err => showToast('Erreur: ' + err.message, true));
-  });
-}
-
-function loadInviteTracker() {
-  fetch('/api/config/invites')
-    .then(r => r.json())
-    .then(data => {
-      const config = data.config || {};
-      const leaderboard = data.leaderboard || [];
-
-      const enabledInput = document.getElementById('invites_enabled');
-      const channelInput = document.getElementById('invites_log_channel');
-
-      if (enabledInput) enabledInput.checked = config.enabled === 1;
-      if (channelInput) channelInput.value = config.log_channel_id || '';
-
-      if (channelInput && channelInput.syncCustomSelect) channelInput.syncCustomSelect();
-
-      const list = document.getElementById('invite-leaderboard-list');
-      if (list) {
-        if (!Array.isArray(leaderboard) || leaderboard.length === 0) {
-          list.innerHTML = '<tr><td colspan="5" class="text-center">Aucune invitation enregistrée pour le moment.</td></tr>';
-          return;
-        }
-
-        list.innerHTML = leaderboard.map((row, idx) => {
-          const inviterMember = membersList.find(m => m.id === row.inviter_id);
-          const name = inviterMember ? inviterMember.name : (row.inviter_id || 'Utilisateur inconnu');
-          const medal = idx === 0 ? '🥇 ' : (idx === 1 ? '🥈 ' : (idx === 2 ? '🥉 ' : ''));
-          return `
-            <tr>
-              <td><strong>${medal}${idx + 1}</strong></td>
-              <td><i class="fa-solid fa-user" style="color:#d4af37;"></i> <strong>@${name}</strong></td>
-              <td><span class="nav-badge badge-green">${row.regular || 0}</span></td>
-              <td><span class="nav-badge badge-red">${row.left || 0}</span></td>
-              <td><span class="nav-badge badge-gold" style="font-size: 0.95rem;">${row.total} invs</span></td>
-            </tr>
-          `;
-        }).join('');
-      }
-    })
-    .catch(console.error);
-}
-
-const formInvitesConfig = document.getElementById('form-invites-config');
-if (formInvitesConfig) {
-  formInvitesConfig.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const enabled = document.getElementById('invites_enabled').checked ? 1 : 0;
-    const log_channel_id = document.getElementById('invites_log_channel').value || null;
-
-    fetch('/api/config/invites', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ log_channel_id, enabled })
-    })
-    .then(r => r.json())
-    .then(res => {
-      if (res.success) {
-        showToast('Configuration des invitations enregistrée !');
-        loadInviteTracker();
-      } else {
-        showToast('Erreur: ' + res.error, true);
-      }
-    })
-    .catch(err => showToast('Erreur: ' + err.message, true));
-  });
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  initSondageModule();
-});
 
