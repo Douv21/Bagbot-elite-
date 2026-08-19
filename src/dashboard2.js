@@ -539,13 +539,30 @@ app.get('/api/members', async (req, res) => {
 // Obtenir les informations du bot (nom et avatar réel)
 app.get('/api/bot/info', async (req, res) => {
   try {
+    const guildId = (req.query && req.query.guildId) || (req.session && req.session.selectedGuild);
+    let customLogo = null;
+    let customName = null;
+    if (guildId) {
+      const { getServerBotProfile } = require('./database/db');
+      const profile = getServerBotProfile(guildId);
+      if (profile) {
+        customLogo = profile.custom_logo_url;
+        customName = profile.custom_name;
+      }
+    }
+
     const botApiPort = process.env.BOT_API_PORT || 49605;
     const response = await fetch(`http://127.0.0.1:${botApiPort}/bot/info`).catch(() => null);
     if (response && response.ok) {
       const data = await response.json();
+      if (customLogo) data.avatarURL = customLogo;
+      if (customName) data.username = customName;
       res.json(data);
     } else {
-      res.json({ username: 'Bagbot Elite', avatarURL: 'https://cdn.discordapp.com/embed/avatars/0.png' });
+      res.json({
+        username: customName || 'Bagbot Elite',
+        avatarURL: customLogo || 'https://cdn.discordapp.com/embed/avatars/0.png'
+      });
     }
   } catch (error) {
     res.json({ username: 'Bagbot Elite', avatarURL: 'https://cdn.discordapp.com/embed/avatars/0.png' });

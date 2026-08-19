@@ -1021,16 +1021,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function fetchBotInfo(customAvatar = null) {
-    fetch('/api/bot/info')
+    const currentGuildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
+    const url = currentGuildId ? `/api/bot/info?guildId=${currentGuildId}` : '/api/bot/info';
+    fetch(url)
       .then(res => res.json())
       .then(info => {
         const avatarUrl = customAvatar || info.avatarURL || 'https://cdn.discordapp.com/embed/avatars/0.png';
-        const botAvatars = document.querySelectorAll('#bot-avatar-preview, #autorole-bot-avatar-preview');
+        const botAvatars = document.querySelectorAll('#bot-avatar-preview, #autorole-bot-avatar-preview, #sondage-bot-avatar, #simple-embed-preview-bot-avatar, #ticket-preview-bot-avatar, #sbp-preview-img');
         botAvatars.forEach(img => {
-          img.src = avatarUrl;
+          if (img) img.src = avatarUrl;
         });
-        document.querySelectorAll('.discord-bot-name').forEach(el => {
-          el.textContent = info.username || 'Bagbot Elite';
+        document.querySelectorAll('.discord-bot-name, #simple-embed-preview-bot-name, #ticket-preview-bot-name').forEach(el => {
+          if (el) el.textContent = info.username || 'Bagbot Elite';
         });
       })
       .catch(console.error);
@@ -7051,6 +7053,114 @@ window.loadWordReactions = loadWordReactions;
         }
       } catch(err) {
         showToast(`❌ Erreur réseau : ${err.message}`, true);
+      }
+    });
+  }
+})();
+
+// ============================================================
+// 🖼️ LOGO BOT SERVEUR & IDENTITÉ (DASHBOARD 2)
+// ============================================================
+function loadServerBotProfile(guildId) {
+  if (!guildId) return;
+  fetch(`/api/bot/server-bot-profile/${guildId}`)
+    .then(r => r.json())
+    .then(profile => {
+      const logoInput = document.getElementById('sbp-logo-url');
+      const nameInput = document.getElementById('sbp-name-input');
+      const previewImg = document.getElementById('sbp-preview-img');
+
+      if (logoInput) logoInput.value = profile.custom_logo_url || '';
+      if (nameInput) nameInput.value = profile.custom_name || '';
+      if (previewImg) {
+        previewImg.src = profile.custom_logo_url || 'https://cdn.discordapp.com/embed/avatars/0.png';
+        previewImg.onerror = () => { previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; };
+      }
+
+      if (typeof fetchBotInfo === 'function') {
+        fetchBotInfo(profile.custom_logo_url || null);
+      }
+    })
+    .catch(console.error);
+}
+window.loadServerBotProfile = loadServerBotProfile;
+
+(function initServerBotProfileListeners() {
+  const logoInput = document.getElementById('sbp-logo-url');
+  const previewImg = document.getElementById('sbp-preview-img');
+
+  if (logoInput && previewImg) {
+    logoInput.addEventListener('input', () => {
+      const url = logoInput.value.trim();
+      if (url) {
+        previewImg.src = url;
+        previewImg.onerror = () => { previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; };
+      } else {
+        previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
+      }
+    });
+  }
+
+  // Téléversement d'image depuis l'appareil
+  const btnUpload = document.getElementById('btn-upload-sbp-logo');
+  const fileInput = document.getElementById('sbp-file-input');
+  if (btnUpload && fileInput) {
+    btnUpload.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        if (typeof showToast === 'function') showToast('⏳ Téléversement de l\'image en cours...');
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok && data.url) {
+          if (logoInput) logoInput.value = data.url;
+          if (previewImg) previewImg.src = data.url;
+          if (typeof showToast === 'function') showToast('✅ Image téléversée avec succès !');
+        } else {
+          if (typeof showToast === 'function') showToast(`❌ Erreur téléversement : ${data.error || 'Erreur inconnue'}`, true);
+        }
+      } catch (err) {
+        if (typeof showToast === 'function') showToast(`❌ Erreur réseau : ${err.message}`, true);
+      }
+    });
+  }
+
+  // Soumission du formulaire Logo Serveur
+  const form = document.getElementById('form-server-bot-profile');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
+      if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
+
+      const custom_logo_url = document.getElementById('sbp-logo-url')?.value?.trim() || null;
+      const custom_name = document.getElementById('sbp-name-input')?.value?.trim() || null;
+
+      try {
+        const res = await fetch(`/api/bot/server-bot-profile/${guildId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ custom_logo_url, custom_name })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          if (typeof showToast === 'function') showToast('✅ Logo et nom du bot enregistrés pour ce serveur !');
+          if (typeof fetchBotInfo === 'function') fetchBotInfo(custom_logo_url);
+        } else {
+          if (typeof showToast === 'function') showToast(`❌ ${data.error || 'Erreur lors de l\'enregistrement'}`, true);
+        }
+      } catch (err) {
+        console.error('Erreur enregistrement logo serveur:', err);
+        if (typeof showToast === 'function') showToast('❌ Erreur de connexion lors de l\'enregistrement.', true);
       }
     });
   }
