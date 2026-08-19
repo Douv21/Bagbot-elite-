@@ -128,7 +128,6 @@ module.exports = {
       // ── 2. CREATION DES CATEGORIES & SALONS AVEC PERMISSIONS PROGRESSIVES ───
 
       // CAT 1 : ACCUEIL & INFORMATIONS
-      // @everyone a accès UNIQUEMENT au règlement et à la bienvenue au départ !
       const catAccueil = await guild.channels.create({
         name: '📌 │ ACCUEIL & INFORMATIONS',
         type: ChannelType.GuildCategory,
@@ -447,27 +446,35 @@ module.exports = {
         ]
       });
 
-      await interaction.editReply({ content: '⚙️ **[4/6] Publication du Règlement avec Auto-Rôle et des Consignes...**' });
+      await interaction.editReply({ content: '⚙️ **[4/6] Publication du Règlement Complet avec Auto-Rôle et des Consignes...**' });
 
       // ── 3. PUBLICATION DES EMBEDS D'INFORMATIONS & REGLEMENT ────────────────
 
-      // Embed Règlement avec Auto-Rôle MEMBRE Uniquement & Règle du Pseudo NomDeServeur
+      // Embed Règlement Officiel Safecord Complété & Structuré
       const embedReglement = new EmbedBuilder()
-        .setTitle('📜 RÈGLEMENT OFFICIEL SAFECORD & CHARTE DISCORD TOS')
+        .setTitle('📜 RÈGLEMENT OFFICIEL SAFECORD & CHARTE DU RÉSEAU')
         .setDescription(
-          `Bienvenue sur le réseau central de protection et de signalement **Safecord**.\n\n` +
-          `🔒 **ÉTAPES D'ACCÈS AU SERVEUR :**\n` +
-          `1️⃣ **Étape 1 :** Cliquez sur le bouton ci-dessous pour accepter le règlement et recevoir le rôle <@&${roleMembre.id}>. Cela débloquera l'accès à l'espace Ticket et aux salons de base.\n` +
+          `Bienvenue sur **Safecord**, la plateforme centrale de signalement, d'entraide et de protection inter-serveurs.\n\n` +
+          `🔒 **1. ÉTAPES D'ACCÈS AU SERVEUR :**\n` +
+          `1️⃣ **Étape 1 :** Cliquez sur le bouton **"✅ Accepter le Règlement"** ci-dessous pour valider la charte et recevoir le rôle <@&${roleMembre.id}>.\n` +
           `2️⃣ **Étape 2 :** Rendez-vous dans <#${chTicket.id}> et ouvrez un **Ticket de Présentation**.\n` +
-          `3️⃣ **Étape 3 :** Un membre de l'**<@&${roleSafecordTeam.id}>** vérifiera votre serveur et vous attribuera vos accès exclusifs (<@&${roleOwnerOther.id}>, <@&${roleCoOwnerOther.id}>, <@&${roleStaffOther.id}>).\n\n` +
-          `📌 **OBLIGATION PSEUDO & NOM DE SERVEUR :**\n` +
-          `Chaque membre arrivant sur ce serveur **DOIT obligatoirement ajouter le nom de son serveur à côté de son pseudo Discord** (Exemple : **Pseudo | NomDeVotreServeur**).\n\n` +
-          `**1. Respect des TOS Discord :** L'ensemble des membres et du staff doit respecter à 100 % les Conditions d'Utilisation de Discord (Terms of Service) et les Directives de la Communauté.\n\n` +
-          `**2. Preuves Obligatoires :** Tout signalement doit être accompagné de captures d'écran NON censurées et de l'ID Discord complet des personnes ou serveurs incriminés.\n\n` +
-          `**3. Interdiction Absolue de Faux Signalement :** Tout faux signalement ou diffamation entraînera un bannissement définitif immédiat et un blacklisting.`
+          `3️⃣ **Étape 3 :** Un membre de l'**<@&${roleSafecordTeam.id}>** vérifiera votre serveur et vous attribuera vos accès officiels (<@&${roleOwnerOther.id}>, <@&${roleCoOwnerOther.id}>, <@&${roleStaffOther.id}>).\n\n` +
+          `📌 **2. PSEUDO & NOM DE SERVEUR OBLIGATOIRE :**\n` +
+          `Chaque membre doit obligatoirement inclure le nom de son serveur dans son pseudo Discord sur ce serveur (Exemple : **Pseudo | NomDeVotreServeur**).\n\n` +
+          `🤝 **3. RESPECT, COURTOISIE & BONNE ENTENTE :**\n` +
+          `• Le respect mutuel est obligatoire entre tous les membres et envers l'**<@&${roleSafecordTeam.id}>**.\n` +
+          `• Tolérance zéro pour le comportement toxique, les insultes, le harcèlement, la provocation ou la discrimination.\n\n` +
+          `💬 **4. PARTICIPATION & ENTRAIDE INTER-SERVEURS :**\n` +
+          `• Favorisez l'échange constructif et l'entraide entre modérateurs et fondateurs.\n` +
+          `• La publicité sauvage en message privé (MP) ou dans des salons non prévus à cet effet est strictement interdite.\n\n` +
+          `📜 **5. CONFORMITÉ AUX TOS DISCORD :**\n` +
+          `L'ensemble des membres doit se conformer aux Conditions d'Utilisation de Discord (TOS) et aux Directives de la Communauté.\n\n` +
+          `🚨 **6. SIGNALEMENTS & PREUVES OBLIGATOIRES :**\n` +
+          `• Tout signalement doit être étayé par des captures d'écran NON censurées et l'ID Discord du membre ou du serveur.\n` +
+          `• Tout faux signalement ou diffamation entraînera un bannissement immédiat et irrévocable.`
         )
         .setColor('#E74C3C')
-        .setFooter({ text: `${guild.name} • Protection & Accès Sécurisé Safecord` })
+        .setFooter({ text: `${guild.name} • Charte Officielle Safecord` })
         .setTimestamp();
 
       const btnReglementMembre = new ActionRowBuilder().addComponents(
@@ -666,7 +673,7 @@ module.exports = {
           `• Clic sur la validation du règlement -> Obtention du rôle <@&${roleMembre.id}>.\n` +
           `• Le rôle <@&${roleMembre.id}> débloque le salon de tickets <#${chTicket.id}> et la communauté de base.\n` +
           `• Les salons Staff/Fonda (<#${chGeneralStaff.id}>, <#${chGeneralFonda.id}>...) sont **dévérouillés uniquement après vérification par l'Équipe Safecord dans un Ticket** !\n\n` +
-          `📌 **RÈGLE DU PSEUDO :** Mentionnée dans le règlement (` `Pseudo | NomDeVotreServeur` `).`
+          `📌 **RÈGLE DU PSEUDO :** Mentionnée dans le règlement (Pseudo | NomDeVotreServeur).`
         )
         .setColor('#2ECC71')
         .setTimestamp();
