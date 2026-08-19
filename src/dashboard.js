@@ -1131,6 +1131,97 @@ app.post('/api/config/leveling/reset-nsfw', (req, res) => {
   }
 });
 
+// --- COMMANDES PERSONNALISÉES API ---
+app.get('/api/bot/custom-commands/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { getCustomCommands, getCustomCommandSettings } = require('./database/db');
+  res.json({
+    commands: getCustomCommands(guildId),
+    settings: getCustomCommandSettings(guildId)
+  });
+});
+
+app.post('/api/bot/custom-commands/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { command_name, description, actions_json } = req.body || {};
+  if (!command_name) return res.status(400).json({ error: 'Nom de commande requis' });
+  const { saveCustomCommand } = require('./database/db');
+  saveCustomCommand(guildId, command_name, description || '', typeof actions_json === 'string' ? actions_json : JSON.stringify(actions_json || []));
+  res.json({ success: true });
+});
+
+app.delete('/api/bot/custom-commands/:guildId/:commandName', (req, res) => {
+  const { guildId, commandName } = req.params;
+  const { deleteCustomCommand } = require('./database/db');
+  deleteCustomCommand(guildId, commandName);
+  res.json({ success: true });
+});
+
+app.post('/api/bot/custom-commands/settings/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { prefix, delete_trigger } = req.body || {};
+  const { saveCustomCommandSettings } = require('./database/db');
+  saveCustomCommandSettings(guildId, prefix || '/', delete_trigger ? 1 : 0);
+  res.json({ success: true });
+});
+
+// --- RÉACTIONS DE MOTS API ---
+app.get('/api/bot/word-reactions/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { getWordReactions, getWordReactionSettings } = require('./database/db');
+  res.json({
+    reactions: getWordReactions(guildId),
+    settings: getWordReactionSettings(guildId)
+  });
+});
+
+app.post('/api/bot/word-reactions/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { trigger_word, emojis_json, allowed_roles_json, forbidden_roles_json, allowed_channels_json, forbidden_channels_json } = req.body || {};
+  if (!trigger_word || !emojis_json) return res.status(400).json({ error: 'Mot déclencheur et émojis requis' });
+  const { addWordReaction } = require('./database/db');
+  addWordReaction(
+    guildId,
+    trigger_word,
+    typeof emojis_json === 'string' ? emojis_json : JSON.stringify(emojis_json),
+    typeof allowed_roles_json === 'string' ? allowed_roles_json : JSON.stringify(allowed_roles_json || []),
+    typeof forbidden_roles_json === 'string' ? forbidden_roles_json : JSON.stringify(forbidden_roles_json || []),
+    typeof allowed_channels_json === 'string' ? allowed_channels_json : JSON.stringify(allowed_channels_json || []),
+    typeof forbidden_channels_json === 'string' ? forbidden_channels_json : JSON.stringify(forbidden_channels_json || [])
+  );
+  res.json({ success: true });
+});
+
+app.delete('/api/bot/word-reactions/:guildId/:id', (req, res) => {
+  const { guildId, id } = req.params;
+  const { deleteWordReaction } = require('./database/db');
+  deleteWordReaction(guildId, id);
+  res.json({ success: true });
+});
+
+app.post('/api/bot/word-reactions/settings/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { is_enabled } = req.body || {};
+  const { saveWordReactionSettings } = require('./database/db');
+  saveWordReactionSettings(guildId, is_enabled ? 1 : 0);
+  res.json({ success: true });
+});
+
+// --- LOGO BOT SERVEUR API ---
+app.get('/api/bot/server-bot-profile/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { getServerBotProfile } = require('./database/db');
+  res.json(getServerBotProfile(guildId));
+});
+
+app.post('/api/bot/server-bot-profile/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { custom_logo_url, custom_name } = req.body || {};
+  const { saveServerBotProfile } = require('./database/db');
+  saveServerBotProfile(guildId, custom_logo_url || null, custom_name || null);
+  res.json({ success: true });
+});
+
 // 11. Sauvegarder la configuration du jeu Mot Caché
 app.post('/api/config/game', (req, res) => {
   try {

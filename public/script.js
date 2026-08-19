@@ -6081,7 +6081,7 @@ function initSimpleEmbedSender() {
 
 function loadCustomCommands(guildId) {
   if (!guildId) return;
-  fetch(`/bot/custom-commands/${guildId}`)
+  fetch(`/api/bot/custom-commands/${guildId}`)
     .then(r => r.json())
     .then(data => {
       const settings = data.settings || {};
@@ -6100,7 +6100,7 @@ function renderCustomCommands(commands, guildId) {
   const tbody = document.getElementById('cc-table-tbody');
   if (!tbody) return;
 
-  if (!commands.length) {
+  if (!commands || !commands.length) {
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#b9bbbe; padding:20px;">Aucune commande personnalisée créée.</td></tr>`;
     return;
   }
@@ -6115,7 +6115,7 @@ function renderCustomCommands(commands, guildId) {
       <td style="color:#b9bbbe; font-size:0.85rem;">${cmd.description || '—'}</td>
       <td style="color:#dcddde; font-size:0.85rem;">${preview}</td>
       <td style="text-align:center;">
-        <button class="btn btn-danger" style="padding:5px 10px; font-size:0.78rem;" onclick="deleteCustomCommand('${guildId}','${cmd.command_name}')">
+        <button type="button" class="btn btn-danger" style="padding:5px 10px; font-size:0.78rem;" onclick="deleteCustomCommand('${guildId}','${cmd.command_name}')">
           <i class="fa-solid fa-trash"></i>
         </button>
       </td>
@@ -6125,7 +6125,7 @@ function renderCustomCommands(commands, guildId) {
 
 function deleteCustomCommand(guildId, commandName) {
   if (!confirm(`Supprimer la commande /${commandName} ?`)) return;
-  fetch(`/bot/custom-commands/${guildId}/${encodeURIComponent(commandName)}`, { method: 'DELETE' })
+  fetch(`/api/bot/custom-commands/${guildId}/${encodeURIComponent(commandName)}`, { method: 'DELETE' })
     .then(r => r.json())
     .then(() => { showToast('✅ Commande supprimée.'); loadCustomCommands(guildId); })
     .catch(() => showToast('❌ Erreur lors de la suppression.', true));
@@ -6137,7 +6137,8 @@ function deleteCustomCommand(guildId, commandName) {
   if (form) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const guildId = document.getElementById('guild-select')?.value || guildSelect?.value;
+      e.stopPropagation();
+      const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
       if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
 
       const commandName = document.getElementById('cc-name-input')?.value?.trim().replace(/^\//, '');
@@ -6150,7 +6151,7 @@ function deleteCustomCommand(guildId, commandName) {
       if (textReply) actions.push({ type: 'text', content: textReply });
 
       try {
-        const res = await fetch(`/bot/custom-commands/${guildId}`, {
+        const res = await fetch(`/api/bot/custom-commands/${guildId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ command_name: commandName, description, actions_json: JSON.stringify(actions) })
@@ -6171,12 +6172,14 @@ function deleteCustomCommand(guildId, commandName) {
 
   const saveSettingsBtn = document.getElementById('cc-save-settings-btn');
   if (saveSettingsBtn) {
-    saveSettingsBtn.addEventListener('click', async () => {
-      const guildId = document.getElementById('guild-select')?.value || guildSelect?.value;
+    saveSettingsBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
       if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
       const prefix = document.getElementById('cc-prefix-input')?.value || '/';
       try {
-        const res = await fetch(`/bot/custom-commands/settings/${guildId}`, {
+        const res = await fetch(`/api/bot/custom-commands/settings/${guildId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prefix })
@@ -6200,7 +6203,7 @@ function deleteCustomCommand(guildId, commandName) {
 
 function loadWordReactions(guildId) {
   if (!guildId) return;
-  fetch(`/bot/word-reactions/${guildId}`)
+  fetch(`/api/bot/word-reactions/${guildId}`)
     .then(r => r.json())
     .then(data => {
       const settings = data.settings || {};
@@ -6218,7 +6221,7 @@ function renderWordReactions(reactions, guildId) {
   const container = document.getElementById('wr-container-list');
   if (!container) return;
 
-  if (!reactions.length) {
+  if (!reactions || !reactions.length) {
     container.innerHTML = `<p style="color:#b9bbbe; text-align:center; padding:20px;">Aucune réaction de mot configurée.</p>`;
     return;
   }
@@ -6232,7 +6235,7 @@ function renderWordReactions(reactions, guildId) {
         <strong style="color:#dcddde;">🔤 ${r.trigger_word}</strong>
         <span style="color:#b9bbbe; font-size:0.85rem; margin-left:12px;">→ ${emojiStr || '(aucun)'}</span>
       </div>
-      <button class="btn btn-danger" style="padding:5px 10px; font-size:0.78rem;" onclick="deleteWordReaction('${guildId}','${r.id}')">
+      <button type="button" class="btn btn-danger" style="padding:5px 10px; font-size:0.78rem;" onclick="deleteWordReaction('${guildId}','${r.id}')">
         <i class="fa-solid fa-trash"></i> Supprimer
       </button>
     </div>`;
@@ -6241,7 +6244,7 @@ function renderWordReactions(reactions, guildId) {
 
 function deleteWordReaction(guildId, id) {
   if (!confirm('Supprimer cette réaction ?')) return;
-  fetch(`/bot/word-reactions/${guildId}/${id}`, { method: 'DELETE' })
+  fetch(`/api/bot/word-reactions/${guildId}/${id}`, { method: 'DELETE' })
     .then(r => r.json())
     .then(() => { showToast('✅ Réaction supprimée.'); loadWordReactions(guildId); })
     .catch(() => showToast('❌ Erreur lors de la suppression.', true));
@@ -6252,18 +6255,18 @@ function deleteWordReaction(guildId, id) {
   if (form) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const guildId = document.getElementById('guild-select')?.value || guildSelect?.value;
+      e.stopPropagation();
+      const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
       if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
 
       const trigger = document.getElementById('wr-trigger-input')?.value?.trim();
       const emojisRaw = document.getElementById('wr-emojis-input')?.value?.trim();
       if (!trigger || !emojisRaw) return showToast('❌ Mot déclencheur et émojis requis.', true);
 
-      // Séparer les émojis par virgule ou espace
       const emojis = emojisRaw.split(/[,\s]+/).filter(Boolean);
 
       try {
-        const res = await fetch(`/bot/word-reactions/${guildId}`, {
+        const res = await fetch(`/api/bot/word-reactions/${guildId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -6292,10 +6295,10 @@ function deleteWordReaction(guildId, id) {
   const globalToggle = document.getElementById('wr-global-toggle');
   if (globalToggle) {
     globalToggle.addEventListener('change', async () => {
-      const guildId = document.getElementById('guild-select')?.value || guildSelect?.value;
+      const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
       if (!guildId) return;
       try {
-        await fetch(`/bot/word-reactions/settings/${guildId}`, {
+        await fetch(`/api/bot/word-reactions/settings/${guildId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ is_enabled: globalToggle.checked })
@@ -6314,7 +6317,7 @@ function deleteWordReaction(guildId, id) {
 
 function loadServerBotProfile(guildId) {
   if (!guildId) return;
-  fetch(`/bot/server-bot-profile/${guildId}`)
+  fetch(`/api/bot/server-bot-profile/${guildId}`)
     .then(r => r.json())
     .then(profile => {
       const logoInput = document.getElementById('sbp-logo-url');
@@ -6348,14 +6351,15 @@ function loadServerBotProfile(guildId) {
   if (form) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const guildId = document.getElementById('guild-select')?.value || guildSelect?.value;
+      e.stopPropagation();
+      const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
       if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
 
       const custom_logo_url = document.getElementById('sbp-logo-url')?.value?.trim() || null;
       const custom_name = document.getElementById('sbp-name-input')?.value?.trim() || null;
 
       try {
-        const res = await fetch(`/bot/server-bot-profile/${guildId}`, {
+        const res = await fetch(`/api/bot/server-bot-profile/${guildId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ custom_logo_url, custom_name })
@@ -6372,3 +6376,4 @@ function loadServerBotProfile(guildId) {
     });
   }
 })();
+
