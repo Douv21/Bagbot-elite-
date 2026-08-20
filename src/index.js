@@ -2149,6 +2149,27 @@ apiApp.get('/guilds/:guildId/roles', async (req, res) => {
     res.status(500).json({ error: 'Error fetching roles' });
   }
 });
+
+apiApp.get('/guilds/:guildId/emojis', async (req, res) => {
+  try {
+    const guild = client.guilds.cache.get(req.params.guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    await guild.emojis.fetch().catch(() => null);
+    const emojis = guild.emojis.cache.map(e => ({
+      id: e.id,
+      name: e.name,
+      animated: e.animated,
+      url: e.imageURL(),
+      identifier: e.animated ? `<a:${e.name}:${e.id}>` : `<:${e.name}:${e.id}>`
+    }));
+    res.json(emojis);
+  } catch (error) {
+    console.error('Error fetching emojis:', error);
+    res.status(500).json({ error: 'Error fetching emojis' });
+  }
+});
 apiApp.get('/guilds/:guildId/members', async (req, res) => {
   try {
     const guild = client.guilds.cache.get(req.params.guildId);
@@ -2887,8 +2908,16 @@ client.on('messageCreate', async (message) => {
             }
 
             for (const emoji of emojis) {
-              if (emoji) {
-                await message.react(emoji.trim()).catch(() => null);
+              if (emoji && emoji.trim().length > 0) {
+                const cleanEmoji = emoji.trim();
+                const matchCustom = cleanEmoji.match(/<?a?:?:?\w*:?(\d{17,20})>?/);
+                if (matchCustom && matchCustom[1]) {
+                  const emojiId = matchCustom[1];
+                  const foundEmoji = message.guild.emojis.cache.get(emojiId) || emojiId;
+                  await message.react(foundEmoji).catch(err => console.error('Erreur réaction émoji personnalisé:', err));
+                } else {
+                  await message.react(cleanEmoji).catch(() => null);
+                }
               }
             }
           }

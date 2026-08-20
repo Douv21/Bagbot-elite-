@@ -6746,8 +6746,44 @@ document.addEventListener('submit', async (e) => {
 // 💬 RÉACTIONS DE MOTS
 // ============================================================
 
+function addEmojiToWrInput(emojiTag) {
+  const input = document.getElementById('wr-emojis-input');
+  if (!input) return;
+  const current = input.value.trim();
+  if (current) {
+    input.value = current + ' ' + emojiTag;
+  } else {
+    input.value = emojiTag;
+  }
+  if (typeof showToast === 'function') showToast(`✨ Émoji ajouté !`);
+}
+window.addEmojiToWrInput = addEmojiToWrInput;
+
 function loadWordReactions(guildId) {
   if (!guildId) return;
+
+  fetch(`/api/emojis?guildId=${guildId}`)
+    .then(r => r.json())
+    .then(emojis => {
+      const picker = document.getElementById('wr-server-emojis-picker');
+      if (picker) {
+        if (Array.isArray(emojis) && emojis.length > 0) {
+          picker.innerHTML = emojis.map(e => `
+            <button type="button" class="btn" onclick="addEmojiToWrInput('${e.identifier}')" title="${e.name}" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: #fff; font-size: 0.8rem; transition: background 0.2s;">
+              <img src="${e.url}" alt="${e.name}" style="width: 22px; height: 22px; object-fit: contain;">
+              <span>:${e.name}:</span>
+            </button>
+          `).join('');
+        } else {
+          picker.innerHTML = `<span style="font-size: 0.8rem; color: #72767d;">Aucun émoji personnalisé trouvé sur ce serveur. Vous pouvez saisir des émojis standards ci-dessus (ex: 👋, ❤️, 🔥).</span>`;
+        }
+      }
+    })
+    .catch(() => {
+      const picker = document.getElementById('wr-server-emojis-picker');
+      if (picker) picker.innerHTML = `<span style="font-size: 0.8rem; color: #72767d;">Saisissez vos émojis manuellement.</span>`;
+    });
+
   fetch(`/api/bot/word-reactions/${guildId}`)
     .then(r => r.json())
     .then(data => {

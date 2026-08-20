@@ -538,6 +538,27 @@ app.get('/api/roles', async (req, res) => {
   }
 });
 
+// API pour obtenir les émojis du serveur (via le bot)
+app.get('/api/emojis', async (req, res) => {
+  try {
+    const guildId = (req.query && req.query.guildId) || (req.session && req.session.selectedGuild);
+    if (!guildId) {
+      return res.json([]);
+    }
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const response = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/emojis`).catch(() => null);
+    if (response && response.ok) {
+      const emojis = await response.json();
+      res.json(emojis);
+    } else {
+      res.json([]);
+    }
+  } catch (error) {
+    console.error('Erreur chargement emojis:', error);
+    res.json([]);
+  }
+});
+
 // API pour obtenir les membres (via le bot)
 app.get('/api/members', async (req, res) => {
   try {
