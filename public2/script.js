@@ -3705,9 +3705,9 @@ document.addEventListener('DOMContentLoaded', () => {
         <i class="fa-solid fa-plus" style="font-size: 0.8rem;"></i>
       </button>
 
-      <!-- Conteneur d'outils droite (! , v , x) -->
+      <!-- Conteneur d'outils droite (! / ✓ , v , x) -->
       <div style="display: flex; align-items: center; gap: 10px; background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; padding: 6px 10px; margin-left: auto;">
-        <span style="background: #da373c; color: #fff; width: 18px; height: 18px; border-radius: 50%; font-size: 0.75rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center;" title="Requis">!</span>
+        <span class="badge-status" style="background: #da373c; color: #fff; width: 18px; height: 18px; border-radius: 50%; font-size: 0.75rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; transition: background 0.2s;" title="Requis">!</span>
         <i class="fa-solid fa-chevron-down" style="color: #949ba4; font-size: 0.8rem;"></i>
         <button type="button" class="btn-remove-option" style="background: none; border: none; color: #949ba4; cursor: pointer; font-size: 1rem; padding: 0;" title="Supprimer l'option">
           <i class="fa-solid fa-xmark"></i>
@@ -3719,6 +3719,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const roleDot = row.querySelector('.role-dot');
     const btnEmoji = row.querySelector('.btn-emoji-picker');
     const optEmojiInput = row.querySelector('.opt-emoji');
+    const statusBadge = row.querySelector('.badge-status');
 
     if (btnEmoji && optEmojiInput) {
       btnEmoji.addEventListener('click', () => openEmojiPickerPopover(optEmojiInput, btnEmoji));
@@ -3740,6 +3741,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (roleSelect) {
         roleSelect.style.color = color;
         if (roleSelect.parentElement) roleSelect.parentElement.style.borderColor = color;
+      }
+      if (statusBadge) {
+        if (selectedId) {
+          statusBadge.style.background = '#23a55a';
+          statusBadge.textContent = '✓';
+          statusBadge.title = 'Rôle configuré avec succès !';
+        } else {
+          statusBadge.style.background = '#da373c';
+          statusBadge.textContent = '!';
+          statusBadge.title = 'Veuillez choisir un rôle';
+        }
       }
     };
 
