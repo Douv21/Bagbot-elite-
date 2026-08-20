@@ -1881,10 +1881,16 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
-    const { channelId, messageId } = req.query;
-    if (!messageId) return res.status(400).json({ error: 'ID de message requis' });
+    let { channelId, messageId } = req.query;
+    if (!messageId) return res.status(400).json({ error: 'ID ou lien de message requis' });
 
-    const cleanMsgId = String(messageId).trim();
+    let cleanMsgId = String(messageId).trim();
+    const linkMatch = cleanMsgId.match(/discord(?:app)?\.com\/channels\/\d+\/(\d+)\/(\d+)/);
+    if (linkMatch) {
+      channelId = linkMatch[1];
+      cleanMsgId = linkMatch[2];
+    }
+
     const { getAutoroleEmbeds, getAutoroleOptions } = require('./database/db');
     const dbEmbeds = getAutoroleEmbeds(guildId) || [];
     const foundDb = dbEmbeds.find(e => String(e.message_id).trim() === cleanMsgId);

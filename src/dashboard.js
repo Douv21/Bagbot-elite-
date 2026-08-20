@@ -1789,16 +1789,24 @@ app.post('/api/config/autorole-embeds/delete', async (req, res) => {
   }
 });
 
-// Endpoint pour récupérer/réhydrater les données complètes d'un message de rôle réaction existant
+// Endpoint pour récupérer/réhydrater les données complètes d'un message de rôle réaction existant (y compris d'autres bots ou liens de messages)
 app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
   try {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
-    const { channelId, messageId } = req.query;
-    if (!messageId) return res.status(400).json({ error: 'ID de message requis' });
+    let { channelId, messageId } = req.query;
+    if (!messageId) return res.status(400).json({ error: 'ID ou lien de message requis' });
 
-    const cleanMsgId = String(messageId).trim();
+    let cleanMsgId = String(messageId).trim();
+
+    // Détection et extraction depuis un lien de message Discord : https://discord.com/channels/GUILD_ID/CHANNEL_ID/MESSAGE_ID
+    const linkMatch = cleanMsgId.match(/discord(?:app)?\.com\/channels\/\d+\/(\d+)\/(\d+)/);
+    if (linkMatch) {
+      channelId = linkMatch[1];
+      cleanMsgId = linkMatch[2];
+    }
+
     const { getAutoroleEmbeds, getAutoroleOptions } = require('./database/db');
     const dbEmbeds = getAutoroleEmbeds(guildId) || [];
     const foundDb = dbEmbeds.find(e => String(e.message_id).trim() === cleanMsgId);
@@ -1828,7 +1836,10 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
         if (channelId) {
           const chan = guild.channels.cache.get(channelId);
           if (chan && chan.isTextBased()) {
-            targetMsg = await chan.messages.fetch(cleanMsgId).catch(() => null);
+            targetMsg = await chan.messages.fetch(cleanMsgId).catch(err => {
+              console.error(`Erreur fetch message salon ${channelId}:`, err.message);
+              return null;
+            });
           }
         }
 
@@ -1851,23 +1862,45 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
           const extractedOptions = [];
           let detectedType = 'buttons';
 
+          let title = '';
+          let description = targetMsg.content || '';
+          let color = '#5865F2';
+          let image_url = '';
+          let thumbnail = 0;
+
+          if (emb) {
+            title = emb.title || '';
+            description = emb.description || targetMsg.content || '';
+            if (emb.color) color = `#${emb.color.toString(16).padStart(6, '0')}`;
+            if (emb.image && emb.image.url) image_url = emb.image.url;
+            if (emb.thumbnail && emb.thumbnail.url) thumbnail = 1;
+          }
+
           if (targetMsg.components && targetMsg.components.length > 0) {
             targetMsg.components.forEach(row => {
               row.components.forEach(comp => {
                 if (comp.type === 2 || comp.type === 'BUTTON') {
                   detectedType = 'buttons';
+                  let rawRoleId = comp.customId || '';
+                  const roleIdMatch = rawRoleId.match(/\d{17,20}/);
+                  const roleId = roleIdMatch ? roleIdMatch[0] : rawRoleId;
+
                   extractedOptions.push({
-                    role_id: comp.customId ? comp.customId.replace('autorole_', '').replace('role_', '') : '',
+                    role_id: roleId,
                     label: comp.label || 'Bouton',
                     emoji: comp.emoji ? (comp.emoji.name || comp.emoji.id) : '',
-                    style: comp.style === 1 ? 'PRIMARY' : (comp.style === 2 ? 'SECONDARY' : (comp.style === 3 ? 'SUCCESS' : 'DANGER'))
+                    style: comp.style === 1 ? 'PRIMARY' : (comp.style === 2 ? 'SECONDARY' : (comp.style === 3 ? 'SUCCESS' : (comp.style === 4 ? 'DANGER' : 'PRIMARY')))
                   });
                 } else if (comp.type === 3 || comp.type === 'SELECT_MENU' || comp.type === 'STRING_SELECT') {
                   detectedType = comp.maxValues > 1 ? 'multi_select' : 'select';
                   if (comp.options) {
                     comp.options.forEach(opt => {
+                      let rawVal = opt.value || '';
+                      const roleIdMatch = rawVal.match(/\d{17,20}/);
+                      const roleId = roleIdMatch ? roleIdMatch[0] : rawVal;
+
                       extractedOptions.push({
-                        role_id: opt.value ? opt.value.replace('autorole_', '').replace('role_', '') : '',
+                        role_id: roleId,
                         label: opt.label || 'Option',
                         emoji: opt.emoji ? (opt.emoji.name || opt.emoji.id) : '',
                         style: 'PRIMARY'
@@ -1879,23 +1912,37 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
             });
           }
 
+          if (targetMsg.reactions && targetMsg.reactions.cache.size > 0 && extractedOptions.length === 0) {
+            detectedType = 'reactions';
+            targetMsg.reactions.cache.forEach(react => {
+              const emojiStr = react.emoji.id ? `<:${react.emoji.name}:${react.emoji.id}>` : react.emoji.name;
+              extractedOptions.push({
+                role_id: '',
+                label: `Réaction ${react.emoji.name}`,
+                emoji: emojiStr,
+                style: 'PRIMARY'
+              });
+            });
+          }
+
           return res.json({
             id: targetMsg.id,
             channel_id: foundChannelId,
-            title: emb ? (emb.title || '') : '',
-            description: emb ? (emb.description || targetMsg.content || '') : targetMsg.content || '',
-            color: emb && emb.color ? `#${emb.color.toString(16).padStart(6, '0')}` : '#5865F2',
-            thumbnail: emb && emb.thumbnail ? 1 : 0,
-            image_url: emb && emb.image ? emb.image.url : '',
+            title: title,
+            description: description,
+            color: color,
+            thumbnail: thumbnail,
+            image_url: image_url,
             type: detectedType,
             mode: 'normal',
-            options: extractedOptions
+            options: extractedOptions,
+            author_bot: targetMsg.author ? targetMsg.author.tag : null
           });
         }
       }
     }
 
-    res.status(404).json({ error: 'Message introuvable sur le serveur Discord ou dans la base de données' });
+    res.status(404).json({ error: 'Message introuvable. Assurez-vous d\'avoir sélectionné le salon de destination ou de coller le lien du message Discord.' });
   } catch (error) {
     console.error('Erreur fetch autorole message:', error);
     res.status(500).json({ error: error.message });
