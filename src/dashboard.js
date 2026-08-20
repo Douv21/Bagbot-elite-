@@ -2306,6 +2306,7 @@ app.get('/api/config/embeds/all-server-embeds', async (req, res) => {
         send_time: rE.send_time || '12:00',
         is_recurring: true
       });
+    }
     res.json(allEmbeds);
   } catch (error) {
     console.error('Erreur all-server-embeds:', error);
