@@ -7049,8 +7049,47 @@ function renderCcActionsList() {
 }
 window.removeCcActionCard = removeCcActionCard;
 
+function updateServerTagsDropdown() {
+  const tagSelect = document.getElementById('cc-cond-tag-select');
+  const tagValInput = document.getElementById('cc-cond-tag-val');
+  if (!tagSelect) return;
+
+  const fetchEndpoint = (url) => fetch(url).then(r => r.ok ? r.json() : null).catch(() => null);
+
+  Promise.all([
+    fetchEndpoint('/api/server-tags'),
+    fetchEndpoint('/api/bot/server-tags'),
+    fetchEndpoint('/api/guilds')
+  ]).then(([res1, res2, guildsData]) => {
+    let tagsList = [];
+    if (res1 && res1.success && Array.isArray(res1.tags) && res1.tags.length > 0) {
+      tagsList = res1.tags;
+    } else if (res2 && res2.success && Array.isArray(res2.tags) && res2.tags.length > 0) {
+      tagsList = res2.tags;
+    } else if (Array.isArray(guildsData) && guildsData.length > 0) {
+      tagsList = guildsData.map(g => ({ guildId: g.id, guildName: g.name, tag: g.name }));
+    }
+
+    const curVal = tagSelect.value || (tagValInput ? tagValInput.value : '');
+
+    if (tagsList.length > 0) {
+      tagSelect.innerHTML = '<option value="">-- Choisir le Tag d\'un Serveur --</option>' +
+        tagsList.map(t => {
+          const displayTag = t.tag || t.guildName;
+          const isSelected = (displayTag === curVal || t.tag === curVal) ? 'selected' : '';
+          return `<option value="${displayTag}" ${isSelected}>🏷️ [${displayTag}] — ${t.guildName}</option>`;
+        }).join('');
+      if (curVal) tagSelect.value = curVal;
+    } else {
+      tagSelect.innerHTML = '<option value="">-- Aucun serveur disponible --</option>';
+    }
+  }).catch(console.error);
+}
+window.updateServerTagsDropdown = updateServerTagsDropdown;
+
 document.addEventListener('DOMContentLoaded', () => {
   initCcActionsBuilder();
+  updateServerTagsDropdown();
 });
 
 function loadCustomCommands(guildId) {
@@ -7082,40 +7121,7 @@ function loadCustomCommands(guildId) {
     const deleteInput = document.getElementById('cc-delete-trigger-input');
     if (deleteInput) deleteInput.checked = (settings.delete_trigger == 1 || settings.delete_trigger === true);
 
-    const tagSelect = document.getElementById('cc-cond-tag-select');
-    const tagValInput = document.getElementById('cc-cond-tag-val');
-
-    const fetchEndpoint = (url) => fetch(url).then(r => r.json()).catch(() => null);
-
-    Promise.all([
-      fetchEndpoint('/api/server-tags'),
-      fetchEndpoint('/api/bot/server-tags'),
-      fetchEndpoint('/api/guilds')
-    ]).then(([res1, res2, guildsData]) => {
-      let tagsList = [];
-      if (res1 && res1.success && Array.isArray(res1.tags) && res1.tags.length > 0) {
-        tagsList = res1.tags;
-      } else if (res2 && res2.success && Array.isArray(res2.tags) && res2.tags.length > 0) {
-        tagsList = res2.tags;
-      } else if (Array.isArray(guildsData) && guildsData.length > 0) {
-        tagsList = guildsData.map(g => ({ guildId: g.id, guildName: g.name, tag: g.name }));
-      }
-
-      const curVal = tagValInput ? tagValInput.value : '';
-
-      if (tagSelect) {
-        if (tagsList.length > 0) {
-          tagSelect.innerHTML = '<option value="">-- Choisir le Tag d\'un Serveur --</option>' +
-            tagsList.map(t => {
-              const displayTag = t.tag || t.guildName;
-              const isSelected = (displayTag === curVal || t.tag === curVal) ? 'selected' : '';
-              return `<option value="${displayTag}" ${isSelected}>🏷️ [${displayTag}] — ${t.guildName}</option>`;
-            }).join('');
-        } else {
-          tagSelect.innerHTML = '<option value="">-- Aucun serveur disponible --</option>';
-        }
-      }
-    }).catch(console.error);
+    updateServerTagsDropdown();
 
     renderCustomCommands(commands, guildId);
     renderCcActionsList();
