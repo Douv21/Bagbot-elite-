@@ -82,6 +82,31 @@ client.once('ready', async () => {
 
   const { initInviteCache } = require('./utils/inviteTracker');
   initInviteCache(client).catch(console.error);
+
+  // Synchronisation des profils du bot par serveur (restauration logo Portail Développeur sur serveurs non configurés)
+  try {
+    const { db } = require('./database/db');
+    const { updateGuildBotProfileOnDiscord } = require('./utils/helpers');
+
+    const configuredRows = db.prepare('SELECT guild_id, custom_logo_url, custom_name FROM server_bot_profile').all() || [];
+    const configuredMap = new Map();
+    configuredRows.forEach(row => {
+      configuredMap.set(row.guild_id, row);
+    });
+
+    for (const [guildId, guild] of client.guilds.cache) {
+      const config = configuredMap.get(guildId);
+      if (config && (config.custom_logo_url || config.custom_name)) {
+        await updateGuildBotProfileOnDiscord(client, guildId, config.custom_name, config.custom_logo_url).catch(() => null);
+      } else {
+        // Enlever l'avatar de membre spécifique pour remettre l'avatar par défaut du Portail Développeur Discord
+        await updateGuildBotProfileOnDiscord(client, guildId, null, null).catch(() => null);
+      }
+    }
+    console.log('[BOT PROFILE] Synchronisation des profils de bot par serveur effectuée avec succès !');
+  } catch (syncErr) {
+    console.error('[BOT PROFILE] Erreur synchro profils:', syncErr.message);
+  }
 });
 
 client.on('inviteCreate', invite => {
