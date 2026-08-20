@@ -3377,8 +3377,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!autoroleSelectorsList || autoroleSelectorsList.length === 0) {
       container.innerHTML = `
-        <div style="background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.1); padding: 12px; border-radius: 6px; text-align: center; color: #8e9297; font-size: 0.85rem;">
-          Aucun sélecteur configuré. Cliquez sur <strong>"Ajouter un Sélecteur"</strong> ci-dessus pour en créer un (ex: Genre, Pronom...).
+        <div style="background: rgba(0,0,0,0.2); border: 1px dashed rgba(255,255,255,0.15); padding: 16px; border-radius: 8px; text-align: center; color: #8e9297; font-size: 0.88rem;">
+          Aucun sélecteur configuré. Cliquez sur <strong>"Ajouter un sélecteur"</strong> ci-dessous pour en créer un (ex: Genre, Pronom...).
         </div>
       `;
       return;
@@ -3387,27 +3387,23 @@ document.addEventListener('DOMContentLoaded', () => {
     autoroleSelectorsList.forEach((sel, index) => {
       const card = document.createElement('div');
       card.className = 'selector-item-card';
-      card.style.cssText = 'background: #2f3136; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2);';
-
-      const optCount = sel.options ? sel.options.length : 0;
-      const typeLabel = sel.type === 'multi_select' ? 'Multi-Choix' : (sel.type === 'buttons' ? 'Boutons' : 'Choix Unique');
+      card.style.cssText = 'background: #2b2d31; border: 1px solid #383a40; border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);';
 
       card.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <i class="fa-solid fa-grip-vertical" style="color: #8e9297; cursor: grab;"></i>
-          <div>
-            <div style="font-weight: 700; font-size: 0.95rem; color: #ffffff;">${sel.placeholder || 'Sélecteur ' + (index + 1)}</div>
-            <div style="font-size: 0.78rem; color: #b9bbbe; margin-top: 2px;">
-              <span style="background: rgba(88,101,242,0.25); color: #7289da; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-right: 6px;">${typeLabel}</span>
-              <span>${optCount} option(s)</span>
-            </div>
+        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+          <i class="fa-solid fa-grip-vertical" style="color: #8e9297; cursor: grab; font-size: 1rem;"></i>
+          
+          <div style="background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; padding: 8px 14px; flex: 1; display: flex; justify-content: space-between; align-items: center; max-width: 480px;">
+            <span style="font-weight: 600; font-size: 0.92rem; color: #ffffff;">${sel.placeholder || 'Sélecteur ' + (index + 1)}</span>
+            <i class="fa-solid fa-chevron-down" style="color: #8e9297; font-size: 0.8rem;"></i>
           </div>
         </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
-          <button type="button" class="btn btn-edit-selector" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; cursor: pointer;">
-            <i class="fa-solid fa-pen-to-square"></i> Modifier
+
+        <div style="display: flex; gap: 8px; align-items: center; margin-left: 12px;">
+          <button type="button" class="btn btn-edit-selector" style="background: #383a40; border: none; color: #ffffff; padding: 8px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+            Modifier
           </button>
-          <button type="button" class="btn btn-delete-selector" style="background: rgba(231,76,60,0.15); border: 1px solid rgba(231,76,60,0.3); color: #ff5555; padding: 6px 10px; border-radius: 6px; font-size: 0.82rem; cursor: pointer;" title="Supprimer ce sélecteur">
+          <button type="button" class="btn btn-delete-selector" style="background: #383a40; border: none; color: #b5bac1; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; cursor: pointer;" title="Supprimer ce sélecteur">
             <i class="fa-solid fa-trash"></i>
           </button>
         </div>
@@ -3472,27 +3468,100 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modal) modal.style.display = 'none';
   }
 
+  function openActionPopup(btnEl) {
+    let existingMenu = document.getElementById('action-popup-menu');
+    if (existingMenu) existingMenu.remove();
+
+    const rect = btnEl.getBoundingClientRect();
+    const popup = document.createElement('div');
+    popup.id = 'action-popup-menu';
+    popup.style.cssText = `
+      position: fixed;
+      top: ${rect.bottom + 6}px;
+      left: ${Math.max(10, rect.left - 140)}px;
+      width: 220px;
+      background: #2b2d31;
+      border: 1px solid #383a40;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      z-index: 9999999;
+      padding: 6px 0;
+    `;
+
+    const actions = [
+      { icon: 'fa-envelope', label: 'Envoyer un message' },
+      { icon: 'fa-user-plus', label: 'Ajouter des rôles' },
+      { icon: 'fa-clock', label: 'Ajouter un rôle temporaire' },
+      { icon: 'fa-user-minus', label: 'Retirer des rôles' },
+      { icon: 'fa-bag-shopping', label: 'Article de boutique' },
+      { icon: 'fa-coins', label: "Ajouter de l'argent" }
+    ];
+
+    actions.forEach(act => {
+      const item = document.createElement('div');
+      item.style.cssText = 'padding: 10px 16px; color: #dcddde; font-size: 0.88rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.15s;';
+      item.innerHTML = `<i class="fa-solid ${act.icon}" style="color: #d96b52; width: 16px;"></i> ${act.label}`;
+      item.addEventListener('mouseenter', () => item.style.background = '#35373c');
+      item.addEventListener('mouseleave', () => item.style.background = 'transparent');
+      item.addEventListener('click', () => {
+        showToast(`Action "${act.label}" sélectionnée !`);
+        popup.remove();
+      });
+      popup.appendChild(item);
+    });
+
+    document.body.appendChild(popup);
+
+    const closeHandler = (e) => {
+      if (!popup.contains(e.target) && !btnEl.contains(e.target)) {
+        popup.remove();
+        document.removeEventListener('click', closeHandler);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', closeHandler), 10);
+  }
+
   function addModalOptionRow(opt = null) {
     const container = document.getElementById('modal-selector-options-list');
     if (!container) return;
 
     const row = document.createElement('div');
     row.className = 'modal-option-row';
-    row.style.cssText = 'display: flex; gap: 8px; align-items: center; background: #202225; padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 6px;';
+    row.style.cssText = 'display: flex; gap: 8px; align-items: center; background: #1e1f22; padding: 8px 10px; border-radius: 8px; border: 1px solid #383a40;';
 
     const rolesOptionsHtml = buildRolesSelectHTML(opt ? opt.role_id : '');
 
     row.innerHTML = `
-      <input type="text" class="opt-emoji" placeholder="👨" value="${opt ? (opt.emoji || '') : ''}" style="width: 45px; text-align: center; background: #2f3136; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff; padding: 6px;">
-      <select class="opt-role role-select" style="flex: 2; background: #2f3136; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff; padding: 6px; font-size: 0.85rem;">
-        ${rolesOptionsHtml}
-      </select>
-      <input type="text" class="opt-label" placeholder="Ex: Homme" value="${opt ? (opt.label || '') : ''}" style="flex: 2; background: #2f3136; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff; padding: 6px; font-size: 0.85rem;">
-      <button type="button" class="btn btn-remove-option" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 1rem; padding: 4px 6px;"><i class="fa-solid fa-trash"></i></button>
+      <i class="fa-solid fa-grip-vertical" style="color: #8e9297; cursor: grab; padding: 0 4px;"></i>
+      
+      <input type="text" class="opt-emoji" placeholder="👨" value="${opt ? (opt.emoji || '') : '👨'}" style="width: 42px; height: 38px; text-align: center; background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; color: #fff; font-size: 1.1rem; outline: none;">
+
+      <div style="flex: 2; display: flex; align-items: center; background: #2b2d31; border: 1px solid #383a40; border-radius: 20px; padding: 4px 10px;">
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: #3498db; display: inline-block; margin-right: 8px; flex-shrink: 0;"></span>
+        <select class="opt-role role-select" style="width: 100%; background: transparent; border: none; color: #7289da; font-weight: 700; font-size: 0.88rem; outline: none; cursor: pointer;">
+          ${rolesOptionsHtml}
+        </select>
+      </div>
+
+      <input type="text" class="opt-label" placeholder="Libellé (ex: Homme)" value="${opt ? (opt.label || '') : ''}" style="flex: 2; height: 38px; background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; color: #fff; padding: 0 10px; font-size: 0.88rem; outline: none;">
+
+      <button type="button" class="btn-add-action-popup" style="width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; display: inline-flex; justify-content: center; align-items: center; cursor: pointer; flex-shrink: 0;" title="Ajouter une action (Message, Rôles...)">
+        <i class="fa-solid fa-plus" style="font-size: 0.8rem;"></i>
+      </button>
+
+      <span style="color: #e74c3c; font-weight: 700; font-size: 0.9rem;" title="Requis">!</span>
+
+      <button type="button" class="btn-remove-option" style="background: none; border: none; color: #8e9297; cursor: pointer; font-size: 1.1rem; padding: 4px 6px;" title="Supprimer l'option">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     `;
 
     row.querySelector('.btn-remove-option').addEventListener('click', () => {
       row.remove();
+    });
+
+    row.querySelector('.btn-add-action-popup').addEventListener('click', (e) => {
+      openActionPopup(e.currentTarget);
     });
 
     container.appendChild(row);
