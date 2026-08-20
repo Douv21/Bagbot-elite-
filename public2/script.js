@@ -6084,6 +6084,20 @@ function initSimpleEmbedSender() {
     const inputFooterText = document.getElementById('simple_embed_footer_text');
     const selectPing = document.getElementById('simple_embed_ping');
 
+    const prevTitle = document.getElementById('simple-embed-preview-title');
+    const prevDesc = document.getElementById('simple-embed-preview-desc');
+    const prevContainer = document.getElementById('simple-embed-preview-container');
+    const prevThumb = document.getElementById('simple-embed-preview-thumbnail');
+    const thumbPlaceholder = document.getElementById('simple-embed-thumbnail-placeholder');
+    const prevImage = document.getElementById('simple-embed-preview-image');
+    const imageOverlay = document.querySelector('.discord-image-input-overlay');
+    const prevAuthor = document.getElementById('simple-embed-preview-author');
+    const prevAuthorIcon = document.getElementById('simple-embed-preview-author-icon');
+    const prevAuthorName = document.getElementById('simple-embed-preview-author-name');
+    const prevFooter = document.getElementById('simple-embed-preview-footer');
+    const prevFooterText = document.getElementById('simple-embed-preview-footer-text');
+    const prevMention = document.getElementById('simple-embed-preview-mention');
+
     // Title
     if (prevTitle) {
       const val = inputTitle ? (inputTitle.value || '') : '';
@@ -6152,18 +6166,19 @@ function initSimpleEmbedSender() {
     }
 
     // Image
-    if (prevImage) {
-      if (inputImage && inputImage.value.trim()) {
-        prevImage.src = inputImage.value.trim();
-        prevImage.style.display = 'block';
-      } else {
-        prevImage.style.display = 'none';
-      }
+    const imageVal = inputImage ? inputImage.value.trim() : '';
+    if (imageVal && prevImage) {
+      prevImage.src = imageVal;
+      prevImage.style.display = 'block';
+      if (imageOverlay) imageOverlay.style.display = 'none';
+    } else {
+      if (prevImage) prevImage.style.display = 'none';
+      if (imageOverlay) imageOverlay.style.display = 'flex';
     }
 
     // Author (Optionnel - Se masque totalement si vide)
-    const authorNameVal = inputAuthorName ? inputAuthorName.value.trim() : '';
-    const authorIconVal = inputAuthorIcon ? inputAuthorIcon.value.trim() : '';
+    const authorNameVal = inputAuthorName ? (inputAuthorName.value || '').trim() : '';
+    const authorIconVal = inputAuthorIcon ? (inputAuthorIcon.value || '').trim() : '';
 
     if (authorNameVal || authorIconVal) {
       if (prevAuthorName) {
@@ -6192,15 +6207,16 @@ function initSimpleEmbedSender() {
     }
 
     // Footer
-    if (inputFooterText && inputFooterText.value.trim()) {
-      prevFooterText.innerText = inputFooterText.value;
+    const footerVal = inputFooterText ? (inputFooterText.value || '').trim() : '';
+    if (footerVal && prevFooter) {
+      if (prevFooterText) prevFooterText.innerText = footerVal;
       prevFooter.style.display = 'flex';
-    } else {
+    } else if (prevFooter) {
       prevFooter.style.display = 'none';
     }
 
     // Ping
-    if (selectPing) {
+    if (selectPing && prevMention) {
       if (selectPing.value === 'everyone') {
         prevMention.innerText = '@everyone';
         prevMention.style.display = 'block';
@@ -6211,6 +6227,20 @@ function initSimpleEmbedSender() {
         prevMention.style.display = 'none';
       }
     }
+  }
+
+  document.addEventListener('input', (e) => {
+    if (e.target && (e.target.id?.includes('simple_embed') || e.target.id?.includes('simple-embed') || e.target.closest('#form-simple-embed, #tab-embed-sender'))) {
+      updatePreview();
+    }
+  });
+  document.addEventListener('change', (e) => {
+    if (e.target && (e.target.id?.includes('simple_embed') || e.target.id?.includes('simple-embed') || e.target.closest('#form-simple-embed, #tab-embed-sender'))) {
+      updatePreview();
+    }
+  });
+
+
   }
 
   [inputTitle, inputDesc, inputColor, selectThumb, inputCustomThumb, inputImage, inputAuthorName, inputAuthorIcon, inputFooterText, selectPing].forEach(el => {
