@@ -1954,6 +1954,80 @@ app.post('/api/config/embeds/delete-message', async (req, res) => {
   }
 });
 
+// Route pour récupérer tous les messages embeds de tous les salons du serveur
+app.get('/api/config/embeds/all-server-embeds', async (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const guild = client.guilds ? client.guilds.cache.get(guildId) : null;
+    const { getAutoroleEmbeds } = require('./database/db');
+    const dbEmbeds = getAutoroleEmbeds(guildId) || [];
+
+    const allEmbeds = [];
+    const seenMsgIds = new Set();
+
+    for (const dbE of dbEmbeds) {
+      if (seenMsgIds.has(dbE.message_id)) continue;
+      
+      let channelName = 'Salon inconnu';
+      if (guild) {
+        const chan = guild.channels.cache.get(dbE.channel_id);
+        if (chan) channelName = `#${chan.name}`;
+      }
+
+      allEmbeds.push({
+        id: dbE.message_id,
+        channel_id: dbE.channel_id,
+        channel_name: channelName,
+        title: dbE.title || 'Embed sans titre',
+        description: dbE.description || '',
+        color: dbE.color || '#5865F2',
+        image: dbE.image_url || '',
+        author_name: dbE.author_name || '',
+        author_icon: dbE.author_icon || '',
+        footer: dbE.footer_text || ''
+      });
+      seenMsgIds.add(dbE.message_id);
+    }
+
+    if (guild) {
+      const textChannels = guild.channels.cache.filter(c => c.isTextBased() && c.viewable);
+      for (const [cId, chan] of textChannels) {
+        try {
+          const msgs = await chan.messages.fetch({ limit: 10 }).catch(() => null);
+          if (msgs) {
+            msgs.forEach(msg => {
+              if (seenMsgIds.has(msg.id)) return;
+              if (msg.embeds && msg.embeds.length > 0) {
+                const emb = msg.embeds[0];
+                allEmbeds.push({
+                  id: msg.id,
+                  channel_id: cId,
+                  channel_name: `#${chan.name}`,
+                  title: emb.title || 'Embed sans titre',
+                  description: emb.description || '',
+                  color: emb.color ? `#${emb.color.toString(16).padStart(6, '0')}` : '#5865F2',
+                  image: emb.image ? emb.image.url : '',
+                  author_name: emb.author ? emb.author.name : '',
+                  author_icon: emb.author ? emb.author.iconURL : '',
+                  footer: emb.footer ? emb.footer.text : ''
+                });
+                seenMsgIds.add(msg.id);
+              }
+            });
+          }
+        } catch (e) {}
+      }
+    }
+
+    res.json(allEmbeds);
+  } catch (error) {
+    console.error('Erreur all-server-embeds:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Route pour récupérer les messages du salon depuis Discord pour édition / copie
 app.get('/api/config/embeds/fetch-channel-messages', async (req, res) => {
   try {

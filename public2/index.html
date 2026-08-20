@@ -2703,11 +2703,7 @@
           <div id="tab-embed-sender" class="tab-content">
             <h2 class="section-title"><i class="fa-solid fa-file-code" style="color: #9b59b6;"></i> Envoyeur d'Embeds Simple (Message Pur)</h2>
             <div class="card glass mb-4">
-              <p style="color: #b9bbbe; font-size: 0.9rem; margin-bottom: 15px;">Composez et envoyez un message Embed sur mesure dans n'importe quel salon de votre serveur (message pur, sans rôle réaction, sans bouton).</p>
-              <h3 style="margin-bottom: 12px; font-size: 1rem; color: #fff;"><i class="fa-solid fa-list-check" style="color: #9b59b6;"></i> Embeds du Serveur (Cliquez sur « Charger » pour modifier)</h3>
-              <div id="simple-embeds-saved-list" style="display: flex; flex-direction: column; gap: 10px;">
-                <p style="color: #8e9297; font-style: italic;">Aucun embed enregistré pour le moment.</p>
-              </div>
+              <p style="color: #b9bbbe; font-size: 0.9rem; margin-bottom: 0;">Composez et envoyez un message Embed sur mesure dans n'importe quel salon de votre serveur (message pur, sans rôle réaction, sans bouton).</p>
             </div>
 
             <form id="form-simple-embed" class="inner-form">
@@ -2720,12 +2716,6 @@
                     <select id="simple_embed_channel" required class="channel-select custom-select">
                       <option value="">Sélectionner un salon...</option>
                     </select>
-                  </div>
-                  <div class="form-group" id="group_select_channel_embeds" style="display: none; margin-top: 15px;">
-                    <label style="font-weight: 600; color: #fff; margin-bottom: 8px; display: block;">
-                      <i class="fa-solid fa-list-check"></i> Messages Embeds Actifs dans ce salon :
-                    </label>
-                    <div id="channel_embeds_cards_list" style="display: flex; flex-direction: column; gap: 8px;"></div>
                   </div>
                   <div class="form-group">
                     <label for="simple_embed_ping"><i class="fa-solid fa-bell"></i> Notification / Mention :</label>
@@ -2873,6 +2863,24 @@
                 </div>
               </div>
             </form>
+
+            <!-- Liste de tous les messages embeds du serveur (Tous salons confondus) en bas de page -->
+            <div class="card glass mt-4">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="margin: 0; font-size: 1rem; color: #fff;">
+                  <i class="fa-solid fa-list-check" style="color: #9b59b6;"></i> Tous les Messages Embeds du Serveur (Tous salons confondus)
+                </h3>
+                <button type="button" id="btn-refresh-all-embeds" class="btn" style="background: rgba(255,255,255,0.1); color: #fff; border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; border: none; cursor: pointer;">
+                  <i class="fa-solid fa-rotate-right"></i> Rafraîchir
+                </button>
+              </div>
+              <p style="color: #b9bbbe; font-size: 0.85rem; margin-bottom: 15px;">
+                Retrouvez ci-dessous l'ensemble des messages embeds envoyés sur votre serveur. Cliquez sur <strong>« Modifier »</strong> pour charger un message dans l'éditeur ci-dessus, ou <strong>« Supprimer »</strong> pour l'effacer définitivement du salon Discord.
+              </p>
+              <div id="all-server-embeds-list" style="display: flex; flex-direction: column; gap: 10px;">
+                <p style="color: #8e9297; font-style: italic;">Chargement des messages embeds du serveur...</p>
+              </div>
+            </div>
           </div>
           <!-- Tab: Support & Tickets -->
           <div id="tab-tickets" class="tab-content">

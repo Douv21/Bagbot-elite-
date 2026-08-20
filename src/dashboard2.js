@@ -1875,6 +1875,38 @@ app.post('/api/config/embeds/delete-message', async (req, res) => {
   }
 });
 
+// Route pour récupérer tous les messages embeds de tous les salons du serveur
+app.get('/api/config/embeds/all-server-embeds', async (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const { getAutoroleEmbeds } = require('./database/db');
+    const dbEmbeds = getAutoroleEmbeds(guildId) || [];
+
+    const allEmbeds = [];
+    for (const dbE of dbEmbeds) {
+      allEmbeds.push({
+        id: dbE.message_id,
+        channel_id: dbE.channel_id,
+        channel_name: 'Salon',
+        title: dbE.title || 'Embed sans titre',
+        description: dbE.description || '',
+        color: dbE.color || '#5865F2',
+        image: dbE.image_url || '',
+        author_name: dbE.author_name || '',
+        author_icon: dbE.author_icon || '',
+        footer: dbE.footer_text || ''
+      });
+    }
+
+    res.json(allEmbeds);
+  } catch (error) {
+    console.error('Erreur all-server-embeds:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Route pour récupérer les messages du salon depuis Discord pour édition / copie
 app.get('/api/config/embeds/fetch-channel-messages', async (req, res) => {
   try {

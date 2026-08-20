@@ -6320,52 +6320,40 @@ function initSimpleEmbedSender() {
   });
 
 
-  let channelEmbedsList = [];
   const simpleEmbedChanSelect = document.getElementById('simple_embed_channel');
-  const selectChannelEmbedsGroup = document.getElementById('group_select_channel_embeds');
 
-  function fetchAndRenderSavedEmbeds(channelId) {
-    const topList = document.getElementById('simple-embeds-saved-list');
-    const bottomList = document.getElementById('channel_embeds_cards_list');
+  function loadAllServerEmbeds() {
+    const listContainer = document.getElementById('all-server-embeds-list');
+    if (!listContainer) return;
 
-    if (!channelId) {
-      if (topList) topList.innerHTML = '<p style="color: #8e9297; font-style: italic;">Veuillez sélectionner un salon ci-dessous pour afficher ses messages embeds enregistrés.</p>';
-      if (selectChannelEmbedsGroup) selectChannelEmbedsGroup.style.display = 'none';
-      return;
-    }
+    listContainer.innerHTML = '<p style="color: #b9bbbe; font-size: 0.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> Chargement des messages embeds de tous les salons...</p>';
 
-    if (topList) topList.innerHTML = '<p style="color: #b9bbbe; font-size: 0.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> Chargement des messages embeds du salon...</p>';
-
-    fetch(`/api/config/embeds/fetch-channel-messages?channelId=${channelId}`)
+    fetch('/api/config/embeds/all-server-embeds')
       .then(res => res.json())
       .then(embeds => {
-        channelEmbedsList = Array.isArray(embeds) ? embeds : [];
-        if (topList) topList.innerHTML = '';
-        if (bottomList) bottomList.innerHTML = '';
-
-        if (channelEmbedsList.length === 0) {
-          if (topList) topList.innerHTML = '<p style="color: #8e9297; font-style: italic;">Aucun message embed trouvé dans ce salon.</p>';
-          if (selectChannelEmbedsGroup) selectChannelEmbedsGroup.style.display = 'none';
+        listContainer.innerHTML = '';
+        if (!Array.isArray(embeds) || embeds.length === 0) {
+          listContainer.innerHTML = '<p style="color: #8e9297; font-style: italic;">Aucun message embed enregistré sur le serveur.</p>';
           return;
         }
 
-        if (selectChannelEmbedsGroup) selectChannelEmbedsGroup.style.display = 'block';
+        embeds.forEach(emb => {
+          const card = document.createElement('div');
+          card.className = 'all-server-embed-card';
+          card.style.cssText = 'background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); padding: 12px 16px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; transition: all 0.2s ease;';
 
-        channelEmbedsList.forEach(emb => {
           const titleText = emb.title ? emb.title.trim() : 'Embed sans titre';
           const descText = emb.description ? emb.description.trim().replace(/\n/g, ' ') : 'Aucune description';
-
-          const card = document.createElement('div');
-          card.className = 'saved-embed-card';
-          card.style.cssText = 'background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); padding: 12px 16px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; transition: all 0.2s ease;';
+          const chanName = emb.channel_name || 'Salon';
 
           card.innerHTML = `
             <div style="flex-grow: 1; min-width: 0;">
-              <div style="font-weight: 700; color: #ffffff; font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 6px;">
-                <i class="fa-solid fa-file-lines" style="color: #9b59b6;"></i> ${titleText}
+              <div style="font-weight: 700; color: #ffffff; font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 8px;">
+                <span style="background: rgba(155, 89, 182, 0.2); color: #9b59b6; padding: 2px 8px; border-radius: 4px; font-size: 0.76rem; font-weight: 600;">${chanName}</span>
+                <span>📌 ${titleText}</span>
               </div>
               <div style="color: #b9bbbe; font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 3px;">
-                ${descText.length > 70 ? descText.slice(0, 70) + '...' : descText}
+                ${descText.length > 75 ? descText.slice(0, 75) + '...' : descText}
               </div>
               <div style="color: #8e9297; font-size: 0.74rem; margin-top: 4px;">
                 ID: <code style="background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px; color: #9b59b6;">${emb.id}</code>
@@ -6384,7 +6372,7 @@ function initSimpleEmbedSender() {
           const btnEdit = card.querySelector('.btn-edit-embed-card');
           if (btnEdit) {
             btnEdit.addEventListener('click', () => {
-              if (simpleEmbedChanSelect) simpleEmbedChanSelect.value = channelId;
+              if (simpleEmbedChanSelect && emb.channel_id) simpleEmbedChanSelect.value = emb.channel_id;
               safeSetVal('simple_embed_edit_msg_id', emb.id);
               safeSetVal('simple_embed_title', emb.title || '');
               safeSetVal('simple_embed_desc', emb.description || '');
@@ -6404,7 +6392,9 @@ function initSimpleEmbedSender() {
           if (btnDelete) {
             btnDelete.addEventListener('click', async () => {
               const message_id = emb.id;
-              if (!channelId || !message_id) return;
+              const channel_id = emb.channel_id;
+
+              if (!message_id) return;
 
               if (!confirm(`Voulez-vous vraiment supprimer définitivement ce message embed (${titleText}) du salon Discord ?`)) {
                 return;
@@ -6414,7 +6404,7 @@ function initSimpleEmbedSender() {
                 const res = await fetch('/api/config/embeds/delete-message', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ channel_id: channelId, message_id })
+                  body: JSON.stringify({ channel_id, message_id })
                 });
                 const data = await res.json();
                 if (res.ok && data.success) {
@@ -6422,7 +6412,7 @@ function initSimpleEmbedSender() {
                   safeSetVal('simple_embed_edit_msg_id', '');
                   if (form) form.reset();
                   updatePreview();
-                  fetchAndRenderSavedEmbeds(channelId);
+                  loadAllServerEmbeds();
                 } else {
                   showToast(`❌ Erreur : ${data.error || 'Impossible de supprimer l\'embed'}`, true);
                 }
@@ -6432,21 +6422,21 @@ function initSimpleEmbedSender() {
             });
           }
 
-          if (topList) topList.appendChild(card);
+          listContainer.appendChild(card);
         });
       })
       .catch(err => {
         console.error(err);
-        if (topList) topList.innerHTML = '<p style="color: #e74c3c;">Impossible de charger les messages embeds de ce salon.</p>';
+        listContainer.innerHTML = '<p style="color: #e74c3c;">Impossible de charger les messages embeds du serveur.</p>';
       });
   }
 
-  if (simpleEmbedChanSelect) {
-    simpleEmbedChanSelect.addEventListener('change', () => {
-      const channelId = simpleEmbedChanSelect.value;
-      fetchAndRenderSavedEmbeds(channelId);
-    });
+  const btnRefreshAllEmbeds = document.getElementById('btn-refresh-all-embeds');
+  if (btnRefreshAllEmbeds) {
+    btnRefreshAllEmbeds.addEventListener('click', loadAllServerEmbeds);
   }
+
+  loadAllServerEmbeds();
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
