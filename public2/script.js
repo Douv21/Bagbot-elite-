@@ -3458,25 +3458,29 @@ document.addEventListener('DOMContentLoaded', () => {
     autoroleSelectorsList.forEach((sel, index) => {
       const card = document.createElement('div');
       card.className = 'selector-item-card';
-      card.style.cssText = 'background: #2b2d31; border: 1px solid #383a40; border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);';
+      card.style.cssText = 'display: flex; gap: 8px; align-items: center; margin-bottom: 8px; width: 100%;';
 
       card.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-          <i class="fa-solid fa-grip-vertical" style="color: #8e9297; cursor: grab; font-size: 1rem;"></i>
-          
-          <div style="background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; padding: 8px 14px; flex: 1; display: flex; justify-content: space-between; align-items: center; max-width: 480px;">
+        <!-- Boîte de poignée de glisser (gauche) -->
+        <div style="background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; padding: 12px 14px; color: #8e9297; cursor: grab; display: flex; align-items: center; justify-content: center; height: 46px;">
+          <i class="fa-solid fa-grip-vertical" style="font-size: 1rem;"></i>
+        </div>
+        
+        <!-- Carte principale (milieu) -->
+        <div style="background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; padding: 8px 14px; flex: 1; display: flex; justify-content: space-between; align-items: center; height: 46px;">
+          <div style="background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; padding: 8px 14px; flex: 1; display: flex; justify-content: space-between; align-items: center; margin-right: 12px; height: 34px;">
             <span style="font-weight: 600; font-size: 0.92rem; color: #ffffff;">${sel.placeholder || 'Sélecteur ' + (index + 1)}</span>
             <i class="fa-solid fa-chevron-down" style="color: #8e9297; font-size: 0.8rem;"></i>
           </div>
-        </div>
 
-        <div style="display: flex; gap: 8px; align-items: center; margin-left: 12px;">
-          <button type="button" class="btn btn-edit-selector" style="background: #383a40; border: none; color: #ffffff; padding: 8px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+          <button type="button" class="btn btn-edit-selector" style="background: transparent; border: 1px solid #4e5058; color: #ffffff; padding: 6px 16px; border-radius: 4px; font-weight: 600; font-size: 0.88rem; cursor: pointer; height: 34px; white-space: nowrap;">
             Modifier
           </button>
-          <button type="button" class="btn btn-delete-selector" style="background: #383a40; border: none; color: #b5bac1; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; cursor: pointer;" title="Supprimer ce sélecteur">
-            <i class="fa-solid fa-trash"></i>
-          </button>
+        </div>
+
+        <!-- Boîte de suppression (droite) -->
+        <div class="btn-delete-selector" style="background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; padding: 12px 14px; color: #8e9297; cursor: pointer; display: flex; align-items: center; justify-content: center; height: 46px;" title="Supprimer ce sélecteur">
+          <i class="fa-regular fa-trash-can" style="font-size: 1rem;"></i>
         </div>
       `;
 
@@ -3548,34 +3552,40 @@ document.addEventListener('DOMContentLoaded', () => {
     popup.id = 'action-popup-menu';
     popup.style.cssText = `
       position: fixed;
-      top: ${rect.bottom + 6}px;
-      left: ${Math.max(10, rect.left - 140)}px;
-      width: 220px;
+      top: ${rect.bottom + 4}px;
+      left: ${Math.max(10, rect.left - 80)}px;
+      width: 230px;
       background: #2b2d31;
       border: 1px solid #383a40;
       border-radius: 8px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
       z-index: 9999999;
       padding: 6px 0;
+      overflow: hidden;
     `;
 
+    // Barre latérale corail droite (Style Screenshot 4)
+    const rightBar = document.createElement('div');
+    rightBar.style.cssText = 'position: absolute; top: 8px; right: 6px; width: 6px; bottom: 8px; background: #d96b52; border-radius: 4px;';
+    popup.appendChild(rightBar);
+
     const actions = [
-      { icon: 'fa-envelope', label: 'Envoyer un message' },
-      { icon: 'fa-user-plus', label: 'Ajouter des rôles' },
-      { icon: 'fa-clock', label: 'Ajouter un rôle temporaire' },
-      { icon: 'fa-user-minus', label: 'Retirer des rôles' },
-      { icon: 'fa-bag-shopping', label: 'Article de boutique' },
-      { icon: 'fa-coins', label: "Ajouter de l'argent" }
+      'Envoyer un message',
+      'Ajouter des rôles',
+      'Ajouter un rôle temporaire',
+      'Retirer des rôles',
+      'Article de boutique',
+      "Ajouter de l'argent"
     ];
 
-    actions.forEach(act => {
+    actions.forEach(actLabel => {
       const item = document.createElement('div');
-      item.style.cssText = 'padding: 10px 16px; color: #dcddde; font-size: 0.88rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.15s;';
-      item.innerHTML = `<i class="fa-solid ${act.icon}" style="color: #d96b52; width: 16px;"></i> ${act.label}`;
+      item.style.cssText = 'padding: 10px 18px; color: #dcddde; font-size: 0.92rem; font-weight: 500; cursor: pointer; transition: background 0.15s; padding-right: 20px;';
+      item.textContent = actLabel;
       item.addEventListener('mouseenter', () => item.style.background = '#35373c');
       item.addEventListener('mouseleave', () => item.style.background = 'transparent');
       item.addEventListener('click', () => {
-        showToast(`Action "${act.label}" sélectionnée !`);
+        showToast(`Action "${actLabel}" choisie !`);
         popup.remove();
       });
       popup.appendChild(item);
@@ -3598,33 +3608,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const row = document.createElement('div');
     row.className = 'modal-option-row';
-    row.style.cssText = 'display: flex; gap: 8px; align-items: center; background: #1e1f22; padding: 8px 10px; border-radius: 8px; border: 1px solid #383a40;';
+    row.style.cssText = 'display: flex; gap: 8px; align-items: center; background: #2b2d31; padding: 8px 12px; border-radius: 8px; border: 1px solid #383a40; margin-bottom: 8px;';
 
     const rolesOptionsHtml = buildRolesSelectHTML(opt ? opt.role_id : '');
+    const emojiVal = opt ? (opt.emoji || '👨') : '👨';
+    const labelVal = opt ? (opt.label || '') : '';
 
     row.innerHTML = `
-      <i class="fa-solid fa-grip-vertical" style="color: #8e9297; cursor: grab; padding: 0 4px;"></i>
+      <!-- Poignée :: -->
+      <i class="fa-solid fa-grip-vertical" style="color: #8e9297; cursor: grab; font-size: 1rem;"></i>
       
-      <input type="text" class="opt-emoji" placeholder="👨" value="${opt ? (opt.emoji || '') : '👨'}" style="width: 42px; height: 38px; text-align: center; background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; color: #fff; font-size: 1.1rem; outline: none;">
+      <!-- Bouton Emoji 🙂 -->
+      <button type="button" class="btn-emoji-picker" style="width: 36px; height: 36px; background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; color: #fff; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Choisir l'émoji">
+        <i class="fa-regular fa-face-smile"></i>
+      </button>
 
-      <div style="flex: 2; display: flex; align-items: center; background: #2b2d31; border: 1px solid #383a40; border-radius: 20px; padding: 4px 10px;">
-        <span style="width: 10px; height: 10px; border-radius: 50%; background: #3498db; display: inline-block; margin-right: 8px; flex-shrink: 0;"></span>
-        <select class="opt-role role-select" style="width: 100%; background: transparent; border: none; color: #7289da; font-weight: 700; font-size: 0.88rem; outline: none; cursor: pointer;">
+      <!-- Pill Badge du rôle (Cercle couleur + Émoji + Dropdown rôle) -->
+      <div style="flex: 2; display: flex; align-items: center; background: #1e1f22; border: 1px solid #3498db; border-radius: 20px; padding: 4px 12px;">
+        <span class="role-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #3498db; display: inline-block; margin-right: 6px; flex-shrink: 0;"></span>
+        <input type="text" class="opt-emoji" value="${emojiVal}" placeholder="👨" style="width: 24px; background: transparent; border: none; font-size: 1rem; color: #fff; text-align: center; outline: none; margin-right: 4px;">
+        <select class="opt-role role-select" style="width: 100%; background: transparent; border: none; color: #3498db; font-weight: 700; font-size: 0.88rem; outline: none; cursor: pointer;">
           ${rolesOptionsHtml}
         </select>
       </div>
 
-      <input type="text" class="opt-label" placeholder="Libellé (ex: Homme)" value="${opt ? (opt.label || '') : ''}" style="flex: 2; height: 38px; background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; color: #fff; padding: 0 10px; font-size: 0.88rem; outline: none;">
-
-      <button type="button" class="btn-add-action-popup" style="width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; display: inline-flex; justify-content: center; align-items: center; cursor: pointer; flex-shrink: 0;" title="Ajouter une action (Message, Rôles...)">
+      <!-- Bouton Action Plus (+) -->
+      <button type="button" class="btn-add-action-popup" style="width: 28px; height: 28px; border-radius: 50%; background: #383a40; border: none; color: #dcddde; display: inline-flex; justify-content: center; align-items: center; cursor: pointer; flex-shrink: 0;" title="Ajouter une action (Message, Rôles...)">
         <i class="fa-solid fa-plus" style="font-size: 0.8rem;"></i>
       </button>
 
-      <span style="color: #e74c3c; font-weight: 700; font-size: 0.9rem;" title="Requis">!</span>
-
-      <button type="button" class="btn-remove-option" style="background: none; border: none; color: #8e9297; cursor: pointer; font-size: 1.1rem; padding: 4px 6px;" title="Supprimer l'option">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+      <!-- Conteneur d'outils droite (! , v , x) -->
+      <div style="display: flex; align-items: center; gap: 10px; background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; padding: 6px 10px; margin-left: auto;">
+        <span style="background: #da373c; color: #fff; width: 18px; height: 18px; border-radius: 50%; font-size: 0.75rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center;" title="Requis">!</span>
+        <i class="fa-solid fa-chevron-down" style="color: #949ba4; font-size: 0.8rem;"></i>
+        <button type="button" class="btn-remove-option" style="background: none; border: none; color: #949ba4; cursor: pointer; font-size: 1rem; padding: 0;" title="Supprimer l'option">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
     `;
 
     row.querySelector('.btn-remove-option').addEventListener('click', () => {
