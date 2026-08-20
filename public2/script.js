@@ -6355,10 +6355,18 @@ function initSimpleEmbedSender() {
     });
   }
 
+  const btnDeleteChannelEmbed = document.getElementById('btn_delete_channel_embed');
+
   if (selectChannelEmbeds) {
     selectChannelEmbeds.addEventListener('change', () => {
       const msgId = selectChannelEmbeds.value;
-      if (!msgId) return;
+      if (btnDeleteChannelEmbed) {
+        btnDeleteChannelEmbed.style.display = msgId ? 'inline-flex' : 'none';
+      }
+      if (!msgId) {
+        safeSetVal('simple_embed_edit_msg_id', '');
+        return;
+      }
       const targetEmb = channelEmbedsList.find(e => e.id === msgId);
       if (targetEmb) {
         safeSetVal('simple_embed_edit_msg_id', targetEmb.id);
@@ -6371,6 +6379,42 @@ function initSimpleEmbedSender() {
         safeSetVal('simple_embed_footer_text', targetEmb.footer || '');
         showToast('Message embed chargé dans le formulaire !');
         updatePreview();
+      }
+    });
+  }
+
+  if (btnDeleteChannelEmbed) {
+    btnDeleteChannelEmbed.addEventListener('click', async () => {
+      const channel_id = simpleEmbedChanSelect ? simpleEmbedChanSelect.value : null;
+      const message_id = selectChannelEmbeds ? selectChannelEmbeds.value : null;
+
+      if (!channel_id || !message_id) {
+        return showToast('⚠️ Veuillez sélectionner un message à supprimer.', true);
+      }
+
+      if (!confirm('Voulez-vous vraiment supprimer définitivement ce message embed du salon Discord ?')) {
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/config/embeds/delete-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel_id, message_id })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(data.message || '✅ Message Embed supprimé avec succès !');
+          btnDeleteChannelEmbed.style.display = 'none';
+          safeSetVal('simple_embed_edit_msg_id', '');
+          form.reset();
+          updatePreview();
+          if (simpleEmbedChanSelect) simpleEmbedChanSelect.dispatchEvent(new Event('change'));
+        } else {
+          showToast(`❌ Erreur : ${data.error || 'Impossible de supprimer l\'embed'}`, true);
+        }
+      } catch (err) {
+        showToast(`❌ Erreur réseau : ${err.message}`, true);
       }
     });
   }

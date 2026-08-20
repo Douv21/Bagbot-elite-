@@ -2722,10 +2722,15 @@
                     </select>
                   </div>
                   <div class="form-group" id="group_select_channel_embeds" style="display: none;">
-                    <label for="select_channel_embeds"><i class="fa-solid fa-list-check"></i> Charger un Embed existant de ce salon :</label>
-                    <select id="select_channel_embeds" class="custom-select">
-                      <option value="">-- Sélectionner un message existant à charger / modifier --</option>
-                    </select>
+                    <label for="select_channel_embeds"><i class="fa-solid fa-list-check"></i> Charger / Modifier un Embed existant de ce salon :</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                      <select id="select_channel_embeds" class="custom-select" style="flex-grow: 1;">
+                        <option value="">-- Sélectionner un message existant à charger / modifier --</option>
+                      </select>
+                      <button type="button" id="btn_delete_channel_embed" class="btn" style="display: none; padding: 10px 14px; white-space: nowrap; background: #e74c3c; color: white; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; font-size: 0.85rem;" title="Supprimer définitivement ce message du salon Discord">
+                        <i class="fa-solid fa-trash-can"></i> Supprimer
+                      </button>
+                    </div>
                   </div>
                   <div class="form-group">
                     <label for="simple_embed_ping"><i class="fa-solid fa-bell"></i> Notification / Mention :</label>

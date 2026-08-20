@@ -1847,6 +1847,34 @@ app.post('/api/config/send-simple-embed', async (req, res) => {
   }
 });
 
+// Supprimer un message embed du salon Discord
+app.post('/api/config/embeds/delete-message', async (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const { channel_id, message_id } = req.body || {};
+    if (!channel_id || !message_id) return res.status(400).json({ error: 'Salon et ID de message requis' });
+
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    await fetch(`http://127.0.0.1:${botApiPort}/bot/delete-message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guildId, channelId: channel_id, messageId: message_id })
+    }).catch(() => null);
+
+    try {
+      const { deleteAutoroleEmbed } = require('./database/db');
+      deleteAutoroleEmbed(guildId, message_id);
+    } catch (e) {}
+
+    res.json({ success: true, message: 'Message Embed supprimé avec succès du salon Discord !' });
+  } catch (error) {
+    console.error('Erreur delete-message:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Route pour récupérer les messages du salon depuis Discord pour édition / copie
 app.get('/api/config/embeds/fetch-channel-messages', async (req, res) => {
   try {
