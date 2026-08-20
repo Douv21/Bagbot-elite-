@@ -2747,8 +2747,29 @@ client.on('messageCreate', async (message) => {
             passedConditions = false;
             refusalMessage = cond.refusalMessage || `❌ Vous devez inclure le tag **${cond.tag}** dans votre pseudo pour utiliser cette commande.`;
             break;
-          } else if (cond.autoRoleId && member) {
-            await member.roles.add(cond.autoRoleId).catch(err => console.error('[TAG ROLE] Erreur attribution rôle:', err.message));
+          } else if (cond.autoRoleId && guild) {
+            // Attribuer le rôle à TOUTES LES PERSONNES AYANT LE TAG DISCORD DU SERVEUR
+            (async () => {
+              try {
+                const allMembers = await guild.members.fetch().catch(() => null);
+                if (allMembers && cond.tag) {
+                  const tagLower = cond.tag.trim().toLowerCase();
+                  const matching = allMembers.filter(m => !m.user.bot && (
+                    m.displayName.toLowerCase().includes(tagLower) ||
+                    m.user.username.toLowerCase().includes(tagLower)
+                  ));
+                  for (const [, targetM] of matching) {
+                    if (!targetM.roles.cache.has(cond.autoRoleId)) {
+                      await targetM.roles.add(cond.autoRoleId).catch(() => null);
+                    }
+                  }
+                } else if (member && cond.autoRoleId) {
+                  await member.roles.add(cond.autoRoleId).catch(() => null);
+                }
+              } catch (err) {
+                console.error('[TAG ALL MEMBERS] Erreur:', err.message);
+              }
+            })();
           }
         } else if (cond.type === 'is_booster') {
           if (!member?.premiumSince) {
@@ -2783,21 +2804,26 @@ client.on('messageCreate', async (message) => {
     const mentionedMember = message.mentions.members?.first() || null;
     const mentionedUser = message.mentions.users?.first() || null;
 
-    // Formatage des variables avec support du membre cible
-    const formatVars = (str, targetMemOverride = null, targetUserOverride = null) => {
+    // Cible automatique : le membre mentionné s'il existe, sinon l'auteur de la commande
+    const targetMem = mentionedMember || member;
+    const targetUserObj = mentionedUser || author;
+
+    // Formatage des variables avec support automatique de la mention
+    const formatVars = (str) => {
       if (!str || typeof str !== 'string') return str;
-      const tgtMember = targetMemOverride || mentionedMember || member;
-      const tgtUser = targetUserOverride || mentionedUser || author;
+      const targetMentionStr = `<@${targetUserObj.id}>`;
+      const authorMentionStr = `<@${author.id}>`;
 
       return str
-        .replace(/\{user\}/gi, `<@${author.id}>`)
-        .replace(/\{user_mention\}/gi, `<@${author.id}>`)
-        .replace(/\{username\}/gi, author.username)
-        .replace(/\{user_id\}/gi, author.id)
-        .replace(/\{user_avatar\}/gi, author.displayAvatarURL({ dynamic: true }))
-        .replace(/\{target\}/gi, `<@${tgtUser.id}>`)
-        .replace(/\{mentioned_user\}/gi, `<@${tgtUser.id}>`)
-        .replace(/\{target_username\}/gi, tgtUser.username)
+        .replace(/\{user\}/gi, targetMentionStr)
+        .replace(/\{user_mention\}/gi, targetMentionStr)
+        .replace(/\{author\}/gi, authorMentionStr)
+        .replace(/\{username\}/gi, targetUserObj.username)
+        .replace(/\{author_username\}/gi, author.username)
+        .replace(/\{user_id\}/gi, targetUserObj.id)
+        .replace(/\{target\}/gi, targetMentionStr)
+        .replace(/\{mentioned_user\}/gi, targetMentionStr)
+        .replace(/\{target_username\}/gi, targetUserObj.username)
         .replace(/\{server\}/gi, guild ? guild.name : 'Serveur')
         .replace(/\{guild_name\}/gi, guild ? guild.name : 'Serveur')
         .replace(/\{membercount\}/gi, guild ? (guild.memberCount || 0).toString() : '0')
@@ -2816,23 +2842,21 @@ client.on('messageCreate', async (message) => {
 
     // 2. EXÉCUTION DES ACTIONS EN CHAÎNE
     for (const action of actions) {
-      const isTargetMentioned = action.target === 'mentioned' && (mentionedMember || mentionedUser);
-      const targetMem = isTargetMentioned ? (mentionedMember || member) : member;
-      const targetUserObj = isTargetMentioned ? (mentionedUser || author) : author;
-
       if ((action.type === 'reply' || action.type === 'text') && (action.text || action.content)) {
-        const content = formatVars(action.text || action.content, targetMem, targetUserObj);
-        await message.channel.send(content).catch(() => null);
+        const content = formatVars(action.text || action.content);
+        if (content && content.trim().length > 0) {
+          await message.channel.send(content).catch(() => null);
+        }
       } else if (action.type === 'embed') {
         const { EmbedBuilder } = require('discord.js');
         const embed = new EmbedBuilder()
           .setColor(action.color || '#5865F2')
           .setTimestamp();
-        if (action.title) embed.setTitle(formatVars(action.title, targetMem, targetUserObj));
-        if (action.description) embed.setDescription(formatVars(action.description, targetMem, targetUserObj));
+        if (action.title) embed.setTitle(formatVars(action.title));
+        if (action.description) embed.setDescription(formatVars(action.description));
         if (action.imageUrl) embed.setImage(action.imageUrl);
         if (action.thumbnailUrl) embed.setThumbnail(action.thumbnailUrl);
-        if (action.footer) embed.setFooter({ text: formatVars(action.footer, targetMem, targetUserObj) });
+        if (action.footer) embed.setFooter({ text: formatVars(action.footer) });
         await message.channel.send({ embeds: [embed] }).catch(() => null);
       } else if ((action.type === 'add_role' || action.type === 'add_roles') && (action.roleId || action.roleIds)) {
         const roleIds = action.roleIds || [action.roleId];

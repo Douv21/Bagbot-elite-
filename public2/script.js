@@ -6927,27 +6927,18 @@ function renderCcActionsList() {
 
   const roles = (currentGuildRolesList && currentGuildRolesList.length) ? currentGuildRolesList : (typeof rolesList !== 'undefined' && Array.isArray(rolesList) ? rolesList : (window.guildRoles || []));
 
-  const targetSelectHtml = (act) => `
-    <div style="margin-top:8px;">
-      <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">🎯 CIBLE DE L'ACTION</label>
-      <select class="inner-input cc-act-field" data-id="${act.id}" data-key="target" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:6px; border-radius:6px;">
-        <option value="user" ${act.target !== 'mentioned' ? 'selected' : ''}>👤 L'auteur qui tape la commande ({user})</option>
-        <option value="mentioned" ${act.target === 'mentioned' ? 'selected' : ''}>🎯 Le membre mentionné dans le message ({mentioned_user})</option>
-      </select>
-    </div>`;
-
   container.innerHTML = ccCurrentActions.map((act, index) => {
     let title = '';
     let icon = '';
     let fields = '';
 
     if (act.type === 'reply') {
-      title = 'Envoyer un message (Texte / Embed)';
+      title = 'Envoyer un message (Texte / Embed) (Optionnel)';
       icon = 'fa-comment-dots';
       fields = `
         <div style="margin-bottom: 8px;">
-          <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">MESSAGE TEXTE</label>
-          <textarea class="inner-input cc-act-field" data-id="${act.id}" data-key="text" rows="2" placeholder="Texte de réponse (ex: Merci {user} !)" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; border-radius:6px; padding:8px;">${act.text || ''}</textarea>
+          <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">MESSAGE TEXTE (OPTIONNEL)</label>
+          <textarea class="inner-input cc-act-field" data-id="${act.id}" data-key="text" rows="2" placeholder="Texte de réponse optionnel (ex: Merci {user} !)" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; border-radius:6px; padding:8px;">${act.text || ''}</textarea>
         </div>
         <details style="margin-top:6px; font-size:0.8rem; color:#00b894;">
           <summary style="cursor:pointer; font-weight:700;">🎨 Ajouter un Embed (Optionnel)</summary>
@@ -6966,8 +6957,7 @@ function renderCcActionsList() {
         <select class="inner-input cc-act-field" data-id="${act.id}" data-key="roleId" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
           <option value="">-- Choisir un rôle (${roles.length} rôles disponibles) --</option>
           ${roles.map(r => `<option value="${r.id}" ${act.roleId === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
-        </select>
-        ${targetSelectHtml(act)}`;
+        </select>`;
     } else if (act.type === 'add_temp_role') {
       title = 'Ajouter un rôle temporaire';
       icon = 'fa-clock';
@@ -6990,8 +6980,7 @@ function renderCcActionsList() {
               <option value="604800000" ${act.durationMs == 604800000 ? 'selected' : ''}>7 Jours</option>
             </select>
           </div>
-        </div>
-        ${targetSelectHtml(act)}`;
+        </div>`;
     } else if (act.type === 'remove_role') {
       title = 'Retirer des rôles';
       icon = 'fa-user-minus';
@@ -7000,8 +6989,7 @@ function renderCcActionsList() {
         <select class="inner-input cc-act-field" data-id="${act.id}" data-key="roleId" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
           <option value="">-- Choisir un rôle (${roles.length} rôles disponibles) --</option>
           ${roles.map(r => `<option value="${r.id}" ${act.roleId === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
-        </select>
-        ${targetSelectHtml(act)}`;
+        </select>`;
     } else if (act.type === 'give_item') {
       title = 'Article de boutique (Offrir un objet)';
       icon = 'fa-gift';
@@ -7021,15 +7009,13 @@ function renderCcActionsList() {
             <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">QUANTITÉ</label>
             <input type="number" class="inner-input cc-act-field" data-id="${act.id}" data-key="quantity" value="${act.quantity || 1}" min="1" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
           </div>
-        </div>
-        ${targetSelectHtml(act)}`;
+        </div>`;
     } else if (act.type === 'add_money') {
       title = 'Ajouter de l\'argent / Karma';
       icon = 'fa-coins';
       fields = `
         <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">MONTANT D'ARGENT À AJOUTER AU SOLDE</label>
-        <input type="number" class="inner-input cc-act-field" data-id="${act.id}" data-key="amount" placeholder="ex: 500" value="${act.amount || 100}" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
-        ${targetSelectHtml(act)}`;
+        <input type="number" class="inner-input cc-act-field" data-id="${act.id}" data-key="amount" placeholder="ex: 500" value="${act.amount || 100}" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">`;
     } else if (act.type === 'delete_trigger') {
       title = 'Supprimer le message déclencheuse';
       icon = 'fa-trash';
