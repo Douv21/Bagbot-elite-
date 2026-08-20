@@ -2038,21 +2038,23 @@ app.post('/api/config/send-simple-embed', async (req, res) => {
 
     if (title && title.trim()) embed.setTitle(title.trim());
     if (description && description.trim()) embed.setDescription(description.trim());
-    if (color) embed.setColor(color);
-    else embed.setColor('#5865F2');
+    if (!title && !description) embed.setDescription('\u200b');
+    embed.setColor(color || '#5865F2');
 
     const resolveUrl = (urlStr) => {
       if (!urlStr || typeof urlStr !== 'string') return null;
       const trimmed = urlStr.trim();
       if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
       if (trimmed.startsWith('/')) {
-        const protocol = req.protocol || 'http';
-        const host = req.get('host') || '127.0.0.1:49601';
-        return `${protocol}://${host}${trimmed}`;
+        const hostIp = process.env.PUBLIC_IP || '82.65.75.176';
+        const dashPort = process.env.PORT || process.env.DASHBOARD_PORT || 49601;
+        const publicBase = process.env.PUBLIC_URL || `http://${hostIp}:${dashPort}`;
+        return `${publicBase}${trimmed}`;
       }
       return trimmed;
     };
 
+    const files = [];
     if (thumbnail_url) {
       if (thumbnail_url === 'user' && req.session.user) {
         const u = req.session.user;
@@ -2071,9 +2073,24 @@ app.post('/api/config/send-simple-embed', async (req, res) => {
       }
     }
 
-    const fullImg = resolveUrl(image_url);
-    if (fullImg) {
-      embed.setImage(fullImg);
+    if (image_url && typeof image_url === 'string') {
+      const cleanImg = image_url.trim();
+      if (cleanImg.startsWith('/uploads/')) {
+        const fs = require('fs');
+        const absPath = path.join(__dirname, '../public', cleanImg);
+        if (fs.existsSync(absPath)) {
+          const { AttachmentBuilder } = require('discord.js');
+          const name = path.basename(cleanImg);
+          files.push(new AttachmentBuilder(absPath, { name }));
+          embed.setImage(`attachment://${name}`);
+        } else {
+          const fullImg = resolveUrl(cleanImg);
+          if (fullImg) embed.setImage(fullImg);
+        }
+      } else {
+        const fullImg = resolveUrl(cleanImg);
+        if (fullImg) embed.setImage(fullImg);
+      }
     }
 
     if (author_name && author_name.trim()) {
@@ -2100,16 +2117,19 @@ app.post('/api/config/send-simple-embed', async (req, res) => {
     if (ping_type === 'everyone') contentPayload = '@everyone';
     else if (ping_type === 'here') contentPayload = '@here';
 
+    const sendPayload = { content: contentPayload, embeds: [embed] };
+    if (files.length > 0) sendPayload.files = files;
+
     let msgIdSaved = null;
     if (existing_message_id && existing_message_id.trim()) {
       const targetMsg = await channel.messages.fetch(existing_message_id.trim()).catch(() => null);
       if (!targetMsg) {
         return res.status(404).json({ error: 'Message existant introuvable dans ce salon' });
       }
-      await targetMsg.edit({ content: contentPayload, embeds: [embed] });
+      await targetMsg.edit(sendPayload);
       msgIdSaved = targetMsg.id;
     } else {
-      const sentMsg = await channel.send({ content: contentPayload, embeds: [embed] });
+      const sentMsg = await channel.send(sendPayload);
       msgIdSaved = sentMsg.id;
     }
 

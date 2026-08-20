@@ -826,10 +826,10 @@ client.on('interactionCreate', async interaction => {
     } else if (interaction.customId.startsWith('ticket_')) {
       const { handleTicketInteraction } = require('./utils/ticketHandler');
       return handleTicketInteraction(interaction, client);
-    } else if (interaction.customId === 'autorole_select_menu' || interaction.customId === 'autorole_multi_select_menu') {
+    } else if (interaction.customId === 'autorole_select_menu' || interaction.customId === 'autorole_multi_select_menu' || interaction.customId.startsWith('autorole_select_') || interaction.customId.startsWith('autorole_multi_select_')) {
       try {
         await interaction.deferReply({ ephemeral: true });
-        if (interaction.customId === 'autorole_multi_select_menu') {
+        if (interaction.customId === 'autorole_multi_select_menu' || interaction.customId.startsWith('autorole_multi_select_')) {
           await handleMultiRoleSelect(interaction, interaction.values || [], interaction.message.id);
         } else {
           const roleId = interaction.values[0];
@@ -2502,6 +2502,7 @@ apiApp.post('/bot/channel/send-embed', async (req, res) => {
     const embed = new EmbedBuilder();
     if (title && title.trim()) embed.setTitle(title.trim());
     if (description && description.trim()) embed.setDescription(description.trim());
+    if (!title && !description) embed.setDescription('\u200b');
     embed.setColor(color || '#5865F2');
 
     let finalThumb = thumbnailUrl || null;
@@ -2509,7 +2510,25 @@ apiApp.post('/bot/channel/send-embed', async (req, res) => {
     else if (thumbnailMode === 'bot') finalThumb = client.user.displayAvatarURL({ dynamic: true });
     if (finalThumb) embed.setThumbnail(finalThumb);
 
-    if (imageUrl) embed.setImage(imageUrl);
+    const files = [];
+    if (imageUrl && typeof imageUrl === 'string') {
+      const cleanImg = imageUrl.trim();
+      if (cleanImg.startsWith('/uploads/')) {
+        const absPath = path.join(__dirname, '../public', cleanImg);
+        if (fs.existsSync(absPath)) {
+          const name = path.basename(cleanImg);
+          files.push(new AttachmentBuilder(absPath, { name }));
+          embed.setImage(`attachment://${name}`);
+        } else {
+          const hostIp = process.env.PUBLIC_IP || '82.65.75.176';
+          const dashPort = process.env.PORT || process.env.DASHBOARD_PORT || 49601;
+          const publicBase = process.env.PUBLIC_URL || `http://${hostIp}:${dashPort}`;
+          embed.setImage(`${publicBase}${cleanImg}`);
+        }
+      } else if (cleanImg.startsWith('http://') || cleanImg.startsWith('https://')) {
+        embed.setImage(cleanImg);
+      }
+    }
 
     if (authorName && authorName.trim()) {
       const authorObj = { name: authorName.trim() };
@@ -2525,14 +2544,17 @@ apiApp.post('/bot/channel/send-embed', async (req, res) => {
 
     embed.setTimestamp();
 
+    const payload = { content: content || undefined, embeds: [embed] };
+    if (files.length > 0) payload.files = files;
+
     let msgIdSaved = null;
     if (existingMessageId && String(existingMessageId).trim()) {
       const targetMsg = await channel.messages.fetch(String(existingMessageId).trim()).catch(() => null);
       if (!targetMsg) return res.status(404).json({ error: 'Message existant introuvable dans ce salon' });
-      await targetMsg.edit({ content: content || undefined, embeds: [embed] });
+      await targetMsg.edit(payload);
       msgIdSaved = targetMsg.id;
     } else {
-      const sentMsg = await channel.send({ content: content || undefined, embeds: [embed] });
+      const sentMsg = await channel.send(payload);
       msgIdSaved = sentMsg.id;
     }
 
