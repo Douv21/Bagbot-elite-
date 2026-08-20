@@ -3614,12 +3614,15 @@ Il/Elle remporte le rôle {role} et brille sur le serveur !</textarea>
                   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 10px;">
                     <div>
                       <label style="font-size: 0.82rem; color: #dcddde; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                        <input type="checkbox" id="cc-cond-tag-check"> 🏷️ Exiger le Tag du Serveur
+                        <input type="checkbox" id="cc-cond-tag-check"> 🏷️ Exiger le Tag du Serveur (Discord Clan Tag)
                       </label>
-                      <select id="cc-cond-tag-select" class="inner-input" onchange="document.getElementById('cc-cond-tag-val').value = this.value;" onfocus="if(typeof updateServerTagsDropdown==='function') updateServerTagsDropdown();" onclick="if(typeof updateServerTagsDropdown==='function' && this.options.length<=1) updateServerTagsDropdown();" style="padding: 6px 10px; font-size: 0.85rem; background: #2f3136; border: 1px solid #40444b; color: #fff; border-radius: 6px; width: 100%;">
-                        <option value="">-- Choisir le Tag d'un Serveur --</option>
+                      <select id="cc-cond-tag-select" class="inner-input" onchange="if(this.value) document.getElementById('cc-cond-tag-val').value = this.value;" onfocus="if(typeof updateServerTagsDropdown==='function') updateServerTagsDropdown();" onclick="if(typeof updateServerTagsDropdown==='function' && this.options.length<=1) updateServerTagsDropdown();" style="padding: 6px 10px; font-size: 0.85rem; background: #2f3136; border: 1px solid #40444b; color: #fff; border-radius: 6px; width: 100%; margin-bottom: 6px;">
+                        <option value="">-- Choisir ou saisir le Tag ci-dessous --</option>
                       </select>
-                      <input type="hidden" id="cc-cond-tag-val" value="">
+                      <input type="text" id="cc-cond-tag-val" placeholder="Saisissez le Tag exact (ex: B&G ou 🔥 B&G)..." class="inner-input" style="padding: 6px 10px; font-size: 0.85rem; background: #2f3136; border: 1px solid #40444b; color: #fff; border-radius: 6px; width: 100%;">
+                      <small style="font-size: 0.75rem; color: #99aab5; display: block; margin-top: 4px;">
+                        💡 Saisissez le tag exact configuré dans les paramètres Discord de votre serveur (ex: <code>B&G</code>).
+                      </small>
                     </div>
 
                     <div>

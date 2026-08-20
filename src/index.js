@@ -162,7 +162,7 @@ function hasMemberTag(m, tagStr) {
 
   // 3. Détection alphanumérique (sans symboles)
   const alphaTag = normTag.replace(/[^a-z0-9]/g, '');
-  if (alphaTag.length > 1) {
+  if (alphaTag.length > 0) {
     const cleanAlpha = (s) => normalizeStr(s).replace(/[^a-z0-9]/g, '');
     return cleanAlpha(nick).includes(alphaTag) ||
            cleanAlpha(display).includes(alphaTag) ||
