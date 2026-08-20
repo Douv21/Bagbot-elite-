@@ -96,7 +96,6 @@ module.exports = {
       await interaction.channel.send({
         content: mention,
         embeds: [embed],
-        files: files,
         allowedMentions: { users: [target.id] }
       });
     } else {
@@ -104,7 +103,6 @@ module.exports = {
         await interaction.editReply({
           content: mention,
           embeds: [embed],
-          files: files,
           allowedMentions: mention ? { users: [target.id] } : { parse: [] }
         });
       } catch (dmErr) {

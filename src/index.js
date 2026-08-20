@@ -2756,16 +2756,17 @@ client.on('messageCreate', async (message) => {
                   return guild.members.cache;
                 });
 
-                if (allMembers && allMembers.size > 0 && cond.tag) {
-                  const tagLower = cond.tag.trim().toLowerCase();
+                if (allMembers && allMembers.size > 0) {
+                  const tagLower = (cond.tag || '').trim().toLowerCase();
                   const matching = allMembers.filter(m => !m.user.bot && (
+                    !tagLower ||
                     (m.displayName && m.displayName.toLowerCase().includes(tagLower)) ||
                     (m.nickname && m.nickname.toLowerCase().includes(tagLower)) ||
                     (m.user.username && m.user.username.toLowerCase().includes(tagLower)) ||
                     (m.user.globalName && m.user.globalName.toLowerCase().includes(tagLower))
                   ));
 
-                  console.log(`[TAG AUTO-ROLE] ${allMembers.size} membres analysés sur "${guild.name}". ${matching.size} membre(s) ont le tag "${cond.tag}".`);
+                  console.log(`[TAG AUTO-ROLE] ${allMembers.size} membres analysés sur "${guild.name}". ${matching.size} membre(s) qualifié(s) pour le rôle.`);
 
                   for (const [, targetM] of matching) {
                     if (!targetM.roles.cache.has(cond.autoRoleId)) {
@@ -2774,8 +2775,6 @@ client.on('messageCreate', async (message) => {
                       });
                     }
                   }
-                } else if (member && cond.autoRoleId) {
-                  await member.roles.add(cond.autoRoleId).catch(() => null);
                 }
               } catch (err) {
                 console.error('[TAG ALL MEMBERS] Erreur globale:', err.message);
@@ -2857,9 +2856,12 @@ client.on('messageCreate', async (message) => {
       const tgtUserId = targetUserObj ? targetUserObj.id : author.id;
 
       if ((action.type === 'reply' || action.type === 'text') && (action.text || action.content)) {
-        const content = formatVars(action.text || action.content);
+        let content = formatVars(action.text || action.content);
+        if (mentionedUser && !content.includes(`<@${mentionedUser.id}>`)) {
+          content = `<@${mentionedUser.id}> ${content}`;
+        }
         if (content && content.trim().length > 0) {
-          await message.channel.send(content).catch(() => null);
+          await message.channel.send({ content, allowedMentions: { users: [tgtUserId] } }).catch(() => null);
         }
       } else if (action.type === 'embed') {
         const { EmbedBuilder } = require('discord.js');
