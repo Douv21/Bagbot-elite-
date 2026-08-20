@@ -3819,11 +3819,14 @@ document.addEventListener('DOMContentLoaded', () => {
         options: collectedOptions
       };
 
-      if (index >= 0 && autoroleSelectorsList[index]) {
+      if (index >= 0 && index < autoroleSelectorsList.length) {
         autoroleSelectorsList[index] = selectorObj;
       } else {
         autoroleSelectorsList.push(selectorObj);
       }
+
+      const indexInput = document.getElementById('modal-selector-index');
+      if (indexInput) indexInput.value = "-1";
 
       closeSelectorModal();
       renderSelectorsListUI();
