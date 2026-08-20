@@ -403,7 +403,7 @@ app.get('/api/user', (req, res) => {
 });
 
 
-// API pour obtenir les serveurs (filtrés)
+// API pour obtenir les serveurs (filtrés avec NOMS et LOGOS ultra-frais du bot)
 app.get('/api/guilds', async (req, res) => {
   try {
     const botApiPort = process.env.BOT_API_PORT || 49605;
@@ -414,17 +414,29 @@ app.get('/api/guilds', async (req, res) => {
       botGuilds = await botGuildsResponse.json();
     }
 
-    // Si session utilisateur disponible, filtrer par ses guilds
+    // Si session utilisateur disponible, filtrer par ses guilds MAIS utiliser les NOMS et ICONES À JOUR du bot
     if (req.session && req.session.user && req.session.user.guilds && req.session.user.guilds.length > 0) {
       const userGuilds = req.session.user.guilds;
-      const botGuildIds = new Set(botGuilds.map(g => g.id));
-      const filteredGuilds = userGuilds.filter(guild => botGuildIds.has(guild.id));
-      if (filteredGuilds.length > 0) {
-        return res.json(filteredGuilds);
+      const botGuildsMap = new Map(botGuilds.map(g => [g.id, g]));
+
+      const updatedGuilds = userGuilds
+        .filter(guild => botGuildsMap.has(guild.id))
+        .map(guild => {
+          const freshBotGuild = botGuildsMap.get(guild.id);
+          return {
+            ...guild,
+            name: freshBotGuild.name || guild.name,
+            icon: freshBotGuild.icon || guild.icon,
+            iconURL: freshBotGuild.iconURL || (freshBotGuild.icon ? `https://cdn.discordapp.com/icons/${freshBotGuild.id}/${freshBotGuild.icon}.png?size=256` : null)
+          };
+        });
+
+      if (updatedGuilds.length > 0) {
+        return res.json(updatedGuilds);
       }
     }
 
-    // Fallback: renvoyer directement les guilds du bot (toujours disponible)
+    // Fallback: renvoyer directement les guilds du bot (toujours disponible avec les données fraîches)
     res.json(botGuilds);
   } catch (error) {
     console.error('Error filtering guilds:', error);

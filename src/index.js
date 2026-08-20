@@ -1344,6 +1344,10 @@ client.once('ready', async () => {
     }
 
     console.log('Commandes d\'application (/) enregistrées sans doublon.');
+
+    client.on('guildUpdate', (oldGuild, newGuild) => {
+      console.log(`[GuildUpdate] Le serveur ${newGuild.id} a été mis à jour sur Discord. Nouveau nom: "${newGuild.name}".`);
+    });
     
     // Nettoyage et resynchronisation automatique des suites privées et salons tribunal
     setInterval(() => checkExpiredSuites(client), 60000);
@@ -2098,13 +2102,27 @@ apiApp.get('/debug-clan-endpoint', async (req, res) => {
   }
 });
 
-apiApp.get('/guilds', (req, res) => {
-  const guilds = client.guilds.cache.map(guild => ({
-    id: guild.id,
-    name: guild.name,
-    icon: guild.icon
-  }));
-  res.json(guilds);
+apiApp.get('/guilds', async (req, res) => {
+  try {
+    const guilds = await Promise.all(client.guilds.cache.map(async guild => {
+      const freshGuild = await guild.fetch().catch(() => guild);
+      return {
+        id: freshGuild.id,
+        name: freshGuild.name,
+        icon: freshGuild.icon,
+        iconURL: freshGuild.iconURL({ dynamic: true, size: 256 }) || (freshGuild.icon ? `https://cdn.discordapp.com/icons/${freshGuild.id}/${freshGuild.icon}.png?size=256` : 'https://cdn.discordapp.com/embed/avatars/0.png')
+      };
+    }));
+    res.json(guilds);
+  } catch (e) {
+    const guilds = client.guilds.cache.map(guild => ({
+      id: guild.id,
+      name: guild.name,
+      icon: guild.icon,
+      iconURL: guild.iconURL({ dynamic: true, size: 256 }) || (guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png?size=256` : 'https://cdn.discordapp.com/embed/avatars/0.png')
+    }));
+    res.json(guilds);
+  }
 });
 
 apiApp.get('/guilds/:guildId/channels', async (req, res) => {
