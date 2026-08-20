@@ -6241,13 +6241,6 @@ function initSimpleEmbedSender() {
   });
 
 
-  }
-
-  [inputTitle, inputDesc, inputColor, selectThumb, inputCustomThumb, inputImage, inputAuthorName, inputAuthorIcon, inputFooterText, selectPing].forEach(el => {
-    if (el) el.addEventListener('input', updatePreview);
-  });
-  if (selectThumb) selectThumb.addEventListener('change', updatePreview);
-
   let channelEmbedsList = [];
   const simpleEmbedChanSelect = document.getElementById('simple_embed_channel');
   const selectChannelEmbedsGroup = document.getElementById('group_select_channel_embeds');
