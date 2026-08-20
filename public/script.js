@@ -3453,8 +3453,8 @@ document.addEventListener('DOMContentLoaded', () => {
       addModalOptionRow();
     }
 
-    modal.style.display = 'flex';
-    modal.style.zIndex = '999999';
+    modal.style.display = 'block';
+    modal.scrollIntoView({ behavior: 'smooth' });
   }
 
   function closeSelectorModal() {
@@ -7693,9 +7693,12 @@ document.addEventListener('click', async (e) => {
 });
 
 document.addEventListener('change', async (e) => {
-  if (e.target && e.target.id === 'sbp-file-input') {
+  if (e.target && (e.target.id === 'sbp-file-input' || e.target.classList.contains('file-upload-input') || e.target.getAttribute('data-target'))) {
     const file = e.target.files[0];
     if (!file) return;
+
+    const targetId = e.target.getAttribute('data-target');
+    const targetInput = targetId ? document.getElementById(targetId) : null;
 
     const formData = new FormData();
     formData.append('file', file);
@@ -7712,8 +7715,17 @@ document.addEventListener('change', async (e) => {
       const data = await res.json();
       if (res.ok && (data.url || data.path)) {
         const uploadedUrl = data.url || data.path;
-        if (logoInput) logoInput.value = uploadedUrl;
-        if (previewImg) previewImg.src = uploadedUrl;
+        if (e.target.id === 'sbp-file-input') {
+          if (logoInput) logoInput.value = uploadedUrl;
+          if (previewImg) previewImg.src = uploadedUrl;
+        }
+        if (targetInput) {
+          targetInput.value = uploadedUrl;
+          targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+          targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
+        if (typeof updatePreview === 'function') updatePreview();
         if (typeof showToast === 'function') showToast('✅ Image téléversée avec succès !');
       } else {
         if (typeof showToast === 'function') showToast(`❌ Erreur téléversement : ${data.error || 'Erreur inconnue'}`, true);

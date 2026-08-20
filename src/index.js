@@ -3578,7 +3578,7 @@ if (process.env.DISCORD_TOKEN) {
   console.log('⚠️ Aucun DISCORD_TOKEN configuré dans .env - Le Dashboard fonctionne en mode web.');
 }
 
-// Traitement automatique des messages embeds récurrents programmés
+// Traitement automatique des messages embeds récurrents programmés (Heure de France Europe/Paris)
 async function checkRecurringEmbeds() {
   try {
     if (!client || !client.isReady()) return;
@@ -3588,7 +3588,15 @@ async function checkRecurringEmbeds() {
 
     const now = new Date();
     const currentTimestamp = Math.floor(now.getTime() / 1000);
-    const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    // Calcul de l'heure actuelle précise en France (Europe/Paris)
+    const franceTimeStr = now.toLocaleString('en-US', { timeZone: 'Europe/Paris' });
+    const franceDate = new Date(franceTimeStr);
+    const currentHHMM = `${String(franceDate.getHours()).padStart(2, '0')}:${String(franceDate.getMinutes()).padStart(2, '0')}`;
+
+    const hostIp = process.env.PUBLIC_IP || '82.65.75.176';
+    const dashPort = process.env.PORT || process.env.DASHBOARD_PORT || 49601;
+    const publicBase = process.env.PUBLIC_URL || `http://${hostIp}:${dashPort}`;
 
     for (const item of recurringList) {
       let intervalSeconds = 86400; // default 24h
@@ -3612,33 +3620,64 @@ async function checkRecurringEmbeds() {
           const channel = guild.channels.cache.get(item.channel_id);
           if (channel && channel.isTextBased()) {
             const embed = new EmbedBuilder();
-            if (item.title) embed.setTitle(item.title);
-            if (item.description) embed.setDescription(item.description);
+            if (item.title && item.title.trim()) embed.setTitle(item.title.trim());
+            if (item.description && item.description.trim()) embed.setDescription(item.description.trim());
+            if (!item.title && !item.description) embed.setDescription('\u200b');
             embed.setColor(item.color || '#5865F2');
 
-            if (item.thumbnail_url) {
-              if (item.thumbnail_url === 'server') {
+            const files = [];
+
+            // Traitement miniature
+            if (item.thumbnail_url && typeof item.thumbnail_url === 'string') {
+              const cleanThumb = item.thumbnail_url.trim();
+              if (cleanThumb === 'server') {
                 const icon = guild.iconURL({ dynamic: true });
                 if (icon) embed.setThumbnail(icon);
-              } else if (item.thumbnail_url === 'bot') {
+              } else if (cleanThumb === 'bot') {
                 embed.setThumbnail(client.user.displayAvatarURL({ dynamic: true }));
-              } else if (item.thumbnail_url.startsWith('http')) {
-                embed.setThumbnail(item.thumbnail_url);
+              } else if (cleanThumb.startsWith('/uploads/')) {
+                const absPath = path.join(__dirname, '../public', cleanThumb);
+                if (fs.existsSync(absPath)) {
+                  const name = 'thumb_' + path.basename(cleanThumb);
+                  files.push(new AttachmentBuilder(absPath, { name }));
+                  embed.setThumbnail(`attachment://${name}`);
+                } else {
+                  embed.setThumbnail(`${publicBase}${cleanThumb}`);
+                }
+              } else if (cleanThumb.startsWith('http://') || cleanThumb.startsWith('https://')) {
+                embed.setThumbnail(cleanThumb);
               }
             }
 
-            if (item.image_url && item.image_url.startsWith('http')) {
-              embed.setImage(item.image_url);
+            // Traitement grande image
+            if (item.image_url && typeof item.image_url === 'string') {
+              const cleanImg = item.image_url.trim();
+              if (cleanImg.startsWith('/uploads/')) {
+                const absPath = path.join(__dirname, '../public', cleanImg);
+                if (fs.existsSync(absPath)) {
+                  const name = 'img_' + path.basename(cleanImg);
+                  files.push(new AttachmentBuilder(absPath, { name }));
+                  embed.setImage(`attachment://${name}`);
+                } else {
+                  embed.setImage(`${publicBase}${cleanImg}`);
+                }
+              } else if (cleanImg.startsWith('http://') || cleanImg.startsWith('https://')) {
+                embed.setImage(cleanImg);
+              }
             }
 
-            if (item.author_name) {
-              const authorObj = { name: item.author_name };
-              if (item.author_icon && item.author_icon.startsWith('http')) authorObj.iconURL = item.author_icon;
+            if (item.author_name && item.author_name.trim()) {
+              const authorObj = { name: item.author_name.trim() };
+              if (item.author_icon && item.author_icon.trim()) {
+                const cleanAuthIcon = item.author_icon.trim();
+                if (cleanAuthIcon.startsWith('/uploads/')) authorObj.iconURL = `${publicBase}${cleanAuthIcon}`;
+                else if (cleanAuthIcon.startsWith('http')) authorObj.iconURL = cleanAuthIcon;
+              }
               embed.setAuthor(authorObj);
             }
 
-            if (item.footer_text) {
-              embed.setFooter({ text: item.footer_text });
+            if (item.footer_text && item.footer_text.trim()) {
+              embed.setFooter({ text: item.footer_text.trim() });
             }
 
             embed.setTimestamp();
@@ -3647,7 +3686,10 @@ async function checkRecurringEmbeds() {
             if (item.ping_type === 'everyone') contentPayload = '@everyone';
             else if (item.ping_type === 'here') contentPayload = '@here';
 
-            await channel.send({ content: contentPayload, embeds: [embed] }).catch(console.error);
+            const payload = { content: contentPayload, embeds: [embed] };
+            if (files.length > 0) payload.files = files;
+
+            await channel.send(payload).catch(console.error);
 
             db.prepare('UPDATE recurring_embeds SET last_sent = ? WHERE id = ?').run(currentTimestamp, item.id);
           }
