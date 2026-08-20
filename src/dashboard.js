@@ -2256,11 +2256,12 @@ app.post('/api/config/embeds/schedule-recurring', (req, res) => {
 // Endpoint pour supprimer un embed récurrent
 app.post('/api/config/recurring-embeds/delete', (req, res) => {
   try {
+    const guildId = getReqGuildId(req);
     const { id } = req.body || {};
     if (!id) return res.status(400).json({ error: 'ID requis' });
 
     const { deleteRecurringEmbed } = require('./database/db');
-    deleteRecurringEmbed(id);
+    deleteRecurringEmbed(guildId, id);
     res.json({ success: true, message: 'Message récurrent supprimé avec succès !' });
   } catch (error) {
     console.error('Erreur delete recurring embed:', error);

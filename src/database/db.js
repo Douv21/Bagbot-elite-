@@ -2763,7 +2763,10 @@ function addRecurringEmbed(guildId, channelId, title, description, color, thumbn
 }
 
 function deleteRecurringEmbed(guildId, id) {
-  return db.prepare('DELETE FROM recurring_embeds WHERE guild_id = ? AND id = ?').run(guildId, id);
+  if (id === undefined || id === null) {
+    return db.prepare('DELETE FROM recurring_embeds WHERE id = ?').run(guildId);
+  }
+  return db.prepare('DELETE FROM recurring_embeds WHERE id = ? OR (guild_id = ? AND id = ?)').run(id, guildId, id);
 }
 
 function toggleRecurringEmbed(guildId, id, isActive) {
