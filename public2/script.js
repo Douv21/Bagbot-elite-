@@ -7080,8 +7080,10 @@ function loadCustomCommands(guildId) {
 
     const tagRoleSelect = document.getElementById('cc-cond-tag-role-select');
     if (tagRoleSelect) {
+      const pendingVal = tagRoleSelect.getAttribute('data-pending-val') || tagRoleSelect.value;
       tagRoleSelect.innerHTML = `<option value="">-- Aucun rôle supplémentaire --</option>` +
         currentGuildRolesList.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+      if (pendingVal) tagRoleSelect.value = pendingVal;
     }
 
     const settings = cmdData.settings || {};
@@ -7153,7 +7155,10 @@ function editCustomCommand(guildId, commandName) {
 
   if (tagCheck) tagCheck.checked = false;
   if (tagVal) tagVal.value = '';
-  if (tagRoleSelect) tagRoleSelect.value = '';
+  if (tagRoleSelect) {
+    tagRoleSelect.value = '';
+    tagRoleSelect.removeAttribute('data-pending-val');
+  }
   if (boosterCheck) boosterCheck.checked = false;
   if (refusalMsg) refusalMsg.value = '';
 
@@ -7161,7 +7166,10 @@ function editCustomCommand(guildId, commandName) {
     if (cond.type === 'has_server_tag') {
       if (tagCheck) tagCheck.checked = true;
       if (tagVal) tagVal.value = cond.tag || '';
-      if (tagRoleSelect && cond.autoRoleId) tagRoleSelect.value = cond.autoRoleId;
+      if (tagRoleSelect && cond.autoRoleId) {
+        tagRoleSelect.value = cond.autoRoleId;
+        tagRoleSelect.setAttribute('data-pending-val', cond.autoRoleId);
+      }
     } else if (cond.type === 'is_booster') {
       if (boosterCheck) boosterCheck.checked = true;
     }
@@ -7250,10 +7258,11 @@ document.addEventListener('submit', async (e) => {
     // Collect conditions
     const conditions = [];
     const refusalMsg = document.getElementById('cc-cond-refusal-msg')?.value?.trim();
-    if (document.getElementById('cc-cond-tag-check')?.checked) {
-      const tagVal = document.getElementById('cc-cond-tag-val')?.value?.trim();
-      const tagRoleId = document.getElementById('cc-cond-tag-role-select')?.value;
-      if (tagVal) conditions.push({ type: 'has_server_tag', tag: tagVal, autoRoleId: tagRoleId || null, refusalMessage: refusalMsg });
+    const isTagChecked = document.getElementById('cc-cond-tag-check')?.checked;
+    const tagVal = document.getElementById('cc-cond-tag-val')?.value?.trim();
+    const tagRoleId = document.getElementById('cc-cond-tag-role-select')?.value;
+    if (isTagChecked || tagVal || tagRoleId) {
+      conditions.push({ type: 'has_server_tag', tag: tagVal || '', autoRoleId: tagRoleId || null, refusalMessage: refusalMsg });
     }
     if (document.getElementById('cc-cond-booster-check')?.checked) {
       conditions.push({ type: 'is_booster', refusalMessage: refusalMsg });

@@ -2734,18 +2734,21 @@ client.on('messageCreate', async (message) => {
       for (const cond of conditions) {
         if (!cond || !cond.type) continue;
 
-        if (cond.type === 'has_server_tag' && cond.tag) {
-          const tagLower = cond.tag.toLowerCase();
-          const displayNameLower = (member?.displayName || author.username).toLowerCase();
-          const usernameLower = author.username.toLowerCase();
-          const hasTag = displayNameLower.includes(tagLower) || usernameLower.includes(tagLower);
+        if (cond.type === 'has_server_tag') {
+          let hasTag = true;
+          if (cond.tag && cond.tag.trim().length > 0) {
+            const tagLower = cond.tag.trim().toLowerCase();
+            const displayNameLower = (member?.displayName || author.username).toLowerCase();
+            const usernameLower = author.username.toLowerCase();
+            hasTag = displayNameLower.includes(tagLower) || usernameLower.includes(tagLower);
+          }
+
           if (!hasTag) {
             passedConditions = false;
             refusalMessage = cond.refusalMessage || `❌ Vous devez inclure le tag **${cond.tag}** dans votre pseudo pour utiliser cette commande.`;
             break;
           } else if (cond.autoRoleId && member) {
-            // Si le membre a le tag : attribution automatique du rôle configuré !
-            await member.roles.add(cond.autoRoleId).catch(() => null);
+            await member.roles.add(cond.autoRoleId).catch(err => console.error('[TAG ROLE] Erreur attribution rôle:', err.message));
           }
         } else if (cond.type === 'is_booster') {
           if (!member?.premiumSince) {
