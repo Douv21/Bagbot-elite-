@@ -3648,6 +3648,29 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
 
+    const roleSelect = row.querySelector('.opt-role');
+    const roleDot = row.querySelector('.role-dot');
+
+    const updatePillColor = () => {
+      if (!roleSelect) return;
+      const selectedId = roleSelect.value;
+      const roleObj = (typeof rolesList !== 'undefined' && Array.isArray(rolesList)) ? rolesList.find(r => String(r.id) === String(selectedId)) : null;
+      let color = '#3498db';
+      if (roleObj && roleObj.color && roleObj.color !== 0) {
+        color = `#${roleObj.color.toString(16).padStart(6, '0')}`;
+      }
+      if (roleDot) roleDot.style.background = color;
+      if (roleSelect) {
+        roleSelect.style.color = color;
+        if (roleSelect.parentElement) roleSelect.parentElement.style.borderColor = color;
+      }
+    };
+
+    if (roleSelect) {
+      roleSelect.addEventListener('change', updatePillColor);
+      updatePillColor();
+    }
+
     row.querySelector('.btn-remove-option').addEventListener('click', () => {
       row.remove();
     });
