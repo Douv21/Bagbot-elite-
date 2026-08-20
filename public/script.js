@@ -3821,15 +3821,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const editBtn = card.querySelector('.btn-edit-embed');
         if (editBtn) {
           editBtn.addEventListener('click', () => {
-            const embedSenderBtn = document.querySelector('.tab-btn[data-tab="tab-embed-sender"]');
-            if (embedSenderBtn) embedSenderBtn.click();
-            safeSetVal('simple_embed_channel', item.channel_id);
-            safeSetVal('simple_embed_edit_msg_id', item.message_id);
-            safeSetVal('simple_embed_title', item.title || '');
-            safeSetVal('simple_embed_desc', item.description || '');
-            safeSetVal('simple_embed_color', item.color || '#5865F2');
-            safeSetVal('simple_embed_image', item.image_url || '');
-            showToast('Embed chargé dans l\'éditeur !');
+            const autoroleTabBtn = document.querySelector('.tab-btn[data-tab="tab-reactionroles"]');
+            if (autoroleTabBtn) autoroleTabBtn.click();
+            populateAutoroleEmbedForm(item);
           });
         }
 

@@ -695,9 +695,14 @@
                       <option value="">-- Charger / Copier / Modifier un message existant --</option>
                     </select>
                   </div>
-                  <div class="form-group">
-                    <label for="autorole-embed-existing-msg"><i class="fa-solid fa-key"></i> ID message existant :</label>
-                    <input type="text" id="autorole-embed-existing-msg" placeholder="Optionnel">
+                  <div class="form-group" style="display: flex; gap: 8px; align-items: flex-end;">
+                    <div style="flex-grow: 1;">
+                      <label for="autorole-embed-existing-msg"><i class="fa-solid fa-key"></i> ID message existant :</label>
+                      <input type="text" id="autorole-embed-existing-msg" placeholder="ID message existant (optionnel)">
+                    </div>
+                    <button type="button" id="btn-fetch-autorole-existing-msg" class="btn" style="background: #3498db; color: #fff; height: 42px; border-radius: 6px; padding: 0 14px; font-size: 0.82rem; font-weight: 600; flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;" title="Récupérer toutes les données de ce message">
+                      <i class="fa-solid fa-cloud-arrow-down"></i> Récupérer
+                    </button>
                   </div>
                   <div class="form-group">
                     <label for="autorole-embed-type"><i class="fa-solid fa-list-check"></i> Type :</label>

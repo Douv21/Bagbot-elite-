@@ -3744,7 +3744,105 @@ document.addEventListener('DOMContentLoaded', () => {
     .catch(err => showToast(err.message, true));
   });
 
-  // --- RENDERS POUR AUTO-ROLES ---
+  // --- RENDERS POUR AUTO-ROLES & HYDRATION ---
+
+  const btnFetchAutoroleMsg = document.getElementById('btn-fetch-autorole-existing-msg');
+  if (btnFetchAutoroleMsg) {
+    btnFetchAutoroleMsg.addEventListener('click', () => {
+      const channelId = document.getElementById('autorole-embed-channel')?.value;
+      const messageId = document.getElementById('autorole-embed-existing-msg')?.value?.trim();
+
+      if (!messageId) {
+        showToast('⚠️ Veuillez saisir un ID de message à récupérer.', true);
+        return;
+      }
+
+      showToast('🔍 Récupération des données du message...');
+      fetch(`/api/config/autorole-embeds/fetch-message?channelId=${channelId || ''}&messageId=${messageId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && !data.error) {
+            populateAutoroleEmbedForm(data);
+          } else {
+            showToast(`❌ Erreur : ${data.error || 'Impossible de récupérer ce message'}`, true);
+          }
+        })
+        .catch(err => {
+          showToast(`❌ Erreur réseau : ${err.message}`, true);
+        });
+    });
+  }
+
+  function populateAutoroleEmbedForm(item) {
+    if (!item) return;
+
+    const chanEl = document.getElementById('autorole-embed-channel');
+    if (chanEl && item.channel_id) {
+      chanEl.value = item.channel_id;
+      if (chanEl.syncCustomSelect) chanEl.syncCustomSelect();
+    }
+
+    const msgEl = document.getElementById('autorole-embed-existing-msg');
+    if (msgEl) msgEl.value = item.id || item.message_id || '';
+
+    const titleEl = document.getElementById('autorole-embed-title');
+    if (titleEl) {
+      titleEl.value = item.title === '(Message Existant)' ? '' : (item.title || '');
+      titleEl.dispatchEvent(new Event('input'));
+    }
+
+    const descEl = document.getElementById('autorole-embed-desc');
+    if (descEl) {
+      descEl.value = item.description === '(Pas d\'embed)' ? '' : (item.description || '');
+      descEl.dispatchEvent(new Event('input'));
+    }
+
+    const colorEl = document.getElementById('autorole-embed-color');
+    if (colorEl) {
+      colorEl.value = item.color || '#5865F2';
+      colorEl.dispatchEvent(new Event('input'));
+    }
+
+    const thumbEl = document.getElementById('autorole-embed-thumbnail');
+    if (thumbEl) {
+      thumbEl.value = item.thumbnail ? '1' : '0';
+      thumbEl.dispatchEvent(new Event('change'));
+    }
+
+    const imgEl = document.getElementById('autorole-embed-image');
+    if (imgEl) {
+      imgEl.value = item.image_url || '';
+      imgEl.dispatchEvent(new Event('input'));
+    }
+
+    const typeEl = document.getElementById('autorole-embed-type');
+    if (typeEl) {
+      typeEl.value = item.type || 'buttons';
+      if (typeEl.syncCustomSelect) typeEl.syncCustomSelect();
+      typeEl.dispatchEvent(new Event('change'));
+    }
+
+    const modeEl = document.getElementById('autorole-embed-mode');
+    if (modeEl) {
+      modeEl.value = item.mode || 'normal';
+      if (modeEl.syncCustomSelect) modeEl.syncCustomSelect();
+      modeEl.dispatchEvent(new Event('change'));
+    }
+
+    autoroleButtonsList = (item.options || []).map(opt => ({
+      role_id: opt.role_id,
+      label: opt.label || '',
+      emoji: opt.emoji || '',
+      style: opt.style || 'PRIMARY'
+    }));
+
+    if (typeof renderButtonsCreatorPreview === 'function') renderButtonsCreatorPreview();
+    if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
+    showToast(`✏️ Message [${item.id || item.message_id}] entièrement chargé avec ses ${autoroleButtonsList.length} rôles !`);
+
+    const formCard = document.getElementById('form-create-autorole-embed');
+    if (formCard) formCard.scrollIntoView({ behavior: 'smooth' });
+  }
 
   function renderAutoroleJoin(list) {
     const container = document.getElementById('autorole-join-list');
@@ -3893,37 +3991,7 @@ document.addEventListener('DOMContentLoaded', () => {
           editBtn.addEventListener('click', () => {
             const autoroleTabBtn = document.querySelector('.tab-btn[data-tab="tab-reactionroles"]');
             if (autoroleTabBtn) autoroleTabBtn.click();
-            
-            const chanEl = document.getElementById('autorole-embed-channel');
-            if (chanEl) chanEl.value = item.channel_id;
-            const msgEl = document.getElementById('autorole-embed-existing-msg');
-            if (msgEl) msgEl.value = item.message_id;
-            const titleEl = document.getElementById('autorole-embed-title');
-            if (titleEl) titleEl.value = item.title === '(Message Existant)' ? '' : (item.title || '');
-            const descEl = document.getElementById('autorole-embed-desc');
-            if (descEl) descEl.value = item.description === '(Pas d\'embed)' ? '' : (item.description || '');
-            const colorEl = document.getElementById('autorole-embed-color');
-            if (colorEl) colorEl.value = item.color || '#5865F2';
-            const thumbEl = document.getElementById('autorole-embed-thumbnail');
-            if (thumbEl) thumbEl.value = item.thumbnail ? '1' : '0';
-            const imgEl = document.getElementById('autorole-embed-image');
-            if (imgEl) imgEl.value = item.image_url || '';
-            const typeEl = document.getElementById('autorole-embed-type');
-            if (typeEl) typeEl.value = item.type || 'buttons';
-            const modeEl = document.getElementById('autorole-embed-mode');
-            if (modeEl) modeEl.value = item.mode || 'normal';
-
-            autoroleButtonsList = (item.options || []).map(opt => ({
-              role_id: opt.role_id,
-              label: opt.label || '',
-              emoji: opt.emoji || '',
-              style: opt.style || 'PRIMARY'
-            }));
-
-            if (typeof renderButtonsCreatorList === 'function') renderButtonsCreatorList();
-            if (typeof renderButtonsCreatorPreview === 'function') renderButtonsCreatorPreview();
-            if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
-            showToast('Panneau d\'auto-rôle chargé pour modification !');
+            populateAutoroleEmbedForm(item);
           });
         }
 

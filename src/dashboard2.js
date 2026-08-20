@@ -1875,6 +1875,42 @@ app.post('/api/config/embeds/delete-message', async (req, res) => {
   }
 });
 
+// Endpoint pour récupérer/réhydrater les données complètes d'un message de rôle réaction existant
+app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const { channelId, messageId } = req.query;
+    if (!messageId) return res.status(400).json({ error: 'ID de message requis' });
+
+    const { getAutoroleEmbeds, getAutoroleOptions } = require('./database/db');
+    const dbEmbeds = getAutoroleEmbeds(guildId) || [];
+    const foundDb = dbEmbeds.find(e => e.message_id === messageId);
+
+    if (foundDb) {
+      const options = getAutoroleOptions(messageId) || [];
+      return res.json({
+        id: foundDb.message_id,
+        channel_id: foundDb.channel_id,
+        title: foundDb.title || '',
+        description: foundDb.description || '',
+        color: foundDb.color || '#5865F2',
+        thumbnail: foundDb.thumbnail ? 1 : 0,
+        image_url: foundDb.image_url || '',
+        type: foundDb.type || 'buttons',
+        mode: foundDb.mode || 'normal',
+        options: options
+      });
+    }
+
+    res.status(404).json({ error: 'Message introuvable dans la base de données' });
+  } catch (error) {
+    console.error('Erreur fetch autorole message:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Endpoint pour programmer un embed récurrent
 app.post('/api/config/embeds/schedule-recurring', (req, res) => {
   try {

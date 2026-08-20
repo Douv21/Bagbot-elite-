@@ -1789,6 +1789,98 @@ app.post('/api/config/autorole-embeds/delete', async (req, res) => {
   }
 });
 
+// Endpoint pour récupérer/réhydrater les données complètes d'un message de rôle réaction existant
+app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const { channelId, messageId } = req.query;
+    if (!messageId) return res.status(400).json({ error: 'ID de message requis' });
+
+    const { getAutoroleEmbeds, getAutoroleOptions } = require('./database/db');
+    const dbEmbeds = getAutoroleEmbeds(guildId) || [];
+    const foundDb = dbEmbeds.find(e => e.message_id === messageId);
+
+    if (foundDb) {
+      const options = getAutoroleOptions(messageId) || [];
+      return res.json({
+        id: foundDb.message_id,
+        channel_id: foundDb.channel_id,
+        title: foundDb.title || '',
+        description: foundDb.description || '',
+        color: foundDb.color || '#5865F2',
+        thumbnail: foundDb.thumbnail ? 1 : 0,
+        image_url: foundDb.image_url || '',
+        type: foundDb.type || 'buttons',
+        mode: foundDb.mode || 'normal',
+        options: options
+      });
+    }
+
+    if (client && client.guilds && channelId) {
+      const guild = client.guilds.cache.get(guildId);
+      if (guild) {
+        const channel = guild.channels.cache.get(channelId);
+        if (channel && channel.isTextBased()) {
+          const targetMsg = await channel.messages.fetch(messageId).catch(() => null);
+          if (targetMsg) {
+            const emb = targetMsg.embeds.length > 0 ? targetMsg.embeds[0] : null;
+            const extractedOptions = [];
+            let detectedType = 'buttons';
+
+            if (targetMsg.components && targetMsg.components.length > 0) {
+              targetMsg.components.forEach(row => {
+                row.components.forEach(comp => {
+                  if (comp.type === 2 || comp.type === 'BUTTON') {
+                    detectedType = 'buttons';
+                    extractedOptions.push({
+                      role_id: comp.customId ? comp.customId.replace('autorole_', '').replace('role_', '') : '',
+                      label: comp.label || 'Bouton',
+                      emoji: comp.emoji ? (comp.emoji.name || comp.emoji.id) : '',
+                      style: comp.style === 1 ? 'PRIMARY' : (comp.style === 2 ? 'SECONDARY' : (comp.style === 3 ? 'SUCCESS' : 'DANGER'))
+                    });
+                  } else if (comp.type === 3 || comp.type === 'SELECT_MENU' || comp.type === 'STRING_SELECT') {
+                    detectedType = comp.maxValues > 1 ? 'multi_select' : 'select';
+                    if (comp.options) {
+                      comp.options.forEach(opt => {
+                        extractedOptions.push({
+                          role_id: opt.value ? opt.value.replace('autorole_', '').replace('role_', '') : '',
+                          label: opt.label || 'Option',
+                          emoji: opt.emoji ? (opt.emoji.name || opt.emoji.id) : '',
+                          style: 'PRIMARY'
+                        });
+                      });
+                    }
+                  }
+                });
+              });
+            }
+
+            return res.json({
+              id: targetMsg.id,
+              channel_id: channelId,
+              title: emb ? (emb.title || '') : '',
+              description: emb ? (emb.description || targetMsg.content || '') : targetMsg.content || '',
+              color: emb && emb.color ? `#${emb.color.toString(16).padStart(6, '0')}` : '#5865F2',
+              thumbnail: emb && emb.thumbnail ? 1 : 0,
+              image_url: emb && emb.image ? emb.image.url : '',
+              type: detectedType,
+              mode: 'normal',
+              options: extractedOptions
+            });
+          }
+        }
+      }
+    }
+
+    res.status(404).json({ error: 'Message introuvable sur Discord ou dans la base de données' });
+  } catch (error) {
+    console.error('Erreur fetch autorole message:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- SYSTEME D'ENVOI D'EMBEDS SIMPLE (MESSAGE PUR) ---
 app.post('/api/config/send-simple-embed', async (req, res) => {
   try {
