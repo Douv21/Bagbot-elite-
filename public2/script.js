@@ -5982,18 +5982,44 @@ function initSimpleEmbedSender() {
         } catch (e) {}
       }
 
-      if (!userObj || !userObj.id || userObj.id === '0') {
-        showToast('❌ Veuillez vous connecter via Discord pour insérer vos informations.', true);
-        return;
+      const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
+
+      let name = null;
+      let avatar = null;
+
+      if (userObj && userObj.id && userObj.id !== '0') {
+        name = userObj.global_name || userObj.username;
+        avatar = userObj.avatar_url;
+        if (!avatar && userObj.avatar) {
+          avatar = `https://cdn.discordapp.com/avatars/${userObj.id}/${userObj.avatar}.png?size=256`;
+        }
+
+        if (guildId) {
+          try {
+            const mRes = await fetch(`/api/members?guildId=${guildId}`);
+            const members = await mRes.json();
+            if (Array.isArray(members)) {
+              const myMember = members.find(m => m.id === userObj.id);
+              if (myMember && myMember.displayName) {
+                name = myMember.displayName;
+              }
+            }
+          } catch (e) {}
+        }
       }
-      const name = userObj.global_name || userObj.username;
-      let avatar = userObj.avatar_url;
-      if (!avatar && userObj.avatar) {
-        avatar = `https://cdn.discordapp.com/avatars/${userObj.id}/${userObj.avatar}.png`;
+
+      if (!name || !avatar || avatar.includes('embed/avatars')) {
+        if (typeof currentBotName !== 'undefined' && currentBotName) name = currentBotName;
+        if (typeof currentBotAvatar !== 'undefined' && currentBotAvatar) avatar = currentBotAvatar;
       }
+
+      if (!name) name = 'Administrateur';
+      if (!avatar) avatar = 'https://cdn.discordapp.com/embed/avatars/0.png';
+
       if (inputAuthorName) inputAuthorName.value = name;
-      if (inputAuthorIcon) inputAuthorIcon.value = avatar || '';
-      showToast('👤 Nom et avatar du membre insérés avec succès !');
+      if (inputAuthorIcon) inputAuthorIcon.value = avatar;
+
+      if (typeof showToast === 'function') showToast(`👤 Nom (${name}) et photo de profil insérés !`);
       updatePreview();
     });
   }
