@@ -3598,6 +3598,33 @@ if (process.env.DISCORD_TOKEN) {
 }
 
 // Traitement automatique des messages embeds récurrents programmés (Heure de France Europe/Paris)
+function getFranceDateAndTime() {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('fr-FR', {
+    timeZone: 'Europe/Paris',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  const parts = formatter.formatToParts(now);
+  let year = '', month = '', day = '', hour = '', minute = '';
+  for (const p of parts) {
+    if (p.type === 'year') year = p.value;
+    if (p.type === 'month') month = p.value;
+    if (p.type === 'day') day = p.value;
+    if (p.type === 'hour') hour = p.value;
+    if (p.type === 'minute') minute = p.value;
+  }
+  return {
+    dateStr: `${year}-${month}-${day}`,
+    timeStr: `${hour}:${minute}`,
+    timestamp: Math.floor(now.getTime() / 1000)
+  };
+}
+
 async function checkRecurringEmbeds() {
   try {
     if (!client || !client.isReady()) return;
@@ -3605,35 +3632,51 @@ async function checkRecurringEmbeds() {
     const recurringList = db.prepare('SELECT * FROM recurring_embeds WHERE is_active = 1').all();
     if (!recurringList || recurringList.length === 0) return;
 
-    const now = new Date();
-    const currentTimestamp = Math.floor(now.getTime() / 1000);
-
-    // Calcul de l'heure actuelle précise en France (Europe/Paris)
-    const franceTimeStr = now.toLocaleString('en-US', { timeZone: 'Europe/Paris' });
-    const franceDate = new Date(franceTimeStr);
-    const currentHHMM = `${String(franceDate.getHours()).padStart(2, '0')}:${String(franceDate.getMinutes()).padStart(2, '0')}`;
+    const { dateStr: currentFranceDate, timeStr: currentHHMM, timestamp: currentTimestamp } = getFranceDateAndTime();
 
     const hostIp = process.env.PUBLIC_IP || '82.65.75.176';
     const dashPort = process.env.PORT || process.env.DASHBOARD_PORT || 49601;
     const publicBase = process.env.PUBLIC_URL || `http://${hostIp}:${dashPort}`;
 
     for (const item of recurringList) {
-      let intervalSeconds = 86400; // default 24h
-      if (item.frequency === '1h') intervalSeconds = 3600;
-      else if (item.frequency === '6h') intervalSeconds = 21600;
-      else if (item.frequency === '12h') intervalSeconds = 43200;
-      else if (item.frequency === 'daily') intervalSeconds = 86400;
-      else if (item.frequency === 'weekly') intervalSeconds = 604800;
+      let shouldSend = false;
+      const lastSentTs = item.last_sent || 0;
+      const timeSinceLast = currentTimestamp - lastSentTs;
 
-      const timeSinceLast = currentTimestamp - (item.last_sent || 0);
-
-      if (timeSinceLast >= intervalSeconds - 30) {
-        if ((item.frequency === 'daily' || item.frequency === 'weekly') && item.send_time) {
-          if (currentHHMM !== item.send_time && timeSinceLast < intervalSeconds + 3600) {
-            continue;
+      if (item.frequency === 'daily') {
+        const targetTime = item.send_time || '12:00';
+        let lastSentDateStr = '';
+        if (lastSentTs > 0) {
+          const lastSentDateObj = new Date(lastSentTs * 1000);
+          const fParts = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(lastSentDateObj);
+          let y = '', m = '', d = '';
+          for (const p of fParts) {
+            if (p.type === 'year') y = p.value;
+            if (p.type === 'month') m = p.value;
+            if (p.type === 'day') d = p.value;
           }
+          lastSentDateStr = `${y}-${m}-${d}`;
         }
 
+        if (lastSentDateStr !== currentFranceDate && currentHHMM >= targetTime) {
+          shouldSend = true;
+        }
+      } else if (item.frequency === 'weekly') {
+        const targetTime = item.send_time || '12:00';
+        if (timeSinceLast >= 604800 - 300 && currentHHMM >= targetTime) {
+          shouldSend = true;
+        }
+      } else {
+        let intervalSec = 3600;
+        if (item.frequency === '6h') intervalSec = 21600;
+        else if (item.frequency === '12h') intervalSec = 43200;
+
+        if (timeSinceLast >= intervalSec - 30) {
+          shouldSend = true;
+        }
+      }
+
+      if (shouldSend) {
         const guild = client.guilds.cache.get(item.guild_id);
         if (guild) {
           const channel = guild.channels.cache.get(item.channel_id);
@@ -3646,29 +3689,6 @@ async function checkRecurringEmbeds() {
 
             const files = [];
 
-            // Traitement miniature
-            if (item.thumbnail_url && typeof item.thumbnail_url === 'string') {
-              const cleanThumb = item.thumbnail_url.trim();
-              if (cleanThumb === 'server') {
-                const icon = guild.iconURL({ dynamic: true });
-                if (icon) embed.setThumbnail(icon);
-              } else if (cleanThumb === 'bot') {
-                embed.setThumbnail(client.user.displayAvatarURL({ dynamic: true }));
-              } else if (cleanThumb.startsWith('/uploads/')) {
-                const absPath = path.join(__dirname, '../public', cleanThumb);
-                if (fs.existsSync(absPath)) {
-                  const name = 'thumb_' + path.basename(cleanThumb);
-                  files.push(new AttachmentBuilder(absPath, { name }));
-                  embed.setThumbnail(`attachment://${name}`);
-                } else {
-                  embed.setThumbnail(`${publicBase}${cleanThumb}`);
-                }
-              } else if (cleanThumb.startsWith('http://') || cleanThumb.startsWith('https://')) {
-                embed.setThumbnail(cleanThumb);
-              }
-            }
-
-            // Traitement grande image
             if (item.image_url && typeof item.image_url === 'string') {
               const cleanImg = item.image_url.trim();
               if (cleanImg.startsWith('/uploads/')) {
@@ -3711,6 +3731,7 @@ async function checkRecurringEmbeds() {
             await channel.send(payload).catch(console.error);
 
             db.prepare('UPDATE recurring_embeds SET last_sent = ? WHERE id = ?').run(currentTimestamp, item.id);
+            console.log(`[RECURRING EMBED] Message récurrent #${item.id} envoyé avec succès dans le salon #${channel.name} (${guild.name}) !`);
           }
         }
       }

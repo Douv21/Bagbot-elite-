@@ -2120,8 +2120,9 @@ app.get('/api/config/embeds/all-server-embeds', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
-    const { getAutoroleEmbeds } = require('./database/db');
+    const { getAutoroleEmbeds, getRecurringEmbeds } = require('./database/db');
     const dbEmbeds = getAutoroleEmbeds(guildId) || [];
+    const dbRecurring = getRecurringEmbeds(guildId) || [];
 
     const allEmbeds = [];
     for (const dbE of dbEmbeds) {
@@ -2133,9 +2134,31 @@ app.get('/api/config/embeds/all-server-embeds', async (req, res) => {
         description: dbE.description || '',
         color: dbE.color || '#5865F2',
         image: dbE.image_url || '',
+        thumbnail: dbE.thumbnail_url || (dbE.thumbnail ? 'server' : 'none'),
         author_name: dbE.author_name || '',
         author_icon: dbE.author_icon || '',
-        footer: dbE.footer_text || ''
+        footer: dbE.footer_text || '',
+        is_recurring: false
+      });
+    }
+
+    for (const rE of dbRecurring) {
+      allEmbeds.push({
+        id: rE.id,
+        channel_id: rE.channel_id,
+        channel_name: 'Salon',
+        title: rE.title || 'Embed récurrent',
+        description: rE.description || '',
+        color: rE.color || '#5865F2',
+        image: rE.image_url || '',
+        thumbnail: rE.thumbnail_url || '',
+        author_name: rE.author_name || '',
+        author_icon: rE.author_icon || '',
+        footer: rE.footer_text || '',
+        ping_type: rE.ping_type || 'none',
+        frequency: rE.frequency || 'daily',
+        send_time: rE.send_time || '12:00',
+        is_recurring: true
       });
     }
 

@@ -807,6 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try { renderAutoroleRole(config.autoroles_on_role || []); } catch (e) {}
         try { renderActiveAutoroles(config.autorole_embeds || [], config.recurring_embeds || []); } catch (e) {}
         try { renderSimpleEmbedsSavedList(config.autorole_embeds || [], config.recurring_embeds || []); } catch (e) {}
+        try { loadAllServerEmbeds(); } catch (e) {}
         try { renderCountingChannels(config.counting_channels || []); } catch (e) {}
         if (typeof updateAutorolePreview === 'function') try { updateAutorolePreview(); } catch (e) {}
 
@@ -4299,26 +4300,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function renderActiveAutoroles(list, recurringList = []) {
+  function renderActiveAutoroles(list) {
     const container = document.getElementById('active-autoroles-container');
     if (!container) return;
     container.innerHTML = '';
     
-    const combined = [
-      ...(list || []),
-      ...(recurringList || []).map(r => ({
-        ...r,
-        message_id: r.id,
-        is_recurring: true
-      }))
-    ];
-
-    if (combined.length === 0) {
-      container.innerHTML = '<p style="color: #8e9297; text-align: center; font-style: italic;">Aucun rôle réaction ou message programmé actif.</p>';
+    if (!list || list.length === 0) {
+      container.innerHTML = '<p style="color: #8e9297; text-align: center; font-style: italic;">Aucun rôle réaction actif.</p>';
       return;
     }
 
-    combined.forEach(item => {
+    list.forEach(item => {
       try {
         const channelName = getChannelName(item.channel_id);
         const card = document.createElement('div');
@@ -4331,10 +4323,6 @@ document.addEventListener('DOMContentLoaded', () => {
         card.style.flexDirection = 'column';
         card.style.gap = '8px';
 
-        const recurringBadge = item.is_recurring 
-          ? `<span class="badge" style="background: rgba(230, 126, 34, 0.2); color: #e67e22; border: 1px solid rgba(230, 126, 34, 0.4); padding: 4px 8px; font-size: 0.78rem; border-radius: 4px; font-weight: 700;">🔁 Récurrent (${item.frequency || 'daily'} à ${item.send_time || '12:00'})</span>` 
-          : '';
-
         const buttonsHtml = (item.options || []).map(opt => {
           const styleClass = opt.style === 'SUCCESS' ? 'btn-save' : (opt.style === 'DANGER' ? 'btn-delete' : 'btn-add');
           return `<span class="badge ${styleClass}" style="margin-right: 5px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
@@ -4346,7 +4334,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <h4 style="margin: 0; color: #fff;">${item.title || '(Message Existant)'}</h4>
-              ${recurringBadge}
             </div>
             <div style="display: flex; gap: 6px;">
               <button type="button" class="btn btn-edit-embed btn-sm" style="padding: 4px 8px; font-size: 0.8rem; background: #3498db; color: #fff;"><i class="fa-solid fa-pen-to-square"></i> Modifier</button>
@@ -4354,7 +4341,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
           <p style="margin: 2px 0; font-size: 0.85rem; color: #b9bbbe;">
-            <i class="fa-solid fa-hashtag"></i> Salon: <strong>${channelName}</strong> ${item.is_recurring ? '' : `· ID Message: <code>${item.message_id}</code>`}
+            <i class="fa-solid fa-hashtag"></i> Salon: <strong>${channelName}</strong> · ID Message: <code>${item.message_id}</code>
           </p>
           <p style="margin: 2px 0; font-size: 0.85rem; color: #8e9297; font-style: italic;">"${item.description || ''}"</p>
           ${buttonsHtml ? `<div style="margin-top: 5px; display: flex; flex-wrap: wrap; gap: 5px;">${buttonsHtml}</div>` : ''}
@@ -4370,8 +4357,118 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         card.querySelector('.btn-delete').addEventListener('click', () => {
+          if (!confirm('Voulez-vous vraiment supprimer ce rôle réaction ? Le message sera supprimé de Discord et de la base de données.')) return;
+          fetch('/api/config/autorole-embeds/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message_id: item.message_id, channel_id: item.channel_id })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              showToast('Rôle réaction supprimé !');
+              loadGuildConfiguration();
+            } else {
+              showToast('Erreur: ' + data.error, true);
+            }
+          })
+          .catch(err => showToast(err.message, true));
+        });
+
+        container.appendChild(card);
+      } catch (err) {
+        console.error('Error rendering active autorole item:', err, item);
+      }
+    });
+  }
+
+  function renderSimpleEmbedsSavedList(list, recurringList = []) {
+    const containers = [
+      document.getElementById('simple-embeds-saved-list'),
+      document.getElementById('all-server-embeds-list')
+    ].filter(Boolean);
+    if (containers.length === 0) return;
+
+    const combined = [
+      ...(list || []),
+      ...(recurringList || []).map(r => ({
+        ...r,
+        message_id: r.id,
+        is_recurring: true
+      }))
+    ];
+
+    containers.forEach(container => {
+      container.innerHTML = '';
+
+      if (combined.length === 0) {
+        container.innerHTML = '<p style="color: #8e9297; font-style: italic; font-size: 0.85rem;">Aucun embed enregistré ou récurrent pour le moment. Créez-en un via le formulaire !</p>';
+        return;
+      }
+
+      combined.forEach(item => {
+        const channelName = typeof getChannelName === 'function' ? getChannelName(item.channel_id) : item.channel_id;
+        const itemCard = document.createElement('div');
+        itemCard.style.background = 'rgba(255,255,255,0.03)';
+        itemCard.style.border = '1px solid rgba(255,255,255,0.08)';
+        itemCard.style.padding = '10px 14px';
+        itemCard.style.borderRadius = '8px';
+        itemCard.style.display = 'flex';
+        itemCard.style.alignItems = 'center';
+        itemCard.style.justifyContent = 'space-between';
+        itemCard.style.gap = '10px';
+
+        const recurringBadge = item.is_recurring 
+          ? `<span style="background: rgba(230, 126, 34, 0.2); color: #e67e22; border: 1px solid rgba(230, 126, 34, 0.4); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; margin-left: 8px;">🔁 Récurrent (${item.frequency || 'daily'} à ${item.send_time || '12:00'})</span>` 
+          : '';
+
+        itemCard.innerHTML = `
+          <div style="display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;">
+            <div style="font-weight: 600; color: #fff; font-size: 0.95rem; display: flex; align-items: center;">
+              ${item.title || '(Sans titre)'} ${recurringBadge}
+            </div>
+            <div style="font-size: 0.8rem; color: #b9bbbe;">
+              <i class="fa-solid fa-hashtag" style="color: #5865F2;"></i> <strong>${channelName}</strong> ${item.is_recurring ? '' : `· ID: <code>${item.message_id || item.id}</code>`}
+            </div>
+            <div style="font-size: 0.8rem; color: #8e9297; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              "${(item.description || '').slice(0, 70)}"
+            </div>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button type="button" class="btn btn-sm btn-load-embed" style="background: #9b59b6; color: #fff; padding: 6px 12px; font-size: 0.82rem; border-radius: 6px; flex-shrink: 0; cursor: pointer;">
+              <i class="fa-solid fa-download"></i> Charger dans l'Éditeur
+            </button>
+            <button type="button" class="btn btn-sm btn-delete-saved-embed" style="background: #e74c3c; color: #fff; padding: 6px 10px; font-size: 0.82rem; border-radius: 6px; flex-shrink: 0; cursor: pointer;" title="Supprimer">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        `;
+
+        itemCard.querySelector('.btn-load-embed').addEventListener('click', () => {
+          safeSetVal('simple_embed_channel', item.channel_id);
+          if (!item.is_recurring) safeSetVal('simple_embed_edit_msg_id', item.message_id || item.id);
+          safeSetVal('simple_embed_title', item.title || '');
+          safeSetVal('simple_embed_desc', item.description || '');
+          safeSetVal('simple_embed_color', item.color || '#5865F2');
+          safeSetVal('simple_embed_image', item.image_url || item.image || '');
+          safeSetVal('simple_embed_thumbnail', item.thumbnail_url || (item.thumbnail ? 'server' : 'none'));
+          safeSetVal('simple_embed_author_name', item.author_name || '');
+          safeSetVal('simple_embed_author_icon', item.author_icon || '');
+          safeSetVal('simple_embed_footer_text', item.footer_text || item.footer || '');
+          if (item.ping_type) safeSetVal('simple_embed_ping', item.ping_type);
+          if (item.frequency) safeSetVal('simple_embed_recurring_freq', item.frequency);
+          if (item.send_time) safeSetVal('simple_embed_send_time', item.send_time);
+
+          if (typeof updatePreview === 'function') updatePreview();
+
+          const formEl = document.getElementById('form-simple-embed');
+          if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+          showToast('Embed chargé dans l\'éditeur !');
+        });
+
+        itemCard.querySelector('.btn-delete-saved-embed').addEventListener('click', () => {
           if (item.is_recurring) {
-            if (!confirm('Voulez-vous supprimer ce message récurrent programmé ?')) return;
+            if (!confirm('Supprimer ce message récurrent ?')) return;
             fetch('/api/config/recurring-embeds/delete', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -4385,153 +4482,198 @@ document.addEventListener('DOMContentLoaded', () => {
               } else {
                 showToast('Erreur: ' + data.error, true);
               }
-            })
-            .catch(err => showToast(err.message, true));
+            });
           } else {
-            if (!confirm('Voulez-vous vraiment supprimer ce rôle réaction ? Le message sera supprimé de Discord et de la base de données.')) return;
+            if (!confirm('Supprimer cet embed de la liste ?')) return;
             fetch('/api/config/autorole-embeds/delete', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message_id: item.message_id, channel_id: item.channel_id })
+              body: JSON.stringify({ message_id: item.message_id || item.id, channel_id: item.channel_id })
             })
             .then(res => res.json())
             .then(data => {
               if (data.success) {
-                showToast('Rôle réaction supprimé !');
+                showToast('Embed supprimé !');
                 loadGuildConfiguration();
               } else {
                 showToast('Erreur: ' + data.error, true);
               }
-            })
-            .catch(err => showToast(err.message, true));
+            });
           }
         });
 
-        container.appendChild(card);
-      } catch (err) {
-        console.error('Error rendering active autorole item:', err, item);
-      }
+        container.appendChild(itemCard);
+      });
     });
   }
 
-  function renderSimpleEmbedsSavedList(list, recurringList = []) {
-    const container = document.getElementById('simple-embeds-saved-list');
+  function loadAllServerEmbeds() {
+    const container = document.getElementById('all-server-embeds-list') || document.getElementById('simple-embeds-saved-list');
     if (!container) return;
-    container.innerHTML = '';
 
-    const combined = [
-      ...(list || []),
-      ...(recurringList || []).map(r => ({
-        ...r,
-        message_id: r.id,
-        is_recurring: true
-      }))
-    ];
+    container.innerHTML = '<p style="color: #8e9297; font-style: italic;"><i class="fa-solid fa-spinner fa-spin"></i> Chargement des messages embeds du serveur...</p>';
 
-    if (combined.length === 0) {
-      container.innerHTML = '<p style="color: #8e9297; font-style: italic; font-size: 0.85rem;">Aucun embed enregistré ou récurrent pour le moment. Créez-en un via le formulaire !</p>';
-      return;
-    }
+    const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
+    const targetUrl = guildId ? `/api/config/embeds/all-server-embeds?guildId=${guildId}` : '/api/config/embeds/all-server-embeds';
 
-    combined.forEach(item => {
-      const channelName = getChannelName(item.channel_id);
-      const itemCard = document.createElement('div');
-      itemCard.style.background = 'rgba(255,255,255,0.03)';
-      itemCard.style.border = '1px solid rgba(255,255,255,0.08)';
-      itemCard.style.padding = '10px 14px';
-      itemCard.style.borderRadius = '8px';
-      itemCard.style.display = 'flex';
-      itemCard.style.alignItems = 'center';
-      itemCard.style.justifyContent = 'space-between';
-      itemCard.style.gap = '10px';
-
-      const recurringBadge = item.is_recurring 
-        ? `<span style="background: rgba(230, 126, 34, 0.2); color: #e67e22; border: 1px solid rgba(230, 126, 34, 0.4); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; margin-left: 8px;">🔁 Récurrent (${item.frequency || 'daily'} à ${item.send_time || '12:00'})</span>` 
-        : '';
-
-      itemCard.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;">
-          <div style="font-weight: 600; color: #fff; font-size: 0.95rem; display: flex; align-items: center;">
-            ${item.title || '(Sans titre)'} ${recurringBadge}
-          </div>
-          <div style="font-size: 0.8rem; color: #b9bbbe;">
-            <i class="fa-solid fa-hashtag" style="color: #5865F2;"></i> <strong>${channelName}</strong> ${item.is_recurring ? '' : `· ID: <code>${item.message_id}</code>`}
-          </div>
-          <div style="font-size: 0.8rem; color: #8e9297; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-            "${(item.description || '').slice(0, 70)}"
-          </div>
-        </div>
-        <div style="display: flex; gap: 6px; align-items: center;">
-          <button type="button" class="btn btn-sm btn-load-embed" style="background: #9b59b6; color: #fff; padding: 6px 12px; font-size: 0.82rem; border-radius: 6px; flex-shrink: 0; cursor: pointer;">
-            <i class="fa-solid fa-download"></i> Charger dans l'Éditeur
-          </button>
-          <button type="button" class="btn btn-sm btn-delete-saved-embed" style="background: #e74c3c; color: #fff; padding: 6px 10px; font-size: 0.82rem; border-radius: 6px; flex-shrink: 0; cursor: pointer;" title="Supprimer">
-            <i class="fa-solid fa-trash"></i>
-          </button>
-        </div>
-      `;
-
-      itemCard.querySelector('.btn-load-embed').addEventListener('click', () => {
-        safeSetVal('simple_embed_channel', item.channel_id);
-        if (!item.is_recurring) safeSetVal('simple_embed_edit_msg_id', item.message_id);
-        safeSetVal('simple_embed_title', item.title || '');
-        safeSetVal('simple_embed_desc', item.description || '');
-        safeSetVal('simple_embed_color', item.color || '#5865F2');
-        safeSetVal('simple_embed_image', item.image_url || item.image || '');
-        safeSetVal('simple_embed_thumbnail', item.thumbnail_url || (item.thumbnail ? 'server' : 'none'));
-        safeSetVal('simple_embed_author_name', item.author_name || '');
-        safeSetVal('simple_embed_author_icon', item.author_icon || '');
-        safeSetVal('simple_embed_footer_text', item.footer_text || item.footer || '');
-        if (item.ping_type) safeSetVal('simple_embed_ping', item.ping_type);
-        if (item.frequency) safeSetVal('simple_embed_recurring_freq', item.frequency);
-        if (item.send_time) safeSetVal('simple_embed_send_time', item.send_time);
-
-        if (typeof updatePreview === 'function') updatePreview();
-
-        const formEl = document.getElementById('form-simple-embed');
-        if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
-        showToast('Embed chargé dans l\'éditeur !');
-      });
-
-      itemCard.querySelector('.btn-delete-saved-embed').addEventListener('click', () => {
-        if (item.is_recurring) {
-          if (!confirm('Supprimer ce message récurrent ?')) return;
-          fetch('/api/config/recurring-embeds/delete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: item.id })
-          })
-          .then(res => res.json())
-          .then(data => {
-            if (data.success) {
-              showToast('Message récurrent supprimé !');
-              loadGuildConfiguration();
-            } else {
-              showToast('Erreur: ' + data.error, true);
-            }
-          });
-        } else {
-          if (!confirm('Supprimer cet embed de la liste ?')) return;
-          fetch('/api/config/autorole-embeds/delete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message_id: item.message_id, channel_id: item.channel_id })
-          })
-          .then(res => res.json())
-          .then(data => {
-            if (data.success) {
-              showToast('Embed supprimé !');
-              loadGuildConfiguration();
-            } else {
-              showToast('Erreur: ' + data.error, true);
-            }
-          });
+    fetch(targetUrl)
+      .then(res => res.json())
+      .then(data => {
+        if (!Array.isArray(data)) {
+          container.innerHTML = '<p style="color: #e74c3c; font-style: italic;">Erreur lors du chargement des embeds.</p>';
+          return;
         }
+        renderAllServerEmbeds(data);
+      })
+      .catch(err => {
+        console.error('Erreur loadAllServerEmbeds:', err);
+        container.innerHTML = '<p style="color: #e74c3c; font-style: italic;">Erreur réseau lors de la récupération des embeds.</p>';
       });
+  }
+  window.loadAllServerEmbeds = loadAllServerEmbeds;
 
-      container.appendChild(itemCard);
+  function renderAllServerEmbeds(list) {
+    const containers = [
+      document.getElementById('all-server-embeds-list'),
+      document.getElementById('simple-embeds-saved-list')
+    ].filter(Boolean);
+
+    if (containers.length === 0) return;
+
+    containers.forEach(container => {
+      container.innerHTML = '';
+
+      if (!list || list.length === 0) {
+        container.innerHTML = '<p style="color: #8e9297; font-style: italic; font-size: 0.85rem;">Aucun embed trouvé ou récurrent pour le moment sur ce serveur.</p>';
+        return;
+      }
+
+      list.forEach(item => {
+        const channelName = item.channel_name || (typeof getChannelName === 'function' ? getChannelName(item.channel_id) : item.channel_id);
+        const itemCard = document.createElement('div');
+        itemCard.style.background = 'rgba(255,255,255,0.03)';
+        itemCard.style.border = '1px solid rgba(255,255,255,0.08)';
+        itemCard.style.padding = '12px 16px';
+        itemCard.style.borderRadius = '8px';
+        itemCard.style.display = 'flex';
+        itemCard.style.alignItems = 'center';
+        itemCard.style.justifyContent = 'space-between';
+        itemCard.style.gap = '12px';
+
+        const recurringBadge = item.is_recurring 
+          ? `<span style="background: rgba(230, 126, 34, 0.2); color: #e67e22; border: 1px solid rgba(230, 126, 34, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; margin-left: 8px;">🔁 Récurrent (${item.frequency || 'daily'} à ${item.send_time || '12:00'})</span>` 
+          : '<span style="background: rgba(88, 101, 242, 0.2); color: #5865F2; border: 1px solid rgba(88, 101, 242, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; margin-left: 8px;">📌 Embed Salon</span>';
+
+        itemCard.innerHTML = `
+          <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0;">
+            <div style="font-weight: 700; color: #fff; font-size: 0.95rem; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+              ${item.title || '(Sans titre)'} ${recurringBadge}
+            </div>
+            <div style="font-size: 0.82rem; color: #b9bbbe;">
+              <i class="fa-solid fa-hashtag" style="color: #5865F2;"></i> <strong>${channelName}</strong> ${item.is_recurring ? '' : `· ID: <code>${item.id}</code>`}
+            </div>
+            <div style="font-size: 0.8rem; color: #8e9297; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              "${(item.description || '').slice(0, 80)}"
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" class="btn btn-sm btn-load-embed" style="background: #9b59b6; color: #fff; padding: 6px 14px; font-size: 0.82rem; border-radius: 6px; flex-shrink: 0; cursor: pointer; font-weight: 600;">
+              <i class="fa-solid fa-download"></i> Charger dans l'Éditeur
+            </button>
+            <button type="button" class="btn btn-sm btn-delete-saved-embed" style="background: #e74c3c; color: #fff; padding: 6px 10px; font-size: 0.82rem; border-radius: 6px; flex-shrink: 0; cursor: pointer;" title="Supprimer">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        `;
+
+        itemCard.querySelector('.btn-load-embed').addEventListener('click', () => {
+          const tabBtn = document.querySelector('.tab-btn[data-tab="tab-embed-sender"]');
+          if (tabBtn) tabBtn.click();
+
+          safeSetVal('simple_embed_channel', item.channel_id);
+          if (!item.is_recurring) {
+            safeSetVal('simple_embed_edit_msg_id', item.id || item.message_id || '');
+            safeSetVal('simple_embed_send_mode', 'now');
+            const recGroup = document.getElementById('group_simple_embed_recurring_options');
+            if (recGroup) recGroup.style.display = 'none';
+          } else {
+            safeSetVal('simple_embed_edit_msg_id', '');
+            safeSetVal('simple_embed_send_mode', 'recurring');
+            if (item.frequency) safeSetVal('simple_embed_frequency', item.frequency);
+            if (item.send_time) safeSetVal('simple_embed_time', item.send_time);
+            const recGroup = document.getElementById('group_simple_embed_recurring_options');
+            if (recGroup) recGroup.style.display = 'block';
+          }
+
+          safeSetVal('simple-embed-preview-title', item.title || '');
+          safeSetVal('simple-embed-preview-desc', item.description || '');
+          safeSetVal('simple_embed_color', item.color || '#5865F2');
+          safeSetVal('simple_embed_image', item.image || item.image_url || '');
+          safeSetVal('simple-embed-preview-author-name', item.author_name || '');
+          safeSetVal('simple_embed_author_icon', item.author_icon || '');
+          safeSetVal('simple-embed-preview-footer-text', item.footer || item.footer_text || '');
+          if (item.ping_type) safeSetVal('simple_embed_ping', item.ping_type);
+
+          if (typeof updatePreview === 'function') updatePreview();
+
+          const formEl = document.getElementById('form-simple-embed');
+          if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+          if (typeof showToast === 'function') showToast('Embed chargé dans l\'éditeur !');
+        });
+
+        itemCard.querySelector('.btn-delete-saved-embed').addEventListener('click', () => {
+          if (item.is_recurring) {
+            if (!confirm('Supprimer ce message récurrent ?')) return;
+            fetch('/api/config/recurring-embeds/delete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: item.id })
+            })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                if (typeof showToast === 'function') showToast('Message récurrent supprimé !');
+                loadAllServerEmbeds();
+                if (typeof loadGuildConfiguration === 'function') loadGuildConfiguration();
+              } else {
+                if (typeof showToast === 'function') showToast('Erreur: ' + data.error, true);
+              }
+            });
+          } else {
+            if (!confirm('Supprimer cet embed de la liste ?')) return;
+            fetch('/api/config/autorole-embeds/delete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message_id: item.id, channel_id: item.channel_id })
+            })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                if (typeof showToast === 'function') showToast('Embed supprimé !');
+                loadAllServerEmbeds();
+                if (typeof loadGuildConfiguration === 'function') loadGuildConfiguration();
+              } else {
+                if (typeof showToast === 'function') showToast('Erreur: ' + data.error, true);
+              }
+            });
+          }
+        });
+
+        container.appendChild(itemCard);
+      });
     });
   }
+  window.renderAllServerEmbeds = renderAllServerEmbeds;
+
+  document.addEventListener('click', (e) => {
+    if (e.target && (e.target.id === 'btn-refresh-all-embeds' || e.target.closest('#btn-refresh-all-embeds'))) {
+      loadAllServerEmbeds();
+    }
+    const tabBtn = e.target.closest('.tab-btn[data-tab="tab-embed-sender"]');
+    if (tabBtn && typeof loadAllServerEmbeds === 'function') {
+      loadAllServerEmbeds();
+    }
+  });
 
   // --- RENDERS POUR AUTO-THREAD ---
 

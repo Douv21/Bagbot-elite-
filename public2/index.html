@@ -2934,7 +2934,7 @@
               <div class="card glass mb-4 discord-embed-wide">
                 <h3>✨ Aperçu Discord en direct (cliquable)</h3>
                 <p class="description-text" style="font-size: 0.78rem; margin-top: -4px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
-                  <span>Cliquez directement sur le titre, la description, la couleur, la miniature, l'auteur, l'image ou le bas de page ci-dessous pour les modifier.</span>
+                  <span>Cliquez directement sur le titre, la description, la couleur, l'auteur, l'image ou le bas de page ci-dessous pour les modifier.</span>
                   <div style="display: flex; gap: 6px;">
                     <button type="button" id="btn_simple_embed_use_my_profile" class="btn-mini-action">
                       <i class="fa-solid fa-user-check"></i> Insérer mon profil comme auteur
@@ -2983,42 +2983,8 @@
                         </div>
 
                         <div style="display: flex; gap: 10px; justify-content: space-between; align-items: flex-start; min-height: 85px; margin-bottom: 8px;">
-                          <div class="discord-embed-desc-container" style="flex-grow: 1; min-width: 0;">
+                          <div class="discord-embed-desc-container" style="flex-grow: 1; min-width: 0; width: 100%;">
                             <textarea id="simple-embed-preview-desc" class="discord-embed-desc-field" rows="3" placeholder="Cliquez pour écrire le message..."></textarea>
-                          </div>
-
-                          <!-- Thumbnail: click opens a mini menu (aucune / mon
-                               avatar / avatar serveur / avatar bot / URL
-                               personnalisée) instead of a separate dropdown. -->
-                          <div class="discord-embed-thumbnail-wrap" id="simple-embed-thumbnail-wrap">
-                            <div class="discord-embed-thumbnail" id="simple-embed-thumbnail-box" title="Cliquer pour choisir une miniature">
-                              <img id="simple-embed-preview-thumbnail" src="" alt="" style="display: none; width: 100%; height: 100%; object-fit: cover;">
-                              <div class="thumbnail-toggle-overlay" id="simple-embed-thumbnail-placeholder" style="opacity: 1; position: static; background: rgba(0,0,0,0.15); height: 100%;">
-                                <i class="fa-solid fa-image"></i>
-                                <span>Miniature</span>
-                              </div>
-                            </div>
-                            <div class="thumbnail-option-popover" id="simple-embed-thumbnail-popover" style="display: none;">
-                              <button type="button" class="thumbnail-option-btn" data-thumb-mode="none"><i class="fa-solid fa-ban"></i> Aucune miniature</button>
-                              <button type="button" class="thumbnail-option-btn" data-thumb-mode="user"><i class="fa-solid fa-user"></i> Mon avatar Discord</button>
-                              <button type="button" class="thumbnail-option-btn" data-thumb-mode="server"><i class="fa-solid fa-server"></i> Avatar du serveur</button>
-                              <button type="button" class="thumbnail-option-btn" data-thumb-mode="bot"><i class="fa-solid fa-robot"></i> Avatar du Bot</button>
-                              <button type="button" class="thumbnail-option-btn" data-thumb-mode="custom"><i class="fa-solid fa-link"></i> URL personnalisée</button>
-                              <div class="thumbnail-custom-row" id="group_simple_embed_custom_thumb" style="display: none;">
-                                <input type="text" id="simple_embed_custom_thumb_url" placeholder="https://.../thumbnail.png">
-                                <label class="btn-upload-label" title="Téléverser">
-                                  <i class="fa-solid fa-cloud-arrow-up"></i>
-                                  <input type="file" id="simple_embed_custom_thumb_file" accept="image/*" style="display: none;">
-                                </label>
-                              </div>
-                            </div>
-                            <select id="simple_embed_thumbnail_option" style="display: none;">
-                              <option value="none">Aucune miniature</option>
-                              <option value="user">Mon avatar Discord (Créateur)</option>
-                              <option value="server">Avatar du serveur</option>
-                              <option value="bot">Avatar du Bot</option>
-                              <option value="custom">URL Personnalisée / Téléversement</option>
-                            </select>
                           </div>
                         </div>
 

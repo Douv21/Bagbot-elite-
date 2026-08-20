@@ -1899,3 +1899,107 @@ td.text-center, td[colspan] {
 .cmd-option-item:hover {
   background: rgba(255, 255, 255, 0.08);
 }
+
+/* --- DISCORD EMBED PREVIEW LAYOUT FIX (NO OVERLAP THUMBNAIL & BANNER IMAGE) --- */
+.discord-embed-body-content {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  width: 100% !important;
+  position: relative !important;
+}
+
+.discord-embed-main-text {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+.discord-embed-thumbnail,
+.discord-embed-thumbnail-wrap,
+#simple-embed-thumbnail-wrap,
+#autorole-preview-thumbnail,
+#discord-thumbnail-box {
+  display: none !important;
+}
+
+.discord-embed-image-box {
+  display: block !important;
+  clear: both !important;
+  width: 100% !important;
+  margin-top: 24px !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+}
+
+.discord-embed-image-box img,
+#autorole-preview-image,
+#simple-embed-preview-image,
+#discord-image-box {
+  width: 100% !important;
+  max-height: 250px !important;
+  object-fit: cover !important;
+  border-radius: 4px !important;
+  margin-top: 24px !important;
+}
+
+/* --- MOBILE SMARTPHONE SPECIFIC FIX (SCREEN WIDTH <= 768px) --- */
+@media (max-width: 768px) {
+  .discord-embed-body-content {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .discord-embed-main-text,
+  .discord-embed-desc-container {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+
+  .discord-embed-thumbnail,
+  .discord-embed-thumbnail-wrap,
+  #autorole-preview-thumbnail,
+  #simple-embed-preview-thumbnail {
+    flex: 0 0 54px !important;
+    width: 54px !important;
+    height: 54px !important;
+    max-width: 54px !important;
+    max-height: 54px !important;
+    flex-shrink: 0 !important;
+    overflow: hidden !important;
+    border-radius: 4px !important;
+    position: relative !important;
+    align-self: flex-start !important;
+    margin-left: 6px !important;
+  }
+
+  .discord-embed-image-box,
+  #autorole-preview-image,
+  #simple-embed-preview-image,
+  #discord-image-box {
+    display: block !important;
+    clear: both !important;
+    width: 100% !important;
+    margin-top: 20px !important;
+    position: relative !important;
+    box-sizing: border-box !important;
+  }
+
+  .discord-embed {
+    padding: 10px 12px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .discord-preview-container {
+    padding: 10px !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+}
