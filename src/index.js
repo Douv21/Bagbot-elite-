@@ -1964,14 +1964,31 @@ apiApp.get('/server-tags', (req, res) => {
     const tagsMap = [];
     if (client && client.guilds && client.guilds.cache) {
       client.guilds.cache.forEach(g => {
-        const tag = getGuildTag(g);
-        if (tag && tag.length > 0) {
-          tagsMap.push({
-            guildId: g.id,
-            guildName: g.name,
-            tag: tag
-          });
-        }
+        const tag = getGuildTag(g) || g.name;
+        tagsMap.push({
+          guildId: g.id,
+          guildName: g.name,
+          tag: tag
+        });
+      });
+    }
+    res.json({ success: true, tags: tagsMap });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message, tags: [] });
+  }
+});
+
+apiApp.get('/bot/server-tags', (req, res) => {
+  try {
+    const tagsMap = [];
+    if (client && client.guilds && client.guilds.cache) {
+      client.guilds.cache.forEach(g => {
+        const tag = getGuildTag(g) || g.name;
+        tagsMap.push({
+          guildId: g.id,
+          guildName: g.name,
+          tag: tag
+        });
       });
     }
     res.json({ success: true, tags: tagsMap });
