@@ -1,4 +1,5 @@
-const { client } = require('./src/index');
+const path = require('path');
+const { client } = require(path.join(__dirname, '../src/index'));
 
 setTimeout(async () => {
   console.log('--- INSPECTING GUILDS ---');
