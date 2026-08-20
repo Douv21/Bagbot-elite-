@@ -2718,25 +2718,49 @@ client.on('messageCreate', async (message) => {
 
     function normalizeStr(str) {
       if (!str) return '';
-      return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
     }
 
     function hasMemberTag(m, tagStr) {
       if (!m || !tagStr) return false;
-      const tagNorm = normalizeStr(tagStr);
-      if (!tagNorm) return false;
+      const cleanTag = (tagStr || '').trim().toLowerCase();
+      if (!cleanTag) return false;
 
-      const nickNorm = normalizeStr(m.nickname || '');
-      const displayNorm = normalizeStr(m.displayName || '');
-      const unameNorm = normalizeStr(m.user?.username || '');
-      const gnameNorm = normalizeStr(m.user?.globalName || '');
-      const clanNorm = normalizeStr(m.user?.clan?.tag || m.clan?.tag || '');
+      const nick = (m.nickname || '').toLowerCase();
+      const display = (m.displayName || '').toLowerCase();
+      const uname = (m.user?.username || '').toLowerCase();
+      const gname = (m.user?.globalName || '').toLowerCase();
+      const clanTag = (m.user?.clan?.tag || m.clan?.tag || '').toLowerCase();
 
-      return nickNorm.includes(tagNorm) ||
-             displayNorm.includes(tagNorm) ||
-             unameNorm.includes(tagNorm) ||
-             gnameNorm.includes(tagNorm) ||
-             clanNorm.includes(tagNorm);
+      // 1. Détection directe (.includes exact)
+      if (nick.includes(cleanTag) || display.includes(cleanTag) || uname.includes(cleanTag) || gname.includes(cleanTag) || clanTag.includes(cleanTag)) {
+        return true;
+      }
+
+      // 2. Détection sans accents/majuscules
+      const normTag = normalizeStr(cleanTag);
+      if (normTag.length > 0) {
+        if (normalizeStr(nick).includes(normTag) ||
+            normalizeStr(display).includes(normTag) ||
+            normalizeStr(uname).includes(normTag) ||
+            normalizeStr(gname).includes(normTag) ||
+            normalizeStr(clanTag).includes(normTag)) {
+          return true;
+        }
+      }
+
+      // 3. Détection alphanumérique (sans symboles)
+      const alphaTag = normTag.replace(/[^a-z0-9]/g, '');
+      if (alphaTag.length > 1) {
+        const cleanAlpha = (s) => normalizeStr(s).replace(/[^a-z0-9]/g, '');
+        return cleanAlpha(nick).includes(alphaTag) ||
+               cleanAlpha(display).includes(alphaTag) ||
+               cleanAlpha(uname).includes(alphaTag) ||
+               cleanAlpha(gname).includes(alphaTag) ||
+               cleanAlpha(clanTag).includes(alphaTag);
+      }
+
+      return false;
     }
     
     // Récupérer les commandes personnalisées du serveur
@@ -2798,16 +2822,16 @@ client.on('messageCreate', async (message) => {
             // Attribuer ou retirer le rôle à TOUTES LES PERSONNES DU SERVEUR SELON LE TAG
             (async () => {
               try {
-                const allMembers = await guild.members.fetch({ force: true }).catch(err => {
-                  console.error('[TAG ALL MEMBERS] Erreur fetch members:', err.message);
-                  return guild.members.cache;
-                });
+                let membersList = guild.members.cache;
+                if (!membersList || membersList.size < 5) {
+                  membersList = await guild.members.fetch().catch(() => guild.members.cache);
+                }
 
-                if (allMembers && allMembers.size > 0 && tagLower.length > 0) {
-                  const matching = allMembers.filter(m => !m.user.bot && hasMemberTag(m, tagLower));
-                  const notMatching = allMembers.filter(m => !m.user.bot && !matching.has(m.id));
+                if (membersList && membersList.size > 0 && autoServerTag.length > 0) {
+                  const matching = membersList.filter(m => !m.user.bot && hasMemberTag(m, autoServerTag));
+                  const notMatching = membersList.filter(m => !m.user.bot && !matching.has(m.id));
 
-                  console.log(`[TAG AUTO-ROLE] Tag officiel du serveur "${autoServerTag}". ${allMembers.size} membres analysés sur "${guild.name}". ${matching.size} avec tag (+ rôle), ${notMatching.size} sans tag (- rôle).`);
+                  console.log(`[TAG AUTO-ROLE] Tag officiel du serveur "${autoServerTag}". ${membersList.size} membres analysés sur "${guild.name}". ${matching.size} avec tag (+ rôle), ${notMatching.size} sans tag (- rôle).`);
 
                   // 1. Ajouter le rôle à tous ceux qui ONT le tag dans leur pseudo
                   for (const [, targetM] of matching) {
