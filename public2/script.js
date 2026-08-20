@@ -7082,6 +7082,16 @@ function loadCustomCommands(guildId) {
     const deleteInput = document.getElementById('cc-delete-trigger-input');
     if (deleteInput) deleteInput.checked = (settings.delete_trigger == 1 || settings.delete_trigger === true);
 
+    fetch('/api/server-tags').then(r => r.json()).then(tagsData => {
+      const tagSelect = document.getElementById('cc-cond-tag-select');
+      if (tagSelect && tagsData.success && Array.isArray(tagsData.tags)) {
+        const curVal = document.getElementById('cc-cond-tag-val')?.value || '';
+        tagSelect.innerHTML = '<option value="">-- Choisir le Tag d\'un Serveur --</option>' +
+          tagsData.tags.map(t => `<option value="${t.tag}" ${t.tag === curVal ? 'selected' : ''}>🏷️ [${t.tag}] — ${t.guildName}</option>`).join('') +
+          '<option value="__custom__">✏️ Autre (Saisie manuelle ci-dessous)</option>';
+      }
+    }).catch(console.error);
+
     renderCustomCommands(commands, guildId);
     renderCcActionsList();
   }).catch(console.error);
@@ -7139,8 +7149,10 @@ function editCustomCommand(guildId, commandName) {
   const boosterCheck = document.getElementById('cc-cond-booster-check');
   const refusalMsg = document.getElementById('cc-cond-refusal-msg');
 
+  const tagSelect = document.getElementById('cc-cond-tag-select');
   if (tagCheck) tagCheck.checked = false;
   if (tagVal) tagVal.value = '';
+  if (tagSelect) tagSelect.value = '';
   if (tagRoleSelect) {
     tagRoleSelect.value = '';
     tagRoleSelect.removeAttribute('data-pending-val');
@@ -7152,6 +7164,7 @@ function editCustomCommand(guildId, commandName) {
     if (cond.type === 'has_server_tag') {
       if (tagCheck) tagCheck.checked = true;
       if (tagVal) tagVal.value = cond.tag || '';
+      if (tagSelect && cond.tag) tagSelect.value = cond.tag;
       if (tagRoleSelect && cond.autoRoleId) {
         tagRoleSelect.value = cond.autoRoleId;
         tagRoleSelect.setAttribute('data-pending-val', cond.autoRoleId);

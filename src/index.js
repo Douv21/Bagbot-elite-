@@ -50,6 +50,79 @@ for (const folder of commandFolders) {
   }
 }
 
+// Fonctions d'assistance globales pour les Tags et Membres
+function getGuildTag(g) {
+  if (!g) return '';
+  if (g.clan && g.clan.tag) return g.clan.tag.trim();
+  if (g.rawClan && g.rawClan.tag) return g.rawClan.tag.trim();
+  if (g.name) {
+    const matchBracket = g.name.match(/[\[\(\{\<]([^\(\)\[\]\{\}\>]+)[\]\)\}\>]/);
+    if (matchBracket && matchBracket[1] && matchBracket[1].trim().length > 0) return matchBracket[1].trim();
+    if (g.name.includes('|')) {
+      const p = g.name.split('|')[0].trim();
+      if (p.length > 0 && p.length < 15) return p;
+    }
+    if (g.name.includes('•')) {
+      const p = g.name.split('•')[0].trim();
+      if (p.length > 0 && p.length < 15) return p;
+    }
+    if (g.name.includes(' - ')) {
+      const p = g.name.split(' - ')[0].trim();
+      if (p.length > 0 && p.length < 15) return p;
+    }
+    if (g.vanityURLCode) return g.vanityURLCode.trim();
+    return g.name.trim();
+  }
+  return '';
+}
+
+function normalizeStr(str) {
+  if (!str) return '';
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+function hasMemberTag(m, tagStr) {
+  if (!m || !tagStr) return false;
+  const cleanTag = (tagStr || '').trim().toLowerCase();
+  if (!cleanTag) return false;
+
+  const nick = (m.nickname || '').toLowerCase();
+  const display = (m.displayName || '').toLowerCase();
+  const uname = (m.user?.username || '').toLowerCase();
+  const gname = (m.user?.globalName || '').toLowerCase();
+  const clanTag = (m.user?.clan?.tag || m.clan?.tag || '').toLowerCase();
+
+  // 1. Détection directe (.includes exact)
+  if (nick.includes(cleanTag) || display.includes(cleanTag) || uname.includes(cleanTag) || gname.includes(cleanTag) || clanTag.includes(cleanTag)) {
+    return true;
+  }
+
+  // 2. Détection sans accents/majuscules
+  const normTag = normalizeStr(cleanTag);
+  if (normTag.length > 0) {
+    if (normalizeStr(nick).includes(normTag) ||
+        normalizeStr(display).includes(normTag) ||
+        normalizeStr(uname).includes(normTag) ||
+        normalizeStr(gname).includes(normTag) ||
+        normalizeStr(clanTag).includes(normTag)) {
+      return true;
+    }
+  }
+
+  // 3. Détection alphanumérique (sans symboles)
+  const alphaTag = normTag.replace(/[^a-z0-9]/g, '');
+  if (alphaTag.length > 1) {
+    const cleanAlpha = (s) => normalizeStr(s).replace(/[^a-z0-9]/g, '');
+    return cleanAlpha(nick).includes(alphaTag) ||
+           cleanAlpha(display).includes(alphaTag) ||
+           cleanAlpha(uname).includes(alphaTag) ||
+           cleanAlpha(gname).includes(alphaTag) ||
+           cleanAlpha(clanTag).includes(alphaTag);
+  }
+
+  return false;
+}
+
 // Charger les événements
 const eventsPath = path.join(__dirname, 'events');
 const eventFiles = fs.existsSync(eventsPath) ? fs.readdirSync(eventsPath).filter(file => file.endsWith('.js')) : [];
@@ -1886,6 +1959,27 @@ apiApp.post('/bot/age-verification-completed', async (req, res) => {
   }
 });
 
+apiApp.get('/server-tags', (req, res) => {
+  try {
+    const tagsMap = [];
+    if (client && client.guilds && client.guilds.cache) {
+      client.guilds.cache.forEach(g => {
+        const tag = getGuildTag(g);
+        if (tag && tag.length > 0) {
+          tagsMap.push({
+            guildId: g.id,
+            guildName: g.name,
+            tag: tag
+          });
+        }
+      });
+    }
+    res.json({ success: true, tags: tagsMap });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message, tags: [] });
+  }
+});
+
 apiApp.get('/guilds', (req, res) => {
   const guilds = client.guilds.cache.map(guild => ({
     id: guild.id,
@@ -2690,78 +2784,6 @@ client.on('messageCreate', async (message) => {
   // 2. COMMANDES PERSONNALISÉES (CUSTOM COMMANDS)
   try {
     const { getCustomCommandSettings, getCustomCommands, addTemporaryRole, updateEconomy, getEconomy, db } = require('./database/db');
-
-    function getGuildTag(g) {
-      if (!g) return '';
-      if (g.clan && g.clan.tag) return g.clan.tag.trim();
-      if (g.rawClan && g.rawClan.tag) return g.rawClan.tag.trim();
-      if (g.name) {
-        const matchBracket = g.name.match(/[\[\(\{\<]([^\(\)\[\]\{\}\>]+)[\]\)\}\>]/);
-        if (matchBracket && matchBracket[1] && matchBracket[1].trim().length > 0) return matchBracket[1].trim();
-        if (g.name.includes('|')) {
-          const p = g.name.split('|')[0].trim();
-          if (p.length > 0 && p.length < 15) return p;
-        }
-        if (g.name.includes('•')) {
-          const p = g.name.split('•')[0].trim();
-          if (p.length > 0 && p.length < 15) return p;
-        }
-        if (g.name.includes(' - ')) {
-          const p = g.name.split(' - ')[0].trim();
-          if (p.length > 0 && p.length < 15) return p;
-        }
-        if (g.vanityURLCode) return g.vanityURLCode.trim();
-        return g.name.trim();
-      }
-      return '';
-    }
-
-    function normalizeStr(str) {
-      if (!str) return '';
-      return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-    }
-
-    function hasMemberTag(m, tagStr) {
-      if (!m || !tagStr) return false;
-      const cleanTag = (tagStr || '').trim().toLowerCase();
-      if (!cleanTag) return false;
-
-      const nick = (m.nickname || '').toLowerCase();
-      const display = (m.displayName || '').toLowerCase();
-      const uname = (m.user?.username || '').toLowerCase();
-      const gname = (m.user?.globalName || '').toLowerCase();
-      const clanTag = (m.user?.clan?.tag || m.clan?.tag || '').toLowerCase();
-
-      // 1. Détection directe (.includes exact)
-      if (nick.includes(cleanTag) || display.includes(cleanTag) || uname.includes(cleanTag) || gname.includes(cleanTag) || clanTag.includes(cleanTag)) {
-        return true;
-      }
-
-      // 2. Détection sans accents/majuscules
-      const normTag = normalizeStr(cleanTag);
-      if (normTag.length > 0) {
-        if (normalizeStr(nick).includes(normTag) ||
-            normalizeStr(display).includes(normTag) ||
-            normalizeStr(uname).includes(normTag) ||
-            normalizeStr(gname).includes(normTag) ||
-            normalizeStr(clanTag).includes(normTag)) {
-          return true;
-        }
-      }
-
-      // 3. Détection alphanumérique (sans symboles)
-      const alphaTag = normTag.replace(/[^a-z0-9]/g, '');
-      if (alphaTag.length > 1) {
-        const cleanAlpha = (s) => normalizeStr(s).replace(/[^a-z0-9]/g, '');
-        return cleanAlpha(nick).includes(alphaTag) ||
-               cleanAlpha(display).includes(alphaTag) ||
-               cleanAlpha(uname).includes(alphaTag) ||
-               cleanAlpha(gname).includes(alphaTag) ||
-               cleanAlpha(clanTag).includes(alphaTag);
-      }
-
-      return false;
-    }
     
     // Récupérer les commandes personnalisées du serveur
     const customCmds = getCustomCommands(guildId);

@@ -2999,7 +2999,10 @@ Il/Elle remporte le rôle {role} et brille sur le serveur !</textarea>
                       <label style="font-size: 0.82rem; color: #dcddde; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                         <input type="checkbox" id="cc-cond-tag-check"> 🏷️ Exiger le Tag du Serveur
                       </label>
-                      <input type="text" id="cc-cond-tag-val" placeholder="ex: B&G (optionnel - auto si vide)" class="inner-input" style="padding: 6px 10px; font-size: 0.85rem; background: #2f3136; border: 1px solid #40444b; color: #fff; border-radius: 6px; width: 100%;">
+                      <select id="cc-cond-tag-select" class="inner-input" onchange="if(this.value !== '__custom__') document.getElementById('cc-cond-tag-val').value = this.value;" style="padding: 6px 10px; font-size: 0.85rem; background: #2f3136; border: 1px solid #40444b; color: #fff; border-radius: 6px; width: 100%; margin-bottom: 6px;">
+                        <option value="">-- Choisir le Tag d'un Serveur --</option>
+                      </select>
+                      <input type="text" id="cc-cond-tag-val" placeholder="Ou saisir un tag personnalisé..." class="inner-input" style="padding: 6px 10px; font-size: 0.85rem; background: #2f3136; border: 1px solid #40444b; color: #fff; border-radius: 6px; width: 100%;">
                     </div>
 
                     <div>
