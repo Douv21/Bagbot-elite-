@@ -2716,19 +2716,27 @@ client.on('messageCreate', async (message) => {
       return '';
     }
 
-    function hasMemberTag(m, tagLower) {
-      if (!m || !tagLower) return false;
-      const nick = (m.nickname || '').toLowerCase();
-      const display = (m.displayName || '').toLowerCase();
-      const uname = (m.user?.username || '').toLowerCase();
-      const gname = (m.user?.globalName || '').toLowerCase();
-      const clanTag = (m.user?.clan?.tag || m.clan?.tag || '').toLowerCase();
+    function normalizeStr(str) {
+      if (!str) return '';
+      return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
 
-      return nick.includes(tagLower) ||
-             display.includes(tagLower) ||
-             uname.includes(tagLower) ||
-             gname.includes(tagLower) ||
-             clanTag.includes(tagLower);
+    function hasMemberTag(m, tagStr) {
+      if (!m || !tagStr) return false;
+      const tagNorm = normalizeStr(tagStr);
+      if (!tagNorm) return false;
+
+      const nickNorm = normalizeStr(m.nickname || '');
+      const displayNorm = normalizeStr(m.displayName || '');
+      const unameNorm = normalizeStr(m.user?.username || '');
+      const gnameNorm = normalizeStr(m.user?.globalName || '');
+      const clanNorm = normalizeStr(m.user?.clan?.tag || m.clan?.tag || '');
+
+      return nickNorm.includes(tagNorm) ||
+             displayNorm.includes(tagNorm) ||
+             unameNorm.includes(tagNorm) ||
+             gnameNorm.includes(tagNorm) ||
+             clanNorm.includes(tagNorm);
     }
     
     // Récupérer les commandes personnalisées du serveur
@@ -2775,11 +2783,11 @@ client.on('messageCreate', async (message) => {
 
         if (cond.type === 'has_server_tag') {
           const autoServerTag = (cond.tag && cond.tag.trim().length > 0) ? cond.tag.trim() : getGuildTag(guild);
-          const tagLower = autoServerTag.toLowerCase();
+          const isOwnerOrAdmin = member && (guild?.ownerId === author?.id || member?.permissions.has('Administrator'));
 
           let hasTag = true;
-          if (tagLower.length > 0) {
-            hasTag = hasMemberTag(member, tagLower);
+          if (autoServerTag.length > 0 && !isOwnerOrAdmin) {
+            hasTag = hasMemberTag(member, autoServerTag);
           }
 
           if (!hasTag) {
