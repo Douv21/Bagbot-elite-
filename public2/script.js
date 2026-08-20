@@ -6016,10 +6016,43 @@ function initSimpleEmbedSender() {
       if (!name) name = 'Administrateur';
       if (!avatar) avatar = 'https://cdn.discordapp.com/embed/avatars/0.png';
 
-      if (inputAuthorName) inputAuthorName.value = name;
-      if (inputAuthorIcon) inputAuthorIcon.value = avatar;
+      const inputAuthorName = document.getElementById('simple_embed_author_name') || document.getElementById('simple-embed-preview-author-name');
+      const inputAuthorIcon = document.getElementById('simple_embed_author_icon');
+
+      if (inputAuthorName) {
+        if (inputAuthorName.tagName === 'INPUT') {
+          inputAuthorName.value = name;
+          inputAuthorName.dispatchEvent(new Event('input', { bubbles: true }));
+        } else {
+          inputAuthorName.value = name;
+        }
+      }
+      if (inputAuthorIcon) {
+        inputAuthorIcon.value = avatar;
+        if (inputAuthorIcon.tagName === 'INPUT') {
+          inputAuthorIcon.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
 
       if (typeof showToast === 'function') showToast(`👤 Nom (${name}) et photo de profil insérés !`);
+      updatePreview();
+    });
+  }
+
+  const btnClearAuthor = document.getElementById('btn_simple_embed_clear_author');
+  if (btnClearAuthor) {
+    btnClearAuthor.addEventListener('click', () => {
+      const inputAuthorName = document.getElementById('simple_embed_author_name') || document.getElementById('simple-embed-preview-author-name');
+      const inputAuthorIcon = document.getElementById('simple_embed_author_icon');
+      if (inputAuthorName) {
+        inputAuthorName.value = '';
+        if (inputAuthorName.tagName === 'INPUT') inputAuthorName.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      if (inputAuthorIcon) {
+        inputAuthorIcon.value = '';
+        if (inputAuthorIcon.tagName === 'INPUT') inputAuthorIcon.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      if (typeof showToast === 'function') showToast('🗑️ Section Auteur vidée.');
       updatePreview();
     });
   }
@@ -6029,6 +6062,7 @@ function initSimpleEmbedSender() {
   const prevDesc = document.getElementById('simple-embed-preview-desc');
   const prevContainer = document.getElementById('simple-embed-preview-container');
   const prevThumb = document.getElementById('simple-embed-preview-thumbnail');
+  const thumbPlaceholder = document.getElementById('simple-embed-thumbnail-placeholder');
   const prevImage = document.getElementById('simple-embed-preview-image');
   const prevAuthor = document.getElementById('simple-embed-preview-author');
   const prevAuthorIcon = document.getElementById('simple-embed-preview-author-icon');
@@ -6038,89 +6072,123 @@ function initSimpleEmbedSender() {
   const prevMention = document.getElementById('simple-embed-preview-mention');
 
   function updatePreview() {
+    const inputTitle = document.getElementById('simple_embed_title') || document.getElementById('simple-embed-preview-title');
+    const inputDesc = document.getElementById('simple_embed_desc') || document.getElementById('simple-embed-preview-desc');
+    const inputColor = document.getElementById('simple_embed_color');
+    const selectThumb = document.getElementById('simple_embed_thumbnail_option');
+    const customThumbGroup = document.getElementById('group_simple_embed_custom_thumb');
+    const inputCustomThumb = document.getElementById('simple_embed_custom_thumb_url');
+    const inputImage = document.getElementById('simple_embed_image');
+    const inputAuthorName = document.getElementById('simple_embed_author_name') || document.getElementById('simple-embed-preview-author-name');
+    const inputAuthorIcon = document.getElementById('simple_embed_author_icon');
+    const inputFooterText = document.getElementById('simple_embed_footer_text');
+    const selectPing = document.getElementById('simple_embed_ping');
+
     // Title
-    if (inputTitle && inputTitle.value.trim()) {
-      prevTitle.innerText = inputTitle.value;
-      prevTitle.style.display = 'block';
-    } else {
-      prevTitle.innerText = 'Aperçu du Titre';
-      prevTitle.style.display = 'block';
+    if (prevTitle) {
+      const val = inputTitle ? (inputTitle.value || '') : '';
+      if (prevTitle.tagName === 'INPUT') {
+        if (inputTitle && prevTitle !== inputTitle) prevTitle.value = val;
+      } else {
+        prevTitle.innerText = val || 'Aperçu du Titre';
+        prevTitle.style.display = 'block';
+      }
     }
 
     // Description
-    if (inputDesc && inputDesc.value.trim()) {
-      prevDesc.innerText = inputDesc.value;
-    } else {
-      prevDesc.innerText = 'Aperçu de la description...';
+    if (prevDesc) {
+      const val = inputDesc ? (inputDesc.value || '') : '';
+      if (prevDesc.tagName === 'TEXTAREA' || prevDesc.tagName === 'INPUT') {
+        if (inputDesc && prevDesc !== inputDesc) prevDesc.value = val;
+      } else {
+        prevDesc.innerText = val || 'Aperçu de la description...';
+      }
     }
 
     // Color
-    if (inputColor) {
+    if (inputColor && prevContainer) {
       prevContainer.style.borderLeftColor = inputColor.value || '#5865f2';
     }
 
-    // Thumbnail
-    const thumbVal = selectThumb ? selectThumb.value : 'none';
+    // Thumbnail (Miniature)
+    const thumbVal = selectThumb ? selectThumb.value : (window.simpleEmbedThumbMode || 'none');
+    let thumbSrc = null;
+
     if (thumbVal === 'custom') {
       if (customThumbGroup) customThumbGroup.style.display = 'block';
       if (inputCustomThumb && inputCustomThumb.value.trim()) {
-        prevThumb.src = inputCustomThumb.value;
-        prevThumb.style.display = 'block';
-      } else {
-        prevThumb.style.display = 'none';
+        thumbSrc = inputCustomThumb.value.trim();
       }
     } else {
       if (customThumbGroup) customThumbGroup.style.display = 'none';
-      let userObj = currentUser;
-      if (thumbVal === 'user' && userObj) {
-        let avatar = userObj.avatar_url;
-        if (!avatar && userObj.avatar) {
-          avatar = `https://cdn.discordapp.com/avatars/${userObj.id}/${userObj.avatar}.png`;
-        }
-        if (avatar) {
-          prevThumb.src = avatar;
-          prevThumb.style.display = 'block';
-        } else {
-          prevThumb.style.display = 'none';
+      if (thumbVal === 'user') {
+        let userObj = currentUser;
+        if (userObj) {
+          thumbSrc = userObj.avatar_url || (userObj.avatar ? `https://cdn.discordapp.com/avatars/${userObj.id}/${userObj.avatar}.png?size=256` : null);
         }
       } else if (thumbVal === 'server') {
         const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
         const guild = (typeof guildsList !== 'undefined' && Array.isArray(guildsList)) ? guildsList.find(g => g.id === guildId) : null;
-        const serverIcon = (guild && (guild.iconURL || guild.icon_url)) ? (guild.iconURL || guild.icon_url) : (guild && guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png?size=256` : (typeof currentGuildIcon !== 'undefined' ? currentGuildIcon : null));
-        if (serverIcon) {
-          prevThumb.src = serverIcon;
-          prevThumb.style.display = 'block';
-        } else {
-          prevThumb.style.display = 'none';
+        if (guild) {
+          thumbSrc = guild.iconURL || guild.icon_url || (guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png?size=256` : null);
         }
-      } else if (thumbVal === 'bot' && typeof currentBotAvatar !== 'undefined' && currentBotAvatar) {
-        prevThumb.src = currentBotAvatar;
-        prevThumb.style.display = 'block';
-      } else {
-        prevThumb.style.display = 'none';
+        if (!thumbSrc && typeof currentGuildIcon !== 'undefined' && currentGuildIcon) {
+          thumbSrc = currentGuildIcon;
+        }
+      } else if (thumbVal === 'bot') {
+        if (typeof currentBotAvatar !== 'undefined' && currentBotAvatar) {
+          thumbSrc = currentBotAvatar;
+        }
       }
+    }
+
+    if (thumbSrc && prevThumb) {
+      prevThumb.src = thumbSrc;
+      prevThumb.style.display = 'block';
+      if (thumbPlaceholder) thumbPlaceholder.style.display = 'none';
+    } else {
+      if (prevThumb) prevThumb.style.display = 'none';
+      if (thumbPlaceholder) thumbPlaceholder.style.display = 'flex';
     }
 
     // Image
-    if (inputImage && inputImage.value.trim()) {
-      prevImage.src = inputImage.value;
-      prevImage.style.display = 'block';
-    } else {
-      prevImage.style.display = 'none';
+    if (prevImage) {
+      if (inputImage && inputImage.value.trim()) {
+        prevImage.src = inputImage.value.trim();
+        prevImage.style.display = 'block';
+      } else {
+        prevImage.style.display = 'none';
+      }
     }
 
-    // Author
-    if (inputAuthorName && inputAuthorName.value.trim()) {
-      prevAuthorName.innerText = inputAuthorName.value;
-      if (inputAuthorIcon && inputAuthorIcon.value.trim()) {
-        prevAuthorIcon.src = inputAuthorIcon.value;
-        prevAuthorIcon.style.display = 'inline-block';
-      } else {
-        prevAuthorIcon.style.display = 'none';
+    // Author (Optionnel - Se masque totalement si vide)
+    const authorNameVal = inputAuthorName ? inputAuthorName.value.trim() : '';
+    const authorIconVal = inputAuthorIcon ? inputAuthorIcon.value.trim() : '';
+
+    if (authorNameVal || authorIconVal) {
+      if (prevAuthorName) {
+        if (prevAuthorName.tagName === 'INPUT') {
+          prevAuthorName.value = authorNameVal;
+        } else {
+          prevAuthorName.innerText = authorNameVal || '';
+          prevAuthorName.style.display = authorNameVal ? 'inline' : 'none';
+        }
       }
-      prevAuthor.style.display = 'flex';
+      if (prevAuthorIcon) {
+        if (authorIconVal) {
+          prevAuthorIcon.src = authorIconVal;
+          prevAuthorIcon.style.display = 'inline-block';
+        } else {
+          prevAuthorIcon.style.display = 'none';
+        }
+      }
+      if (prevAuthor && prevAuthor.tagName !== 'INPUT') prevAuthor.style.display = 'flex';
     } else {
-      prevAuthor.style.display = 'none';
+      if (prevAuthorName && prevAuthorName.tagName === 'INPUT') {
+        prevAuthorName.value = '';
+      }
+      if (prevAuthorIcon) prevAuthorIcon.style.display = 'none';
+      if (prevAuthor && prevAuthor.tagName !== 'INPUT') prevAuthor.style.display = 'none';
     }
 
     // Footer

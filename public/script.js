@@ -5931,11 +5931,22 @@ function initSimpleEmbedSender() {
     });
   }
 
+  const btnClearAuthor = document.getElementById('btn_simple_embed_clear_author');
+  if (btnClearAuthor) {
+    btnClearAuthor.addEventListener('click', () => {
+      if (inputAuthorName) inputAuthorName.value = '';
+      if (inputAuthorIcon) inputAuthorIcon.value = '';
+      if (typeof showToast === 'function') showToast('🗑️ Section Auteur vidée.');
+      updatePreview();
+    });
+  }
+
   // Elements preview
   const prevTitle = document.getElementById('simple-embed-preview-title');
   const prevDesc = document.getElementById('simple-embed-preview-desc');
   const prevContainer = document.getElementById('simple-embed-preview-container');
   const prevThumb = document.getElementById('simple-embed-preview-thumbnail');
+  const thumbPlaceholder = document.getElementById('simple-embed-thumbnail-placeholder');
   const prevImage = document.getElementById('simple-embed-preview-image');
   const prevAuthor = document.getElementById('simple-embed-preview-author');
   const prevAuthorIcon = document.getElementById('simple-embed-preview-author-icon');
@@ -5946,88 +5957,95 @@ function initSimpleEmbedSender() {
 
   function updatePreview() {
     // Title
-    if (inputTitle && inputTitle.value.trim()) {
-      prevTitle.innerText = inputTitle.value;
-      prevTitle.style.display = 'block';
-    } else {
-      prevTitle.innerText = 'Aperçu du Titre';
+    if (prevTitle) {
+      const val = inputTitle ? inputTitle.value : '';
+      prevTitle.innerText = val || 'Aperçu du Titre';
       prevTitle.style.display = 'block';
     }
 
     // Description
-    if (inputDesc && inputDesc.value.trim()) {
-      prevDesc.innerText = inputDesc.value;
-    } else {
-      prevDesc.innerText = 'Aperçu de la description...';
+    if (prevDesc) {
+      const val = inputDesc ? inputDesc.value : '';
+      prevDesc.innerText = val || 'Aperçu de la description...';
     }
 
     // Color
-    if (inputColor) {
+    if (inputColor && prevContainer) {
       prevContainer.style.borderLeftColor = inputColor.value || '#5865f2';
     }
 
-    // Thumbnail
+    // Thumbnail (Miniature)
     const thumbVal = selectThumb ? selectThumb.value : 'none';
+    let thumbSrc = null;
+
     if (thumbVal === 'custom') {
       if (customThumbGroup) customThumbGroup.style.display = 'block';
       if (inputCustomThumb && inputCustomThumb.value.trim()) {
-        prevThumb.src = inputCustomThumb.value;
-        prevThumb.style.display = 'block';
-      } else {
-        prevThumb.style.display = 'none';
+        thumbSrc = inputCustomThumb.value.trim();
       }
     } else {
       if (customThumbGroup) customThumbGroup.style.display = 'none';
-      let userObj = currentUser;
-      if (thumbVal === 'user' && userObj) {
-        let avatar = userObj.avatar_url;
-        if (!avatar && userObj.avatar) {
-          avatar = `https://cdn.discordapp.com/avatars/${userObj.id}/${userObj.avatar}.png`;
-        }
-        if (avatar) {
-          prevThumb.src = avatar;
-          prevThumb.style.display = 'block';
-        } else {
-          prevThumb.style.display = 'none';
+      if (thumbVal === 'user') {
+        let userObj = currentUser;
+        if (userObj) {
+          thumbSrc = userObj.avatar_url || (userObj.avatar ? `https://cdn.discordapp.com/avatars/${userObj.id}/${userObj.avatar}.png?size=256` : null);
         }
       } else if (thumbVal === 'server') {
         const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
         const guild = (typeof guildsList !== 'undefined' && Array.isArray(guildsList)) ? guildsList.find(g => g.id === guildId) : null;
-        const serverIcon = (guild && (guild.iconURL || guild.icon_url)) ? (guild.iconURL || guild.icon_url) : (guild && guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png?size=256` : (typeof currentGuildIcon !== 'undefined' ? currentGuildIcon : null));
-        if (serverIcon) {
-          prevThumb.src = serverIcon;
-          prevThumb.style.display = 'block';
-        } else {
-          prevThumb.style.display = 'none';
+        if (guild) {
+          thumbSrc = guild.iconURL || guild.icon_url || (guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png?size=256` : null);
         }
-      } else if (thumbVal === 'bot' && typeof currentBotAvatar !== 'undefined' && currentBotAvatar) {
-        prevThumb.src = currentBotAvatar;
-        prevThumb.style.display = 'block';
-      } else {
-        prevThumb.style.display = 'none';
+        if (!thumbSrc && typeof currentGuildIcon !== 'undefined' && currentGuildIcon) {
+          thumbSrc = currentGuildIcon;
+        }
+      } else if (thumbVal === 'bot') {
+        if (typeof currentBotAvatar !== 'undefined' && currentBotAvatar) {
+          thumbSrc = currentBotAvatar;
+        }
       }
+    }
+
+    if (thumbSrc && prevThumb) {
+      prevThumb.src = thumbSrc;
+      prevThumb.style.display = 'block';
+      if (thumbPlaceholder) thumbPlaceholder.style.display = 'none';
+    } else {
+      if (prevThumb) prevThumb.style.display = 'none';
+      if (thumbPlaceholder) thumbPlaceholder.style.display = 'flex';
     }
 
     // Image
-    if (inputImage && inputImage.value.trim()) {
-      prevImage.src = inputImage.value;
-      prevImage.style.display = 'block';
-    } else {
-      prevImage.style.display = 'none';
+    if (prevImage) {
+      if (inputImage && inputImage.value.trim()) {
+        prevImage.src = inputImage.value.trim();
+        prevImage.style.display = 'block';
+      } else {
+        prevImage.style.display = 'none';
+      }
     }
 
-    // Author
-    if (inputAuthorName && inputAuthorName.value.trim()) {
-      prevAuthorName.innerText = inputAuthorName.value;
-      if (inputAuthorIcon && inputAuthorIcon.value.trim()) {
-        prevAuthorIcon.src = inputAuthorIcon.value;
-        prevAuthorIcon.style.display = 'inline-block';
-      } else {
-        prevAuthorIcon.style.display = 'none';
+    // Author (Optionnel - Se masque totalement si vide)
+    const authorNameVal = inputAuthorName ? inputAuthorName.value.trim() : '';
+    const authorIconVal = inputAuthorIcon ? inputAuthorIcon.value.trim() : '';
+
+    if (authorNameVal || authorIconVal) {
+      if (prevAuthorName) {
+        prevAuthorName.innerText = authorNameVal || '';
+        prevAuthorName.style.display = authorNameVal ? 'inline' : 'none';
       }
-      prevAuthor.style.display = 'flex';
+      if (prevAuthorIcon) {
+        if (authorIconVal) {
+          prevAuthorIcon.src = authorIconVal;
+          prevAuthorIcon.style.display = 'inline-block';
+        } else {
+          prevAuthorIcon.style.display = 'none';
+        }
+      }
+      if (prevAuthor) prevAuthor.style.display = 'flex';
     } else {
-      prevAuthor.style.display = 'none';
+      if (prevAuthorIcon) prevAuthorIcon.style.display = 'none';
+      if (prevAuthor) prevAuthor.style.display = 'none';
     }
 
     // Footer

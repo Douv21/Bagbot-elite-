@@ -2761,9 +2761,14 @@
                 <h3>✨ Aperçu Discord en direct (cliquable)</h3>
                 <p class="description-text" style="font-size: 0.78rem; margin-top: -4px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
                   <span>Cliquez directement sur le titre, la description, la couleur, la miniature, l'auteur, l'image ou le bas de page ci-dessous pour les modifier.</span>
-                  <button type="button" id="btn_simple_embed_use_my_profile" class="btn-mini-action">
-                    <i class="fa-solid fa-user-check"></i> Insérer mon profil comme auteur
-                  </button>
+                  <div style="display: flex; gap: 6px;">
+                    <button type="button" id="btn_simple_embed_use_my_profile" class="btn-mini-action">
+                      <i class="fa-solid fa-user-check"></i> Insérer mon profil comme auteur
+                    </button>
+                    <button type="button" id="btn_simple_embed_clear_author" class="btn-mini-action" style="background: rgba(255,255,255,0.1); color: #b9bbbe;">
+                      <i class="fa-solid fa-trash"></i> Vider Auteur (Optionnel)
+                    </button>
+                  </div>
                 </p>
                 <div class="embed-editor-row" style="margin-top: 15px;">
                   <div class="embed-icon-rail">

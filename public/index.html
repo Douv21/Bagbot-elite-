@@ -2240,11 +2240,16 @@
 
                     <div class="form-row">
                       <div class="form-group">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
                           <label for="simple_embed_author_name" style="margin: 0;"><i class="fa-solid fa-user"></i> Nom de l'auteur (Optionnel) :</label>
-                          <button type="button" id="btn_simple_embed_use_my_profile" class="btn" style="background: linear-gradient(135deg, #7289da, #5865f2); color: #fff; font-size: 0.78rem; padding: 3px 10px; border-radius: 6px; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 5px;">
-                            <i class="fa-solid fa-user-check"></i> Insérer mon profil Discord
-                          </button>
+                          <div style="display: flex; gap: 6px;">
+                            <button type="button" id="btn_simple_embed_use_my_profile" class="btn" style="background: linear-gradient(135deg, #7289da, #5865f2); color: #fff; font-size: 0.78rem; padding: 3px 10px; border-radius: 6px; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 5px;">
+                              <i class="fa-solid fa-user-check"></i> Insérer mon profil Discord
+                            </button>
+                            <button type="button" id="btn_simple_embed_clear_author" class="btn" style="background: rgba(255,255,255,0.1); color: #b9bbbe; font-size: 0.78rem; padding: 3px 8px; border-radius: 6px; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 4px;">
+                              <i class="fa-solid fa-trash"></i> Vider
+                            </button>
+                          </div>
                         </div>
                         <input type="text" id="simple_embed_author_name" class="inner-input" placeholder="ex: Modération B&G Elite (ou cliquez sur 'Insérer mon profil')">
                       </div>
