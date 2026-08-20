@@ -2776,15 +2776,25 @@ client.on('messageCreate', async (message) => {
       return;
     }
 
-    // Formatage des variables
-    const formatVars = (str) => {
+    // Détecter si un membre/utilisateur est mentionné dans le message
+    const mentionedMember = message.mentions.members?.first() || null;
+    const mentionedUser = message.mentions.users?.first() || null;
+
+    // Formatage des variables avec support du membre cible
+    const formatVars = (str, targetMemOverride = null, targetUserOverride = null) => {
       if (!str || typeof str !== 'string') return str;
+      const tgtMember = targetMemOverride || mentionedMember || member;
+      const tgtUser = targetUserOverride || mentionedUser || author;
+
       return str
         .replace(/\{user\}/gi, `<@${author.id}>`)
         .replace(/\{user_mention\}/gi, `<@${author.id}>`)
         .replace(/\{username\}/gi, author.username)
         .replace(/\{user_id\}/gi, author.id)
         .replace(/\{user_avatar\}/gi, author.displayAvatarURL({ dynamic: true }))
+        .replace(/\{target\}/gi, `<@${tgtUser.id}>`)
+        .replace(/\{mentioned_user\}/gi, `<@${tgtUser.id}>`)
+        .replace(/\{target_username\}/gi, tgtUser.username)
         .replace(/\{server\}/gi, guild ? guild.name : 'Serveur')
         .replace(/\{guild_name\}/gi, guild ? guild.name : 'Serveur')
         .replace(/\{membercount\}/gi, guild ? (guild.memberCount || 0).toString() : '0')
@@ -2803,53 +2813,57 @@ client.on('messageCreate', async (message) => {
 
     // 2. EXÉCUTION DES ACTIONS EN CHAÎNE
     for (const action of actions) {
+      const isTargetMentioned = action.target === 'mentioned' && (mentionedMember || mentionedUser);
+      const targetMem = isTargetMentioned ? (mentionedMember || member) : member;
+      const targetUserObj = isTargetMentioned ? (mentionedUser || author) : author;
+
       if ((action.type === 'reply' || action.type === 'text') && (action.text || action.content)) {
-        const content = formatVars(action.text || action.content);
+        const content = formatVars(action.text || action.content, targetMem, targetUserObj);
         await message.channel.send(content).catch(() => null);
       } else if (action.type === 'embed') {
         const { EmbedBuilder } = require('discord.js');
         const embed = new EmbedBuilder()
           .setColor(action.color || '#5865F2')
           .setTimestamp();
-        if (action.title) embed.setTitle(formatVars(action.title));
-        if (action.description) embed.setDescription(formatVars(action.description));
+        if (action.title) embed.setTitle(formatVars(action.title, targetMem, targetUserObj));
+        if (action.description) embed.setDescription(formatVars(action.description, targetMem, targetUserObj));
         if (action.imageUrl) embed.setImage(action.imageUrl);
         if (action.thumbnailUrl) embed.setThumbnail(action.thumbnailUrl);
-        if (action.footer) embed.setFooter({ text: formatVars(action.footer) });
+        if (action.footer) embed.setFooter({ text: formatVars(action.footer, targetMem, targetUserObj) });
         await message.channel.send({ embeds: [embed] }).catch(() => null);
       } else if ((action.type === 'add_role' || action.type === 'add_roles') && (action.roleId || action.roleIds)) {
         const roleIds = action.roleIds || [action.roleId];
         for (const rId of roleIds) {
-          if (rId) await member?.roles.add(rId).catch(() => null);
+          if (rId) await targetMem?.roles.add(rId).catch(() => null);
         }
       } else if (action.type === 'add_temp_role' && action.roleId && action.durationMs) {
-        if (member && action.roleId) {
-          await member.roles.add(action.roleId).catch(() => null);
+        if (targetMem && action.roleId) {
+          await targetMem.roles.add(action.roleId).catch(() => null);
           if (addTemporaryRole) {
-            addTemporaryRole(guildId, author.id, action.roleId, Date.now() + Number(action.durationMs));
+            addTemporaryRole(guildId, targetUserObj.id, action.roleId, Date.now() + Number(action.durationMs));
           }
         }
       } else if ((action.type === 'remove_role' || action.type === 'remove_roles') && (action.roleId || action.roleIds)) {
         const roleIds = action.roleIds || [action.roleId];
         for (const rId of roleIds) {
-          if (rId) await member?.roles.remove(rId).catch(() => null);
+          if (rId) await targetMem?.roles.remove(rId).catch(() => null);
         }
       } else if ((action.type === 'give_item' || action.type === 'shop_item') && action.itemName) {
         const qty = Number(action.quantity) || 1;
         const existing = db.prepare('SELECT quantity FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?')
-          .get(guildId, author.id, action.itemName);
+          .get(guildId, targetUserObj.id, action.itemName);
         if (existing) {
           db.prepare('UPDATE inventory SET quantity = quantity + ? WHERE guild_id = ? AND user_id = ? AND item_name = ?')
-            .run(qty, guildId, author.id, action.itemName);
+            .run(qty, guildId, targetUserObj.id, action.itemName);
         } else {
           db.prepare('INSERT INTO inventory (guild_id, user_id, item_name, quantity) VALUES (?, ?, ?, ?)')
-            .run(guildId, author.id, action.itemName, qty);
+            .run(guildId, targetUserObj.id, action.itemName, qty);
         }
       } else if (action.type === 'add_money' && action.amount) {
         const amt = Number(action.amount) || 0;
         if (amt !== 0 && getEconomy && updateEconomy) {
-          const eco = getEconomy(guildId, author.id);
-          updateEconomy(guildId, author.id, { bank: (eco?.bank || 0) + amt });
+          const eco = getEconomy(guildId, targetUserObj.id);
+          updateEconomy(guildId, targetUserObj.id, { bank: (eco?.bank || 0) + amt });
         }
       }
     }

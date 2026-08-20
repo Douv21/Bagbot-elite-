@@ -6914,6 +6914,8 @@ function removeCcActionCard(id) {
   renderCcActionsList();
 }
 
+let currentGuildCommandsList = [];
+
 function renderCcActionsList() {
   const container = document.getElementById('cc-actions-builder-container');
   if (!container) return;
@@ -6924,6 +6926,15 @@ function renderCcActionsList() {
   }
 
   const roles = (currentGuildRolesList && currentGuildRolesList.length) ? currentGuildRolesList : (typeof rolesList !== 'undefined' && Array.isArray(rolesList) ? rolesList : (window.guildRoles || []));
+
+  const targetSelectHtml = (act) => `
+    <div style="margin-top:8px;">
+      <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">🎯 CIBLE DE L'ACTION</label>
+      <select class="inner-input cc-act-field" data-id="${act.id}" data-key="target" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:6px; border-radius:6px;">
+        <option value="user" ${act.target !== 'mentioned' ? 'selected' : ''}>👤 L'auteur qui tape la commande ({user})</option>
+        <option value="mentioned" ${act.target === 'mentioned' ? 'selected' : ''}>🎯 Le membre mentionné dans le message ({mentioned_user})</option>
+      </select>
+    </div>`;
 
   container.innerHTML = ccCurrentActions.map((act, index) => {
     let title = '';
@@ -6955,7 +6966,8 @@ function renderCcActionsList() {
         <select class="inner-input cc-act-field" data-id="${act.id}" data-key="roleId" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
           <option value="">-- Choisir un rôle (${roles.length} rôles disponibles) --</option>
           ${roles.map(r => `<option value="${r.id}" ${act.roleId === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
-        </select>`;
+        </select>
+        ${targetSelectHtml(act)}`;
     } else if (act.type === 'add_temp_role') {
       title = 'Ajouter un rôle temporaire';
       icon = 'fa-clock';
@@ -6978,7 +6990,8 @@ function renderCcActionsList() {
               <option value="604800000" ${act.durationMs == 604800000 ? 'selected' : ''}>7 Jours</option>
             </select>
           </div>
-        </div>`;
+        </div>
+        ${targetSelectHtml(act)}`;
     } else if (act.type === 'remove_role') {
       title = 'Retirer des rôles';
       icon = 'fa-user-minus';
@@ -6987,7 +7000,8 @@ function renderCcActionsList() {
         <select class="inner-input cc-act-field" data-id="${act.id}" data-key="roleId" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
           <option value="">-- Choisir un rôle (${roles.length} rôles disponibles) --</option>
           ${roles.map(r => `<option value="${r.id}" ${act.roleId === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
-        </select>`;
+        </select>
+        ${targetSelectHtml(act)}`;
     } else if (act.type === 'give_item') {
       title = 'Article de boutique (Offrir un objet)';
       icon = 'fa-gift';
@@ -7007,13 +7021,15 @@ function renderCcActionsList() {
             <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">QUANTITÉ</label>
             <input type="number" class="inner-input cc-act-field" data-id="${act.id}" data-key="quantity" value="${act.quantity || 1}" min="1" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
           </div>
-        </div>`;
+        </div>
+        ${targetSelectHtml(act)}`;
     } else if (act.type === 'add_money') {
       title = 'Ajouter de l\'argent / Karma';
       icon = 'fa-coins';
       fields = `
         <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">MONTANT D'ARGENT À AJOUTER AU SOLDE</label>
-        <input type="number" class="inner-input cc-act-field" data-id="${act.id}" data-key="amount" placeholder="ex: 500" value="${act.amount || 100}" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">`;
+        <input type="number" class="inner-input cc-act-field" data-id="${act.id}" data-key="amount" placeholder="ex: 500" value="${act.amount || 100}" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
+        ${targetSelectHtml(act)}`;
     } else if (act.type === 'delete_trigger') {
       title = 'Supprimer le message déclencheuse';
       icon = 'fa-trash';
@@ -7070,6 +7086,7 @@ function loadCustomCommands(guildId) {
 
     const settings = cmdData.settings || {};
     const commands = cmdData.commands || [];
+    currentGuildCommandsList = commands;
 
     const prefixInput = document.getElementById('cc-prefix-input');
     if (prefixInput) prefixInput.value = settings.prefix || '/';
@@ -7091,17 +7108,22 @@ function renderCustomCommands(commands, guildId) {
     return;
   }
 
+  const prefix = document.getElementById('cc-prefix-input')?.value || '/';
+
   tbody.innerHTML = commands.map(cmd => {
     let actions = [];
     try { actions = JSON.parse(cmd.actions_json || '[]'); } catch(e) {}
     const textAction = actions.find(a => a.type === 'text' || a.type === 'reply');
     const preview = textAction ? (textAction.text || textAction.content || '').substring(0, 60) + ((textAction.text || textAction.content || '').length > 60 ? '…' : '') : `[${actions.length} action(s)]`;
     return `<tr>
-      <td><strong style="color:#5865F2;">/${cmd.command_name}</strong></td>
+      <td><strong style="color:#5865F2;">${prefix}${cmd.command_name}</strong></td>
       <td style="color:#b9bbbe; font-size:0.85rem;">${cmd.description || '—'}</td>
       <td style="color:#dcddde; font-size:0.85rem;">${preview}</td>
       <td style="text-align:center;">
-        <button type="button" class="btn btn-danger" style="padding:5px 10px; font-size:0.78rem;" onclick="deleteCustomCommand('${guildId}','${cmd.command_name}')">
+        <button type="button" class="btn btn-primary" style="padding:5px 10px; font-size:0.78rem; margin-right:5px; background:#e17055; border:none;" onclick="editCustomCommand('${guildId}','${cmd.command_name}')" title="Modifier">
+          <i class="fa-solid fa-pen-to-square"></i>
+        </button>
+        <button type="button" class="btn btn-danger" style="padding:5px 10px; font-size:0.78rem;" onclick="deleteCustomCommand('${guildId}','${cmd.command_name}')" title="Supprimer">
           <i class="fa-solid fa-trash"></i>
         </button>
       </td>
@@ -7109,8 +7131,73 @@ function renderCustomCommands(commands, guildId) {
   }).join('');
 }
 
+function editCustomCommand(guildId, commandName) {
+  const cmd = currentGuildCommandsList.find(c => c.command_name.toLowerCase() === commandName.toLowerCase());
+  if (!cmd) return showToast('❌ Commande introuvable.', true);
+
+  const nameInput = document.getElementById('cc-name-input');
+  if (nameInput) nameInput.value = cmd.command_name;
+
+  const descInput = document.getElementById('cc-desc-input');
+  if (descInput) descInput.value = cmd.description || '';
+
+  // Conditions
+  let conditions = [];
+  try { conditions = JSON.parse(cmd.conditions_json || '[]'); } catch(e) {}
+
+  const tagCheck = document.getElementById('cc-cond-tag-check');
+  const tagVal = document.getElementById('cc-cond-tag-val');
+  const tagRoleSelect = document.getElementById('cc-cond-tag-role-select');
+  const boosterCheck = document.getElementById('cc-cond-booster-check');
+  const refusalMsg = document.getElementById('cc-cond-refusal-msg');
+
+  if (tagCheck) tagCheck.checked = false;
+  if (tagVal) tagVal.value = '';
+  if (tagRoleSelect) tagRoleSelect.value = '';
+  if (boosterCheck) boosterCheck.checked = false;
+  if (refusalMsg) refusalMsg.value = '';
+
+  for (const cond of conditions) {
+    if (cond.type === 'has_server_tag') {
+      if (tagCheck) tagCheck.checked = true;
+      if (tagVal) tagVal.value = cond.tag || '';
+      if (tagRoleSelect && cond.autoRoleId) tagRoleSelect.value = cond.autoRoleId;
+    } else if (cond.type === 'is_booster') {
+      if (boosterCheck) boosterCheck.checked = true;
+    }
+    if (cond.refusalMessage && refusalMsg) refusalMsg.value = cond.refusalMessage;
+  }
+
+  // Actions
+  let actions = [];
+  try { actions = JSON.parse(cmd.actions_json || '[]'); } catch(e) {}
+
+  const replyTextAction = actions.find(a => a.type === 'reply' || a.type === 'text');
+  const textReplyInput = document.getElementById('cc-text-reply');
+  if (textReplyInput) {
+    textReplyInput.value = replyTextAction ? (replyTextAction.text || replyTextAction.content || '') : '';
+  }
+
+  ccCurrentActions = actions.map((a, i) => ({
+    id: 'act_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 4),
+    ...a
+  }));
+
+  renderCcActionsList();
+
+  const form = document.getElementById('form-add-custom-command');
+  if (form) {
+    form.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  const prefix = document.getElementById('cc-prefix-input')?.value || '/';
+  showToast(`🖊️ Commande ${prefix}${cmd.command_name} chargée pour modification !`);
+}
+window.editCustomCommand = editCustomCommand;
+
 function deleteCustomCommand(guildId, commandName) {
-  if (!confirm(`Supprimer la commande /${commandName} ?`)) return;
+  const prefix = document.getElementById('cc-prefix-input')?.value || '/';
+  if (!confirm(`Supprimer la commande ${prefix}${commandName} ?`)) return;
   fetch(`/api/bot/custom-commands/${guildId}/${encodeURIComponent(commandName)}`, { method: 'DELETE' })
     .then(r => r.json())
     .then(() => { showToast('✅ Commande supprimée.'); loadCustomCommands(guildId); })
