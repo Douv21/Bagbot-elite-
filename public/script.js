@@ -5876,15 +5876,27 @@ function initSimpleEmbedSender() {
 
   const btnUseMyProfile = document.getElementById('btn_simple_embed_use_my_profile');
   if (btnUseMyProfile) {
-    btnUseMyProfile.addEventListener('click', () => {
-      if (!currentUser) {
-        showToast('❌ Impossible de récupérer vos informations de membre.', true);
+    btnUseMyProfile.addEventListener('click', async () => {
+      let userObj = currentUser;
+      if (!userObj) {
+        try {
+          const res = await fetch('/api/user');
+          const data = await res.json();
+          if (data && data.user) {
+            userObj = data.user;
+            currentUser = data.user;
+          }
+        } catch (e) {}
+      }
+
+      if (!userObj || !userObj.id || userObj.id === '0') {
+        showToast('❌ Veuillez vous connecter via Discord pour insérer vos informations.', true);
         return;
       }
-      const name = currentUser.global_name || currentUser.username;
-      let avatar = currentUser.avatar_url;
-      if (!avatar && currentUser.avatar) {
-        avatar = `https://cdn.discordapp.com/avatars/${currentUser.id}/${currentUser.avatar}.png`;
+      const name = userObj.global_name || userObj.username;
+      let avatar = userObj.avatar_url;
+      if (!avatar && userObj.avatar) {
+        avatar = `https://cdn.discordapp.com/avatars/${userObj.id}/${userObj.avatar}.png`;
       }
       if (inputAuthorName) inputAuthorName.value = name;
       if (inputAuthorIcon) inputAuthorIcon.value = avatar || '';
@@ -5940,10 +5952,11 @@ function initSimpleEmbedSender() {
       }
     } else {
       if (customThumbGroup) customThumbGroup.style.display = 'none';
-      if (thumbVal === 'user' && currentUser) {
-        let avatar = currentUser.avatar_url;
-        if (!avatar && currentUser.avatar) {
-          avatar = `https://cdn.discordapp.com/avatars/${currentUser.id}/${currentUser.avatar}.png`;
+      let userObj = currentUser;
+      if (thumbVal === 'user' && userObj) {
+        let avatar = userObj.avatar_url;
+        if (!avatar && userObj.avatar) {
+          avatar = `https://cdn.discordapp.com/avatars/${userObj.id}/${userObj.avatar}.png`;
         }
         if (avatar) {
           prevThumb.src = avatar;
@@ -5951,9 +5964,16 @@ function initSimpleEmbedSender() {
         } else {
           prevThumb.style.display = 'none';
         }
-      } else if (thumbVal === 'server' && typeof currentGuildIcon !== 'undefined' && currentGuildIcon) {
-        prevThumb.src = currentGuildIcon;
-        prevThumb.style.display = 'block';
+      } else if (thumbVal === 'server') {
+        const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
+        const guild = (typeof guildsList !== 'undefined' && Array.isArray(guildsList)) ? guildsList.find(g => g.id === guildId) : null;
+        const serverIcon = (guild && (guild.iconURL || guild.icon_url)) ? (guild.iconURL || guild.icon_url) : (guild && guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png?size=256` : (typeof currentGuildIcon !== 'undefined' ? currentGuildIcon : null));
+        if (serverIcon) {
+          prevThumb.src = serverIcon;
+          prevThumb.style.display = 'block';
+        } else {
+          prevThumb.style.display = 'none';
+        }
       } else if (thumbVal === 'bot' && typeof currentBotAvatar !== 'undefined' && currentBotAvatar) {
         prevThumb.src = currentBotAvatar;
         prevThumb.style.display = 'block';

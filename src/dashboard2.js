@@ -2327,6 +2327,131 @@ app.post('/api/config/announce-features', async (req, res) => {
   }
 });
 
+// --- ENVOI D'EMBED SIMPLE PAR LE DASHBOARD ---
+app.get('/api/config/embeds/fetch-channel-messages', async (req, res) => {
+  try {
+    const channelId = req.query.channelId;
+    if (!channelId) return res.json([]);
+
+    const { client } = require('./index');
+    const channel = client.channels.cache.get(channelId) || await client.channels.fetch(channelId).catch(() => null);
+    if (!channel || !channel.isTextBased()) return res.json([]);
+
+    const fetchedMessages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
+    if (!fetchedMessages) return res.json([]);
+
+    const botEmbeds = fetchedMessages
+      .filter(m => m.author.id === client.user.id && m.embeds && m.embeds.length > 0)
+      .map(m => {
+        const emb = m.embeds[0];
+        return {
+          id: m.id,
+          title: emb.title || '(Sans titre)',
+          description: emb.description || '',
+          color: emb.hexColor || '#5865F2',
+          image: emb.image ? emb.image.url : '',
+          author_name: emb.author ? emb.author.name : '',
+          author_icon: emb.author ? emb.author.iconURL : '',
+          footer: emb.footer ? emb.footer.text : ''
+        };
+      });
+
+    res.json(botEmbeds);
+  } catch (error) {
+    console.error('Erreur fetch-channel-messages:', error);
+    res.json([]);
+  }
+});
+
+app.post('/api/config/send-simple-embed', async (req, res) => {
+  try {
+    const {
+      channel_id,
+      title,
+      description,
+      color,
+      thumbnail_url,
+      image_url,
+      author_name,
+      author_icon,
+      footer_text,
+      ping_type,
+      existing_message_id
+    } = req.body || {};
+
+    if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
+
+    const { client } = require('./index');
+    const { EmbedBuilder } = require('discord.js');
+
+    const channel = client.channels.cache.get(channel_id) || await client.channels.fetch(channel_id).catch(() => null);
+    if (!channel || !channel.isTextBased()) {
+      return res.status(404).json({ error: 'Salon introuvable ou inaccessible par le bot.' });
+    }
+
+    const embed = new EmbedBuilder();
+
+    if (title && title.trim()) embed.setTitle(title.trim());
+    if (description && description.trim()) embed.setDescription(description.trim());
+    if (color && color.trim()) embed.setColor(color.trim());
+
+    // Miniature (Thumbnail)
+    let finalThumb = null;
+    if (thumbnail_url === 'user') {
+      if (req.session && req.session.user) {
+        finalThumb = req.session.user.avatar_url || (req.session.user.avatar ? `https://cdn.discordapp.com/avatars/${req.session.user.id}/${req.session.user.avatar}.png` : null);
+      }
+      if (!finalThumb) finalThumb = client.user.displayAvatarURL({ dynamic: true });
+    } else if (thumbnail_url === 'server') {
+      if (channel.guild) {
+        finalThumb = channel.guild.iconURL({ dynamic: true, size: 256 }) || (channel.guild.icon ? `https://cdn.discordapp.com/icons/${channel.guild.id}/${channel.guild.icon}.png?size=256` : null);
+      }
+    } else if (thumbnail_url === 'bot') {
+      finalThumb = client.user.displayAvatarURL({ dynamic: true });
+    } else if (thumbnail_url && thumbnail_url.startsWith('http')) {
+      finalThumb = thumbnail_url.trim();
+    }
+
+    if (finalThumb) embed.setThumbnail(finalThumb);
+
+    // Image
+    if (image_url && image_url.trim()) {
+      embed.setImage(image_url.trim());
+    }
+
+    // Auteur
+    if (author_name && author_name.trim()) {
+      embed.setAuthor({
+        name: author_name.trim(),
+        iconURL: (author_icon && author_icon.trim().startsWith('http')) ? author_icon.trim() : undefined
+      });
+    }
+
+    // Footer
+    if (footer_text && footer_text.trim()) {
+      embed.setFooter({ text: footer_text.trim() });
+    }
+
+    // Pings / Mentions
+    let content = null;
+    if (ping_type === 'everyone') content = '@everyone';
+    if (ping_type === 'here') content = '@here';
+
+    if (existing_message_id && existing_message_id.trim()) {
+      const msg = await channel.messages.fetch(existing_message_id.trim()).catch(() => null);
+      if (!msg) return res.status(404).json({ error: 'Message existant introuvable dans ce salon.' });
+      await msg.edit({ content: content || null, embeds: [embed] });
+      return res.json({ success: true, message: '✅ Message Embed modifié avec succès !' });
+    } else {
+      await channel.send({ content: content || null, embeds: [embed] });
+      return res.json({ success: true, message: '✅ Message Embed envoyé avec succès !' });
+    }
+  } catch (error) {
+    console.error('Erreur send-simple-embed:', error);
+    res.status(500).json({ error: error.message || 'Impossible d\'envoyer l\'embed' });
+  }
+});
+
 app.post('/api/config/announce-commands', async (req, res) => {
   try {
     const guildId = getReqGuildId(req);
