@@ -7085,13 +7085,50 @@ function loadServerBotProfile(guildId) {
 }
 window.loadServerBotProfile = loadServerBotProfile;
 
-// Event Delegation pour le profil du bot serveur (clic téléversement, changement fichier, saisie URL, soumission formulaire)
-document.addEventListener('click', (e) => {
-  const btn = e.target.closest('#btn-upload-sbp-logo');
-  if (btn) {
+// Event Delegation pour le profil du bot serveur (clic téléversement, réinitialisation, changement fichier, saisie URL, soumission formulaire)
+document.addEventListener('click', async (e) => {
+  const btnUpload = e.target.closest('#btn-upload-sbp-logo');
+  if (btnUpload) {
     e.preventDefault();
     const fileInput = document.getElementById('sbp-file-input');
     if (fileInput) fileInput.click();
+    return;
+  }
+
+  const btnReset = e.target.closest('#btn-reset-sbp-logo');
+  if (btnReset) {
+    e.preventDefault();
+    const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
+    if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
+
+    if (!confirm('Réinitialiser le logo et nom personnalisés pour ce serveur ? L\'avatar par défaut du Portail Développeur Discord sera restauré.')) return;
+
+    try {
+      if (typeof showToast === 'function') showToast('⏳ Réinitialisation de l\'avatar...');
+      const res = await fetch(`/api/bot/server-bot-profile/${guildId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ custom_logo_url: null, custom_name: null })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const logoInput = document.getElementById('sbp-logo-url');
+        const nameInput = document.getElementById('sbp-name-input');
+        const previewImg = document.getElementById('sbp-preview-img');
+
+        if (logoInput) logoInput.value = '';
+        if (nameInput) nameInput.value = '';
+        if (previewImg) previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
+
+        if (typeof showToast === 'function') showToast('✅ Logo et nom personnalisés retirés ! Avatar par défaut restauré.');
+        if (typeof fetchBotInfo === 'function') fetchBotInfo(null);
+      } else {
+        if (typeof showToast === 'function') showToast(`❌ ${data.error || 'Erreur lors de la réinitialisation'}`, true);
+      }
+    } catch (err) {
+      console.error('Erreur réinitialisation logo serveur:', err);
+      if (typeof showToast === 'function') showToast('❌ Erreur de connexion lors de la réinitialisation.', true);
+    }
   }
 });
 
