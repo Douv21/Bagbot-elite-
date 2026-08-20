@@ -1900,6 +1900,76 @@ input[type="text"].discord-embed-footer-field:focus {
   transform: scale(1.12);
 }
 
+/* Fix thumbnail wrap, popover, and image box positioning */
+.discord-embed-thumbnail-wrap {
+  position: relative !important;
+  flex-shrink: 0 !important;
+  width: 80px !important;
+  height: 80px !important;
+  margin-left: 12px !important;
+}
+
+.discord-embed-thumbnail {
+  width: 80px !important;
+  height: 80px !important;
+  border-radius: 6px !important;
+  overflow: hidden !important;
+  position: relative !important;
+  cursor: pointer !important;
+  background: rgba(0, 0, 0, 0.2) !important;
+  border: 1px dashed rgba(255, 255, 255, 0.2) !important;
+}
+
+.thumbnail-option-popover {
+  position: absolute !important;
+  top: 85px !important;
+  right: 0 !important;
+  z-index: 9999 !important;
+  background: #18191c !important;
+  border: 1px solid #5865f2 !important;
+  border-radius: 8px !important;
+  padding: 8px !important;
+  width: 230px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.7) !important;
+}
+
+.thumbnail-option-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  padding: 6px 10px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: none !important;
+  color: #dcddde !important;
+  font-size: 0.8rem !important;
+  border-radius: 4px !important;
+  margin-bottom: 4px !important;
+  cursor: pointer !important;
+  text-align: left !important;
+}
+
+.thumbnail-option-btn:hover {
+  background: #5865f2 !important;
+  color: #ffffff !important;
+}
+
+.discord-embed-image-box {
+  margin-top: 12px !important;
+  position: relative !important;
+  width: 100% !important;
+  clear: both !important;
+  border-radius: 6px !important;
+  overflow: hidden !important;
+}
+
+.discord-embed-image-box img {
+  width: 100% !important;
+  max-height: 280px !important;
+  object-fit: cover !important;
+  border-radius: 6px !important;
+}
+
 /* --- Multi-channel select (trigger + search + scrollable checkbox panel +
    removable chips), layered over a genuinely multi-value `<select multiple>`
    channel field (embed-builder.js). --- */

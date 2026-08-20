@@ -6192,9 +6192,16 @@ function initSimpleEmbedSender() {
       if (prevAuthorIcon) {
         if (authorIconVal) {
           prevAuthorIcon.src = authorIconVal;
-          prevAuthorIcon.style.display = 'inline-block';
+          prevAuthorIcon.style.display = 'block';
+          prevAuthorIcon.style.width = '24px';
+          prevAuthorIcon.style.height = '24px';
+          prevAuthorIcon.style.borderRadius = '50%';
+          const uploadBtn = document.querySelector('.embed-avatar-upload-btn');
+          if (uploadBtn) uploadBtn.style.display = 'none';
         } else {
           prevAuthorIcon.style.display = 'none';
+          const uploadBtn = document.querySelector('.embed-avatar-upload-btn');
+          if (uploadBtn) uploadBtn.style.display = 'flex';
         }
       }
       if (prevAuthor && prevAuthor.tagName !== 'INPUT') prevAuthor.style.display = 'flex';
