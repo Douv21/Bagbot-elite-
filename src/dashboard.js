@@ -2231,6 +2231,21 @@ app.post('/api/config/embeds/schedule-recurring', (req, res) => {
   }
 });
 
+// Endpoint pour supprimer un embed récurrent
+app.post('/api/config/recurring-embeds/delete', (req, res) => {
+  try {
+    const { id } = req.body || {};
+    if (!id) return res.status(400).json({ error: 'ID requis' });
+
+    const { deleteRecurringEmbed } = require('./database/db');
+    deleteRecurringEmbed(id);
+    res.json({ success: true, message: 'Message récurrent supprimé avec succès !' });
+  } catch (error) {
+    console.error('Erreur delete recurring embed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Route pour récupérer tous les messages embeds de tous les salons du serveur
 app.get('/api/config/embeds/all-server-embeds', async (req, res) => {
   try {

@@ -4503,13 +4503,16 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
               if (data.success) {
                 showToast('Message récurrent supprimé !');
-                loadGuildConfiguration();
+                itemCard.remove();
+                if (typeof loadAllServerEmbeds === 'function') loadAllServerEmbeds();
+                if (typeof loadGuildConfiguration === 'function') loadGuildConfiguration();
               } else {
-                showToast('Erreur: ' + data.error, true);
+                showToast('Erreur: ' + (data.error || 'Impossible de supprimer'), true);
               }
-            });
+            })
+            .catch(err => showToast(err.message, true));
           } else {
-            if (!confirm('Supprimer cet embed de la liste ?')) return;
+            if (!confirm('Supprimer cet embed de la liste / de Discord ?')) return;
             fetch('/api/config/autorole-embeds/delete', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -4519,11 +4522,14 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
               if (data.success) {
                 showToast('Embed supprimé !');
-                loadGuildConfiguration();
+                itemCard.remove();
+                if (typeof loadAllServerEmbeds === 'function') loadAllServerEmbeds();
+                if (typeof loadGuildConfiguration === 'function') loadGuildConfiguration();
               } else {
-                showToast('Erreur: ' + data.error, true);
+                showToast('Erreur: ' + (data.error || 'Impossible de supprimer'), true);
               }
-            });
+            })
+            .catch(err => showToast(err.message, true));
           }
         });
 
