@@ -2150,22 +2150,8 @@ app.post('/api/config/send-simple-embed', async (req, res) => {
     }
 
     try {
-      deleteAutoroleEmbed(guildId, msgIdSaved);
-      addAutoroleEmbed(
-        guildId,
-        msgIdSaved,
-        channel_id,
-        title || 'Embed Simple',
-        description || '',
-        color || '#5865F2',
-        thumbnail_url ? 1 : 0,
-        image_url || null,
-        'simple',
-        'normal'
-      );
-    } catch (e) {
-      console.error('Erreur sauvegarde embed simple dans DB:', e);
-    }
+      db.prepare('DELETE FROM autorole_embeds WHERE message_id = ?').run(msgIdSaved);
+    } catch (e) {}
 
     res.json({ success: true, messageId: msgIdSaved, message: 'Message Embed envoyé/mis à jour avec succès dans le salon !' });
   } catch (error) {

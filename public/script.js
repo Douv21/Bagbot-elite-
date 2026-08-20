@@ -4212,13 +4212,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('active-autoroles-container');
     if (!container) return;
     container.innerHTML = '';
+
+    const autorolesOnly = (list || []).filter(item => item && item.options && item.options.length > 0);
     
-    if (!list || list.length === 0) {
+    if (autorolesOnly.length === 0) {
       container.innerHTML = '<p style="color: #8e9297; text-align: center; font-style: italic;">Aucun rôle réaction actif.</p>';
       return;
     }
 
-    list.forEach(item => {
+    autorolesOnly.forEach(item => {
       try {
         const channelName = getChannelName(item.channel_id);
         const card = document.createElement('div');
