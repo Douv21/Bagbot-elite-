@@ -5969,6 +5969,18 @@ function initSimpleEmbedSender() {
   if (fileCustomThumb) fileCustomThumb.addEventListener('change', () => handleFileUpload(fileCustomThumb, inputCustomThumb));
   if (fileAuthorIcon) fileAuthorIcon.addEventListener('change', () => handleFileUpload(fileAuthorIcon, inputAuthorIcon));
 
+  document.addEventListener('change', async (e) => {
+    if (e.target && (e.target.classList.contains('file-upload-input') || e.target.type === 'file')) {
+      const targetId = e.target.getAttribute('data-target');
+      if (targetId) {
+        const targetInput = document.getElementById(targetId);
+        if (targetInput && e.target.files && e.target.files.length > 0) {
+          await handleFileUpload(e.target, targetInput);
+        }
+      }
+    }
+  });
+
   const btnUseMyProfile = document.getElementById('btn_simple_embed_use_my_profile');
   if (btnUseMyProfile) {
     btnUseMyProfile.addEventListener('click', async () => {
