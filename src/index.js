@@ -2751,23 +2751,34 @@ client.on('messageCreate', async (message) => {
             // Attribuer le rôle à TOUTES LES PERSONNES AYANT LE TAG DISCORD DU SERVEUR
             (async () => {
               try {
-                const allMembers = await guild.members.fetch().catch(() => null);
-                if (allMembers && cond.tag) {
+                const allMembers = await guild.members.fetch({ force: true }).catch(err => {
+                  console.error('[TAG ALL MEMBERS] Erreur fetch members:', err.message);
+                  return guild.members.cache;
+                });
+
+                if (allMembers && allMembers.size > 0 && cond.tag) {
                   const tagLower = cond.tag.trim().toLowerCase();
                   const matching = allMembers.filter(m => !m.user.bot && (
-                    m.displayName.toLowerCase().includes(tagLower) ||
-                    m.user.username.toLowerCase().includes(tagLower)
+                    (m.displayName && m.displayName.toLowerCase().includes(tagLower)) ||
+                    (m.nickname && m.nickname.toLowerCase().includes(tagLower)) ||
+                    (m.user.username && m.user.username.toLowerCase().includes(tagLower)) ||
+                    (m.user.globalName && m.user.globalName.toLowerCase().includes(tagLower))
                   ));
+
+                  console.log(`[TAG AUTO-ROLE] ${allMembers.size} membres analysés sur "${guild.name}". ${matching.size} membre(s) ont le tag "${cond.tag}".`);
+
                   for (const [, targetM] of matching) {
                     if (!targetM.roles.cache.has(cond.autoRoleId)) {
-                      await targetM.roles.add(cond.autoRoleId).catch(() => null);
+                      await targetM.roles.add(cond.autoRoleId).catch(err => {
+                        console.error(`[TAG AUTO-ROLE] Erreur ajout rôle à ${targetM.user.tag}:`, err.message);
+                      });
                     }
                   }
                 } else if (member && cond.autoRoleId) {
                   await member.roles.add(cond.autoRoleId).catch(() => null);
                 }
               } catch (err) {
-                console.error('[TAG ALL MEMBERS] Erreur:', err.message);
+                console.error('[TAG ALL MEMBERS] Erreur globale:', err.message);
               }
             })();
           }
