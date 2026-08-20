@@ -1237,12 +1237,22 @@ app.post('/api/bot/server-bot-profile/:guildId', async (req, res) => {
   const { saveServerBotProfile } = require('./database/db');
   saveServerBotProfile(guildId, custom_logo_url || null, custom_name || null);
 
+  let discordRes = null;
   try {
     const { client } = require('./index');
     const { updateGuildBotProfileOnDiscord } = require('./utils/helpers');
-    await updateGuildBotProfileOnDiscord(client, guildId, custom_name, custom_logo_url);
+    discordRes = await updateGuildBotProfileOnDiscord(client, guildId, custom_name, custom_logo_url);
   } catch (e) {
     console.error('Erreur mise à jour profil bot:', e);
+  }
+
+  if (discordRes && discordRes.rateLimited) {
+    return res.json({
+      success: true,
+      warning: discordRes.warning,
+      custom_logo_url: custom_logo_url || null,
+      custom_name: custom_name || null
+    });
   }
 
   res.json({ success: true, custom_logo_url: custom_logo_url || null, custom_name: custom_name || null });

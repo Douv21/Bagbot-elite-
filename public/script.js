@@ -1,4 +1,33 @@
 // script.js
+window.showToast = function(message, isError = false) {
+  let tEl = document.getElementById('toast');
+  if (!tEl) {
+    tEl = document.createElement('div');
+    tEl.id = 'toast';
+    tEl.className = 'toast glass';
+    document.body.appendChild(tEl);
+  }
+  tEl.textContent = message;
+  tEl.style.display = 'block';
+  tEl.style.position = 'fixed';
+  tEl.style.bottom = '25px';
+  tEl.style.right = '25px';
+  tEl.style.zIndex = '99999';
+  tEl.style.padding = '14px 24px';
+  tEl.style.borderRadius = '10px';
+  tEl.style.fontWeight = '600';
+  tEl.style.fontSize = '0.95rem';
+  tEl.style.background = isError ? 'rgba(231, 76, 60, 0.95)' : 'rgba(46, 204, 113, 0.95)';
+  tEl.style.color = '#ffffff';
+  tEl.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.4)';
+  tEl.style.transition = 'all 0.3s ease';
+
+  tEl.classList.add('show');
+  setTimeout(() => {
+    tEl.classList.remove('show');
+  }, 4000);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   // Elements
   const loginContainer = document.getElementById('login-container');

@@ -292,8 +292,10 @@ async function getActivePublicUrl() {
 }
 
 async function updateGuildBotProfileOnDiscord(client, guildId, customName, customLogoUrl) {
+  let rateLimited = false;
+  let errorMsg = null;
   try {
-    if (!client || !guildId) return;
+    if (!client || !guildId) return { success: false, error: 'Client ou guildId manquant' };
     const { REST, Routes } = require('discord.js');
     const fs = require('fs');
     const path = require('path');
@@ -338,16 +340,31 @@ async function updateGuildBotProfileOnDiscord(client, guildId, customName, custo
           body: { avatar: dataURI }
         }).catch(err => {
           console.error('Erreur PATCH guild member avatar Discord:', err.message);
+          if (err.message && err.message.includes('AVATAR_RATE_LIMIT')) {
+            rateLimited = true;
+            errorMsg = 'Discord limite la modification d\'avatar du bot (maximum 2 modifications toutes les 10 minutes). L\'image a été enregistrée en base et s\'appliquera dès que le délai Discord sera écoulé.';
+          }
         });
       }
     } else if (client.token) {
       const rest = new REST({ version: '10' }).setToken(client.token);
       await rest.patch(Routes.guildMember(guildId, '@me'), {
         body: { avatar: null }
-      }).catch(() => null);
+      }).catch(err => {
+        if (err.message && err.message.includes('AVATAR_RATE_LIMIT')) {
+          rateLimited = true;
+          errorMsg = 'Discord limite la modification d\'avatar du bot (maximum 2 modifications toutes les 10 minutes). L\'avatar par défaut s\'appliquera dès que le délai Discord sera écoulé.';
+        }
+      });
     }
+
+    if (rateLimited) {
+      return { success: true, rateLimited: true, warning: errorMsg };
+    }
+    return { success: true };
   } catch (e) {
     console.error('Erreur updateGuildBotProfileOnDiscord:', e.message);
+    return { success: false, error: e.message };
   }
 }
 
