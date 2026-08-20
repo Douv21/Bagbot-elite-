@@ -245,6 +245,29 @@ function initDatabase() {
     db.prepare('ALTER TABLE shop ADD COLUMN reward_karma INTEGER DEFAULT 0').run();
   } catch (_) {}
 
+  // 9c. Embeds récurrents programmés
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS recurring_embeds (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      title TEXT,
+      description TEXT,
+      color TEXT DEFAULT '#5865F2',
+      thumbnail_url TEXT,
+      image_url TEXT,
+      author_name TEXT,
+      author_icon TEXT,
+      footer_text TEXT,
+      ping_type TEXT DEFAULT 'none',
+      frequency TEXT DEFAULT 'daily',
+      send_time TEXT DEFAULT '12:00',
+      is_active INTEGER DEFAULT 1,
+      last_sent INTEGER DEFAULT 0,
+      created_at INTEGER DEFAULT (strftime('%s', 'now'))
+    )
+  `).run();
+
   // 10. Inventaire
   db.prepare(`
     CREATE TABLE IF NOT EXISTS inventory (
@@ -2718,5 +2741,28 @@ module.exports = {
   getWordReactionSettings,
   saveWordReactionSettings,
   getServerBotProfile,
-  saveServerBotProfile
+  saveServerBotProfile,
+  getRecurringEmbeds,
+  addRecurringEmbed,
+  deleteRecurringEmbed,
+  toggleRecurringEmbed
 };
+
+function getRecurringEmbeds(guildId) {
+  return db.prepare('SELECT * FROM recurring_embeds WHERE guild_id = ? ORDER BY id DESC').all(guildId);
+}
+
+function addRecurringEmbed(guildId, channelId, title, description, color, thumbnailUrl, imageUrl, authorName, authorIcon, footerText, pingType, frequency, sendTime) {
+  return db.prepare(`
+    INSERT INTO recurring_embeds (guild_id, channel_id, title, description, color, thumbnail_url, image_url, author_name, author_icon, footer_text, ping_type, frequency, send_time)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(guildId, channelId, title, description, color, thumbnailUrl, imageUrl, authorName, authorIcon, footerText, pingType, frequency, sendTime);
+}
+
+function deleteRecurringEmbed(guildId, id) {
+  return db.prepare('DELETE FROM recurring_embeds WHERE guild_id = ? AND id = ?').run(guildId, id);
+}
+
+function toggleRecurringEmbed(guildId, id, isActive) {
+  return db.prepare('UPDATE recurring_embeds SET is_active = ? WHERE guild_id = ? AND id = ?').run(isActive ? 1 : 0, guildId, id);
+}

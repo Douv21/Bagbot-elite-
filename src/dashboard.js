@@ -1954,6 +1954,34 @@ app.post('/api/config/embeds/delete-message', async (req, res) => {
   }
 });
 
+// Endpoint pour programmer un embed récurrent
+app.post('/api/config/embeds/schedule-recurring', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const {
+      channel_id, title, description, color, thumbnail_url,
+      image_url, author_name, author_icon, footer_text, ping_type,
+      frequency, send_time
+    } = req.body || {};
+
+    if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
+
+    const { addRecurringEmbed } = require('./database/db');
+    addRecurringEmbed(
+      guildId, channel_id, title, description, color || '#5865F2',
+      thumbnail_url, image_url, author_name, author_icon, footer_text,
+      ping_type || 'none', frequency || 'daily', send_time || '12:00'
+    );
+
+    res.json({ success: true, message: 'Message Embed récurrent programmé avec succès !' });
+  } catch (error) {
+    console.error('Erreur schedule-recurring:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Route pour récupérer tous les messages embeds de tous les salons du serveur
 app.get('/api/config/embeds/all-server-embeds', async (req, res) => {
   try {

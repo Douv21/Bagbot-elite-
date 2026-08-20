@@ -3528,15 +3528,88 @@ if (process.env.DISCORD_TOKEN) {
   console.log('⚠️ Aucun DISCORD_TOKEN configuré dans .env - Le Dashboard fonctionne en mode web.');
 }
 
-// Nettoyage automatique des salons de tribunal fermés expirés
-setInterval(() => {
-  if (client && client.isReady()) {
-    const tribunalCmd = client.commands.get('tribunal');
-    if (tribunalCmd && typeof tribunalCmd.checkExpiredTribunalCases === 'function') {
-      tribunalCmd.checkExpiredTribunalCases(client).catch(() => null);
+// Traitement automatique des messages embeds récurrents programmés
+async function checkRecurringEmbeds() {
+  try {
+    if (!client || !client.isReady()) return;
+    const { db } = require('./database/db');
+    const recurringList = db.prepare('SELECT * FROM recurring_embeds WHERE is_active = 1').all();
+    if (!recurringList || recurringList.length === 0) return;
+
+    const now = new Date();
+    const currentTimestamp = Math.floor(now.getTime() / 1000);
+    const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    for (const item of recurringList) {
+      let intervalSeconds = 86400; // default 24h
+      if (item.frequency === '1h') intervalSeconds = 3600;
+      else if (item.frequency === '6h') intervalSeconds = 21600;
+      else if (item.frequency === '12h') intervalSeconds = 43200;
+      else if (item.frequency === 'daily') intervalSeconds = 86400;
+      else if (item.frequency === 'weekly') intervalSeconds = 604800;
+
+      const timeSinceLast = currentTimestamp - (item.last_sent || 0);
+
+      if (timeSinceLast >= intervalSeconds - 30) {
+        if ((item.frequency === 'daily' || item.frequency === 'weekly') && item.send_time) {
+          if (currentHHMM !== item.send_time && timeSinceLast < intervalSeconds + 3600) {
+            continue;
+          }
+        }
+
+        const guild = client.guilds.cache.get(item.guild_id);
+        if (guild) {
+          const channel = guild.channels.cache.get(item.channel_id);
+          if (channel && channel.isTextBased()) {
+            const embed = new EmbedBuilder();
+            if (item.title) embed.setTitle(item.title);
+            if (item.description) embed.setDescription(item.description);
+            embed.setColor(item.color || '#5865F2');
+
+            if (item.thumbnail_url) {
+              if (item.thumbnail_url === 'server') {
+                const icon = guild.iconURL({ dynamic: true });
+                if (icon) embed.setThumbnail(icon);
+              } else if (item.thumbnail_url === 'bot') {
+                embed.setThumbnail(client.user.displayAvatarURL({ dynamic: true }));
+              } else if (item.thumbnail_url.startsWith('http')) {
+                embed.setThumbnail(item.thumbnail_url);
+              }
+            }
+
+            if (item.image_url && item.image_url.startsWith('http')) {
+              embed.setImage(item.image_url);
+            }
+
+            if (item.author_name) {
+              const authorObj = { name: item.author_name };
+              if (item.author_icon && item.author_icon.startsWith('http')) authorObj.iconURL = item.author_icon;
+              embed.setAuthor(authorObj);
+            }
+
+            if (item.footer_text) {
+              embed.setFooter({ text: item.footer_text });
+            }
+
+            embed.setTimestamp();
+
+            let contentPayload = undefined;
+            if (item.ping_type === 'everyone') contentPayload = '@everyone';
+            else if (item.ping_type === 'here') contentPayload = '@here';
+
+            await channel.send({ content: contentPayload, embeds: [embed] }).catch(console.error);
+
+            db.prepare('UPDATE recurring_embeds SET last_sent = ? WHERE id = ?').run(currentTimestamp, item.id);
+          }
+        }
+      }
     }
+  } catch (err) {
+    console.error('Erreur vérification embeds récurrents:', err);
   }
-}, 60000);
+}
+
+setInterval(checkRecurringEmbeds, 60000);
 
 module.exports = { client };
 

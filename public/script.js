@@ -6252,14 +6252,33 @@ function initSimpleEmbedSender() {
     btnRefreshAllEmbeds.addEventListener('click', loadAllServerEmbeds);
   }
 
+  const sendModeSelect = document.getElementById('simple_embed_send_mode');
+  const recurringGroup = document.getElementById('group_simple_embed_recurring_options');
+  const submitBtn = document.getElementById('btn_submit_simple_embed');
+
+  if (sendModeSelect) {
+    sendModeSelect.addEventListener('change', () => {
+      const mode = sendModeSelect.value;
+      if (recurringGroup) recurringGroup.style.display = (mode === 'recurring') ? 'block' : 'none';
+      if (submitBtn) {
+        if (mode === 'recurring') {
+          submitBtn.innerHTML = '<i class="fa-solid fa-clock"></i> Programmer cet Envoi Récurrent';
+        } else {
+          submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Envoyer';
+        }
+      }
+    });
+  }
+
   loadAllServerEmbeds();
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const channel_id = document.getElementById('simple_embed_channel').value;
+    const channel_id = document.getElementById('simple_embed_channel')?.value;
     if (!channel_id) return showToast('⚠️ Veuillez sélectionner un salon de destination.', true);
 
+    const send_mode = sendModeSelect ? sendModeSelect.value : 'now';
     let thumbnail_url = selectThumb ? selectThumb.value : 'none';
     if (thumbnail_url === 'custom' && inputCustomThumb) {
       thumbnail_url = inputCustomThumb.value;
@@ -6267,17 +6286,46 @@ function initSimpleEmbedSender() {
 
     const payload = {
       channel_id,
-      title: inputTitle.value,
-      description: inputDesc.value,
-      color: inputColor.value,
+      title: inputTitle ? inputTitle.value : '',
+      description: inputDesc ? inputDesc.value : '',
+      color: inputColor ? inputColor.value : '#5865F2',
       thumbnail_url,
-      image_url: inputImage.value,
-      author_name: inputAuthorName.value,
-      author_icon: inputAuthorIcon.value,
-      footer_text: inputFooterText.value,
+      image_url: inputImage ? inputImage.value : '',
+      author_name: inputAuthorName ? inputAuthorName.value : '',
+      author_icon: inputAuthorIcon ? inputAuthorIcon.value : '',
+      footer_text: inputFooterText ? inputFooterText.value : '',
       ping_type: selectPing ? selectPing.value : 'none',
-      existing_message_id: document.getElementById('simple_embed_edit_msg_id').value
+      existing_message_id: document.getElementById('simple_embed_edit_msg_id')?.value || ''
     };
+
+    if (send_mode === 'recurring') {
+      const frequency = document.getElementById('simple_embed_frequency')?.value || 'daily';
+      const send_time = document.getElementById('simple_embed_time')?.value || '12:00';
+      payload.frequency = frequency;
+      payload.send_time = send_time;
+
+      try {
+        const res = await fetch('/api/config/embeds/schedule-recurring', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(data.message || '✅ Message Embed récurrent programmé avec succès !');
+          form.reset();
+          updatePreview();
+          if (recurringGroup) recurringGroup.style.display = 'none';
+          if (submitBtn) submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Envoyer';
+          loadAllServerEmbeds();
+        } else {
+          showToast(`❌ Erreur : ${data.error || 'Impossible de programmer l\'embed récurrent'}`, true);
+        }
+      } catch (err) {
+        showToast(`❌ Erreur réseau : ${err.message}`, true);
+      }
+      return;
+    }
 
     try {
       const res = await fetch('/api/config/send-simple-embed', {

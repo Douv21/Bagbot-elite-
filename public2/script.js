@@ -6450,6 +6450,24 @@ function initSimpleEmbedSender() {
     btnRefreshAllEmbeds.addEventListener('click', loadAllServerEmbeds);
   }
 
+  const sendModeSelect = document.getElementById('simple_embed_send_mode');
+  const recurringGroup = document.getElementById('group_simple_embed_recurring_options');
+  const submitBtn = document.getElementById('btn_submit_simple_embed');
+
+  if (sendModeSelect) {
+    sendModeSelect.addEventListener('change', () => {
+      const mode = sendModeSelect.value;
+      if (recurringGroup) recurringGroup.style.display = (mode === 'recurring') ? 'block' : 'none';
+      if (submitBtn) {
+        if (mode === 'recurring') {
+          submitBtn.innerHTML = '<i class="fa-solid fa-clock"></i> Programmer cet Envoi Récurrent';
+        } else {
+          submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Envoyer';
+        }
+      }
+    });
+  }
+
   loadAllServerEmbeds();
 
   form.addEventListener('submit', async (e) => {
@@ -6474,6 +6492,7 @@ function initSimpleEmbedSender() {
     const author_icon = getVal('simple_embed_author_icon', 'simple_embed_author_icon');
     const footer_text = getVal('simple_embed_footer_text', 'simple-embed-preview-footer-text');
     const editMsgId = document.getElementById('simple_embed_edit_msg_id')?.value || '';
+    const send_mode = sendModeSelect ? sendModeSelect.value : 'now';
 
     let thumbnail_url = selectThumb ? selectThumb.value : (window.simpleEmbedThumbMode || 'none');
     if (thumbnail_url === 'custom' && inputCustomThumb && inputCustomThumb.value.trim()) {
@@ -6494,6 +6513,35 @@ function initSimpleEmbedSender() {
       existing_message_id: editMsgId
     };
 
+    if (send_mode === 'recurring') {
+      const frequency = document.getElementById('simple_embed_frequency')?.value || 'daily';
+      const send_time = document.getElementById('simple_embed_time')?.value || '12:00';
+      payload.frequency = frequency;
+      payload.send_time = send_time;
+
+      try {
+        const res = await fetch('/api/config/embeds/schedule-recurring', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(data.message || '✅ Message Embed récurrent programmé avec succès !');
+          form.reset();
+          updatePreview();
+          if (recurringGroup) recurringGroup.style.display = 'none';
+          if (submitBtn) submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Envoyer';
+          loadAllServerEmbeds();
+        } else {
+          showToast(`❌ Erreur : ${data.error || 'Impossible de programmer l\'embed récurrent'}`, true);
+        }
+      } catch (err) {
+        showToast(`❌ Erreur réseau : ${err.message}`, true);
+      }
+      return;
+    }
+
     try {
       const res = await fetch('/api/config/send-simple-embed', {
         method: 'POST',
@@ -6506,7 +6554,7 @@ function initSimpleEmbedSender() {
         showToast(data.message || '✅ Message Embed envoyé avec succès !');
         form.reset();
         updatePreview();
-        fetchAndRenderSavedEmbeds(channel_id);
+        loadAllServerEmbeds();
       } else {
         showToast(`❌ Erreur : ${data.error || 'Impossible d\'envoyer l\'embed'}`, true);
       }

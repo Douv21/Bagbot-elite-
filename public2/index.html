@@ -134,7 +134,7 @@
             <div class="subcategory-title">Messages & Embeds</div>
             <button class="tab-btn active" data-tab="tab-welcome"><i class="fa-solid fa-door-open"></i> Arrivées & Départs</button>
             <button class="tab-btn" data-tab="tab-boost"><i class="fa-solid fa-rocket" style="color: #F47FFF;"></i> Remerciements Boost <span class="nav-badge badge-purple">VIP</span></button>
-            <button class="tab-btn" data-tab="tab-embed-sender"><i class="fa-solid fa-file-code" style="color: #9b59b6;"></i> Envoyeur d'Embeds <span class="nav-badge badge-purple">NOUVEAU</span></button>
+            <button class="tab-btn" data-tab="tab-embed-sender"><i class="fa-solid fa-file-code" style="color: #9b59b6;"></i> Message / Embed <span class="nav-badge badge-purple">NOUVEAU</span></button>
             <button class="tab-btn" data-tab="tab-custom-commands"><i class="fa-solid fa-terminal" style="color: #00b894;"></i> Commandes Personnalisées <span class="nav-badge badge-green">NEW</span></button>
             <button class="tab-btn" data-tab="tab-word-reactions"><i class="fa-solid fa-icons" style="color: #e17055;"></i> Réactions aux Mots <span class="nav-badge badge-orange">NEW</span></button>
             <button class="tab-btn" data-tab="tab-server-bot-logo"><i class="fa-solid fa-image" style="color: #6c5ce7;"></i> Logo Bot Serveur <span class="nav-badge badge-purple">NEW</span></button>
@@ -2701,7 +2701,7 @@
 
           <!-- Tab: Envoyeur d'Embeds Simple -->
           <div id="tab-embed-sender" class="tab-content">
-            <h2 class="section-title"><i class="fa-solid fa-file-code" style="color: #9b59b6;"></i> Envoyeur d'Embeds Simple (Message Pur)</h2>
+            <h2 class="section-title"><i class="fa-solid fa-file-code" style="color: #9b59b6;"></i> Message / Embed (Envoi Ponctuel & Récurrent)</h2>
             <div class="card glass mb-4">
               <p style="color: #b9bbbe; font-size: 0.9rem; margin-bottom: 0;">Composez et envoyez un message Embed sur mesure dans n'importe quel salon de votre serveur (message pur, sans rôle réaction, sans bouton).</p>
             </div>
@@ -2726,10 +2726,40 @@
                     </select>
                   </div>
                   <div class="form-group">
+                    <label for="simple_embed_send_mode"><i class="fa-solid fa-clock"></i> Mode d'Envoi :</label>
+                    <select id="simple_embed_send_mode" class="custom-select">
+                      <option value="now">⚡ Immédiat (Envoi unique maintenant)</option>
+                      <option value="recurring">🔄 Programmé / Récurrent (Automatique)</option>
+                    </select>
+                  </div>
+                  <div class="form-group" id="group_simple_embed_recurring_options" style="display: none; width: 100%;">
+                    <div style="background: rgba(155, 89, 182, 0.15); border: 1px dashed rgba(155, 89, 182, 0.5); padding: 12px; border-radius: 8px; margin-top: 5px;">
+                      <div style="font-weight: 600; color: #fff; margin-bottom: 8px; font-size: 0.88rem;">
+                        <i class="fa-solid fa-arrows-rotate" style="color: #9b59b6;"></i> Options de Récurrence
+                      </div>
+                      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                          <label for="simple_embed_frequency" style="font-size: 0.8rem; color: #b9bbbe; display: block; margin-bottom: 4px;">Fréquence de répétition :</label>
+                          <select id="simple_embed_frequency" class="custom-select">
+                            <option value="1h">Toutes les 1 heure</option>
+                            <option value="6h">Toutes les 6 heures</option>
+                            <option value="12h">Toutes les 12 heures</option>
+                            <option value="daily" selected>Une fois par jour (24h)</option>
+                            <option value="weekly">Une fois par semaine (7 jours)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label for="simple_embed_time" style="font-size: 0.8rem; color: #b9bbbe; display: block; margin-bottom: 4px;">Heure d'envoi (24h, ex: 12:00) :</label>
+                          <input type="time" id="simple_embed_time" class="inner-input" value="12:00" style="padding: 6px 10px; height: 38px;">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group">
                     <label for="simple_embed_edit_msg_id"><i class="fa-solid fa-pen-to-square"></i> Modifier un Embed existant (ID, optionnel) :</label>
                     <input type="text" id="simple_embed_edit_msg_id" class="inner-input" placeholder="ID du message à modifier...">
                   </div>
-                  <button type="submit" class="btn btn-save"><i class="fa-solid fa-paper-plane"></i> Envoyer</button>
+                  <button type="submit" id="btn_submit_simple_embed" class="btn btn-save"><i class="fa-solid fa-paper-plane"></i> Envoyer</button>
                 </div>
               </div>
 
