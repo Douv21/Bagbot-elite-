@@ -3087,21 +3087,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- TOAST ---
   function showToast(message, isError = false) {
-    toast.textContent = message;
-    if (isError) {
-      toast.style.borderColor = 'var(--danger-color)';
-      toast.style.color = 'var(--danger-color)';
-      toast.style.boxShadow = '0 4px 20px rgba(239, 68, 68, 0.2)';
-    } else {
-      toast.style.borderColor = 'var(--success-color)';
-      toast.style.color = 'var(--success-color)';
-      toast.style.boxShadow = '0 4px 20px rgba(16, 185, 129, 0.2)';
+    let tEl = document.getElementById('toast');
+    if (!tEl) {
+      tEl = document.createElement('div');
+      tEl.id = 'toast';
+      tEl.className = 'toast glass';
+      document.body.appendChild(tEl);
     }
-    toast.classList.add('show');
+    tEl.textContent = message;
+    if (isError) {
+      tEl.style.borderColor = '#e74c3c';
+      tEl.style.color = '#e74c3c';
+      tEl.style.boxShadow = '0 4px 20px rgba(231, 76, 60, 0.4)';
+    } else {
+      tEl.style.borderColor = '#2ecc71';
+      tEl.style.color = '#2ecc71';
+      tEl.style.boxShadow = '0 4px 20px rgba(46, 204, 113, 0.4)';
+    }
+    tEl.classList.add('show');
     setTimeout(() => {
-      toast.classList.remove('show');
-    }, 3000);
+      tEl.classList.remove('show');
+    }, 3500);
   }
+  window.showToast = showToast;
 
   // --- ACTION GIFS MANAGER ---
 
@@ -7072,9 +7080,21 @@ function loadServerBotProfile(guildId) {
 
       if (logoInput) logoInput.value = profile.custom_logo_url || '';
       if (nameInput) nameInput.value = profile.custom_name || '';
-      if (previewImg) {
-        previewImg.src = profile.custom_logo_url || 'https://cdn.discordapp.com/embed/avatars/0.png';
-        previewImg.onerror = () => { previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; };
+
+      if (profile.custom_logo_url) {
+        if (previewImg) {
+          previewImg.src = profile.custom_logo_url;
+          previewImg.onerror = () => { previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; };
+        }
+      } else {
+        fetch('/api/bot/info')
+          .then(res => res.json())
+          .then(info => {
+            if (previewImg && info.avatarURL) previewImg.src = info.avatarURL;
+          })
+          .catch(() => {
+            if (previewImg) previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
+          });
       }
 
       if (typeof fetchBotInfo === 'function') {
@@ -7118,7 +7138,15 @@ document.addEventListener('click', async (e) => {
 
         if (logoInput) logoInput.value = '';
         if (nameInput) nameInput.value = '';
-        if (previewImg) previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
+        
+        fetch('/api/bot/info')
+          .then(res => res.json())
+          .then(info => {
+            if (previewImg && info.avatarURL) previewImg.src = info.avatarURL;
+          })
+          .catch(() => {
+            if (previewImg) previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
+          });
 
         if (typeof showToast === 'function') showToast('✅ Logo et nom personnalisés retirés ! Avatar par défaut restauré.');
         if (typeof fetchBotInfo === 'function') fetchBotInfo(null);

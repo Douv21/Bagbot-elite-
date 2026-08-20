@@ -6339,10 +6339,30 @@ function loadServerBotProfile(guildId) {
 
       if (logoInput) logoInput.value = profile.custom_logo_url || '';
       if (nameInput) nameInput.value = profile.custom_name || '';
-      if (previewImg && profile.custom_logo_url) previewImg.src = profile.custom_logo_url;
+
+      if (profile.custom_logo_url) {
+        if (previewImg) {
+          previewImg.src = profile.custom_logo_url;
+          previewImg.onerror = () => { previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; };
+        }
+      } else {
+        fetch('/api/bot/info')
+          .then(res => res.json())
+          .then(info => {
+            if (previewImg && info.avatarURL) previewImg.src = info.avatarURL;
+          })
+          .catch(() => {
+            if (previewImg) previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
+          });
+      }
+
+      if (typeof fetchBotInfo === 'function') {
+        fetchBotInfo(profile.custom_logo_url || null);
+      }
     })
     .catch(console.error);
 }
+window.loadServerBotProfile = loadServerBotProfile;
 
 document.addEventListener('click', async (e) => {
   const btnUpload = e.target.closest('#btn-upload-sbp-logo');
@@ -6376,7 +6396,15 @@ document.addEventListener('click', async (e) => {
 
         if (logoInput) logoInput.value = '';
         if (nameInput) nameInput.value = '';
-        if (previewImg) previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
+
+        fetch('/api/bot/info')
+          .then(res => res.json())
+          .then(info => {
+            if (previewImg && info.avatarURL) previewImg.src = info.avatarURL;
+          })
+          .catch(() => {
+            if (previewImg) previewImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
+          });
 
         if (typeof showToast === 'function') showToast('✅ Logo et nom personnalisés retirés ! Avatar par défaut restauré.');
         if (typeof fetchBotInfo === 'function') fetchBotInfo(null);
