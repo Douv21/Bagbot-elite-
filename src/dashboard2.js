@@ -1271,27 +1271,8 @@ app.post('/api/bot/server-bot-profile/:guildId', async (req, res) => {
 
   try {
     const { client } = require('./index');
-    if (client) {
-      if (client.guilds) {
-        const guild = client.guilds.cache.get(guildId);
-        if (guild && guild.members && guild.members.me) {
-          if (custom_name && custom_name.trim()) {
-            await guild.members.me.setNickname(custom_name.trim()).catch(() => null);
-          } else {
-            await guild.members.me.setNickname(null).catch(() => null);
-          }
-        }
-      }
-      if (client.user && custom_logo_url) {
-        let resolvedPath = custom_logo_url;
-        if (custom_logo_url.startsWith('/uploads/')) {
-          resolvedPath = path.join(__dirname, '../public', custom_logo_url);
-        }
-        await client.user.setAvatar(resolvedPath).catch(err => {
-          console.error('Erreur setAvatar Discord:', err.message);
-        });
-      }
-    }
+    const { updateGuildBotProfileOnDiscord } = require('./utils/helpers');
+    await updateGuildBotProfileOnDiscord(client, guildId, custom_name, custom_logo_url);
   } catch (e) {
     console.error('Erreur mise à jour profil bot:', e);
   }

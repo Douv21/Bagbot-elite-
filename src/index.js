@@ -2597,16 +2597,10 @@ apiApp.post('/bot/server-bot-profile/:guildId', async (req, res) => {
   saveServerBotProfile(guildId, custom_logo_url || null, custom_name || null);
 
   try {
-    const guild = client.guilds.cache.get(guildId);
-    if (guild && guild.members && guild.members.me) {
-      if (custom_name && custom_name.trim()) {
-        await guild.members.me.setNickname(custom_name.trim()).catch(() => null);
-      } else {
-        await guild.members.me.setNickname(null).catch(() => null);
-      }
-    }
+    const { updateGuildBotProfileOnDiscord } = require('./utils/helpers');
+    await updateGuildBotProfileOnDiscord(client, guildId, custom_name, custom_logo_url);
   } catch (e) {
-    console.error('Erreur mise à jour surnom bot:', e);
+    console.error('Erreur mise à jour profil bot:', e);
   }
 
   res.json({ success: true, custom_logo_url: custom_logo_url || null, custom_name: custom_name || null });

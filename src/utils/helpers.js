@@ -291,9 +291,70 @@ async function getActivePublicUrl() {
   return `http://${ip}:${port}`;
 }
 
+async function updateGuildBotProfileOnDiscord(client, guildId, customName, customLogoUrl) {
+  try {
+    if (!client || !guildId) return;
+    const { REST, Routes } = require('discord.js');
+    const fs = require('fs');
+    const path = require('path');
+
+    const guild = client.guilds.cache.get(guildId);
+
+    // 1. Mettre à jour le surnom du bot sur le serveur Discord
+    if (guild && guild.members && guild.members.me) {
+      if (customName && customName.trim()) {
+        await guild.members.me.setNickname(customName.trim()).catch(err => console.error('Erreur setNickname:', err.message));
+      } else {
+        await guild.members.me.setNickname(null).catch(() => null);
+      }
+    }
+
+    // 2. Mettre à jour l'avatar du bot sur la liste des membres du serveur Discord (Guild Member Avatar)
+    if (customLogoUrl && client.token) {
+      let imageBuffer = null;
+      if (customLogoUrl.startsWith('/uploads/')) {
+        const absPath = path.join(__dirname, '../../public', customLogoUrl);
+        if (fs.existsSync(absPath)) {
+          imageBuffer = fs.readFileSync(absPath);
+        }
+      } else if (customLogoUrl.startsWith('http://') || customLogoUrl.startsWith('https://')) {
+        const response = await fetch(customLogoUrl).catch(() => null);
+        if (response && response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          imageBuffer = Buffer.from(arrayBuffer);
+        }
+      }
+
+      if (imageBuffer) {
+        const base64 = imageBuffer.toString('base64');
+        let mime = 'image/png';
+        if (customLogoUrl.endsWith('.jpg') || customLogoUrl.endsWith('.jpeg')) mime = 'image/jpeg';
+        else if (customLogoUrl.endsWith('.gif')) mime = 'image/gif';
+        else if (customLogoUrl.endsWith('.webp')) mime = 'image/webp';
+
+        const dataURI = `data:${mime};base64,${base64}`;
+        const rest = new REST({ version: '10' }).setToken(client.token);
+        await rest.patch(Routes.guildMember(guildId, '@me'), {
+          body: { avatar: dataURI }
+        }).catch(err => {
+          console.error('Erreur PATCH guild member avatar Discord:', err.message);
+        });
+      }
+    } else if (client.token) {
+      const rest = new REST({ version: '10' }).setToken(client.token);
+      await rest.patch(Routes.guildMember(guildId, '@me'), {
+        body: { avatar: null }
+      }).catch(() => null);
+    }
+  } catch (e) {
+    console.error('Erreur updateGuildBotProfileOnDiscord:', e.message);
+  }
+}
+
 module.exports = {
   formatWelcomeLeaveMessage,
   sendLog,
   addXP,
-  getActivePublicUrl
+  getActivePublicUrl,
+  updateGuildBotProfileOnDiscord
 };
