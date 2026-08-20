@@ -6807,16 +6807,12 @@ function initSimpleEmbedSender() {
 
     const send_mode = sendModeSelect ? sendModeSelect.value : 'now';
     let thumbnail_url = selectThumb ? selectThumb.value : 'none';
-    if (thumbnail_url === 'custom' && inputCustomThumb) {
-      thumbnail_url = inputCustomThumb.value;
-    }
-
     const payload = {
       channel_id,
       title: inputTitle ? inputTitle.value : '',
       description: inputDesc ? inputDesc.value : '',
       color: inputColor ? inputColor.value : '#5865F2',
-      thumbnail_url,
+      thumbnail_url: null,
       image_url: inputImage ? inputImage.value : '',
       author_name: inputAuthorName ? inputAuthorName.value : '',
       author_icon: inputAuthorIcon ? inputAuthorIcon.value : '',

@@ -2092,11 +2092,12 @@ app.post('/api/config/embeds/schedule-recurring', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
-    const {
+    let {
       channel_id, title, description, color, thumbnail_url,
       image_url, author_name, author_icon, footer_text, ping_type,
       frequency, send_time
     } = req.body || {};
+    thumbnail_url = null;
 
     if (!channel_id) return res.status(400).json({ error: 'Salon de destination requis' });
 

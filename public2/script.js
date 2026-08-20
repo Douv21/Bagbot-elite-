@@ -7163,17 +7163,12 @@ function initSimpleEmbedSender() {
     const editMsgId = document.getElementById('simple_embed_edit_msg_id')?.value || '';
     const send_mode = sendModeSelect ? sendModeSelect.value : 'now';
 
-    let thumbnail_url = selectThumb ? selectThumb.value : (window.simpleEmbedThumbMode || 'none');
-    if (thumbnail_url === 'custom' && inputCustomThumb && inputCustomThumb.value.trim()) {
-      thumbnail_url = inputCustomThumb.value.trim();
-    }
-
     const payload = {
       channel_id,
       title,
       description,
       color,
-      thumbnail_url,
+      thumbnail_url: null,
       image_url,
       author_name,
       author_icon,
