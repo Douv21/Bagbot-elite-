@@ -420,6 +420,42 @@ app.get('/api/guilds', async (req, res) => {
 });
 
 
+app.get('/api/server-tags', async (req, res) => {
+  try {
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const botResponse = await fetch(`http://127.0.0.1:${botApiPort}/server-tags`).catch(() => null);
+    if (botResponse && botResponse.ok) {
+      const data = await botResponse.json();
+      return res.json(data);
+    }
+    const tagsMap = [];
+    if (client && client.guilds && client.guilds.cache) {
+      for (const [, g] of client.guilds.cache) {
+        const tag = (g.clan && g.clan.tag) ? g.clan.tag : g.name;
+        tagsMap.push({ guildId: g.id, guildName: g.name, tag });
+      }
+    }
+    res.json({ success: true, tags: tagsMap });
+  } catch (error) {
+    console.error('Error fetching server tags:', error);
+    res.json({ success: false, tags: [] });
+  }
+});
+
+app.get('/api/bot/server-tags', async (req, res) => {
+  try {
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const botResponse = await fetch(`http://127.0.0.1:${botApiPort}/server-tags`).catch(() => null);
+    if (botResponse && botResponse.ok) {
+      const data = await botResponse.json();
+      return res.json(data);
+    }
+    res.json({ success: false, tags: [] });
+  } catch (error) {
+    res.json({ success: false, tags: [] });
+  }
+});
+
 // API pour sélectionner un serveur
 app.post('/api/select-guild', (req, res) => {
   const { guildId } = req.body || {};
