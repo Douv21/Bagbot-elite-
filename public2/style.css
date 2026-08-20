@@ -3510,18 +3510,10 @@ td.text-center, td[colspan] {
   .discord-embed-thumbnail,
   .discord-embed-thumbnail-wrap,
   #autorole-preview-thumbnail,
-  #simple-embed-preview-thumbnail {
-    flex: 0 0 54px !important;
-    width: 54px !important;
-    height: 54px !important;
-    max-width: 54px !important;
-    max-height: 54px !important;
-    flex-shrink: 0 !important;
-    overflow: hidden !important;
-    border-radius: 4px !important;
-    position: relative !important;
-    align-self: flex-start !important;
-    margin-left: 6px !important;
+  #simple-embed-preview-thumbnail,
+  #simple-embed-thumbnail-wrap,
+  #discord-thumbnail-box {
+    display: none !important;
   }
 
   .discord-embed-image-box,
