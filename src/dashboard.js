@@ -1777,16 +1777,33 @@ app.post('/api/config/delete-sondage', (req, res) => {
   }
 });
 
-// Supprimer un embed d'auto-rôle
+// Supprimer un embed d'auto-rôle ou message simple
 app.post('/api/config/autorole-embeds/delete', async (req, res) => {
   try {
     const guildId = getReqGuildId(req);
-    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
 
     const { message_id, channel_id } = req.body || {};
     if (!message_id) return res.status(400).json({ error: 'ID de message requis' });
 
-    // 1. Essayer de supprimer le message sur Discord
+    // 1. Essayer de supprimer le message sur Discord directement
+    if (client && client.guilds) {
+      const guild = client.guilds.cache.get(guildId);
+      if (guild) {
+        let channel = channel_id ? guild.channels.cache.get(channel_id) : null;
+        if (!channel) {
+          channel = guild.channels.cache.find(c => c.isTextBased() && c.messages && c.messages.cache.has(message_id));
+        }
+        if (channel && channel.isTextBased()) {
+          const targetMsg = await channel.messages.fetch(message_id).catch(() => null);
+          if (targetMsg) {
+            await targetMsg.delete().catch(console.error);
+          }
+        }
+      }
+    }
+
+    // 2. Essayer via Bot API local
     const botApiPort = process.env.BOT_API_PORT || 49605;
     await fetch(`http://127.0.0.1:${botApiPort}/bot/delete-message`, {
       method: 'POST',
@@ -1794,11 +1811,16 @@ app.post('/api/config/autorole-embeds/delete', async (req, res) => {
       body: JSON.stringify({ guildId, channelId: channel_id, messageId: message_id })
     }).catch(() => null);
 
-    // 2. Supprimer de SQLite
-    deleteAutoroleEmbed(guildId, message_id);
-    res.json({ success: true });
+    // 3. Supprimer des tables SQLite (autorole_embeds et recurring_embeds)
+    try {
+      const { deleteAutoroleEmbed, deleteRecurringEmbed } = require('./database/db');
+      deleteAutoroleEmbed(guildId, message_id);
+      deleteRecurringEmbed(message_id);
+    } catch (e) {}
+
+    res.json({ success: true, message: 'Message Embed supprimé avec succès !' });
   } catch (error) {
-    console.error(error);
+    console.error('Erreur delete autorole embed:', error);
     res.status(500).json({ error: error.message });
   }
 });

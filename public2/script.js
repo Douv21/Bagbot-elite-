@@ -3971,7 +3971,8 @@ document.addEventListener('DOMContentLoaded', () => {
         autoroleSelectorsList = [];
         renderSelectorsListUI();
         renderButtonsCreatorPreview();
-        loadGuildConfiguration();
+        if (typeof loadGuildConfiguration === 'function') loadGuildConfiguration();
+        if (typeof loadAllServerEmbeds === 'function') loadAllServerEmbeds();
       } else {
         showToast('Erreur: ' + data.error, true);
       }
