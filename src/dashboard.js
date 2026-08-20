@@ -1219,6 +1219,14 @@ app.post('/api/bot/custom-commands/settings/:guildId', (req, res) => {
   res.json({ success: true });
 });
 
+app.get('/api/shop-items/:guildId', (req, res) => {
+  const { guildId } = req.params;
+  const { ensureDefaultShopItems, db } = require('./database/db');
+  ensureDefaultShopItems(guildId);
+  const items = db.prepare('SELECT item_name, price FROM shop WHERE guild_id = ?').all(guildId) || [];
+  res.json({ items });
+});
+
 // --- RÉACTIONS DE MOTS API ---
 app.get('/api/bot/word-reactions/:guildId', (req, res) => {
   const { guildId } = req.params;

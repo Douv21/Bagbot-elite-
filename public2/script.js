@@ -6887,6 +6887,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // 🤖 COMMANDES PERSONNALISÉES (DASHBOARD 2)
 // ============================================================
 let ccCurrentActions = [];
+let currentGuildRolesList = [];
+let currentGuildShopItemsList = [];
 
 function initCcActionsBuilder() {
   const select = document.getElementById('cc-add-action-select');
@@ -6921,7 +6923,7 @@ function renderCcActionsList() {
     return;
   }
 
-  const rolesList = (typeof currentGuildRoles !== 'undefined' && Array.isArray(currentGuildRoles)) ? currentGuildRoles : (window.guildRoles || []);
+  const roles = (currentGuildRolesList && currentGuildRolesList.length) ? currentGuildRolesList : (typeof rolesList !== 'undefined' && Array.isArray(rolesList) ? rolesList : (window.guildRoles || []));
 
   container.innerHTML = ccCurrentActions.map((act, index) => {
     let title = '';
@@ -6951,8 +6953,8 @@ function renderCcActionsList() {
       fields = `
         <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">SÉLECTIONNER LE RÔLE À AJOUTER</label>
         <select class="inner-input cc-act-field" data-id="${act.id}" data-key="roleId" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
-          <option value="">-- Choisir un rôle --</option>
-          ${rolesList.map(r => `<option value="${r.id}" ${act.roleId === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
+          <option value="">-- Choisir un rôle (${roles.length} rôles disponibles) --</option>
+          ${roles.map(r => `<option value="${r.id}" ${act.roleId === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
         </select>`;
     } else if (act.type === 'add_temp_role') {
       title = 'Ajouter un rôle temporaire';
@@ -6962,8 +6964,8 @@ function renderCcActionsList() {
           <div>
             <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">RÔLE TEMPORAIRE</label>
             <select class="inner-input cc-act-field" data-id="${act.id}" data-key="roleId" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
-              <option value="">-- Choisir un rôle --</option>
-              ${rolesList.map(r => `<option value="${r.id}" ${act.roleId === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
+              <option value="">-- Choisir un rôle (${roles.length} rôles disponibles) --</option>
+              ${roles.map(r => `<option value="${r.id}" ${act.roleId === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
             </select>
           </div>
           <div>
@@ -6983,17 +6985,23 @@ function renderCcActionsList() {
       fields = `
         <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">RÔLE À RETIRER</label>
         <select class="inner-input cc-act-field" data-id="${act.id}" data-key="roleId" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
-          <option value="">-- Choisir un rôle --</option>
-          ${rolesList.map(r => `<option value="${r.id}" ${act.roleId === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
+          <option value="">-- Choisir un rôle (${roles.length} rôles disponibles) --</option>
+          ${roles.map(r => `<option value="${r.id}" ${act.roleId === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
         </select>`;
     } else if (act.type === 'give_item') {
       title = 'Article de boutique (Offrir un objet)';
       icon = 'fa-gift';
+      const shopOpts = currentGuildShopItemsList.map(i => `<option value="${i.item_name}" ${act.itemName === i.item_name ? 'selected' : ''}>${i.item_name} (${i.price} 💰)</option>`).join('');
+
       fields = `
         <div style="display:grid; grid-template-columns:3fr 1fr; gap:10px;">
           <div>
-            <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">NOM DE L'OBJET</label>
-            <input type="text" class="inner-input cc-act-field" data-id="${act.id}" data-key="itemName" placeholder="ex: 👑 Badge VIP, 🎁 Cadeau" value="${act.itemName || ''}" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
+            <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">SÉLECTIONNER UN OBJET DE LA BOUTIQUE</label>
+            <select class="inner-input cc-act-field" data-id="${act.id}" data-key="itemName" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
+              <option value="">-- Choisir un objet de la boutique --</option>
+              ${shopOpts}
+            </select>
+            <input type="text" class="inner-input cc-act-field" data-id="${act.id}" data-key="itemNameCustom" placeholder="Ou saisissez un nom d'objet personnalisé" value="${act.itemNameCustom || (act.itemName && !currentGuildShopItemsList.some(i => i.item_name === act.itemName) ? act.itemName : '')}" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:6px; border-radius:6px; margin-top:6px;">
           </div>
           <div>
             <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">QUANTITÉ</label>
@@ -7028,7 +7036,12 @@ function renderCcActionsList() {
       const key = e.target.getAttribute('data-key');
       const val = e.target.value;
       const targetAct = ccCurrentActions.find(a => a.id === id);
-      if (targetAct) targetAct[key] = val;
+      if (targetAct) {
+        targetAct[key] = val;
+        if (key === 'itemNameCustom' && val) {
+          targetAct.itemName = val;
+        }
+      }
     });
   });
 }
@@ -7040,22 +7053,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function loadCustomCommands(guildId) {
   if (!guildId) return;
-  fetch(`/api/bot/custom-commands/${guildId}`)
-    .then(r => r.json())
-    .then(data => {
-      const settings = data.settings || {};
-      const commands = data.commands || [];
 
-      const prefixInput = document.getElementById('cc-prefix-input');
-      if (prefixInput) prefixInput.value = settings.prefix || '/';
+  Promise.all([
+    fetch(`/api/roles?guildId=${guildId}`).then(r => r.json()).catch(() => []),
+    fetch(`/api/shop-items/${guildId}`).then(r => r.json()).catch(() => ({ items: [] })),
+    fetch(`/api/bot/custom-commands/${guildId}`).then(r => r.json()).catch(() => ({}))
+  ]).then(([rolesData, shopData, cmdData]) => {
+    currentGuildRolesList = Array.isArray(rolesData) ? rolesData : [];
+    currentGuildShopItemsList = (shopData && Array.isArray(shopData.items)) ? shopData.items : [];
 
-      const deleteInput = document.getElementById('cc-delete-trigger-input');
-      if (deleteInput) deleteInput.checked = !!settings.delete_trigger;
+    const settings = cmdData.settings || {};
+    const commands = cmdData.commands || [];
 
-      renderCustomCommands(commands, guildId);
-      renderCcActionsList();
-    })
-    .catch(console.error);
+    const prefixInput = document.getElementById('cc-prefix-input');
+    if (prefixInput) prefixInput.value = settings.prefix || '/';
+
+    const deleteInput = document.getElementById('cc-delete-trigger-input');
+    if (deleteInput) deleteInput.checked = (settings.delete_trigger == 1 || settings.delete_trigger === true);
+
+    renderCustomCommands(commands, guildId);
+    renderCcActionsList();
+  }).catch(console.error);
 }
 
 function renderCustomCommands(commands, guildId) {
