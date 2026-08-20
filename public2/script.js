@@ -6322,6 +6322,16 @@ function initSimpleEmbedSender() {
 
   const simpleEmbedChanSelect = document.getElementById('simple_embed_channel');
 
+  const safeSetVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if ('value' in el) {
+      el.value = val || '';
+    } else {
+      el.innerText = val || '';
+    }
+  };
+
   function loadAllServerEmbeds() {
     const listContainer = document.getElementById('all-server-embeds-list');
     if (!listContainer) return;
@@ -6375,12 +6385,16 @@ function initSimpleEmbedSender() {
               if (simpleEmbedChanSelect && emb.channel_id) simpleEmbedChanSelect.value = emb.channel_id;
               safeSetVal('simple_embed_edit_msg_id', emb.id);
               safeSetVal('simple_embed_title', emb.title || '');
+              safeSetVal('simple-embed-preview-title', emb.title || '');
               safeSetVal('simple_embed_desc', emb.description || '');
+              safeSetVal('simple-embed-preview-desc', emb.description || '');
               safeSetVal('simple_embed_color', emb.color || '#5865F2');
               safeSetVal('simple_embed_image', emb.image || '');
               safeSetVal('simple_embed_author_name', emb.author_name || '');
+              safeSetVal('simple-embed-preview-author-name', emb.author_name || '');
               safeSetVal('simple_embed_author_icon', emb.author_icon || '');
               safeSetVal('simple_embed_footer_text', emb.footer || '');
+              safeSetVal('simple-embed-preview-footer-text', emb.footer || '');
               showToast(`✏️ Message [${emb.id}] chargé dans l'éditeur !`);
               updatePreview();
               const formCard = document.getElementById('form-simple-embed');

@@ -6128,6 +6128,16 @@ function initSimpleEmbedSender() {
 
   const simpleEmbedChanSelect = document.getElementById('simple_embed_channel');
 
+  const safeSetVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if ('value' in el) {
+      el.value = val || '';
+    } else {
+      el.innerText = val || '';
+    }
+  };
+
   function loadAllServerEmbeds() {
     const listContainer = document.getElementById('all-server-embeds-list');
     if (!listContainer) return;
