@@ -2694,8 +2694,11 @@ client.on('messageCreate', async (message) => {
     let triggeredCommandName = null;
     if (message.content.startsWith(prefix)) {
       triggeredCommandName = message.content.slice(prefix.length).trim().split(/ +/)[0].toLowerCase();
-    } else {
-      triggeredCommandName = message.content.trim().split(/ +/)[0].toLowerCase();
+    } else if (prefix === '/' || prefix === '!') {
+      let rawFirstWord = message.content.trim().split(/ +/)[0].toLowerCase();
+      if (rawFirstWord.startsWith('/') || rawFirstWord.startsWith('!')) {
+        triggeredCommandName = rawFirstWord.slice(1);
+      }
     }
 
     if (triggeredCommandName) {
@@ -2708,17 +2711,36 @@ client.on('messageCreate', async (message) => {
           actions = JSON.parse(matchedCmd.actions_json || '[]');
         } catch (e) {}
 
+        const formatVars = (str) => {
+          if (!str || typeof str !== 'string') return str;
+          const u = message.author;
+          const g = message.guild;
+          return str
+            .replace(/\{user\}/gi, `<@${u.id}>`)
+            .replace(/\{user_mention\}/gi, `<@${u.id}>`)
+            .replace(/\{username\}/gi, u.username)
+            .replace(/\{user_id\}/gi, u.id)
+            .replace(/\{user_avatar\}/gi, u.displayAvatarURL({ dynamic: true }))
+            .replace(/\{server\}/gi, g ? g.name : 'Serveur')
+            .replace(/\{guild_name\}/gi, g ? g.name : 'Serveur')
+            .replace(/\{membercount\}/gi, g ? (g.memberCount || 0).toString() : '0')
+            .replace(/\{channel\}/gi, `<#${message.channel.id}>`);
+        };
+
         for (const action of actions) {
-          if (action.type === 'reply' && action.text) {
-            await message.channel.send(action.text);
+          if ((action.type === 'reply' || action.type === 'text') && (action.text || action.content)) {
+            const content = formatVars(action.text || action.content);
+            await message.channel.send(content);
           } else if (action.type === 'embed') {
             const { EmbedBuilder } = require('discord.js');
             const embed = new EmbedBuilder()
               .setColor(action.color || '#5865F2')
               .setTimestamp();
-            if (action.title) embed.setTitle(action.title);
-            if (action.description) embed.setDescription(action.description);
+            if (action.title) embed.setTitle(formatVars(action.title));
+            if (action.description) embed.setDescription(formatVars(action.description));
             if (action.imageUrl) embed.setImage(action.imageUrl);
+            if (action.thumbnailUrl) embed.setThumbnail(action.thumbnailUrl);
+            if (action.footer) embed.setFooter({ text: formatVars(action.footer) });
             await message.channel.send({ embeds: [embed] });
           } else if (action.type === 'add_role' && action.roleId) {
             await message.member?.roles.add(action.roleId).catch(() => null);

@@ -6125,9 +6125,12 @@ function loadCustomCommands(guildId) {
       const settings = data.settings || {};
       const commands = data.commands || [];
 
-      // Préfixe
+      // Préfixe & Paramètres
       const prefixInput = document.getElementById('cc-prefix-input');
       if (prefixInput) prefixInput.value = settings.prefix || '/';
+
+      const deleteInput = document.getElementById('cc-delete-trigger-input');
+      if (deleteInput) deleteInput.checked = !!settings.delete_trigger;
 
       renderCustomCommands(commands, guildId);
     })
@@ -6146,8 +6149,8 @@ function renderCustomCommands(commands, guildId) {
   tbody.innerHTML = commands.map(cmd => {
     let actions = [];
     try { actions = JSON.parse(cmd.actions_json || '[]'); } catch(e) {}
-    const textAction = actions.find(a => a.type === 'text');
-    const preview = textAction ? textAction.content.substring(0, 60) + (textAction.content.length > 60 ? '…' : '') : '—';
+    const textAction = actions.find(a => a.type === 'text' || a.type === 'reply');
+    const preview = textAction ? (textAction.text || textAction.content || '').substring(0, 60) + ((textAction.text || textAction.content || '').length > 60 ? '…' : '') : '—';
     return `<tr>
       <td><strong style="color:#5865F2;">/${cmd.command_name}</strong></td>
       <td style="color:#b9bbbe; font-size:0.85rem;">${cmd.description || '—'}</td>
