@@ -3353,6 +3353,207 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  let autoroleSelectorsList = [];
+
+  function renderSelectorsListUI() {
+    const container = document.getElementById('selectors-list-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!autoroleSelectorsList || autoroleSelectorsList.length === 0) {
+      container.innerHTML = `
+        <div style="background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.1); padding: 12px; border-radius: 6px; text-align: center; color: #8e9297; font-size: 0.85rem;">
+          Aucun sélecteur configuré. Cliquez sur <strong>"Ajouter un Sélecteur"</strong> ci-dessus pour en créer un (ex: Genre, Pronom...).
+        </div>
+      `;
+      return;
+    }
+
+    autoroleSelectorsList.forEach((sel, index) => {
+      const card = document.createElement('div');
+      card.className = 'selector-item-card';
+      card.style.cssText = 'background: #2f3136; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2);';
+
+      const optCount = sel.options ? sel.options.length : 0;
+      const typeLabel = sel.type === 'multi_select' ? 'Multi-Choix' : (sel.type === 'buttons' ? 'Boutons' : 'Choix Unique');
+
+      card.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <i class="fa-solid fa-grip-vertical" style="color: #8e9297; cursor: grab;"></i>
+          <div>
+            <div style="font-weight: 700; font-size: 0.95rem; color: #ffffff;">${sel.placeholder || 'Sélecteur ' + (index + 1)}</div>
+            <div style="font-size: 0.78rem; color: #b9bbbe; margin-top: 2px;">
+              <span style="background: rgba(88,101,242,0.25); color: #7289da; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-right: 6px;">${typeLabel}</span>
+              <span>${optCount} option(s)</span>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button type="button" class="btn btn-edit-selector" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; cursor: pointer;">
+            <i class="fa-solid fa-pen-to-square"></i> Modifier
+          </button>
+          <button type="button" class="btn btn-delete-selector" style="background: rgba(231,76,60,0.15); border: 1px solid rgba(231,76,60,0.3); color: #ff5555; padding: 6px 10px; border-radius: 6px; font-size: 0.82rem; cursor: pointer;" title="Supprimer ce sélecteur">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      `;
+
+      card.querySelector('.btn-edit-selector').addEventListener('click', () => {
+        openSelectorModal(index);
+      });
+      card.querySelector('.btn-delete-selector').addEventListener('click', () => {
+        if (confirm(`Voulez-vous vraiment supprimer le sélecteur "${sel.placeholder}" ?`)) {
+          autoroleSelectorsList.splice(index, 1);
+          renderSelectorsListUI();
+          renderButtonsCreatorPreview();
+        }
+      });
+
+      container.appendChild(card);
+    });
+  }
+
+  function openSelectorModal(index = -1) {
+    const modal = document.getElementById('modal-selector-editor');
+    if (!modal) return;
+
+    document.getElementById('modal-selector-index').value = index;
+    const titleEl = document.getElementById('modal-selector-title');
+    const placeholderEl = document.getElementById('modal-selector-placeholder');
+    const typeEl = document.getElementById('modal-selector-type');
+    const modeEl = document.getElementById('modal-selector-mode');
+    const optionsContainer = document.getElementById('modal-selector-options-list');
+
+    optionsContainer.innerHTML = '';
+
+    if (index >= 0 && autoroleSelectorsList[index]) {
+      const sel = autoroleSelectorsList[index];
+      if (titleEl) titleEl.textContent = 'MODIFIER LE SÉLECTEUR';
+      if (placeholderEl) placeholderEl.value = sel.placeholder || '';
+      if (typeEl) typeEl.value = sel.type || 'select';
+      if (modeEl) modeEl.value = sel.mode || 'normal';
+
+      if (sel.options && sel.options.length > 0) {
+        sel.options.forEach(opt => addModalOptionRow(opt));
+      } else {
+        addModalOptionRow();
+        addModalOptionRow();
+      }
+    } else {
+      if (titleEl) titleEl.textContent = 'AJOUTER UN SÉLECTEUR';
+      if (placeholderEl) placeholderEl.value = '';
+      if (typeEl) typeEl.value = 'select';
+      if (modeEl) modeEl.value = 'normal';
+      addModalOptionRow();
+      addModalOptionRow();
+    }
+
+    modal.style.display = 'flex';
+  }
+
+  function closeSelectorModal() {
+    const modal = document.getElementById('modal-selector-editor');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function addModalOptionRow(opt = null) {
+    const container = document.getElementById('modal-selector-options-list');
+    if (!container) return;
+
+    const row = document.createElement('div');
+    row.className = 'modal-option-row';
+    row.style.cssText = 'display: flex; gap: 8px; align-items: center; background: #202225; padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 6px;';
+
+    const rolesOptionsHtml = typeof getRolesSelectHTML === 'function' ? getRolesSelectHTML(opt ? opt.role_id : '') : '<option value="">-- Choisir un rôle --</option>';
+
+    row.innerHTML = `
+      <input type="text" class="opt-emoji" placeholder="👨" value="${opt ? (opt.emoji || '') : ''}" style="width: 45px; text-align: center; background: #2f3136; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff; padding: 6px;">
+      <select class="opt-role role-select" style="flex: 2; background: #2f3136; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff; padding: 6px; font-size: 0.85rem;">
+        ${rolesOptionsHtml}
+      </select>
+      <input type="text" class="opt-label" placeholder="Ex: Homme" value="${opt ? (opt.label || '') : ''}" style="flex: 2; background: #2f3136; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff; padding: 6px; font-size: 0.85rem;">
+      <button type="button" class="btn btn-remove-option" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 1rem; padding: 4px 6px;"><i class="fa-solid fa-trash"></i></button>
+    `;
+
+    row.querySelector('.btn-remove-option').addEventListener('click', () => {
+      row.remove();
+    });
+
+    container.appendChild(row);
+  }
+
+  // Event Listeners Modal
+  const btnOpenAddSelector = document.getElementById('btn-open-add-selector-modal');
+  if (btnOpenAddSelector) {
+    btnOpenAddSelector.addEventListener('click', () => openSelectorModal(-1));
+  }
+
+  const btnCloseModal = document.getElementById('btn-close-selector-modal');
+  if (btnCloseModal) {
+    btnCloseModal.addEventListener('click', closeSelectorModal);
+  }
+
+  const btnCancelModal = document.getElementById('btn-cancel-selector-modal');
+  if (btnCancelModal) {
+    btnCancelModal.addEventListener('click', closeSelectorModal);
+  }
+
+  const btnAddModalOpt = document.getElementById('btn-add-modal-option');
+  if (btnAddModalOpt) {
+    btnAddModalOpt.addEventListener('click', () => addModalOptionRow());
+  }
+
+  const formSelectorEditor = document.getElementById('form-selector-editor');
+  if (formSelectorEditor) {
+    formSelectorEditor.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const index = parseInt(document.getElementById('modal-selector-index').value);
+      const placeholder = document.getElementById('modal-selector-placeholder').value.trim();
+      const type = document.getElementById('modal-selector-type').value;
+      const mode = document.getElementById('modal-selector-mode').value;
+
+      const optionRows = document.querySelectorAll('#modal-selector-options-list .modal-option-row');
+      const collectedOptions = [];
+
+      optionRows.forEach(r => {
+        const emoji = r.querySelector('.opt-emoji')?.value?.trim() || '';
+        const role_id = r.querySelector('.opt-role')?.value || '';
+        const label = r.querySelector('.opt-label')?.value?.trim() || '';
+
+        if (role_id) {
+          collectedOptions.push({
+            role_id,
+            label: label || (typeof getRoleName === 'function' ? getRoleName(role_id) : 'Rôle'),
+            emoji,
+            style: 'PRIMARY'
+          });
+        }
+      });
+
+      if (collectedOptions.length === 0) {
+        alert('Veuillez ajouter au moins une option avec un rôle valide.');
+        return;
+      }
+
+      const selectorObj = {
+        placeholder: placeholder || 'Sélecteur',
+        type,
+        mode,
+        options: collectedOptions
+      };
+
+      if (index >= 0 && autoroleSelectorsList[index]) {
+        autoroleSelectorsList[index] = selectorObj;
+      } else {
+        autoroleSelectorsList.push(selectorObj);
+      }
+
+      closeSelectorModal();
+      renderSelectorsListUI();
+      renderButtonsCreatorPreview();
+    });
+  }
+
   document.getElementById('btn-add-autorole-button').addEventListener('click', () => {
     const role_id = document.getElementById('new-button-role').value;
     const label = document.getElementById('new-button-label').value.trim();
@@ -3389,98 +3590,125 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (container) container.innerHTML = '';
     
-    if (!autoroleButtonsList || autoroleButtonsList.length === 0) {
-      if (noButtonsText) noButtonsText.style.display = 'block';
-      const previewButtonsContainer = document.getElementById('autorole-preview-buttons');
-      if (previewButtonsContainer) previewButtonsContainer.innerHTML = '<p style="color: #8e9297; font-style: italic; font-size: 0.85rem;">Aucun rôle / bouton configuré pour cet embed.</p>';
-      return;
+    if (autoroleButtonsList && autoroleButtonsList.length > 0) {
+      if (noButtonsText) noButtonsText.style.display = 'none';
+      autoroleButtonsList.forEach((btn, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'badge';
+        wrapper.style.cssText = 'padding: 8px 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; margin-bottom: 6px;';
+
+        const styleLabel = btn.style === 'SUCCESS' ? 'Vert' : (btn.style === 'DANGER' ? 'Rouge' : (btn.style === 'SECONDARY' ? 'Gris' : 'Bleu'));
+        const roleNameStr = typeof getRoleName === 'function' ? getRoleName(btn.role_id) : (btn.role_id || 'Rôle');
+        wrapper.innerHTML = `
+          <span style="font-weight: 600; color: #ffffff;">${btn.emoji || '📌'} ${btn.label || roleNameStr} <small style="color: #b9bbbe;">(${roleNameStr})</small> <span style="background: rgba(88,101,242,0.3); padding: 2px 6px; border-radius: 4px; font-size: 0.72rem;">${styleLabel}</span></span>
+          <button type="button" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 1rem; padding: 0 4px;" title="Retirer ce rôle"><i class="fa-solid fa-xmark"></i></button>
+        `;
+
+        const btnRemove = wrapper.querySelector('button');
+        if (btnRemove) {
+          btnRemove.addEventListener('click', () => {
+            autoroleButtonsList.splice(index, 1);
+            renderButtonsCreatorPreview();
+          });
+        }
+
+        if (container) container.appendChild(wrapper);
+      });
     }
-    if (noButtonsText) noButtonsText.style.display = 'none';
 
-    autoroleButtonsList.forEach((btn, index) => {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'badge';
-      wrapper.style.cssText = 'padding: 8px 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; margin-bottom: 6px;';
-
-      const styleLabel = btn.style === 'SUCCESS' ? 'Vert' : (btn.style === 'DANGER' ? 'Rouge' : (btn.style === 'SECONDARY' ? 'Gris' : 'Bleu'));
-      const roleNameStr = typeof getRoleName === 'function' ? getRoleName(btn.role_id) : (btn.role_id || 'Rôle');
-      wrapper.innerHTML = `
-        <span style="font-weight: 600; color: #ffffff;">${btn.emoji || '📌'} ${btn.label || roleNameStr} <small style="color: #b9bbbe;">(${roleNameStr})</small> <span style="background: rgba(88,101,242,0.3); padding: 2px 6px; border-radius: 4px; font-size: 0.72rem;">${styleLabel}</span></span>
-        <button type="button" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 1rem; padding: 0 4px;" title="Retirer ce rôle"><i class="fa-solid fa-xmark"></i></button>
-      `;
-
-      const btnRemove = wrapper.querySelector('button');
-      if (btnRemove) {
-        btnRemove.addEventListener('click', () => {
-          autoroleButtonsList.splice(index, 1);
-          renderButtonsCreatorPreview();
-        });
-      }
-
-      if (container) container.appendChild(wrapper);
-    });
-
-    // Mettre à jour l'aperçu Discord réel
+    // Mettre à jour l'aperçu Discord réel pour TOUS les sélecteurs
     const previewButtonsContainer = document.getElementById('autorole-preview-buttons');
     if (previewButtonsContainer) {
       previewButtonsContainer.innerHTML = '';
-      const typeEl = document.getElementById('autorole-embed-type');
-      const type = typeEl ? typeEl.value : 'buttons';
 
-      if (type === 'buttons') {
-        const btnRow = document.createElement('div');
-        btnRow.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; width: 100%;';
+      if (autoroleSelectorsList && autoroleSelectorsList.length > 0) {
+        autoroleSelectorsList.forEach(sel => {
+          if (sel.type === 'buttons') {
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; width: 100%;';
 
-        autoroleButtonsList.forEach(btn => {
-          const pBtn = document.createElement('button');
-          pBtn.type = 'button';
-          pBtn.style.cssText = 'padding: 8px 16px; font-size: 0.88rem; border-radius: 4px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.2);';
+            (sel.options || []).forEach(btn => {
+              const pBtn = document.createElement('button');
+              pBtn.type = 'button';
+              pBtn.style.cssText = 'padding: 8px 16px; font-size: 0.88rem; border-radius: 4px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.2); background: #5865F2; color: #ffffff;';
+              pBtn.innerHTML = `<span>${btn.emoji || ''}</span> <span>${btn.label || (typeof getRoleName === 'function' ? getRoleName(btn.role_id) : btn.role_id)}</span>`;
+              btnRow.appendChild(pBtn);
+            });
+            previewButtonsContainer.appendChild(btnRow);
+          } else {
+            const selectWrap = document.createElement('div');
+            selectWrap.style.cssText = 'width: 100%; margin-top: 8px;';
+
+            const selectEl = document.createElement('select');
+            selectEl.className = 'custom-select';
+            selectEl.style.cssText = 'width: 100%; background: #2f3136; border: 1px solid rgba(255,255,255,0.15); color: #dcddde; padding: 10px 12px; border-radius: 6px; font-size: 0.9rem; font-family: inherit; font-weight: 600;';
+            
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = `▼ ${sel.placeholder || 'Sélectionnez un rôle'}`;
+            selectEl.appendChild(defaultOpt);
+
+            (sel.options || []).forEach(btn => {
+              const opt = document.createElement('option');
+              opt.value = btn.role_id;
+              opt.textContent = `${btn.emoji || '📌'} ${btn.label || (typeof getRoleName === 'function' ? getRoleName(btn.role_id) : btn.role_id)}`;
+              selectEl.appendChild(opt);
+            });
+
+            selectWrap.appendChild(selectEl);
+            previewButtonsContainer.appendChild(selectWrap);
+          }
+        });
+      } else if (autoroleButtonsList && autoroleButtonsList.length > 0) {
+        const typeEl = document.getElementById('autorole-embed-type');
+        const type = typeEl ? typeEl.value : 'buttons';
+
+        if (type === 'buttons') {
+          const btnRow = document.createElement('div');
+          btnRow.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; width: 100%;';
+
+          autoroleButtonsList.forEach(btn => {
+            const pBtn = document.createElement('button');
+            pBtn.type = 'button';
+            pBtn.style.cssText = 'padding: 8px 16px; font-size: 0.88rem; border-radius: 4px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.2);';
+            
+            let bgColor = '#5865F2';
+            let textColor = '#ffffff';
+            if (btn.style === 'SECONDARY') { bgColor = '#4f545c'; }
+            else if (btn.style === 'SUCCESS') { bgColor = '#43b581'; }
+            else if (btn.style === 'DANGER') { bgColor = '#f04747'; }
+            
+            pBtn.style.background = bgColor;
+            pBtn.style.color = textColor;
+            pBtn.innerHTML = `<span>${btn.emoji || ''}</span> <span>${btn.label || (typeof getRoleName === 'function' ? getRoleName(btn.role_id) : btn.role_id)}</span>`;
+            btnRow.appendChild(pBtn);
+          });
+          previewButtonsContainer.appendChild(btnRow);
+        } else if (type === 'select' || type === 'multi_select') {
+          const selectWrap = document.createElement('div');
+          selectWrap.style.cssText = 'width: 100%; margin-top: 10px;';
+
+          const selectEl = document.createElement('select');
+          selectEl.className = 'custom-select';
+          selectEl.style.cssText = 'width: 100%; background: #2f3136; border: 1px solid rgba(255,255,255,0.1); color: #dcddde; padding: 10px 12px; border-radius: 6px; font-size: 0.9rem; font-family: inherit;';
           
-          let bgColor = '#5865F2';
-          let textColor = '#ffffff';
-          if (btn.style === 'SECONDARY') { bgColor = '#4f545c'; }
-          else if (btn.style === 'SUCCESS') { bgColor = '#43b581'; }
-          else if (btn.style === 'DANGER') { bgColor = '#f04747'; }
-          
-          pBtn.style.background = bgColor;
-          pBtn.style.color = textColor;
-          pBtn.innerHTML = `<span>${btn.emoji || ''}</span> <span>${btn.label || (typeof getRoleName === 'function' ? getRoleName(btn.role_id) : btn.role_id)}</span>`;
-          btnRow.appendChild(pBtn);
-        });
-        previewButtonsContainer.appendChild(btnRow);
-      } else if (type === 'select' || type === 'multi_select') {
-        const selectWrap = document.createElement('div');
-        selectWrap.style.cssText = 'width: 100%; margin-top: 10px;';
+          const defaultOpt = document.createElement('option');
+          defaultOpt.value = '';
+          defaultOpt.textContent = type === 'multi_select' ? '▼ Sélectionnez un ou plusieurs rôles (Multi-Sélecteur)...' : '▼ Sélectionnez un rôle dans le menu...';
+          selectEl.appendChild(defaultOpt);
 
-        const selectEl = document.createElement('select');
-        selectEl.className = 'custom-select';
-        selectEl.style.cssText = 'width: 100%; background: #2f3136; border: 1px solid rgba(255,255,255,0.1); color: #dcddde; padding: 10px 12px; border-radius: 6px; font-size: 0.9rem; font-family: inherit;';
-        
-        const defaultOpt = document.createElement('option');
-        defaultOpt.value = '';
-        defaultOpt.textContent = type === 'multi_select' ? '▼ Sélectionnez un ou plusieurs rôles (Multi-Sélecteur)...' : '▼ Sélectionnez un rôle dans le menu...';
-        selectEl.appendChild(defaultOpt);
+          autoroleButtonsList.forEach(btn => {
+            const opt = document.createElement('option');
+            opt.value = btn.role_id;
+            opt.textContent = `${btn.emoji || '📌'} ${btn.label || (typeof getRoleName === 'function' ? getRoleName(btn.role_id) : btn.role_id)}`;
+            selectEl.appendChild(opt);
+          });
 
-        autoroleButtonsList.forEach(btn => {
-          const opt = document.createElement('option');
-          opt.value = btn.role_id;
-          opt.textContent = `${btn.emoji || '📌'} ${btn.label || (typeof getRoleName === 'function' ? getRoleName(btn.role_id) : btn.role_id)}`;
-          selectEl.appendChild(opt);
-        });
-
-        selectWrap.appendChild(selectEl);
-        previewButtonsContainer.appendChild(selectWrap);
-      } else if (type === 'reactions') {
-        const reactRow = document.createElement('div');
-        reactRow.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; width: 100%;';
-
-        autoroleButtonsList.forEach(btn => {
-          const pReact = document.createElement('div');
-          pReact.style.cssText = 'display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); padding: 5px 10px; border-radius: 4px; font-size: 0.88rem; cursor: pointer; color: #dcddde;';
-          pReact.innerHTML = `<span>${btn.emoji || '📌'}</span> <span style="color: #b9bbbe; font-weight: 700; font-size: 0.8rem;">1</span>`;
-          reactRow.appendChild(pReact);
-        });
-        previewButtonsContainer.appendChild(reactRow);
+          selectWrap.appendChild(selectEl);
+          previewButtonsContainer.appendChild(selectWrap);
+        }
+      } else {
+        previewButtonsContainer.innerHTML = '<p style="color: #8e9297; font-style: italic; font-size: 0.85rem;">Aucun rôle / sélecteur configuré pour cet embed.</p>';
       }
     }
   }
@@ -3508,8 +3736,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    if (autoroleButtonsList.length === 0) {
-      alert('Veuillez ajouter au moins un rôle/bouton.');
+    if (autoroleSelectorsList.length === 0 && autoroleButtonsList.length === 0) {
+      alert('Veuillez ajouter au moins un sélecteur ou un rôle/bouton.');
       return;
     }
 
@@ -3527,6 +3755,7 @@ document.addEventListener('DOMContentLoaded', () => {
         type,
         mode,
         existing_message_id,
+        selectors: autoroleSelectorsList,
         options: autoroleButtonsList
       })
     })
@@ -3539,6 +3768,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('autorole-embed-image').value = '';
         document.getElementById('autorole-embed-existing-msg').value = '';
         autoroleButtonsList = [];
+        autoroleSelectorsList = [];
+        renderSelectorsListUI();
         renderButtonsCreatorPreview();
         loadGuildConfiguration();
       } else {
@@ -3547,6 +3778,118 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(err => showToast(err.message, true));
   });
+
+  const btnFetchAutoroleMsg = document.getElementById('btn-fetch-autorole-existing-msg');
+  if (btnFetchAutoroleMsg) {
+    btnFetchAutoroleMsg.addEventListener('click', () => {
+      const channelId = document.getElementById('autorole-embed-channel')?.value;
+      const messageId = document.getElementById('autorole-embed-existing-msg')?.value?.trim();
+
+      if (!messageId) {
+        showToast('⚠️ Veuillez saisir un ID de message à récupérer.', true);
+        return;
+      }
+
+      showToast('🔍 Récupération des données du message...');
+      fetch(`/api/config/autorole-embeds/fetch-message?channelId=${channelId || ''}&messageId=${messageId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && !data.error) {
+            populateAutoroleEmbedForm(data);
+          } else {
+            showToast(`❌ Erreur : ${data.error || 'Impossible de récupérer ce message'}`, true);
+          }
+        })
+        .catch(err => {
+          showToast(`❌ Erreur réseau : ${err.message}`, true);
+        });
+    });
+  }
+
+  function populateAutoroleEmbedForm(item) {
+    if (!item) return;
+
+    const chanEl = document.getElementById('autorole-embed-channel');
+    if (chanEl && item.channel_id) {
+      chanEl.value = item.channel_id;
+      if (chanEl.syncCustomSelect) chanEl.syncCustomSelect();
+    }
+
+    const msgEl = document.getElementById('autorole-embed-existing-msg');
+    if (msgEl) msgEl.value = item.id || item.message_id || '';
+
+    const titleEl = document.getElementById('autorole-embed-title');
+    if (titleEl) {
+      titleEl.value = item.title === '(Message Existant)' ? '' : (item.title || '');
+      titleEl.dispatchEvent(new Event('input'));
+    }
+
+    const descEl = document.getElementById('autorole-embed-desc');
+    if (descEl) {
+      descEl.value = item.description === '(Pas d\'embed)' ? '' : (item.description || '');
+      descEl.dispatchEvent(new Event('input'));
+    }
+
+    const colorEl = document.getElementById('autorole-embed-color');
+    if (colorEl) {
+      colorEl.value = item.color || '#5865F2';
+      colorEl.dispatchEvent(new Event('input'));
+    }
+
+    const thumbEl = document.getElementById('autorole-embed-thumbnail');
+    if (thumbEl) {
+      thumbEl.value = item.thumbnail ? '1' : '0';
+      thumbEl.dispatchEvent(new Event('change'));
+    }
+
+    const imgEl = document.getElementById('autorole-embed-image');
+    if (imgEl) {
+      imgEl.value = item.image_url || '';
+      imgEl.dispatchEvent(new Event('input'));
+    }
+
+    const typeEl = document.getElementById('autorole-embed-type');
+    if (typeEl) {
+      typeEl.value = item.type || 'buttons';
+      if (typeEl.syncCustomSelect) typeEl.syncCustomSelect();
+      typeEl.dispatchEvent(new Event('change'));
+    }
+
+    const modeEl = document.getElementById('autorole-embed-mode');
+    if (modeEl) {
+      modeEl.value = item.mode || 'normal';
+      if (modeEl.syncCustomSelect) modeEl.syncCustomSelect();
+      modeEl.dispatchEvent(new Event('change'));
+    }
+
+    autoroleButtonsList = (item.options || []).map(opt => ({
+      role_id: opt.role_id,
+      label: opt.label || '',
+      emoji: opt.emoji || '',
+      style: opt.style || 'PRIMARY'
+    }));
+
+    if (item.selectors && item.selectors.length > 0) {
+      autoroleSelectorsList = item.selectors;
+    } else if (item.options && item.options.length > 0) {
+      autoroleSelectorsList = [{
+        placeholder: 'Sélecteur de Rôle',
+        type: item.type || 'select',
+        mode: item.mode || 'normal',
+        options: item.options
+      }];
+    } else {
+      autoroleSelectorsList = [];
+    }
+
+    if (typeof renderSelectorsListUI === 'function') renderSelectorsListUI();
+    if (typeof renderButtonsCreatorPreview === 'function') renderButtonsCreatorPreview();
+    if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
+    showToast(`✏️ Message [${item.id || item.message_id}] entièrement chargé avec ses ${autoroleSelectorsList.length || autoroleButtonsList.length} sélecteurs/rôles !`);
+
+    const formCard = document.getElementById('form-create-autorole-embed');
+    if (formCard) formCard.scrollIntoView({ behavior: 'smooth' });
+  }
 
   // --- LIVE PREVIEW POUR AUTO-RÔLES ---
   const updateAutorolePreview = () => {

@@ -1630,7 +1630,7 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { channel_id, title, description, color, thumbnail, image_url, options, type = 'buttons', mode = 'normal', existing_message_id = null } = req.body || {};
+    const { channel_id, title, description, color, thumbnail, image_url, options = [], selectors = [], type = 'buttons', mode = 'normal', existing_message_id = null } = req.body || {};
     if (!channel_id) return res.status(400).json({ error: 'ID du salon requis' });
 
     // 1. Communiquer avec l'API locale du bot pour envoyer ou éditer le message
@@ -1647,6 +1647,7 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
         thumbnail: thumbnail ? 1 : 0,
         imageUrl: image_url,
         options: options || [],
+        selectors: selectors || [],
         type,
         mode,
         existingMessageId: existing_message_id
@@ -1661,6 +1662,7 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
     const { messageId } = await botResponse.json();
 
     // 2. Enregistrer dans SQLite
+    const selectorsJson = selectors && selectors.length > 0 ? JSON.stringify(selectors) : null;
     addAutoroleEmbed(
       guildId, 
       messageId, 
@@ -1671,11 +1673,20 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
       thumbnail ? 1 : 0, 
       image_url,
       type,
-      mode
+      mode,
+      selectorsJson
     );
     
     db.prepare('DELETE FROM autorole_options WHERE message_id = ?').run(messageId);
-    if (options && options.length > 0) {
+    if (selectors && selectors.length > 0) {
+      selectors.forEach(sel => {
+        if (sel.options) {
+          sel.options.forEach(opt => {
+            addAutoroleOption(messageId, opt.role_id, opt.label, opt.emoji, opt.style || 'PRIMARY');
+          });
+        }
+      });
+    } else if (options && options.length > 0) {
       for (const opt of options) {
         addAutoroleOption(messageId, opt.role_id, opt.label, opt.emoji, opt.style || 'PRIMARY');
       }
@@ -1813,6 +1824,10 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
 
     if (foundDb) {
       const options = getAutoroleOptions(foundDb.message_id) || [];
+      let parsedSelectors = [];
+      if (foundDb.selectors_json) {
+        try { parsedSelectors = JSON.parse(foundDb.selectors_json); } catch (e) {}
+      }
       return res.json({
         id: foundDb.message_id,
         channel_id: foundDb.channel_id,
@@ -1823,7 +1838,8 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
         image_url: foundDb.image_url || '',
         type: foundDb.type || 'buttons',
         mode: foundDb.mode || 'normal',
-        options: options
+        options: options,
+        selectors: parsedSelectors
       });
     }
 
@@ -1860,6 +1876,7 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
         if (targetMsg) {
           const emb = targetMsg.embeds.length > 0 ? targetMsg.embeds[0] : null;
           const extractedOptions = [];
+          const extractedSelectors = [];
           let detectedType = 'buttons';
 
           let title = '';
@@ -1877,38 +1894,58 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
           }
 
           if (targetMsg.components && targetMsg.components.length > 0) {
-            targetMsg.components.forEach(row => {
+            targetMsg.components.forEach((row, rIdx) => {
+              const selOptions = [];
+              let selType = 'buttons';
+              let selPlaceholder = `Sélecteur ${rIdx + 1}`;
+
               row.components.forEach(comp => {
                 if (comp.type === 2 || comp.type === 'BUTTON') {
                   detectedType = 'buttons';
+                  selType = 'buttons';
                   let rawRoleId = comp.customId || '';
                   const roleIdMatch = rawRoleId.match(/\d{17,20}/);
                   const roleId = roleIdMatch ? roleIdMatch[0] : rawRoleId;
 
-                  extractedOptions.push({
+                  const optObj = {
                     role_id: roleId,
                     label: comp.label || 'Bouton',
                     emoji: comp.emoji ? (comp.emoji.name || comp.emoji.id) : '',
                     style: comp.style === 1 ? 'PRIMARY' : (comp.style === 2 ? 'SECONDARY' : (comp.style === 3 ? 'SUCCESS' : (comp.style === 4 ? 'DANGER' : 'PRIMARY')))
-                  });
+                  };
+                  extractedOptions.push(optObj);
+                  selOptions.push(optObj);
                 } else if (comp.type === 3 || comp.type === 'SELECT_MENU' || comp.type === 'STRING_SELECT') {
                   detectedType = comp.maxValues > 1 ? 'multi_select' : 'select';
+                  selType = detectedType;
+                  if (comp.placeholder) selPlaceholder = comp.placeholder;
                   if (comp.options) {
                     comp.options.forEach(opt => {
                       let rawVal = opt.value || '';
                       const roleIdMatch = rawVal.match(/\d{17,20}/);
                       const roleId = roleIdMatch ? roleIdMatch[0] : rawVal;
 
-                      extractedOptions.push({
+                      const optObj = {
                         role_id: roleId,
                         label: opt.label || 'Option',
                         emoji: opt.emoji ? (opt.emoji.name || opt.emoji.id) : '',
                         style: 'PRIMARY'
-                      });
+                      };
+                      extractedOptions.push(optObj);
+                      selOptions.push(optObj);
                     });
                   }
                 }
               });
+
+              if (selOptions.length > 0) {
+                extractedSelectors.push({
+                  placeholder: selPlaceholder,
+                  type: selType,
+                  mode: 'normal',
+                  options: selOptions
+                });
+              }
             });
           }
 
@@ -1936,6 +1973,7 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
             type: detectedType,
             mode: 'normal',
             options: extractedOptions,
+            selectors: extractedSelectors,
             author_bot: targetMsg.author ? targetMsg.author.tag : null
           });
         }

@@ -1391,34 +1391,9 @@ const API_PORT = process.env.BOT_API_PORT || 49605;
 
 apiApp.use(express.json());
 
-apiApp.get('/bot/info', (req, res) => {
-  if (!client.user) {
-    return res.status(503).json({ error: 'Bot not ready' });
-  }
-  res.json({
-    id: client.user.id,
-    username: client.user.username,
-    avatarURL: client.user.displayAvatarURL({ dynamic: true })
-  });
-});
-
-apiApp.post('/bot/avatar', async (req, res) => {
-  try {
-    const { avatar_url, guildId } = req.body || {};
-    if (guildId) {
-      const { updateGuildBotProfileOnDiscord } = require('./utils/helpers');
-      await updateGuildBotProfileOnDiscord(client, guildId, null, avatar_url);
-    }
-    res.json({ success: true, avatarURL: avatar_url || client.user.displayAvatarURL({ dynamic: true }) });
-  } catch (error) {
-    console.error('Error setting bot avatar:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 apiApp.post('/bot/send-autorole', async (req, res) => {
   try {
-    const { guildId, channelId, title, description, color, thumbnail, imageUrl, options, type = 'buttons', mode = 'normal', existingMessageId } = req.body;
+    const { guildId, channelId, title, description, color, thumbnail, imageUrl, options = [], selectors = [], type = 'buttons', mode = 'normal', existingMessageId } = req.body;
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return res.status(404).json({ error: 'Guild not found' });
     const channel = guild.channels.cache.get(channelId);
@@ -1446,46 +1421,102 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
     }
 
     const { StringSelectMenuBuilder } = require('discord.js');
-    let row;
-    
-    if (type === 'buttons') {
-      if (options && options.length > 0) {
-        row = new ActionRowBuilder();
-        options.forEach(opt => {
-          let styleCode = ButtonStyle.Primary;
-          if (opt.style === 'SECONDARY') styleCode = ButtonStyle.Secondary;
-          else if (opt.style === 'SUCCESS') styleCode = ButtonStyle.Success;
-          else if (opt.style === 'DANGER') styleCode = ButtonStyle.Danger;
+    let actionRows = [];
 
-          const btn = new ButtonBuilder()
-            .setCustomId(`autorole_${opt.role_id}`)
-            .setLabel(opt.label || 'Rôle')
-            .setStyle(styleCode);
-          if (opt.emoji) btn.setEmoji(opt.emoji);
-          row.addComponents(btn);
-        });
-      }
-    } else if (type === 'select' || type === 'multi_select') {
-      if (options && options.length > 0) {
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId(type === 'multi_select' ? 'autorole_multi_select_menu' : 'autorole_select_menu')
-          .setPlaceholder(type === 'multi_select' ? 'Sélectionnez un ou plusieurs rôles...' : 'Sélectionnez un rôle...');
+    if (selectors && Array.isArray(selectors) && selectors.length > 0) {
+      selectors.slice(0, 5).forEach((sel, sIdx) => {
+        if (!sel.options || sel.options.length === 0) return;
+        const selType = sel.type || 'select';
+        if (selType === 'buttons') {
+          for (let i = 0; i < sel.options.length && actionRows.length < 5; i += 5) {
+            const chunk = sel.options.slice(i, i + 5);
+            const btnRow = new ActionRowBuilder();
+            chunk.forEach(opt => {
+              let styleCode = ButtonStyle.Primary;
+              if (opt.style === 'SECONDARY') styleCode = ButtonStyle.Secondary;
+              else if (opt.style === 'SUCCESS') styleCode = ButtonStyle.Success;
+              else if (opt.style === 'DANGER') styleCode = ButtonStyle.Danger;
 
-        if (type === 'multi_select') {
-          selectMenu.setMinValues(0);
-          selectMenu.setMaxValues(options.length);
+              const btn = new ButtonBuilder()
+                .setCustomId(`autorole_${opt.role_id}`)
+                .setLabel(opt.label || 'Rôle')
+                .setStyle(styleCode);
+              if (opt.emoji) btn.setEmoji(opt.emoji);
+              btnRow.addComponents(btn);
+            });
+            actionRows.push(btnRow);
+          }
+        } else {
+          if (actionRows.length < 5) {
+            const selectMenu = new StringSelectMenuBuilder()
+              .setCustomId(`autorole_select_${sIdx}`)
+              .setPlaceholder(sel.placeholder || sel.title || 'Sélectionnez un rôle...');
+
+            if (selType === 'multi_select') {
+              selectMenu.setMinValues(0);
+              selectMenu.setMaxValues(sel.options.length);
+            } else {
+              selectMenu.setMinValues(1);
+              selectMenu.setMaxValues(1);
+            }
+
+            const selectOptions = sel.options.map(opt => {
+              const optionObj = {
+                label: opt.label || 'Rôle',
+                value: opt.role_id
+              };
+              if (opt.emoji) optionObj.emoji = opt.emoji;
+              return optionObj;
+            });
+            selectMenu.addOptions(selectOptions);
+            actionRows.push(new ActionRowBuilder().addComponents(selectMenu));
+          }
         }
+      });
+    } else {
+      if (type === 'buttons') {
+        if (options && options.length > 0) {
+          for (let i = 0; i < options.length && actionRows.length < 5; i += 5) {
+            const chunk = options.slice(i, i + 5);
+            const btnRow = new ActionRowBuilder();
+            chunk.forEach(opt => {
+              let styleCode = ButtonStyle.Primary;
+              if (opt.style === 'SECONDARY') styleCode = ButtonStyle.Secondary;
+              else if (opt.style === 'SUCCESS') styleCode = ButtonStyle.Success;
+              else if (opt.style === 'DANGER') styleCode = ButtonStyle.Danger;
 
-        const selectOptions = options.map(opt => {
-          const optionObj = {
-            label: opt.label || 'Rôle',
-            value: opt.role_id
-          };
-          if (opt.emoji) optionObj.emoji = opt.emoji;
-          return optionObj;
-        });
-        selectMenu.addOptions(selectOptions);
-        row = new ActionRowBuilder().addComponents(selectMenu);
+              const btn = new ButtonBuilder()
+                .setCustomId(`autorole_${opt.role_id}`)
+                .setLabel(opt.label || 'Rôle')
+                .setStyle(styleCode);
+              if (opt.emoji) btn.setEmoji(opt.emoji);
+              btnRow.addComponents(btn);
+            });
+            actionRows.push(btnRow);
+          }
+        }
+      } else if (type === 'select' || type === 'multi_select') {
+        if (options && options.length > 0) {
+          const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId(type === 'multi_select' ? 'autorole_multi_select_menu' : 'autorole_select_menu')
+            .setPlaceholder(type === 'multi_select' ? 'Sélectionnez un ou plusieurs rôles...' : 'Sélectionnez un rôle...');
+
+          if (type === 'multi_select') {
+            selectMenu.setMinValues(0);
+            selectMenu.setMaxValues(options.length);
+          }
+
+          const selectOptions = options.map(opt => {
+            const optionObj = {
+              label: opt.label || 'Rôle',
+              value: opt.role_id
+            };
+            if (opt.emoji) optionObj.emoji = opt.emoji;
+            return optionObj;
+          });
+          selectMenu.addOptions(selectOptions);
+          actionRows.push(new ActionRowBuilder().addComponents(selectMenu));
+        }
       }
     }
 
@@ -1500,7 +1531,6 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
       embed.setDescription(description.trim());
     }
 
-    // Si titre et description ne sont pas fournis mais qu'on a un message existant, préserver l'embed ou le texte original !
     if (!title && !description) {
       if (existingMessageId && message) {
         if (message.embeds && message.embeds.length > 0) {
@@ -1546,11 +1576,9 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
     let finalMessageId = null;
 
     if (isSameChannelEdit && message) {
-      // Édition directe du message existant du bot dans le même salon
       const editPayload = { embeds: [embed] };
       if (files.length > 0) editPayload.files = files;
-      if (row) editPayload.components = [row];
-      else editPayload.components = [];
+      editPayload.components = actionRows;
       await message.edit(editPayload);
       finalMessageId = message.id;
 
@@ -1573,7 +1601,7 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
       // Envoi d'un nouveau message embed ou copie dans un autre salon
       const payload = { embeds: [embed] };
       if (files.length > 0) payload.files = files;
-      if (row) payload.components = [row];
+      if (actionRows.length > 0) payload.components = actionRows;
 
       const newMessage = await channel.send(payload);
       finalMessageId = newMessage.id;

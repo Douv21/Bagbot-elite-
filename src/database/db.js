@@ -244,6 +244,9 @@ function initDatabase() {
   try {
     db.prepare('ALTER TABLE shop ADD COLUMN reward_karma INTEGER DEFAULT 0').run();
   } catch (_) {}
+  try {
+    db.prepare('ALTER TABLE autorole_embeds ADD COLUMN selectors_json TEXT').run();
+  } catch (_) {}
 
   // 9c. Embeds récurrents programmés
   db.prepare(`
@@ -1227,11 +1230,11 @@ const getAutoroleOptions = (messageId) => {
   return db.prepare('SELECT * FROM autorole_options WHERE message_id = ?').all(messageId);
 };
 
-const addAutoroleEmbed = (guildId, messageId, channelId, title, description, color, thumbnail, imageUrl, type = 'buttons', mode = 'normal') => {
+const addAutoroleEmbed = (guildId, messageId, channelId, title, description, color, thumbnail, imageUrl, type = 'buttons', mode = 'normal', selectorsJson = null) => {
   return db.prepare(`
-    INSERT OR REPLACE INTO autorole_embeds (guild_id, message_id, channel_id, title, description, color, thumbnail, image_url, type, mode)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(guildId, messageId, channelId, title, description, color, thumbnail, imageUrl, type, mode);
+    INSERT OR REPLACE INTO autorole_embeds (guild_id, message_id, channel_id, title, description, color, thumbnail, image_url, type, mode, selectors_json)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(guildId, messageId, channelId, title, description, color, thumbnail, imageUrl, type, mode, selectorsJson);
 };
 
 const addAutoroleOption = (messageId, roleId, label, emoji, style) => {

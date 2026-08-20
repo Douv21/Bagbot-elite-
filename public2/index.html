@@ -820,42 +820,106 @@
                 <!-- Boutons associés (Roles Options) — a distinct concept
                      from the embed's visual appearance (which role is
                      attributed by which button), left fully untouched. -->
-                <div class="card" style="background: rgba(0, 0, 0, 0.2); border: 1px dashed rgba(255, 255, 255, 0.1); margin-bottom: 20px; padding: 15px;">
-                  <h4><i class="fa-solid fa-circle-play"></i> Boutons de rôles de cet embed</h4>
-                  <p class="description-text" style="font-size: 0.8rem; margin-bottom: 10px; color: #b9bbbe;">Ajoutez des boutons à cet embed. Chaque bouton correspond à un rôle à attribuer (5 maximum).</p>
+                <div class="card" style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.12); margin-bottom: 20px; padding: 18px; border-radius: 8px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                      <h4 style="margin: 0; font-size: 1.05rem; color: #fff;"><i class="fa-solid fa-list-check" style="color: #e74c3c;"></i> Sélecteurs & Rôles Réaction</h4>
+                      <p class="description-text" style="font-size: 0.8rem; margin: 2px 0 0 0; color: #b9bbbe;">Ajoutez jusqu'à 5 sélecteurs (ex: Genre, Pronom, Orientation) avec leurs rôles et émojis.</p>
+                    </div>
+                    <button type="button" id="btn-open-add-selector-modal" class="btn" style="background: #e74c3c; color: white; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
+                      <i class="fa-solid fa-plus"></i> Ajouter un Sélecteur
+                    </button>
+                  </div>
 
-                  <div id="autorole-buttons-creator" style="display: flex; flex-direction: column; gap: 10px;">
+                  <!-- Liste des sélecteurs configurés (Style Screenshot 1) -->
+                  <div id="selectors-list-container" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                    <!-- Les cartes de sélecteurs s'affichent ici -->
+                  </div>
+
+                  <!-- Mode Simple Fallback (Boutons simples) -->
+                  <div id="autorole-buttons-creator" style="margin-top: 15px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 6px;">
+                    <div style="font-weight: 600; font-size: 0.85rem; color: #fff; margin-bottom: 8px;"><i class="fa-solid fa-plus-minus"></i> Rôles / Boutons Rapides (Mode Simple)</div>
                     <div class="form-row" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
-                      <div class="form-group" style="flex: 2; min-width: 150px;">
-                        <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 5px; display: block;">Rôle à donner :</label>
+                      <div class="form-group" style="flex: 2; min-width: 140px;">
+                        <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 4px; display: block;">Rôle à attribuer :</label>
                         <select id="new-button-role" class="role-select">
                           <option value="">-- Choisir un rôle --</option>
                         </select>
                       </div>
                       <div class="form-group" style="flex: 2; min-width: 120px;">
-                        <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 5px; display: block;">Texte du bouton :</label>
+                        <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 4px; display: block;">Texte :</label>
                         <input type="text" id="new-button-label" placeholder="Ex: Gaming">
                       </div>
-                      <div class="form-group" style="flex: 1; min-width: 80px;">
-                        <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 5px; display: block;">Emoji :</label>
+                      <div class="form-group" style="flex: 1; min-width: 70px;">
+                        <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 4px; display: block;">Emoji :</label>
                         <input type="text" id="new-button-emoji" placeholder="🎮">
                       </div>
-                      <div class="form-group" style="flex: 1.5; min-width: 100px;">
-                        <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 5px; display: block;">Style :</label>
+                      <div class="form-group" style="flex: 1.5; min-width: 90px;">
+                        <label style="font-size: 0.75rem; color: #b9bbbe; margin-bottom: 4px; display: block;">Style :</label>
                         <select id="new-button-style">
-                          <option value="PRIMARY">Bleu (Primary)</option>
-                          <option value="SECONDARY">Gris (Secondary)</option>
-                          <option value="SUCCESS">Vert (Success)</option>
-                          <option value="DANGER">Rouge (Danger)</option>
+                          <option value="PRIMARY">Bleu</option>
+                          <option value="SECONDARY">Gris</option>
+                          <option value="SUCCESS">Vert</option>
+                          <option value="DANGER">Rouge</option>
                         </select>
                       </div>
                       <button type="button" id="btn-add-autorole-button" class="btn btn-add" style="height: 42px; margin-bottom: 0;"><i class="fa-solid fa-plus"></i></button>
                     </div>
 
-                    <div id="autorole-embed-buttons-preview" class="form-row" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; min-height: 40px; align-items: center;">
-                      <!-- Aperçu des boutons ajoutés -->
-                      <p style="color: #8e9297; font-style: italic; font-size: 0.85rem;" id="no-buttons-text">Aucun bouton configuré pour l'instant.</p>
+                    <div id="autorole-embed-buttons-preview" class="form-row" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; min-height: 35px; align-items: center;">
+                      <p style="color: #8e9297; font-style: italic; font-size: 0.85rem;" id="no-buttons-text">Aucun rôle configuré pour l'instant.</p>
                     </div>
+                  </div>
+                </div>
+
+                <!-- Modal Ajouter/Modifier un Sélecteur (Style Screenshot 2) -->
+                <div id="modal-selector-editor" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.75); backdrop-filter: blur(5px); z-index: 99999; justify-content: center; align-items: center;">
+                  <div style="background: #2f3136; border: 1px solid rgba(255,255,255,0.15); width: 92%; max-width: 580px; border-radius: 12px; padding: 22px; color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                      <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.5px;" id="modal-selector-title">AJOUTER UN SÉLECTEUR</h3>
+                      <button type="button" id="btn-close-selector-modal" style="background: none; border: none; color: #b9bbbe; font-size: 1.3rem; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <form id="form-selector-editor">
+                      <input type="hidden" id="modal-selector-index" value="-1">
+
+                      <div class="form-group" style="margin-bottom: 14px;">
+                        <label style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: #b9bbbe; display: block; margin-bottom: 6px;">TEXTE DU SÉLECTEUR (Nom / Indication) :</label>
+                        <input type="text" id="modal-selector-placeholder" required placeholder="Ex: Genre, Pronom, Orientation, Situation..." style="width: 100%; padding: 10px 12px; background: #202225; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff;">
+                      </div>
+
+                      <div class="form-row" style="display: flex; gap: 12px; margin-bottom: 14px;">
+                        <div class="form-group" style="flex: 1;">
+                          <label style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: #b9bbbe; display: block; margin-bottom: 6px;">TYPE DE SÉLECTEUR :</label>
+                          <select id="modal-selector-type" class="custom-select" style="width: 100%; padding: 10px; background: #202225; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff;">
+                            <option value="select">Menu Déroulant (Choix unique)</option>
+                            <option value="multi_select">Menu Déroulant Multi-Choix</option>
+                            <option value="buttons">Boutons (Rangée de boutons)</option>
+                          </select>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                          <label style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: #b9bbbe; display: block; margin-bottom: 6px;">STYLE DE FONCTIONNEMENT :</label>
+                          <select id="modal-selector-mode" class="custom-select" style="width: 100%; padding: 10px; background: #202225; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff;">
+                            <option value="normal">Classique - Ajoute / Retire le rôle</option>
+                            <option value="unique">Unique - 1 seul rôle actif à la fois</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 18px; margin-bottom: 10px;">
+                        <label style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: #b9bbbe;">OPTIONS DU SÉLECTEUR :</label>
+                        <button type="button" id="btn-add-modal-option" class="btn" style="background: #e74c3c; color: white; padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; font-weight: 600;"><i class="fa-solid fa-plus"></i> Ajouter une option</button>
+                      </div>
+
+                      <div id="modal-selector-options-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; max-height: 240px; overflow-y: auto; padding-right: 5px;">
+                        <!-- Lignes d'options (Emoji, Rôle, Libellé, Supprimer) -->
+                      </div>
+
+                      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                        <button type="button" id="btn-cancel-selector-modal" class="btn" style="background: rgba(255,255,255,0.1); color: #dcddde; padding: 10px 18px; border-radius: 6px; font-weight: 600;">Annuler</button>
+                        <button type="submit" class="btn" style="background: #e74c3c; color: white; padding: 10px 22px; border-radius: 6px; font-weight: 700;">Valider</button>
+                      </div>
+                    </form>
                   </div>
                 </div>
 

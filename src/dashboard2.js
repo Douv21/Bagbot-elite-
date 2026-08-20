@@ -1897,6 +1897,10 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
 
     if (foundDb) {
       const options = getAutoroleOptions(foundDb.message_id) || [];
+      let parsedSelectors = [];
+      if (foundDb.selectors_json) {
+        try { parsedSelectors = JSON.parse(foundDb.selectors_json); } catch (e) {}
+      }
       return res.json({
         id: foundDb.message_id,
         channel_id: foundDb.channel_id,
@@ -1907,7 +1911,8 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
         image_url: foundDb.image_url || '',
         type: foundDb.type || 'buttons',
         mode: foundDb.mode || 'normal',
-        options: options
+        options: options,
+        selectors: parsedSelectors
       });
     }
 
