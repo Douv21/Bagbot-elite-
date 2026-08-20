@@ -2505,18 +2505,37 @@ apiApp.post('/bot/channel/send-embed', async (req, res) => {
     if (!title && !description) embed.setDescription('\u200b');
     embed.setColor(color || '#5865F2');
 
+    const files = [];
+
     let finalThumb = thumbnailUrl || null;
     if (thumbnailMode === 'server') finalThumb = guild.iconURL({ dynamic: true }) || null;
     else if (thumbnailMode === 'bot') finalThumb = client.user.displayAvatarURL({ dynamic: true });
-    if (finalThumb) embed.setThumbnail(finalThumb);
 
-    const files = [];
+    if (finalThumb && typeof finalThumb === 'string') {
+      const cleanThumb = finalThumb.trim();
+      if (cleanThumb.startsWith('/uploads/')) {
+        const absPath = path.join(__dirname, '../public', cleanThumb);
+        if (fs.existsSync(absPath)) {
+          const name = 'thumb_' + path.basename(cleanThumb);
+          files.push(new AttachmentBuilder(absPath, { name }));
+          embed.setThumbnail(`attachment://${name}`);
+        } else {
+          const hostIp = process.env.PUBLIC_IP || '82.65.75.176';
+          const dashPort = process.env.PORT || process.env.DASHBOARD_PORT || 49601;
+          const publicBase = process.env.PUBLIC_URL || `http://${hostIp}:${dashPort}`;
+          embed.setThumbnail(`${publicBase}${cleanThumb}`);
+        }
+      } else if (cleanThumb.startsWith('http://') || cleanThumb.startsWith('https://')) {
+        embed.setThumbnail(cleanThumb);
+      }
+    }
+
     if (imageUrl && typeof imageUrl === 'string') {
       const cleanImg = imageUrl.trim();
       if (cleanImg.startsWith('/uploads/')) {
         const absPath = path.join(__dirname, '../public', cleanImg);
         if (fs.existsSync(absPath)) {
-          const name = path.basename(cleanImg);
+          const name = 'banner_' + path.basename(cleanImg);
           files.push(new AttachmentBuilder(absPath, { name }));
           embed.setImage(`attachment://${name}`);
         } else {

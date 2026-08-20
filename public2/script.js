@@ -805,8 +805,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Auto-rôles & Counting renders
         try { renderAutoroleJoin(config.autoroles_on_join || []); } catch (e) {}
         try { renderAutoroleRole(config.autoroles_on_role || []); } catch (e) {}
-        try { renderActiveAutoroles(config.autorole_embeds || []); } catch (e) {}
-        try { renderSimpleEmbedsSavedList(config.autorole_embeds || []); } catch (e) {}
+        try { renderActiveAutoroles(config.autorole_embeds || [], config.recurring_embeds || []); } catch (e) {}
+        try { renderSimpleEmbedsSavedList(config.autorole_embeds || [], config.recurring_embeds || []); } catch (e) {}
         try { renderCountingChannels(config.counting_channels || []); } catch (e) {}
         if (typeof updateAutorolePreview === 'function') try { updateAutorolePreview(); } catch (e) {}
 
@@ -4299,26 +4299,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function renderActiveAutoroles(list) {
+  function renderActiveAutoroles(list, recurringList = []) {
     const container = document.getElementById('active-autoroles-container');
     if (!container) return;
     container.innerHTML = '';
-    if (list.length === 0) {
-      container.innerHTML = '<p style="color: #8e9297; text-align: center; font-style: italic;">Aucun rôle réaction actif.</p>';
+    
+    const combined = [
+      ...(list || []),
+      ...(recurringList || []).map(r => ({
+        ...r,
+        message_id: r.id,
+        is_recurring: true
+      }))
+    ];
+
+    if (combined.length === 0) {
+      container.innerHTML = '<p style="color: #8e9297; text-align: center; font-style: italic;">Aucun rôle réaction ou message programmé actif.</p>';
       return;
     }
-    list.forEach(item => {
+
+    combined.forEach(item => {
       try {
         const channelName = getChannelName(item.channel_id);
         const card = document.createElement('div');
         card.className = 'card';
         card.style.background = 'rgba(255,255,255,0.03)';
-        card.style.border = '1px solid rgba(255,255,255,0.05)';
+        card.style.border = '1px solid rgba(255,255,255,0.08)';
         card.style.padding = '12px 15px';
         card.style.borderRadius = '6px';
         card.style.display = 'flex';
         card.style.flexDirection = 'column';
         card.style.gap = '8px';
+
+        const recurringBadge = item.is_recurring 
+          ? `<span class="badge" style="background: rgba(230, 126, 34, 0.2); color: #e67e22; border: 1px solid rgba(230, 126, 34, 0.4); padding: 4px 8px; font-size: 0.78rem; border-radius: 4px; font-weight: 700;">🔁 Récurrent (${item.frequency || 'daily'} à ${item.send_time || '12:00'})</span>` 
+          : '';
 
         const buttonsHtml = (item.options || []).map(opt => {
           const styleClass = opt.style === 'SUCCESS' ? 'btn-save' : (opt.style === 'DANGER' ? 'btn-delete' : 'btn-add');
@@ -4328,20 +4343,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join(' ');
 
         card.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h4 style="margin: 0; color: #fff;">${item.title || '(Message Existant)'}</h4>
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h4 style="margin: 0; color: #fff;">${item.title || '(Message Existant)'}</h4>
+              ${recurringBadge}
+            </div>
             <div style="display: flex; gap: 6px;">
               <button type="button" class="btn btn-edit-embed btn-sm" style="padding: 4px 8px; font-size: 0.8rem; background: #3498db; color: #fff;"><i class="fa-solid fa-pen-to-square"></i> Modifier</button>
               <button type="button" class="btn btn-delete btn-sm" style="padding: 4px 8px; font-size: 0.8rem;"><i class="fa-solid fa-trash"></i> Supprimer</button>
             </div>
           </div>
           <p style="margin: 2px 0; font-size: 0.85rem; color: #b9bbbe;">
-            <i class="fa-solid fa-hashtag"></i> Salon: <strong>${channelName}</strong> · ID Message: <code>${item.message_id}</code>
+            <i class="fa-solid fa-hashtag"></i> Salon: <strong>${channelName}</strong> ${item.is_recurring ? '' : `· ID Message: <code>${item.message_id}</code>`}
           </p>
           <p style="margin: 2px 0; font-size: 0.85rem; color: #8e9297; font-style: italic;">"${item.description || ''}"</p>
-          <div style="margin-top: 5px; display: flex; flex-wrap: wrap; gap: 5px;">
-            ${buttonsHtml}
-          </div>
+          ${buttonsHtml ? `<div style="margin-top: 5px; display: flex; flex-wrap: wrap; gap: 5px;">${buttonsHtml}</div>` : ''}
         `;
 
         const editBtn = card.querySelector('.btn-edit-embed');
@@ -4354,22 +4370,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         card.querySelector('.btn-delete').addEventListener('click', () => {
-          if (!confirm('Voulez-vous vraiment supprimer ce rôle réaction ? Le message sera supprimé de Discord et de la base de données.')) return;
-          fetch('/api/config/autorole-embeds/delete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message_id: item.message_id, channel_id: item.channel_id })
-          })
-          .then(res => res.json())
-          .then(data => {
-            if (data.success) {
-              showToast('Rôle réaction supprimé !');
-              loadGuildConfiguration();
-            } else {
-              showToast('Erreur: ' + data.error, true);
-            }
-          })
-          .catch(err => showToast(err.message, true));
+          if (item.is_recurring) {
+            if (!confirm('Voulez-vous supprimer ce message récurrent programmé ?')) return;
+            fetch('/api/config/recurring-embeds/delete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: item.id })
+            })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                showToast('Message récurrent supprimé !');
+                loadGuildConfiguration();
+              } else {
+                showToast('Erreur: ' + data.error, true);
+              }
+            })
+            .catch(err => showToast(err.message, true));
+          } else {
+            if (!confirm('Voulez-vous vraiment supprimer ce rôle réaction ? Le message sera supprimé de Discord et de la base de données.')) return;
+            fetch('/api/config/autorole-embeds/delete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message_id: item.message_id, channel_id: item.channel_id })
+            })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                showToast('Rôle réaction supprimé !');
+                loadGuildConfiguration();
+              } else {
+                showToast('Erreur: ' + data.error, true);
+              }
+            })
+            .catch(err => showToast(err.message, true));
+          }
         });
 
         container.appendChild(card);
@@ -4379,17 +4414,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function renderSimpleEmbedsSavedList(list) {
+  function renderSimpleEmbedsSavedList(list, recurringList = []) {
     const container = document.getElementById('simple-embeds-saved-list');
     if (!container) return;
     container.innerHTML = '';
 
-    if (!list || list.length === 0) {
-      container.innerHTML = '<p style="color: #8e9297; font-style: italic; font-size: 0.85rem;">Aucun embed enregistré pour le moment. Créez-en un via le formulaire ci-dessous !</p>';
+    const combined = [
+      ...(list || []),
+      ...(recurringList || []).map(r => ({
+        ...r,
+        message_id: r.id,
+        is_recurring: true
+      }))
+    ];
+
+    if (combined.length === 0) {
+      container.innerHTML = '<p style="color: #8e9297; font-style: italic; font-size: 0.85rem;">Aucun embed enregistré ou récurrent pour le moment. Créez-en un via le formulaire !</p>';
       return;
     }
 
-    list.forEach(item => {
+    combined.forEach(item => {
       const channelName = getChannelName(item.channel_id);
       const itemCard = document.createElement('div');
       itemCard.style.background = 'rgba(255,255,255,0.03)';
@@ -4401,33 +4445,88 @@ document.addEventListener('DOMContentLoaded', () => {
       itemCard.style.justifyContent = 'space-between';
       itemCard.style.gap = '10px';
 
+      const recurringBadge = item.is_recurring 
+        ? `<span style="background: rgba(230, 126, 34, 0.2); color: #e67e22; border: 1px solid rgba(230, 126, 34, 0.4); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; margin-left: 8px;">🔁 Récurrent (${item.frequency || 'daily'} à ${item.send_time || '12:00'})</span>` 
+        : '';
+
       itemCard.innerHTML = `
         <div style="display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;">
-          <div style="font-weight: 600; color: #fff; font-size: 0.95rem;">${item.title || '(Sans titre)'}</div>
+          <div style="font-weight: 600; color: #fff; font-size: 0.95rem; display: flex; align-items: center;">
+            ${item.title || '(Sans titre)'} ${recurringBadge}
+          </div>
           <div style="font-size: 0.8rem; color: #b9bbbe;">
-            <i class="fa-solid fa-hashtag" style="color: #5865F2;"></i> <strong>${channelName}</strong> · ID: <code>${item.message_id}</code>
+            <i class="fa-solid fa-hashtag" style="color: #5865F2;"></i> <strong>${channelName}</strong> ${item.is_recurring ? '' : `· ID: <code>${item.message_id}</code>`}
           </div>
           <div style="font-size: 0.8rem; color: #8e9297; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
             "${(item.description || '').slice(0, 70)}"
           </div>
         </div>
-        <button type="button" class="btn btn-sm btn-load-embed" style="background: #9b59b6; color: #fff; padding: 6px 12px; font-size: 0.82rem; border-radius: 6px; flex-shrink: 0; cursor: pointer;">
-          <i class="fa-solid fa-download"></i> Charger dans l'Éditeur
-        </button>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <button type="button" class="btn btn-sm btn-load-embed" style="background: #9b59b6; color: #fff; padding: 6px 12px; font-size: 0.82rem; border-radius: 6px; flex-shrink: 0; cursor: pointer;">
+            <i class="fa-solid fa-download"></i> Charger dans l'Éditeur
+          </button>
+          <button type="button" class="btn btn-sm btn-delete-saved-embed" style="background: #e74c3c; color: #fff; padding: 6px 10px; font-size: 0.82rem; border-radius: 6px; flex-shrink: 0; cursor: pointer;" title="Supprimer">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
       `;
 
       itemCard.querySelector('.btn-load-embed').addEventListener('click', () => {
         safeSetVal('simple_embed_channel', item.channel_id);
-        safeSetVal('simple_embed_edit_msg_id', item.message_id);
+        if (!item.is_recurring) safeSetVal('simple_embed_edit_msg_id', item.message_id);
         safeSetVal('simple_embed_title', item.title || '');
         safeSetVal('simple_embed_desc', item.description || '');
         safeSetVal('simple_embed_color', item.color || '#5865F2');
-        safeSetVal('simple_embed_image', item.image_url || '');
+        safeSetVal('simple_embed_image', item.image_url || item.image || '');
+        safeSetVal('simple_embed_thumbnail', item.thumbnail_url || (item.thumbnail ? 'server' : 'none'));
+        safeSetVal('simple_embed_author_name', item.author_name || '');
+        safeSetVal('simple_embed_author_icon', item.author_icon || '');
+        safeSetVal('simple_embed_footer_text', item.footer_text || item.footer || '');
+        if (item.ping_type) safeSetVal('simple_embed_ping', item.ping_type);
+        if (item.frequency) safeSetVal('simple_embed_recurring_freq', item.frequency);
+        if (item.send_time) safeSetVal('simple_embed_send_time', item.send_time);
+
         if (typeof updatePreview === 'function') updatePreview();
 
         const formEl = document.getElementById('form-simple-embed');
         if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
         showToast('Embed chargé dans l\'éditeur !');
+      });
+
+      itemCard.querySelector('.btn-delete-saved-embed').addEventListener('click', () => {
+        if (item.is_recurring) {
+          if (!confirm('Supprimer ce message récurrent ?')) return;
+          fetch('/api/config/recurring-embeds/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: item.id })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              showToast('Message récurrent supprimé !');
+              loadGuildConfiguration();
+            } else {
+              showToast('Erreur: ' + data.error, true);
+            }
+          });
+        } else {
+          if (!confirm('Supprimer cet embed de la liste ?')) return;
+          fetch('/api/config/autorole-embeds/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message_id: item.message_id, channel_id: item.channel_id })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              showToast('Embed supprimé !');
+              loadGuildConfiguration();
+            } else {
+              showToast('Erreur: ' + data.error, true);
+            }
+          });
+        }
       });
 
       container.appendChild(itemCard);

@@ -830,6 +830,8 @@ app.get('/api/config', (req, res) => {
     const { getAllActionRewards } = require('./database/db');
     const actionRewards = getAllActionRewards(guildId);
 
+    const recurringEmbeds = db.prepare('SELECT * FROM recurring_embeds WHERE guild_id = ?').all(guildId) || [];
+
     res.json({
       welcome_leave: welcomeLeave,
       boost_config: boostConfig,
@@ -844,6 +846,7 @@ app.get('/api/config', (req, res) => {
       leveling_config: levelingConfig,
       automod_config: automodConfig,
       autorole_embeds: autoroleEmbeds,
+      recurring_embeds: recurringEmbeds,
       autoroles_on_join: autorolesOnJoin,
       autoroles_on_role: autorolesOnRole,
       counting_channels: countingChannels,

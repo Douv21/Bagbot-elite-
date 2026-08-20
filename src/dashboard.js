@@ -811,6 +811,8 @@ app.get('/api/config', (req, res) => {
     const { getAllActionRewards } = require('./database/db');
     const actionRewards = getAllActionRewards(guildId);
 
+    const recurringEmbeds = db.prepare('SELECT * FROM recurring_embeds WHERE guild_id = ?').all(guildId) || [];
+
     res.json({
       welcome_leave: welcomeLeave,
       boost_config: boostConfig,
@@ -825,6 +827,7 @@ app.get('/api/config', (req, res) => {
       leveling_config: levelingConfig,
       automod_config: automodConfig,
       autorole_embeds: autoroleEmbeds,
+      recurring_embeds: recurringEmbeds,
       autoroles_on_join: autorolesOnJoin,
       autoroles_on_role: autorolesOnRole,
       counting_channels: countingChannels,
@@ -2055,20 +2058,33 @@ app.post('/api/config/send-simple-embed', async (req, res) => {
     };
 
     const files = [];
-    if (thumbnail_url) {
-      if (thumbnail_url === 'user' && req.session.user) {
+    if (thumbnail_url && typeof thumbnail_url === 'string') {
+      const cleanThumb = thumbnail_url.trim();
+      if (cleanThumb === 'user' && req.session.user) {
         const u = req.session.user;
         const uAvatar = u.avatar 
           ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png` 
           : `https://cdn.discordapp.com/embed/avatars/${(BigInt(u.id) >> 22n) % 5n}.png`;
         embed.setThumbnail(uAvatar);
-      } else if (thumbnail_url === 'server') {
+      } else if (cleanThumb === 'server') {
         const icon = guild.iconURL({ dynamic: true });
         if (icon) embed.setThumbnail(icon);
-      } else if (thumbnail_url === 'bot') {
+      } else if (cleanThumb === 'bot') {
         embed.setThumbnail(client.user.displayAvatarURL({ dynamic: true }));
+      } else if (cleanThumb.startsWith('/uploads/')) {
+        const fs = require('fs');
+        const absPath = path.join(__dirname, '../public', cleanThumb);
+        if (fs.existsSync(absPath)) {
+          const { AttachmentBuilder } = require('discord.js');
+          const name = 'thumb_' + path.basename(cleanThumb);
+          files.push(new AttachmentBuilder(absPath, { name }));
+          embed.setThumbnail(`attachment://${name}`);
+        } else {
+          const fullThumb = resolveUrl(cleanThumb);
+          if (fullThumb) embed.setThumbnail(fullThumb);
+        }
       } else {
-        const fullThumb = resolveUrl(thumbnail_url);
+        const fullThumb = resolveUrl(cleanThumb);
         if (fullThumb) embed.setThumbnail(fullThumb);
       }
     }
@@ -2080,7 +2096,7 @@ app.post('/api/config/send-simple-embed', async (req, res) => {
         const absPath = path.join(__dirname, '../public', cleanImg);
         if (fs.existsSync(absPath)) {
           const { AttachmentBuilder } = require('discord.js');
-          const name = path.basename(cleanImg);
+          const name = 'banner_' + path.basename(cleanImg);
           files.push(new AttachmentBuilder(absPath, { name }));
           embed.setImage(`attachment://${name}`);
         } else {
