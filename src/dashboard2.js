@@ -3900,7 +3900,7 @@ app.post('/api/star/force-election', async (req, res) => {
   }
 });
 
-app.listen(PORT, '0.0.0.0', async () => {
+const server2 = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`✓ Dashboard premium running on port ${PORT}`);
   
   try {
@@ -3911,5 +3911,12 @@ app.listen(PORT, '0.0.0.0', async () => {
     }
   } catch (err) {
     console.log('Impossible de récupérer automatiquement l\'IP publique (pas de connexion internet ou API inaccessible).');
+  }
+});
+server2.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`Port ${PORT} déjà utilisé par un autre service PM2 (bagbot-dashboard2).`);
+  } else {
+    console.error('Erreur serveur dashboard2:', err);
   }
 });
