@@ -7154,8 +7154,13 @@ document.addEventListener('submit', async (e) => {
       return clean;
     });
 
+    const textReply = document.getElementById('cc-text-reply')?.value?.trim();
+    if (textReply && !finalActions.some(a => a.type === 'reply' || a.type === 'text')) {
+      finalActions.unshift({ type: 'reply', text: textReply });
+    }
+
     if (!finalActions.length) {
-      return showToast('❌ Veuillez ajouter au moins une action via "+ Ajouter une action".', true);
+      return showToast('❌ Veuillez saisir un message de réponse ou ajouter au moins une action.', true);
     }
 
     try {

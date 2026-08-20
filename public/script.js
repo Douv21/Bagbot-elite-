@@ -6175,6 +6175,100 @@ function deleteCustomCommand(guildId, commandName) {
 window.deleteCustomCommand = deleteCustomCommand;
 window.loadCustomCommands = loadCustomCommands;
 
+// Event Delegation pour la sauvegarde des paramètres de commande
+document.addEventListener('click', async (e) => {
+  const btnSettings = e.target.closest('#cc-save-settings-btn');
+  if (btnSettings) {
+    e.preventDefault();
+    const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
+    if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
+
+    const prefix = document.getElementById('cc-prefix-input')?.value || '/';
+    const delete_trigger = document.getElementById('cc-delete-trigger-input')?.checked ? 1 : 0;
+
+    try {
+      const res = await fetch(`/api/bot/custom-commands/settings/${guildId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prefix, delete_trigger })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast('✅ Paramètres de commandes enregistrés avec succès !');
+      } else {
+        showToast(`❌ ${data.error || 'Erreur'}`, true);
+      }
+    } catch(err) {
+      showToast(`❌ Erreur réseau : ${err.message}`, true);
+    }
+  }
+});
+
+// Event Delegation pour la création de commande personnalisée
+document.addEventListener('submit', async (e) => {
+  if (e.target && e.target.id === 'form-add-custom-command') {
+    e.preventDefault();
+    const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
+    if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
+
+    const commandName = document.getElementById('cc-name-input')?.value?.trim().replace(/^\//, '');
+    const description = document.getElementById('cc-desc-input')?.value?.trim();
+
+    if (!commandName) return showToast('❌ Nom de commande requis.', true);
+
+    // Collect conditions
+    const conditions = [];
+    const refusalMsg = document.getElementById('cc-cond-refusal-msg')?.value?.trim();
+    if (document.getElementById('cc-cond-tag-check')?.checked) {
+      const tagVal = document.getElementById('cc-cond-tag-val')?.value?.trim();
+      if (tagVal) conditions.push({ type: 'has_server_tag', tag: tagVal, refusalMessage: refusalMsg });
+    }
+    if (document.getElementById('cc-cond-booster-check')?.checked) {
+      conditions.push({ type: 'is_booster', refusalMessage: refusalMsg });
+    }
+
+    // Collect actions
+    const finalActions = (typeof ccCurrentActions !== 'undefined' ? ccCurrentActions : []).map(a => {
+      const clean = { ...a };
+      delete clean.id;
+      return clean;
+    });
+
+    const textReply = document.getElementById('cc-text-reply')?.value?.trim();
+    if (textReply && !finalActions.some(a => a.type === 'reply' || a.type === 'text')) {
+      finalActions.unshift({ type: 'reply', text: textReply });
+    }
+
+    if (!finalActions.length) {
+      return showToast('❌ Veuillez saisir un message de réponse ou ajouter au moins une action.', true);
+    }
+
+    try {
+      const res = await fetch(`/api/bot/custom-commands/${guildId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          command_name: commandName,
+          description,
+          actions_json: JSON.stringify(finalActions),
+          conditions_json: JSON.stringify(conditions)
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast('✅ Commande enregistrée avec succès !');
+        e.target.reset();
+        if (typeof ccCurrentActions !== 'undefined') ccCurrentActions = [];
+        loadCustomCommands(guildId);
+      } else {
+        showToast(`❌ ${data.error || 'Erreur création commande'}`, true);
+      }
+    } catch(err) {
+      showToast(`❌ Erreur réseau : ${err.message}`, true);
+    }
+  }
+});
+
 // ============================================================
 // 💬 RÉACTIONS DE MOTS
 // ============================================================
