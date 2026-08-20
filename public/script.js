@@ -6444,6 +6444,37 @@ document.addEventListener('click', async (e) => {
       console.error('Erreur réinitialisation logo serveur:', err);
       if (typeof showToast === 'function') showToast('❌ Erreur de connexion lors de la réinitialisation.', true);
     }
+    return;
+  }
+
+  const btnGlobal = e.target.closest('#btn-set-global-logo');
+  if (btnGlobal) {
+    e.preventDefault();
+    const logoInput = document.getElementById('sbp-logo-url');
+    const avatar_url = logoInput ? logoInput.value.trim() : '';
+    if (!avatar_url) return showToast('❌ Saisissez une URL d\'image ou téléversez une image d\'abord.', true);
+
+    if (!confirm('Appliquer cette image comme Logo Global du Bot sur l\'ensemble de Discord (tous les serveurs) ?')) return;
+
+    try {
+      showToast('⏳ Application du Logo Global sur Discord...');
+      const res = await fetch('/api/bot/global-avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar_url })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast('🌐 Logo Global du Bot mis à jour avec succès sur tous les serveurs Discord !');
+        const previewImg = document.getElementById('sbp-preview-img');
+        if (previewImg) previewImg.src = data.avatarURL || avatar_url;
+      } else {
+        showToast(`❌ ${data.error || 'Erreur lors de la mise à jour globale'}`, true);
+      }
+    } catch (err) {
+      console.error('Erreur global logo:', err);
+      showToast('❌ Erreur de connexion lors de la mise à jour globale.', true);
+    }
   }
 });
 

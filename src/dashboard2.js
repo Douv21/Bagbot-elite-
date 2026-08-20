@@ -594,6 +594,41 @@ app.post('/api/bot/avatar', async (req, res) => {
   }
 });
 
+// Changer l'avatar GLOBAL du bot sur l'ensemble de Discord (tous les serveurs)
+app.post('/api/bot/global-avatar', async (req, res) => {
+  try {
+    const { avatar_url } = req.body || {};
+    if (!avatar_url) return res.status(400).json({ error: 'URL d\'avatar requise' });
+
+    const { client } = require('./index');
+    if (!client || !client.user) return res.status(503).json({ error: 'Bot non connecté sur Discord' });
+
+    let imageBuffer = null;
+    if (avatar_url.startsWith('/uploads/')) {
+      const absPath = path.join(__dirname, '../public', avatar_url);
+      if (fs.existsSync(absPath)) {
+        imageBuffer = fs.readFileSync(absPath);
+      }
+    } else if (avatar_url.startsWith('http://') || avatar_url.startsWith('https://')) {
+      const response = await fetch(avatar_url).catch(() => null);
+      if (response && response.ok) {
+        const arrayBuffer = await response.arrayBuffer();
+        imageBuffer = Buffer.from(arrayBuffer);
+      }
+    }
+
+    if (!imageBuffer) {
+      return res.status(400).json({ error: 'Impossible de lire le fichier image' });
+    }
+
+    await client.user.setAvatar(imageBuffer);
+    res.json({ success: true, avatarURL: client.user.displayAvatarURL({ dynamic: true }) });
+  } catch (error) {
+    console.error('Erreur global avatar:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- API DE CONFIGURATION SQLITE ---
 
 // 1. Obtenir toute la configuration d'un serveur
