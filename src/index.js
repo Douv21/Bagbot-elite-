@@ -2048,6 +2048,30 @@ apiApp.get('/bot/server-tags', async (req, res) => {
   }
 });
 
+apiApp.get('/debug-guild-clan', async (req, res) => {
+  try {
+    const list = [];
+    if (client && client.guilds && client.guilds.cache) {
+      for (const [id, g] of client.guilds.cache) {
+        const raw = await client.rest.get(`/guilds/${id}?with_counts=true`).catch(() => null);
+        list.push({
+          id,
+          name: g.name,
+          g_clan: g.clan || null,
+          g_rawClan: g.rawClan || null,
+          raw_keys: raw ? Object.keys(raw) : [],
+          raw_clan: raw ? raw.clan : null,
+          raw_profile: raw ? raw.profile : null,
+          raw_identity: raw ? raw.identity : null
+        });
+      }
+    }
+    res.json({ success: true, list });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 apiApp.get('/guilds', (req, res) => {
   const guilds = client.guilds.cache.map(guild => ({
     id: guild.id,
