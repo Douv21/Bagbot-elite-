@@ -2690,6 +2690,26 @@ client.on('messageCreate', async (message) => {
   // 2. COMMANDES PERSONNALISÉES (CUSTOM COMMANDS)
   try {
     const { getCustomCommandSettings, getCustomCommands, addTemporaryRole, updateEconomy, getEconomy, db } = require('./database/db');
+
+    function getGuildTag(g) {
+      if (!g || !g.name) return '';
+      const matchBracket = g.name.match(/[\[\(\{\<]([^\(\)\[\]\{\}\>]+)[\]\)\}\>]/);
+      if (matchBracket && matchBracket[1]) return matchBracket[1].trim();
+      if (g.name.includes('|')) {
+        const p = g.name.split('|')[0].trim();
+        if (p.length > 0 && p.length < 15) return p;
+      }
+      if (g.name.includes('•')) {
+        const p = g.name.split('•')[0].trim();
+        if (p.length > 0 && p.length < 15) return p;
+      }
+      if (g.name.includes(' - ')) {
+        const p = g.name.split(' - ')[0].trim();
+        if (p.length > 0 && p.length < 15) return p;
+      }
+      if (g.vanityURLCode) return g.vanityURLCode.trim();
+      return g.name.trim();
+    }
     
     // Récupérer les commandes personnalisées du serveur
     const customCmds = getCustomCommands(guildId);
@@ -2698,24 +2718,23 @@ client.on('messageCreate', async (message) => {
     }
 
     const cmdSettings = getCustomCommandSettings(guildId);
+
+    // Vérifier si le message commence par une commande personnalisée
+    const messageContent = message.content.trim();
     const prefix = cmdSettings.prefix || '/';
-
-    let triggeredCommandName = null;
-    if (prefix && message.content.startsWith(prefix)) {
-      triggeredCommandName = message.content.slice(prefix.length).trim().split(/ +/)[0].toLowerCase();
-    }
-
-    if (!triggeredCommandName || triggeredCommandName.trim().length === 0) {
+    
+    if (!messageContent.startsWith(prefix)) {
       return;
     }
 
-    // Chercher la commande personnalisée exacte
-    const matchedCmd = customCmds.find(c => c.command_name && c.command_name.trim().toLowerCase() === triggeredCommandName);
+    const cleanContent = messageContent.slice(prefix.length).trim();
+    const args = cleanContent.split(/\s+/);
+    const cmdName = args.shift()?.toLowerCase();
 
-    // SI LA COMMANDE N'EXISTE PAS DANS LES COMMANDES PERSONNALISÉES DU SERVEUR : STOP IMMÉDIAT !
-    if (!matchedCmd) {
-      return;
-    }
+    if (!cmdName) return;
+
+    const matchedCmd = customCmds.find(c => c.command_name.toLowerCase() === cmdName);
+    if (!matchedCmd) return;
 
     let actions = [];
     let conditions = [];
@@ -2735,17 +2754,25 @@ client.on('messageCreate', async (message) => {
         if (!cond || !cond.type) continue;
 
         if (cond.type === 'has_server_tag') {
+          const autoServerTag = (cond.tag && cond.tag.trim().length > 0) ? cond.tag.trim() : getGuildTag(guild);
+          const tagLower = autoServerTag.toLowerCase();
+
           let hasTag = true;
-          if (cond.tag && cond.tag.trim().length > 0) {
-            const tagLower = cond.tag.trim().toLowerCase();
+          if (tagLower.length > 0) {
             const displayNameLower = (member?.displayName || author.username).toLowerCase();
+            const nicknameLower = (member?.nickname || '').toLowerCase();
             const usernameLower = author.username.toLowerCase();
-            hasTag = displayNameLower.includes(tagLower) || usernameLower.includes(tagLower);
+            const globalNameLower = (author.globalName || '').toLowerCase();
+
+            hasTag = displayNameLower.includes(tagLower) ||
+                     nicknameLower.includes(tagLower) ||
+                     usernameLower.includes(tagLower) ||
+                     globalNameLower.includes(tagLower);
           }
 
           if (!hasTag) {
             passedConditions = false;
-            refusalMessage = cond.refusalMessage || `❌ Vous devez inclure le tag **${cond.tag}** dans votre pseudo pour utiliser cette commande.`;
+            refusalMessage = cond.refusalMessage || `❌ Vous devez inclure le tag du serveur (**${autoServerTag}**) dans votre pseudo pour utiliser cette commande.`;
             break;
           } else if (cond.autoRoleId && guild) {
             // Attribuer ou retirer le rôle à TOUTES LES PERSONNES DU SERVEUR SELON LE TAG
@@ -2756,42 +2783,33 @@ client.on('messageCreate', async (message) => {
                   return guild.members.cache;
                 });
 
-                if (allMembers && allMembers.size > 0) {
-                  const tagLower = (cond.tag || '').trim().toLowerCase();
-                  if (tagLower.length > 0) {
-                    const matching = allMembers.filter(m => !m.user.bot && (
-                      (m.displayName && m.displayName.toLowerCase().includes(tagLower)) ||
-                      (m.nickname && m.nickname.toLowerCase().includes(tagLower)) ||
-                      (m.user.username && m.user.username.toLowerCase().includes(tagLower)) ||
-                      (m.user.globalName && m.user.globalName.toLowerCase().includes(tagLower))
-                    ));
+                if (allMembers && allMembers.size > 0 && tagLower.length > 0) {
+                  const matching = allMembers.filter(m => !m.user.bot && (
+                    (m.displayName && m.displayName.toLowerCase().includes(tagLower)) ||
+                    (m.nickname && m.nickname.toLowerCase().includes(tagLower)) ||
+                    (m.user.username && m.user.username.toLowerCase().includes(tagLower)) ||
+                    (m.user.globalName && m.user.globalName.toLowerCase().includes(tagLower))
+                  ));
 
-                    const notMatching = allMembers.filter(m => !m.user.bot && !matching.has(m.id));
+                  const notMatching = allMembers.filter(m => !m.user.bot && !matching.has(m.id));
 
-                    console.log(`[TAG AUTO-ROLE] ${allMembers.size} membres analysés sur "${guild.name}". ${matching.size} avec tag (ajout), ${notMatching.size} sans tag (retrait).`);
+                  console.log(`[TAG AUTO-ROLE] Tag détecté "${autoServerTag}". ${allMembers.size} membres analysés sur "${guild.name}". ${matching.size} avec tag (+ rôle), ${notMatching.size} sans tag (- rôle).`);
 
-                    // 1. Ajouter le rôle à tous ceux qui ONT le tag dans leur pseudo
-                    for (const [, targetM] of matching) {
-                      if (!targetM.roles.cache.has(cond.autoRoleId)) {
-                        await targetM.roles.add(cond.autoRoleId).catch(err => {
-                          console.error(`[TAG AUTO-ROLE] Erreur ajout rôle à ${targetM.user.tag}:`, err.message);
-                        });
-                      }
+                  // 1. Ajouter le rôle à tous ceux qui ONT le tag dans leur pseudo
+                  for (const [, targetM] of matching) {
+                    if (!targetM.roles.cache.has(cond.autoRoleId)) {
+                      await targetM.roles.add(cond.autoRoleId).catch(err => {
+                        console.error(`[TAG AUTO-ROLE] Erreur ajout rôle à ${targetM.user.tag}:`, err.message);
+                      });
                     }
+                  }
 
-                    // 2. Retirer le rôle à tous ceux qui N'ONT PLUS le tag dans leur pseudo
-                    for (const [, targetM] of notMatching) {
-                      if (targetM.roles.cache.has(cond.autoRoleId)) {
-                        await targetM.roles.remove(cond.autoRoleId).catch(err => {
-                          console.error(`[TAG AUTO-ROLE] Erreur retrait rôle à ${targetM.user.tag}:`, err.message);
-                        });
-                      }
-                    }
-                  } else {
-                    for (const [, targetM] of allMembers.filter(m => !m.user.bot)) {
-                      if (!targetM.roles.cache.has(cond.autoRoleId)) {
-                        await targetM.roles.add(cond.autoRoleId).catch(() => null);
-                      }
+                  // 2. Retirer le rôle à tous ceux qui N'ONT PAS / PLUS le tag dans leur pseudo
+                  for (const [, targetM] of notMatching) {
+                    if (targetM.roles.cache.has(cond.autoRoleId)) {
+                      await targetM.roles.remove(cond.autoRoleId).catch(err => {
+                        console.error(`[TAG AUTO-ROLE] Erreur retrait rôle à ${targetM.user.tag}:`, err.message);
+                      });
                     }
                   }
                 }
@@ -2951,25 +2969,28 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
       let conditions = [];
       try { conditions = JSON.parse(cmd.conditions_json || '[]'); } catch (e) {}
       for (const cond of conditions) {
-        if (cond && cond.type === 'has_server_tag' && cond.autoRoleId && cond.tag) {
-          const tagLower = cond.tag.trim().toLowerCase();
-          const displayNameLower = (newMember.displayName || newMember.user.username).toLowerCase();
-          const nicknameLower = (newMember.nickname || '').toLowerCase();
-          const usernameLower = newMember.user.username.toLowerCase();
-          const globalNameLower = (newMember.user.globalName || '').toLowerCase();
+        if (cond && cond.type === 'has_server_tag' && cond.autoRoleId) {
+          const autoServerTag = (cond.tag && cond.tag.trim().length > 0) ? cond.tag.trim() : getGuildTag(newMember.guild);
+          const tagLower = autoServerTag.toLowerCase();
+          if (tagLower.length > 0) {
+            const displayNameLower = (newMember.displayName || newMember.user.username).toLowerCase();
+            const nicknameLower = (newMember.nickname || '').toLowerCase();
+            const usernameLower = newMember.user.username.toLowerCase();
+            const globalNameLower = (newMember.user.globalName || '').toLowerCase();
 
-          const hasTagNow = displayNameLower.includes(tagLower) ||
-                            nicknameLower.includes(tagLower) ||
-                            usernameLower.includes(tagLower) ||
-                            globalNameLower.includes(tagLower);
+            const hasTagNow = displayNameLower.includes(tagLower) ||
+                              nicknameLower.includes(tagLower) ||
+                              usernameLower.includes(tagLower) ||
+                              globalNameLower.includes(tagLower);
 
-          if (hasTagNow) {
-            if (!newMember.roles.cache.has(cond.autoRoleId)) {
-              await newMember.roles.add(cond.autoRoleId).catch(() => null);
-            }
-          } else {
-            if (newMember.roles.cache.has(cond.autoRoleId)) {
-              await newMember.roles.remove(cond.autoRoleId).catch(() => null);
+            if (hasTagNow) {
+              if (!newMember.roles.cache.has(cond.autoRoleId)) {
+                await newMember.roles.add(cond.autoRoleId).catch(() => null);
+              }
+            } else {
+              if (newMember.roles.cache.has(cond.autoRoleId)) {
+                await newMember.roles.remove(cond.autoRoleId).catch(() => null);
+              }
             }
           }
         }
