@@ -6129,7 +6129,102 @@ function initSimpleEmbedSender() {
   let channelEmbedsList = [];
   const simpleEmbedChanSelect = document.getElementById('simple_embed_channel');
   const selectChannelEmbedsGroup = document.getElementById('group_select_channel_embeds');
-  const selectChannelEmbeds = document.getElementById('select_channel_embeds');
+
+  function renderChannelEmbedCards(embeds) {
+    const listEl = document.getElementById('channel_embeds_cards_list');
+    if (!listEl || !selectChannelEmbedsGroup) return;
+
+    listEl.innerHTML = '';
+    if (!Array.isArray(embeds) || embeds.length === 0) {
+      selectChannelEmbedsGroup.style.display = 'none';
+      return;
+    }
+
+    selectChannelEmbedsGroup.style.display = 'block';
+
+    embeds.forEach(emb => {
+      const card = document.createElement('div');
+      card.className = 'embed-card-item';
+      card.style.cssText = 'background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); padding: 12px 16px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 12px; transition: all 0.2s ease;';
+
+      const titleText = emb.title ? emb.title.trim() : 'Embed sans titre';
+      const descText = emb.description ? emb.description.trim().replace(/\n/g, ' ') : 'Aucune description';
+
+      card.innerHTML = `
+        <div style="flex-grow: 1; min-width: 0;">
+          <div style="font-weight: 700; color: #ffffff; font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-file-lines" style="color: #5865f2;"></i> ${titleText}
+          </div>
+          <div style="color: #b9bbbe; font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 3px;">
+            ${descText.length > 70 ? descText.slice(0, 70) + '...' : descText}
+          </div>
+          <div style="color: #8e9297; font-size: 0.75rem; margin-top: 4px;">
+            ID: <code style="background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px; color: #5865f2;">${emb.id}</code>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; flex-shrink: 0;">
+          <button type="button" class="btn btn-edit-embed-card" data-id="${emb.id}" style="background: #5865F2; color: #ffffff; border: none; padding: 7px 14px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" title="Charger cet embed dans l'éditeur">
+            <i class="fa-solid fa-pen-to-square"></i> Modifier
+          </button>
+          <button type="button" class="btn btn-delete-embed-card" data-id="${emb.id}" style="background: #e74c3c; color: #ffffff; border: none; padding: 7px 14px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" title="Supprimer définitivement ce message du salon Discord">
+            <i class="fa-solid fa-trash-can"></i> Supprimer
+          </button>
+        </div>
+      `;
+
+      const btnEdit = card.querySelector('.btn-edit-embed-card');
+      if (btnEdit) {
+        btnEdit.addEventListener('click', () => {
+          safeSetVal('simple_embed_edit_msg_id', emb.id);
+          safeSetVal('simple_embed_title', emb.title || '');
+          safeSetVal('simple_embed_desc', emb.description || '');
+          safeSetVal('simple_embed_color', emb.color || '#5865F2');
+          safeSetVal('simple_embed_image', emb.image || '');
+          safeSetVal('simple_embed_author_name', emb.author_name || '');
+          safeSetVal('simple_embed_author_icon', emb.author_icon || '');
+          safeSetVal('simple_embed_footer_text', emb.footer || '');
+          showToast(`✏️ Message [${emb.id}] chargé dans l'éditeur !`);
+          updatePreview();
+        });
+      }
+
+      const btnDelete = card.querySelector('.btn-delete-embed-card');
+      if (btnDelete) {
+        btnDelete.addEventListener('click', async () => {
+          const channel_id = simpleEmbedChanSelect ? simpleEmbedChanSelect.value : null;
+          const message_id = emb.id;
+
+          if (!channel_id || !message_id) return;
+
+          if (!confirm(`Voulez-vous vraiment supprimer définitivement ce message embed (${emb.title || emb.id}) du salon Discord ?`)) {
+            return;
+          }
+
+          try {
+            const res = await fetch('/api/config/embeds/delete-message', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ channel_id, message_id })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+              showToast(data.message || '✅ Message Embed supprimé avec succès !');
+              safeSetVal('simple_embed_edit_msg_id', '');
+              if (form) form.reset();
+              updatePreview();
+              if (simpleEmbedChanSelect) simpleEmbedChanSelect.dispatchEvent(new Event('change'));
+            } else {
+              showToast(`❌ Erreur : ${data.error || 'Impossible de supprimer l\'embed'}`, true);
+            }
+          } catch (err) {
+            showToast(`❌ Erreur réseau : ${err.message}`, true);
+          }
+        });
+      }
+
+      listEl.appendChild(card);
+    });
+  }
 
   if (simpleEmbedChanSelect) {
     simpleEmbedChanSelect.addEventListener('change', () => {
@@ -6143,41 +6238,9 @@ function initSimpleEmbedSender() {
         .then(res => res.json())
         .then(embeds => {
           channelEmbedsList = Array.isArray(embeds) ? embeds : [];
-          if (!selectChannelEmbeds) return;
-          selectChannelEmbeds.innerHTML = '<option value="">-- Sélectionner un message existant à charger / modifier --</option>';
-          if (channelEmbedsList.length > 0) {
-            channelEmbedsList.forEach(emb => {
-              const opt = document.createElement('option');
-              opt.value = emb.id;
-              opt.textContent = `[${emb.id}] ${emb.title} - ${(emb.description || '').slice(0, 30)}...`;
-              selectChannelEmbeds.appendChild(opt);
-            });
-            if (selectChannelEmbedsGroup) selectChannelEmbedsGroup.style.display = 'block';
-          } else {
-            if (selectChannelEmbedsGroup) selectChannelEmbedsGroup.style.display = 'none';
-          }
+          renderChannelEmbedCards(channelEmbedsList);
         })
         .catch(console.error);
-    });
-  }
-
-  if (selectChannelEmbeds) {
-    selectChannelEmbeds.addEventListener('change', () => {
-      const msgId = selectChannelEmbeds.value;
-      if (!msgId) return;
-      const targetEmb = channelEmbedsList.find(e => e.id === msgId);
-      if (targetEmb) {
-        safeSetVal('simple_embed_edit_msg_id', targetEmb.id);
-        safeSetVal('simple_embed_title', targetEmb.title || '');
-        safeSetVal('simple_embed_desc', targetEmb.description || '');
-        safeSetVal('simple_embed_color', targetEmb.color || '#5865F2');
-        safeSetVal('simple_embed_image', targetEmb.image || '');
-        safeSetVal('simple_embed_author_name', targetEmb.author_name || '');
-        safeSetVal('simple_embed_author_icon', targetEmb.author_icon || '');
-        safeSetVal('simple_embed_footer_text', targetEmb.footer || '');
-        showToast('Message embed chargé dans le formulaire !');
-        updatePreview();
-      }
     });
   }
 
