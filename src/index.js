@@ -2813,28 +2813,29 @@ client.on('messageCreate', async (message) => {
 
     // Détecter si un membre/utilisateur est mentionné dans le message
     const mentionedMember = message.mentions.members?.first() || null;
-    const mentionedUser = message.mentions.users?.first() || null;
+    const mentionedUser = message.mentions.users?.first() || (mentionedMember ? mentionedMember.user : null);
 
     // Cible automatique : le membre mentionné s'il existe, sinon l'auteur de la commande
-    const targetMem = mentionedMember || member;
-    const targetUserObj = mentionedUser || author;
+    const targetMem = mentionedMember || member || null;
+    const targetUserObj = mentionedUser || author || message.author;
 
     // Formatage des variables avec support automatique de la mention
     const formatVars = (str) => {
       if (!str || typeof str !== 'string') return str;
-      const targetMentionStr = `<@${targetUserObj.id}>`;
+      const tgtUser = targetUserObj || author || message.author;
+      const targetMentionStr = tgtUser ? `<@${tgtUser.id}>` : `<@${author.id}>`;
       const authorMentionStr = `<@${author.id}>`;
 
       return str
         .replace(/\{user\}/gi, targetMentionStr)
         .replace(/\{user_mention\}/gi, targetMentionStr)
         .replace(/\{author\}/gi, authorMentionStr)
-        .replace(/\{username\}/gi, targetUserObj.username)
+        .replace(/\{username\}/gi, tgtUser ? tgtUser.username : author.username)
         .replace(/\{author_username\}/gi, author.username)
-        .replace(/\{user_id\}/gi, targetUserObj.id)
+        .replace(/\{user_id\}/gi, tgtUser ? tgtUser.id : author.id)
         .replace(/\{target\}/gi, targetMentionStr)
         .replace(/\{mentioned_user\}/gi, targetMentionStr)
-        .replace(/\{target_username\}/gi, targetUserObj.username)
+        .replace(/\{target_username\}/gi, tgtUser ? tgtUser.username : author.username)
         .replace(/\{server\}/gi, guild ? guild.name : 'Serveur')
         .replace(/\{guild_name\}/gi, guild ? guild.name : 'Serveur')
         .replace(/\{membercount\}/gi, guild ? (guild.memberCount || 0).toString() : '0')
@@ -2853,6 +2854,8 @@ client.on('messageCreate', async (message) => {
 
     // 2. EXÉCUTION DES ACTIONS EN CHAÎNE
     for (const action of actions) {
+      const tgtUserId = targetUserObj ? targetUserObj.id : author.id;
+
       if ((action.type === 'reply' || action.type === 'text') && (action.text || action.content)) {
         const content = formatVars(action.text || action.content);
         if (content && content.trim().length > 0) {
@@ -2871,37 +2874,41 @@ client.on('messageCreate', async (message) => {
         await message.channel.send({ embeds: [embed] }).catch(() => null);
       } else if ((action.type === 'add_role' || action.type === 'add_roles') && (action.roleId || action.roleIds)) {
         const roleIds = action.roleIds || [action.roleId];
-        for (const rId of roleIds) {
-          if (rId) await targetMem?.roles.add(rId).catch(() => null);
+        if (targetMem && targetMem.roles) {
+          for (const rId of roleIds) {
+            if (rId) await targetMem.roles.add(rId).catch(err => console.error('[ADD ROLE ERR]', err.message));
+          }
         }
       } else if (action.type === 'add_temp_role' && action.roleId && action.durationMs) {
-        if (targetMem && action.roleId) {
-          await targetMem.roles.add(action.roleId).catch(() => null);
+        if (targetMem && targetMem.roles && action.roleId) {
+          await targetMem.roles.add(action.roleId).catch(err => console.error('[TEMP ROLE ERR]', err.message));
           if (addTemporaryRole) {
-            addTemporaryRole(guildId, targetUserObj.id, action.roleId, Date.now() + Number(action.durationMs));
+            addTemporaryRole(guildId, tgtUserId, action.roleId, Date.now() + Number(action.durationMs));
           }
         }
       } else if ((action.type === 'remove_role' || action.type === 'remove_roles') && (action.roleId || action.roleIds)) {
         const roleIds = action.roleIds || [action.roleId];
-        for (const rId of roleIds) {
-          if (rId) await targetMem?.roles.remove(rId).catch(() => null);
+        if (targetMem && targetMem.roles) {
+          for (const rId of roleIds) {
+            if (rId) await targetMem.roles.remove(rId).catch(err => console.error('[REMOVE ROLE ERR]', err.message));
+          }
         }
       } else if ((action.type === 'give_item' || action.type === 'shop_item') && action.itemName) {
         const qty = Number(action.quantity) || 1;
         const existing = db.prepare('SELECT quantity FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?')
-          .get(guildId, targetUserObj.id, action.itemName);
+          .get(guildId, tgtUserId, action.itemName);
         if (existing) {
           db.prepare('UPDATE inventory SET quantity = quantity + ? WHERE guild_id = ? AND user_id = ? AND item_name = ?')
-            .run(qty, guildId, targetUserObj.id, action.itemName);
+            .run(qty, guildId, tgtUserId, action.itemName);
         } else {
           db.prepare('INSERT INTO inventory (guild_id, user_id, item_name, quantity) VALUES (?, ?, ?, ?)')
-            .run(guildId, targetUserObj.id, action.itemName, qty);
+            .run(guildId, tgtUserId, action.itemName, qty);
         }
       } else if (action.type === 'add_money' && action.amount) {
         const amt = Number(action.amount) || 0;
         if (amt !== 0 && getEconomy && updateEconomy) {
-          const eco = getEconomy(guildId, targetUserObj.id);
-          updateEconomy(guildId, targetUserObj.id, { bank: (eco?.bank || 0) + amt });
+          const eco = getEconomy(guildId, tgtUserId);
+          updateEconomy(guildId, tgtUserId, { bank: (eco?.bank || 0) + amt });
         }
       }
     }
