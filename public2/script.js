@@ -3438,8 +3438,8 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Veuillez saisir un libellé pour le bouton.');
       return;
     }
-    if (autoroleButtonsList.length >= 5) {
-      alert('Vous pouvez ajouter un maximum de 5 boutons.');
+    if (autoroleButtonsList.length >= 25) {
+      alert('Vous pouvez ajouter un maximum de 25 rôles/options.');
       return;
     }
 
@@ -3458,62 +3458,54 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('autorole-embed-buttons-preview');
     const noButtonsText = document.getElementById('no-buttons-text');
     
-    container.innerHTML = '';
+    if (container) container.innerHTML = '';
     
-    if (autoroleButtonsList.length === 0) {
-      noButtonsText.style.display = 'block';
-      container.appendChild(noButtonsText);
-      
+    if (!autoroleButtonsList || autoroleButtonsList.length === 0) {
+      if (noButtonsText) noButtonsText.style.display = 'block';
       const previewButtonsContainer = document.getElementById('autorole-preview-buttons');
-      if (previewButtonsContainer) previewButtonsContainer.innerHTML = '';
+      if (previewButtonsContainer) previewButtonsContainer.innerHTML = '<p style="color: #8e9297; font-style: italic; font-size: 0.85rem;">Aucun rôle / bouton configuré pour cet embed.</p>';
       return;
     }
-    noButtonsText.style.display = 'none';
+    if (noButtonsText) noButtonsText.style.display = 'none';
 
     autoroleButtonsList.forEach((btn, index) => {
       const wrapper = document.createElement('div');
       wrapper.className = 'badge';
-      wrapper.style.padding = '8px 12px';
-      wrapper.style.background = 'rgba(255,255,255,0.05)';
-      wrapper.style.border = '1px solid rgba(255,255,255,0.1)';
-      wrapper.style.borderRadius = '4px';
-      wrapper.style.display = 'inline-flex';
-      wrapper.style.alignItems = 'center';
-      wrapper.style.gap = '8px';
+      wrapper.style.cssText = 'padding: 8px 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; margin-bottom: 6px;';
 
       const styleLabel = btn.style === 'SUCCESS' ? 'Vert' : (btn.style === 'DANGER' ? 'Rouge' : (btn.style === 'SECONDARY' ? 'Gris' : 'Bleu'));
+      const roleNameStr = typeof getRoleName === 'function' ? getRoleName(btn.role_id) : (btn.role_id || 'Rôle');
       wrapper.innerHTML = `
-        <span style="font-weight: 500;">${btn.emoji || ''} ${btn.label} (${getRoleName(btn.role_id)}) [${styleLabel}]</span>
-        <button type="button" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 0.9rem;" title="Retirer ce bouton"><i class="fa-solid fa-xmark"></i></button>
+        <span style="font-weight: 600; color: #ffffff;">${btn.emoji || '📌'} ${btn.label || roleNameStr} <small style="color: #b9bbbe;">(${roleNameStr})</small> <span style="background: rgba(88,101,242,0.3); padding: 2px 6px; border-radius: 4px; font-size: 0.72rem;">${styleLabel}</span></span>
+        <button type="button" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 1rem; padding: 0 4px;" title="Retirer ce rôle"><i class="fa-solid fa-xmark"></i></button>
       `;
 
-      wrapper.querySelector('button').addEventListener('click', () => {
-        autoroleButtonsList.splice(index, 1);
-        renderButtonsCreatorPreview();
-      });
+      const btnRemove = wrapper.querySelector('button');
+      if (btnRemove) {
+        btnRemove.addEventListener('click', () => {
+          autoroleButtonsList.splice(index, 1);
+          renderButtonsCreatorPreview();
+        });
+      }
 
-      container.appendChild(wrapper);
+      if (container) container.appendChild(wrapper);
     });
 
-    // Mettre à jour l'aperçu en direct des boutons / sélecteur / réactions
+    // Mettre à jour l'aperçu Discord réel
     const previewButtonsContainer = document.getElementById('autorole-preview-buttons');
     if (previewButtonsContainer) {
       previewButtonsContainer.innerHTML = '';
-      const type = document.getElementById('autorole-embed-type').value;
+      const typeEl = document.getElementById('autorole-embed-type');
+      const type = typeEl ? typeEl.value : 'buttons';
 
       if (type === 'buttons') {
+        const btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; width: 100%;';
+
         autoroleButtonsList.forEach(btn => {
           const pBtn = document.createElement('button');
           pBtn.type = 'button';
-          pBtn.style.padding = '6px 16px';
-          pBtn.style.fontSize = '0.85rem';
-          pBtn.style.borderRadius = '3px';
-          pBtn.style.border = 'none';
-          pBtn.style.cursor = 'default';
-          pBtn.style.display = 'inline-flex';
-          pBtn.style.alignItems = 'center';
-          pBtn.style.gap = '6px';
-          pBtn.style.fontWeight = '500';
+          pBtn.style.cssText = 'padding: 8px 16px; font-size: 0.88rem; border-radius: 4px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.2);';
           
           let bgColor = '#5865F2';
           let textColor = '#ffffff';
@@ -3523,45 +3515,43 @@ document.addEventListener('DOMContentLoaded', () => {
           
           pBtn.style.background = bgColor;
           pBtn.style.color = textColor;
-          pBtn.innerHTML = `<span>${btn.emoji || ''}</span> <span>${btn.label}</span>`;
-          previewButtonsContainer.appendChild(pBtn);
+          pBtn.innerHTML = `<span>${btn.emoji || ''}</span> <span>${btn.label || (typeof getRoleName === 'function' ? getRoleName(btn.role_id) : btn.role_id)}</span>`;
+          btnRow.appendChild(pBtn);
         });
+        previewButtonsContainer.appendChild(btnRow);
       } else if (type === 'select' || type === 'multi_select') {
-        if (autoroleButtonsList.length > 0) {
-          const selectSim = document.createElement('div');
-          selectSim.style.width = '100%';
-          selectSim.style.background = '#2f3136';
-          selectSim.style.border = '1px solid rgba(255,255,255,0.05)';
-          selectSim.style.padding = '8px 12px';
-          selectSim.style.borderRadius = '4px';
-          selectSim.style.color = '#dcddde';
-          selectSim.style.display = 'flex';
-          selectSim.style.justifyContent = 'space-between';
-          selectSim.style.alignItems = 'center';
-          selectSim.style.fontSize = '0.9rem';
-          selectSim.style.cursor = 'default';
-          selectSim.innerHTML = `
-            <span>${type === 'multi_select' ? 'Sélectionnez un ou plusieurs rôles...' : 'Sélectionnez un rôle...'} (${autoroleButtonsList.length} options)</span>
-            <i class="fa-solid fa-chevron-down" style="font-size: 0.8rem; color: #b9bbbe;"></i>
-          `;
-          previewButtonsContainer.appendChild(selectSim);
-        }
+        const selectWrap = document.createElement('div');
+        selectWrap.style.cssText = 'width: 100%; margin-top: 10px;';
+
+        const selectEl = document.createElement('select');
+        selectEl.className = 'custom-select';
+        selectEl.style.cssText = 'width: 100%; background: #2f3136; border: 1px solid rgba(255,255,255,0.1); color: #dcddde; padding: 10px 12px; border-radius: 6px; font-size: 0.9rem; font-family: inherit;';
+        
+        const defaultOpt = document.createElement('option');
+        defaultOpt.value = '';
+        defaultOpt.textContent = type === 'multi_select' ? '▼ Sélectionnez un ou plusieurs rôles (Multi-Sélecteur)...' : '▼ Sélectionnez un rôle dans le menu...';
+        selectEl.appendChild(defaultOpt);
+
+        autoroleButtonsList.forEach(btn => {
+          const opt = document.createElement('option');
+          opt.value = btn.role_id;
+          opt.textContent = `${btn.emoji || '📌'} ${btn.label || (typeof getRoleName === 'function' ? getRoleName(btn.role_id) : btn.role_id)}`;
+          selectEl.appendChild(opt);
+        });
+
+        selectWrap.appendChild(selectEl);
+        previewButtonsContainer.appendChild(selectWrap);
       } else if (type === 'reactions') {
+        const reactRow = document.createElement('div');
+        reactRow.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; width: 100%;';
+
         autoroleButtonsList.forEach(btn => {
           const pReact = document.createElement('div');
-          pReact.style.display = 'inline-flex';
-          pReact.style.alignItems = 'center';
-          pReact.style.gap = '6px';
-          pReact.style.background = 'rgba(255,255,255,0.05)';
-          pReact.style.border = '1px solid rgba(255,255,255,0.1)';
-          pReact.style.padding = '4px 8px';
-          pReact.style.borderRadius = '4px';
-          pReact.style.fontSize = '0.85rem';
-          pReact.style.cursor = 'default';
-          pReact.style.marginRight = '6px';
-          pReact.innerHTML = `<span>${btn.emoji || '❓'}</span> <span style="color: #b9bbbe; font-weight:600;">1</span>`;
-          previewButtonsContainer.appendChild(pReact);
+          pReact.style.cssText = 'display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); padding: 5px 10px; border-radius: 4px; font-size: 0.88rem; cursor: pointer; color: #dcddde;';
+          pReact.innerHTML = `<span>${btn.emoji || '📌'}</span> <span style="color: #b9bbbe; font-weight: 700; font-size: 0.8rem;">1</span>`;
+          reactRow.appendChild(pReact);
         });
+        previewButtonsContainer.appendChild(reactRow);
       }
     }
   }
