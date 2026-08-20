@@ -1916,7 +1916,167 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
       });
     }
 
-    res.status(404).json({ error: 'Message introuvable dans la base de données' });
+    if (client && client.guilds) {
+      const guild = client.guilds.cache.get(guildId);
+      if (guild) {
+        let targetMsg = null;
+        let foundChannelId = channelId;
+
+        if (channelId) {
+          const chan = guild.channels.cache.get(channelId);
+          if (chan && chan.isTextBased()) {
+            targetMsg = await chan.messages.fetch(cleanMsgId).catch(() => null);
+          }
+        }
+
+        if (!targetMsg) {
+          const textChannels = guild.channels.cache.filter(c => c.isTextBased() && c.viewable);
+          for (const [cId, chan] of textChannels) {
+            try {
+              const msg = await chan.messages.fetch(cleanMsgId).catch(() => null);
+              if (msg) {
+                targetMsg = msg;
+                foundChannelId = cId;
+                break;
+              }
+            } catch (e) {}
+          }
+        }
+
+        if (targetMsg) {
+          const emb = targetMsg.embeds.length > 0 ? targetMsg.embeds[0] : null;
+          const extractedOptions = [];
+          const extractedSelectors = [];
+          let detectedType = 'buttons';
+
+          let title = '';
+          let description = targetMsg.content || '';
+          let color = '#5865F2';
+          let image_url = '';
+          let thumbnail = 0;
+
+          if (emb) {
+            title = emb.title || '';
+            description = emb.description || targetMsg.content || '';
+            if (emb.color) color = `#${emb.color.toString(16).padStart(6, '0')}`;
+            if (emb.image && emb.image.url) image_url = emb.image.url;
+            if (emb.thumbnail && emb.thumbnail.url) thumbnail = 1;
+          }
+
+          if (targetMsg.components && targetMsg.components.length > 0) {
+            targetMsg.components.forEach((row, rIdx) => {
+              const selOptions = [];
+              let selType = 'buttons';
+              let selPlaceholder = `Sélecteur ${rIdx + 1}`;
+
+              row.components.forEach(comp => {
+                const cType = comp.type;
+                if (cType === 2 || cType === 'BUTTON') {
+                  detectedType = 'buttons';
+                  selType = 'buttons';
+                  let rawRoleId = comp.customId || '';
+                  const roleIdMatch = rawRoleId.match(/\d{17,20}/);
+                  const roleId = roleIdMatch ? roleIdMatch[0] : rawRoleId;
+
+                  const optObj = {
+                    role_id: roleId,
+                    label: comp.label || 'Bouton',
+                    emoji: comp.emoji ? (comp.emoji.name || comp.emoji.id) : '',
+                    style: comp.style === 1 ? 'PRIMARY' : (comp.style === 2 ? 'SECONDARY' : (comp.style === 3 ? 'SUCCESS' : (comp.style === 4 ? 'DANGER' : 'PRIMARY')))
+                  };
+                  extractedOptions.push(optObj);
+                  selOptions.push(optObj);
+                } else if (cType === 3 || cType === 5 || cType === 6 || cType === 7 || cType === 8 || cType === 'SELECT_MENU' || cType === 'STRING_SELECT' || cType === 'ROLE_SELECT' || cType === 'USER_SELECT' || cType === 'MENTIONABLE_SELECT') {
+                  detectedType = (comp.maxValues && comp.maxValues > 1) ? 'multi_select' : 'select';
+                  selType = detectedType;
+                  if (comp.placeholder) selPlaceholder = comp.placeholder;
+                  
+                  if (comp.options && comp.options.length > 0) {
+                    comp.options.forEach(opt => {
+                      let rawVal = opt.value || '';
+                      const roleIdMatch = rawVal.match(/\d{17,20}/);
+                      const roleId = roleIdMatch ? roleIdMatch[0] : rawVal;
+
+                      const optObj = {
+                        role_id: roleId,
+                        label: opt.label || 'Option',
+                        emoji: opt.emoji ? (opt.emoji.name || opt.emoji.id) : '',
+                        style: 'PRIMARY'
+                      };
+                      extractedOptions.push(optObj);
+                      selOptions.push(optObj);
+                    });
+                  }
+                }
+              });
+
+              if (selOptions.length > 0) {
+                extractedSelectors.push({
+                  placeholder: selPlaceholder,
+                  type: selType,
+                  mode: 'normal',
+                  options: selOptions
+                });
+              }
+            });
+          }
+
+          if (extractedOptions.length === 0) {
+            const textToScan = `${title} ${description}`;
+            const roleMentions = Array.from(textToScan.matchAll(/<@&(\d{17,20})>/g)).map(m => m[1]);
+            const uniqueRoles = Array.from(new Set(roleMentions));
+
+            if (uniqueRoles.length > 0) {
+              uniqueRoles.forEach((rId, idx) => {
+                const optObj = {
+                  role_id: rId,
+                  label: `Rôle ${idx + 1}`,
+                  emoji: '📌',
+                  style: 'PRIMARY'
+                };
+                extractedOptions.push(optObj);
+              });
+              extractedSelectors.push({
+                placeholder: 'Rôles Détectés',
+                type: 'select',
+                mode: 'normal',
+                options: extractedOptions
+              });
+            }
+          }
+
+          if (targetMsg.reactions && targetMsg.reactions.cache.size > 0 && extractedOptions.length === 0) {
+            detectedType = 'reactions';
+            targetMsg.reactions.cache.forEach(react => {
+              const emojiStr = react.emoji.id ? `<:${react.emoji.name}:${react.emoji.id}>` : react.emoji.name;
+              extractedOptions.push({
+                role_id: '',
+                label: `Réaction ${react.emoji.name}`,
+                emoji: emojiStr,
+                style: 'PRIMARY'
+              });
+            });
+          }
+
+          return res.json({
+            id: targetMsg.id,
+            channel_id: foundChannelId,
+            title: title,
+            description: description,
+            color: color,
+            thumbnail: thumbnail,
+            image_url: image_url,
+            type: detectedType,
+            mode: 'normal',
+            options: extractedOptions,
+            selectors: extractedSelectors,
+            author_bot: targetMsg.author ? targetMsg.author.tag : null
+          });
+        }
+      }
+    }
+
+    res.status(404).json({ error: 'Message introuvable sur le serveur Discord' });
   } catch (error) {
     console.error('Erreur fetch autorole message:', error);
     res.status(500).json({ error: error.message });

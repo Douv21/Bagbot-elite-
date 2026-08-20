@@ -3355,6 +3355,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let autoroleSelectorsList = [];
 
+  function buildRolesSelectHTML(selectedRoleId = '') {
+    let html = '<option value="">-- Choisir un rôle --</option>';
+    if (typeof rolesList !== 'undefined' && Array.isArray(rolesList) && rolesList.length > 0) {
+      rolesList.forEach(r => {
+        const isSel = String(r.id) === String(selectedRoleId) ? 'selected' : '';
+        html += `<option value="${r.id}" ${isSel}>${r.name}</option>`;
+      });
+    }
+    if (selectedRoleId && (!typeof rolesList !== 'undefined' || !rolesList.find(r => String(r.id) === String(selectedRoleId)))) {
+      const fallbackName = typeof getRoleName === 'function' ? getRoleName(selectedRoleId) : selectedRoleId;
+      html += `<option value="${selectedRoleId}" selected>${fallbackName}</option>`;
+    }
+    return html;
+  }
+
   function renderSelectorsListUI() {
     const container = document.getElementById('selectors-list-container');
     if (!container) return;
@@ -3449,6 +3464,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     modal.style.display = 'flex';
+    modal.style.zIndex = '999999';
   }
 
   function closeSelectorModal() {
@@ -3464,7 +3480,7 @@ document.addEventListener('DOMContentLoaded', () => {
     row.className = 'modal-option-row';
     row.style.cssText = 'display: flex; gap: 8px; align-items: center; background: #202225; padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 6px;';
 
-    const rolesOptionsHtml = typeof getRolesSelectHTML === 'function' ? getRolesSelectHTML(opt ? opt.role_id : '') : '<option value="">-- Choisir un rôle --</option>';
+    const rolesOptionsHtml = buildRolesSelectHTML(opt ? opt.role_id : '');
 
     row.innerHTML = `
       <input type="text" class="opt-emoji" placeholder="👨" value="${opt ? (opt.emoji || '') : ''}" style="width: 45px; text-align: center; background: #2f3136; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #fff; padding: 6px;">
@@ -3482,21 +3498,21 @@ document.addEventListener('DOMContentLoaded', () => {
     container.appendChild(row);
   }
 
-  // Event Listeners Modal
-  const btnOpenAddSelector = document.getElementById('btn-open-add-selector-modal');
-  if (btnOpenAddSelector) {
-    btnOpenAddSelector.addEventListener('click', () => openSelectorModal(-1));
-  }
-
-  const btnCloseModal = document.getElementById('btn-close-selector-modal');
-  if (btnCloseModal) {
-    btnCloseModal.addEventListener('click', closeSelectorModal);
-  }
-
-  const btnCancelModal = document.getElementById('btn-cancel-selector-modal');
-  if (btnCancelModal) {
-    btnCancelModal.addEventListener('click', closeSelectorModal);
-  }
+  // Event Delegation global pour l'ouverture / fermeture de la modale de sélecteur
+  document.addEventListener('click', (e) => {
+    const btnAdd = e.target.closest('#btn-open-add-selector-modal');
+    if (btnAdd) {
+      e.preventDefault();
+      openSelectorModal(-1);
+      return;
+    }
+    const btnClose = e.target.closest('#btn-close-selector-modal') || e.target.closest('#btn-cancel-selector-modal');
+    if (btnClose) {
+      e.preventDefault();
+      closeSelectorModal();
+      return;
+    }
+  });
 
   const btnAddModalOpt = document.getElementById('btn-add-modal-option');
   if (btnAddModalOpt) {

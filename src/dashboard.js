@@ -1900,7 +1900,8 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
               let selPlaceholder = `Sélecteur ${rIdx + 1}`;
 
               row.components.forEach(comp => {
-                if (comp.type === 2 || comp.type === 'BUTTON') {
+                const cType = comp.type;
+                if (cType === 2 || cType === 'BUTTON') {
                   detectedType = 'buttons';
                   selType = 'buttons';
                   let rawRoleId = comp.customId || '';
@@ -1915,11 +1916,12 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
                   };
                   extractedOptions.push(optObj);
                   selOptions.push(optObj);
-                } else if (comp.type === 3 || comp.type === 'SELECT_MENU' || comp.type === 'STRING_SELECT') {
-                  detectedType = comp.maxValues > 1 ? 'multi_select' : 'select';
+                } else if (cType === 3 || cType === 5 || cType === 6 || cType === 7 || cType === 8 || cType === 'SELECT_MENU' || cType === 'STRING_SELECT' || cType === 'ROLE_SELECT' || cType === 'USER_SELECT' || cType === 'MENTIONABLE_SELECT') {
+                  detectedType = (comp.maxValues && comp.maxValues > 1) ? 'multi_select' : 'select';
                   selType = detectedType;
                   if (comp.placeholder) selPlaceholder = comp.placeholder;
-                  if (comp.options) {
+                  
+                  if (comp.options && comp.options.length > 0) {
                     comp.options.forEach(opt => {
                       let rawVal = opt.value || '';
                       const roleIdMatch = rawVal.match(/\d{17,20}/);
@@ -1947,6 +1949,31 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
                 });
               }
             });
+          }
+
+          // Fallback: Si aucune option n'a été extraite via les boutons/sélecteurs, extraire les mentions de rôles dans le texte ou l'embed
+          if (extractedOptions.length === 0) {
+            const textToScan = `${title} ${description}`;
+            const roleMentions = Array.from(textToScan.matchAll(/<@&(\d{17,20})>/g)).map(m => m[1]);
+            const uniqueRoles = Array.from(new Set(roleMentions));
+
+            if (uniqueRoles.length > 0) {
+              uniqueRoles.forEach((rId, idx) => {
+                const optObj = {
+                  role_id: rId,
+                  label: `Rôle ${idx + 1}`,
+                  emoji: '📌',
+                  style: 'PRIMARY'
+                };
+                extractedOptions.push(optObj);
+              });
+              extractedSelectors.push({
+                placeholder: 'Rôles Détectés',
+                type: 'select',
+                mode: 'normal',
+                options: extractedOptions
+              });
+            }
           }
 
           if (targetMsg.reactions && targetMsg.reactions.cache.size > 0 && extractedOptions.length === 0) {
