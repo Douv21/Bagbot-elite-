@@ -3631,16 +3631,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- LIVE PREVIEW POUR AUTO-RÔLES ---
   const updateAutorolePreview = () => {
-    const title = document.getElementById('autorole-embed-title').value.trim() || 'Aperçu du titre';
-    const desc = document.getElementById('autorole-embed-desc').value.trim() || 'Aperçu de la description...';
-    const color = document.getElementById('autorole-embed-color').value;
-    const thumbnailOpt = document.getElementById('autorole-embed-thumbnail').value;
-    const imageUrl = document.getElementById('autorole-embed-image').value.trim();
-    const existingMsgId = document.getElementById('autorole-embed-existing-msg').value.trim();
+    const titleInput = document.getElementById('autorole-embed-title');
+    const descInput = document.getElementById('autorole-embed-desc');
+    const colorInput = document.getElementById('autorole-embed-color');
+    const thumbnailOpt = document.getElementById('autorole-embed-thumbnail')?.value;
+    const imageUrl = document.getElementById('autorole-embed-image')?.value?.trim();
+    const existingMsgId = document.getElementById('autorole-embed-existing-msg')?.value?.trim();
     const embedCard = document.getElementById('autorole-discord-embed');
 
-    // Aperçu visuel de l'embed
+    if (!embedCard) return;
     embedCard.style.display = 'block';
+    embedCard.style.opacity = '1';
+    embedCard.style.visibility = 'visible';
 
     let banner = document.getElementById('autorole-preview-existing-banner');
     if (existingMsgId) {
@@ -3649,40 +3651,56 @@ document.addEventListener('DOMContentLoaded', () => {
         banner.id = 'autorole-preview-existing-banner';
         banner.style.background = 'rgba(241, 196, 15, 0.15)';
         banner.style.border = '1px solid #f1c40f';
-        banner.style.padding = '10px';
-        banner.style.borderRadius = '4px';
+        banner.style.padding = '10px 14px';
+        banner.style.borderRadius = '6px';
         banner.style.color = '#f1c40f';
         banner.style.fontSize = '0.85rem';
-        banner.style.marginBottom = '10px';
+        banner.style.marginBottom = '12px';
+        banner.style.fontWeight = '600';
         embedCard.parentNode.insertBefore(banner, embedCard);
       }
-      banner.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Mode Édition : Modification du message Discord <strong>${existingMsgId}</strong>.`;
+      banner.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Mode Édition : Modification du message Discord <strong>[${existingMsgId}]</strong>.`;
       banner.style.display = 'block';
     } else if (banner) {
       banner.style.display = 'none';
     }
 
-    document.getElementById('autorole-preview-title').textContent = title;
-    document.getElementById('autorole-preview-desc').textContent = desc;
-    document.getElementById('autorole-discord-embed').style.borderLeftColor = color;
+    const titleText = titleInput ? titleInput.value : '';
+    const descText = descInput ? descInput.value : '';
+    const color = colorInput ? colorInput.value : '#5865F2';
+
+    const pTitle = document.getElementById('autorole-preview-title');
+    if (pTitle) pTitle.textContent = titleText || 'Aperçu du titre';
+
+    const pDesc = document.getElementById('autorole-preview-desc');
+    if (pDesc) pDesc.textContent = descText || 'Aperçu de la description...';
+
+    embedCard.style.borderLeftColor = color;
 
     const thumbnailImg = document.getElementById('autorole-preview-thumbnail');
-    const guildId = guildSelect.value;
-    const selectedGuildInfo = guildsList.find(g => g.id === guildId);
+    const thumbnailPlaceholder = document.getElementById('autorole-thumbnail-placeholder');
+    const guildId = typeof guildSelect !== 'undefined' ? guildSelect?.value : '';
+    const selectedGuildInfo = (typeof guildsList !== 'undefined' && Array.isArray(guildsList)) ? guildsList.find(g => g.id === guildId) : null;
     
     if (thumbnailOpt === '1' && selectedGuildInfo && selectedGuildInfo.icon) {
-      thumbnailImg.src = `https://cdn.discordapp.com/icons/${selectedGuildInfo.id}/${selectedGuildInfo.icon}.png`;
-      thumbnailImg.style.display = 'block';
+      if (thumbnailImg) {
+        thumbnailImg.src = `https://cdn.discordapp.com/icons/${selectedGuildInfo.id}/${selectedGuildInfo.icon}.png`;
+        thumbnailImg.style.display = 'block';
+      }
+      if (thumbnailPlaceholder) thumbnailPlaceholder.style.display = 'none';
     } else {
-      thumbnailImg.style.display = 'none';
+      if (thumbnailImg) thumbnailImg.style.display = 'none';
+      if (thumbnailPlaceholder) thumbnailPlaceholder.style.display = 'flex';
     }
 
     const previewImg = document.getElementById('autorole-preview-image');
-    if (imageUrl) {
-      previewImg.src = imageUrl;
-      previewImg.style.display = 'block';
-    } else {
-      previewImg.style.display = 'none';
+    if (previewImg) {
+      if (imageUrl) {
+        previewImg.src = imageUrl;
+        previewImg.style.display = 'block';
+      } else {
+        previewImg.style.display = 'none';
+      }
     }
   };
 
