@@ -6357,26 +6357,43 @@ function initSimpleEmbedSender() {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const channel_id = document.getElementById('simple_embed_channel').value;
+    const channel_id = document.getElementById('simple_embed_channel')?.value;
     if (!channel_id) return showToast('⚠️ Veuillez sélectionner un salon de destination.', true);
 
-    let thumbnail_url = selectThumb ? selectThumb.value : 'none';
-    if (thumbnail_url === 'custom' && inputCustomThumb) {
-      thumbnail_url = inputCustomThumb.value;
+    const getVal = (id1, id2) => {
+      const el1 = document.getElementById(id1);
+      if (el1 && el1.value !== undefined && el1.value.trim() !== '') return el1.value.trim();
+      const el2 = document.getElementById(id2);
+      if (el2 && el2.value !== undefined) return el2.value.trim();
+      return '';
+    };
+
+    const title = getVal('simple_embed_title', 'simple-embed-preview-title');
+    const description = getVal('simple_embed_desc', 'simple-embed-preview-desc');
+    const color = document.getElementById('simple_embed_color')?.value || '#5865f2';
+    const image_url = getVal('simple_embed_image', 'simple_embed_image');
+    const author_name = getVal('simple_embed_author_name', 'simple-embed-preview-author-name');
+    const author_icon = getVal('simple_embed_author_icon', 'simple_embed_author_icon');
+    const footer_text = getVal('simple_embed_footer_text', 'simple-embed-preview-footer-text');
+    const editMsgId = document.getElementById('simple_embed_edit_msg_id')?.value || '';
+
+    let thumbnail_url = selectThumb ? selectThumb.value : (window.simpleEmbedThumbMode || 'none');
+    if (thumbnail_url === 'custom' && inputCustomThumb && inputCustomThumb.value.trim()) {
+      thumbnail_url = inputCustomThumb.value.trim();
     }
 
     const payload = {
       channel_id,
-      title: inputTitle.value,
-      description: inputDesc.value,
-      color: inputColor.value,
+      title,
+      description,
+      color,
       thumbnail_url,
-      image_url: inputImage.value,
-      author_name: inputAuthorName.value,
-      author_icon: inputAuthorIcon.value,
-      footer_text: inputFooterText.value,
+      image_url,
+      author_name,
+      author_icon,
+      footer_text,
       ping_type: selectPing ? selectPing.value : 'none',
-      existing_message_id: document.getElementById('simple_embed_edit_msg_id').value
+      existing_message_id: editMsgId
     };
 
     try {

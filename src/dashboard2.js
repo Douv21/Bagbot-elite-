@@ -217,6 +217,8 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+
 app.use(express.static(path.join(__dirname, '../public2'), {
   etag: false,
   lastModified: false,
