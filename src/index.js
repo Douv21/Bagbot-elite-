@@ -3745,5 +3745,10 @@ setInterval(checkRecurringEmbeds, 60000);
 
 module.exports = { client };
 
-// Lancement du Dashboard Premium
+// Lancement du Dashboard Premium (v1 & v2)
 require('./dashboard');
+try {
+  require('./dashboard2');
+} catch (e) {
+  console.error('Erreur chargement dashboard2:', e);
+}

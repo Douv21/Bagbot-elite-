@@ -2306,40 +2306,6 @@ app.get('/api/config/embeds/all-server-embeds', async (req, res) => {
         send_time: rE.send_time || '12:00',
         is_recurring: true
       });
-    }
-
-    if (guild) {
-      const textChannels = guild.channels.cache.filter(c => c.isTextBased() && c.viewable);
-      for (const [cId, chan] of textChannels) {
-        try {
-          const msgs = await chan.messages.fetch({ limit: 10 }).catch(() => null);
-          if (msgs) {
-            msgs.forEach(msg => {
-              if (seenMsgIds.has(msg.id)) return;
-              if (msg.embeds && msg.embeds.length > 0) {
-                const emb = msg.embeds[0];
-                allEmbeds.push({
-                  id: msg.id,
-                  channel_id: cId,
-                  channel_name: `#${chan.name}`,
-                  title: emb.title || 'Embed sans titre',
-                  description: emb.description || '',
-                  color: emb.color ? `#${emb.color.toString(16).padStart(6, '0')}` : '#5865F2',
-                  image: emb.image ? emb.image.url : '',
-                  thumbnail: emb.thumbnail ? emb.thumbnail.url : '',
-                  author_name: emb.author ? emb.author.name : '',
-                  author_icon: emb.author ? emb.author.iconURL : '',
-                  footer: emb.footer ? emb.footer.text : '',
-                  is_recurring: false
-                });
-                seenMsgIds.add(msg.id);
-              }
-            });
-          }
-        } catch (e) {}
-      }
-    }
-
     res.json(allEmbeds);
   } catch (error) {
     console.error('Erreur all-server-embeds:', error);

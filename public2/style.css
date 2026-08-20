@@ -3517,8 +3517,6 @@ td.text-center, td[colspan] {
   }
 
   .discord-embed-image-box,
-  #autorole-preview-image,
-  #simple-embed-preview-image,
   #discord-image-box {
     display: block !important;
     clear: both !important;
