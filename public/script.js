@@ -3825,6 +3825,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewButtonsContainer = document.getElementById('autorole-preview-buttons');
     if (previewButtonsContainer) {
       previewButtonsContainer.innerHTML = '';
+      previewButtonsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 10px;';
 
       if (autoroleSelectorsList && autoroleSelectorsList.length > 0) {
         autoroleSelectorsList.forEach(sel => {
