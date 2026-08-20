@@ -51,10 +51,22 @@ for (const folder of commandFolders) {
 }
 
 // Fonctions d'assistance globales pour les Tags et Membres
-function getGuildTag(g) {
+async function getOfficialGuildTag(g) {
   if (!g) return '';
+
   if (g.clan && g.clan.tag) return g.clan.tag.trim();
   if (g.rawClan && g.rawClan.tag) return g.rawClan.tag.trim();
+  if (g.clanTag) return g.clanTag.trim();
+
+  // Interroger l'API REST Discord officielle /guilds/{guild_id} pour récupérer la propriété "clan.tag"
+  try {
+    const rawGuild = await g.client.rest.get(Routes.guild(g.id)).catch(() => null);
+    if (rawGuild) {
+      if (rawGuild.clan && rawGuild.clan.tag) return rawGuild.clan.tag.trim();
+      if (rawGuild.clan_tag) return rawGuild.clan_tag.trim();
+    }
+  } catch (e) {}
+
   if (g.name) {
     const matchBracket = g.name.match(/[\[\(\{\<]([^\(\)\[\]\{\}\>]+)[\]\)\}\>]/);
     if (matchBracket && matchBracket[1] && matchBracket[1].trim().length > 0) return matchBracket[1].trim();
@@ -71,7 +83,32 @@ function getGuildTag(g) {
       if (p.length > 0 && p.length < 15) return p;
     }
     if (g.vanityURLCode) return g.vanityURLCode.trim();
-    return g.name.trim();
+  }
+
+  return '';
+}
+
+function getGuildTag(g) {
+  if (!g) return '';
+  if (g.clan && g.clan.tag) return g.clan.tag.trim();
+  if (g.rawClan && g.rawClan.tag) return g.rawClan.tag.trim();
+  if (g.clanTag) return g.clanTag.trim();
+  if (g.name) {
+    const matchBracket = g.name.match(/[\[\(\{\<]([^\(\)\[\]\{\}\>]+)[\]\)\}\>]/);
+    if (matchBracket && matchBracket[1] && matchBracket[1].trim().length > 0) return matchBracket[1].trim();
+    if (g.name.includes('|')) {
+      const p = g.name.split('|')[0].trim();
+      if (p.length > 0 && p.length < 15) return p;
+    }
+    if (g.name.includes('•')) {
+      const p = g.name.split('•')[0].trim();
+      if (p.length > 0 && p.length < 15) return p;
+    }
+    if (g.name.includes(' - ')) {
+      const p = g.name.split(' - ')[0].trim();
+      if (p.length > 0 && p.length < 15) return p;
+    }
+    if (g.vanityURLCode) return g.vanityURLCode.trim();
   }
   return '';
 }
@@ -90,10 +127,24 @@ function hasMemberTag(m, tagStr) {
   const display = (m.displayName || '').toLowerCase();
   const uname = (m.user?.username || '').toLowerCase();
   const gname = (m.user?.globalName || '').toLowerCase();
-  const clanTag = (m.user?.clan?.tag || m.clan?.tag || '').toLowerCase();
+
+  const userClanTag = (
+    m.user?.clan?.tag ||
+    m.clan?.tag ||
+    m.user?.primary_guild?.tag ||
+    m.user?.primaryGuild?.tag ||
+    m.rawUser?.primary_guild?.tag ||
+    m.rawUser?.clan?.tag ||
+    ''
+  ).toLowerCase();
 
   // 1. Détection directe (.includes exact)
-  if (nick.includes(cleanTag) || display.includes(cleanTag) || uname.includes(cleanTag) || gname.includes(cleanTag) || clanTag.includes(cleanTag)) {
+  if (nick.includes(cleanTag) ||
+      display.includes(cleanTag) ||
+      uname.includes(cleanTag) ||
+      gname.includes(cleanTag) ||
+      userClanTag.includes(cleanTag) ||
+      userClanTag === cleanTag) {
     return true;
   }
 
@@ -104,7 +155,7 @@ function hasMemberTag(m, tagStr) {
         normalizeStr(display).includes(normTag) ||
         normalizeStr(uname).includes(normTag) ||
         normalizeStr(gname).includes(normTag) ||
-        normalizeStr(clanTag).includes(normTag)) {
+        normalizeStr(userClanTag).includes(normTag)) {
       return true;
     }
   }
@@ -117,7 +168,7 @@ function hasMemberTag(m, tagStr) {
            cleanAlpha(display).includes(alphaTag) ||
            cleanAlpha(uname).includes(alphaTag) ||
            cleanAlpha(gname).includes(alphaTag) ||
-           cleanAlpha(clanTag).includes(alphaTag);
+           cleanAlpha(userClanTag).includes(alphaTag);
   }
 
   return false;
@@ -1959,18 +2010,18 @@ apiApp.post('/bot/age-verification-completed', async (req, res) => {
   }
 });
 
-apiApp.get('/server-tags', (req, res) => {
+apiApp.get('/server-tags', async (req, res) => {
   try {
     const tagsMap = [];
     if (client && client.guilds && client.guilds.cache) {
-      client.guilds.cache.forEach(g => {
-        const tag = getGuildTag(g) || g.name;
+      for (const [, g] of client.guilds.cache) {
+        const tag = (await getOfficialGuildTag(g)) || getGuildTag(g) || g.name;
         tagsMap.push({
           guildId: g.id,
           guildName: g.name,
           tag: tag
         });
-      });
+      }
     }
     res.json({ success: true, tags: tagsMap });
   } catch (err) {
@@ -1978,18 +2029,18 @@ apiApp.get('/server-tags', (req, res) => {
   }
 });
 
-apiApp.get('/bot/server-tags', (req, res) => {
+apiApp.get('/bot/server-tags', async (req, res) => {
   try {
     const tagsMap = [];
     if (client && client.guilds && client.guilds.cache) {
-      client.guilds.cache.forEach(g => {
-        const tag = getGuildTag(g) || g.name;
+      for (const [, g] of client.guilds.cache) {
+        const tag = (await getOfficialGuildTag(g)) || getGuildTag(g) || g.name;
         tagsMap.push({
           guildId: g.id,
           guildName: g.name,
           tag: tag
         });
-      });
+      }
     }
     res.json({ success: true, tags: tagsMap });
   } catch (err) {
@@ -3047,10 +3098,9 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
       try { conditions = JSON.parse(cmd.conditions_json || '[]'); } catch (e) {}
       for (const cond of conditions) {
         if (cond && cond.type === 'has_server_tag' && cond.autoRoleId) {
-          const autoServerTag = (cond.tag && cond.tag.trim().length > 0) ? cond.tag.trim() : getGuildTag(newMember.guild);
-          const tagLower = autoServerTag.toLowerCase();
-          if (tagLower.length > 0) {
-            const hasTagNow = hasMemberTag(newMember, tagLower);
+          const autoServerTag = (cond.tag && cond.tag.trim().length > 0) ? cond.tag.trim() : ((await getOfficialGuildTag(newMember.guild)) || getGuildTag(newMember.guild));
+          if (autoServerTag.length > 0) {
+            const hasTagNow = hasMemberTag(newMember, autoServerTag);
 
             if (hasTagNow) {
               if (!newMember.roles.cache.has(cond.autoRoleId)) {
