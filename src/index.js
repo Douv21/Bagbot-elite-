@@ -1251,16 +1251,12 @@ apiApp.get('/bot/info', (req, res) => {
 
 apiApp.post('/bot/avatar', async (req, res) => {
   try {
-    const { avatar_url } = req.body;
-    if (!avatar_url) {
-      return res.status(400).json({ error: 'Avatar URL is required' });
+    const { avatar_url, guildId } = req.body || {};
+    if (guildId) {
+      const { updateGuildBotProfileOnDiscord } = require('./utils/helpers');
+      await updateGuildBotProfileOnDiscord(client, guildId, null, avatar_url);
     }
-    let resolvedPath = avatar_url;
-    if (avatar_url.startsWith('/uploads/')) {
-      resolvedPath = path.join(__dirname, '../public', avatar_url);
-    }
-    await client.user.setAvatar(resolvedPath);
-    res.json({ success: true, avatarURL: client.user.displayAvatarURL({ dynamic: true }) });
+    res.json({ success: true, avatarURL: avatar_url || client.user.displayAvatarURL({ dynamic: true }) });
   } catch (error) {
     console.error('Error setting bot avatar:', error);
     res.status(500).json({ error: error.message });

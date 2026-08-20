@@ -556,7 +556,7 @@ app.get('/api/bot/info', async (req, res) => {
   }
 });
 
-// Changer l'avatar du bot globalement
+// Changer l'avatar du bot uniquement pour le serveur sélectionné
 app.post('/api/bot/avatar', async (req, res) => {
   try {
     const guildId = (req.query && req.query.guildId) || (req.body && req.body.guildId) || (req.session && req.session.selectedGuild);
@@ -566,20 +566,13 @@ app.post('/api/bot/avatar', async (req, res) => {
     const { saveServerBotProfile } = require('./database/db');
     saveServerBotProfile(guildId, avatar_url || null, null);
 
-    // Modifier l'avatar officiel du bot sur Discord
+    // Mettre à jour l'avatar du bot uniquement pour ce serveur Discord
     try {
       const { client } = require('./index');
-      if (client && client.user && avatar_url) {
-        let resolvedPath = avatar_url;
-        if (avatar_url.startsWith('/uploads/')) {
-          resolvedPath = path.join(__dirname, '../public', avatar_url);
-        }
-        await client.user.setAvatar(resolvedPath).catch(err => {
-          console.error('Erreur client.user.setAvatar Discord:', err.message);
-        });
-      }
+      const { updateGuildBotProfileOnDiscord } = require('./utils/helpers');
+      await updateGuildBotProfileOnDiscord(client, guildId, null, avatar_url);
     } catch (e) {
-      console.error('Erreur setAvatar:', e.message);
+      console.error('Erreur updateGuildBotProfileOnDiscord:', e.message);
     }
 
     res.json({ success: true, avatarURL: avatar_url });

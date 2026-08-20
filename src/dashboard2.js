@@ -569,18 +569,22 @@ app.get('/api/bot/info', async (req, res) => {
   }
 });
 
-// Changer l'avatar du bot globalement
+// Changer l'avatar du bot uniquement pour le serveur sélectionné
 app.post('/api/bot/avatar', async (req, res) => {
   try {
     const guildId = (req.query && req.query.guildId) || (req.body && req.body.guildId) || (req.session && req.session.selectedGuild);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
     const { avatar_url } = req.body || {};
 
-    let wl = db.prepare('SELECT * FROM welcome_leave WHERE guild_id = ?').get(guildId);
-    if (!wl) {
-      db.prepare('INSERT INTO welcome_leave (guild_id, custom_bot_avatar) VALUES (?, ?)').run(guildId, avatar_url || null);
-    } else {
-      db.prepare('UPDATE welcome_leave SET custom_bot_avatar = ? WHERE guild_id = ?').run(avatar_url || null, guildId);
+    const { saveServerBotProfile } = require('./database/db');
+    saveServerBotProfile(guildId, avatar_url || null, null);
+
+    try {
+      const { client } = require('./index');
+      const { updateGuildBotProfileOnDiscord } = require('./utils/helpers');
+      await updateGuildBotProfileOnDiscord(client, guildId, null, avatar_url);
+    } catch (e) {
+      console.error('Erreur updateGuildBotProfileOnDiscord:', e.message);
     }
 
     res.json({ success: true, avatarURL: avatar_url });
