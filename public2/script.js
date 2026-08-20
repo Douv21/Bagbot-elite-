@@ -167,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(data => {
       if (data.authenticated) {
         currentUser = data.user;
+        window.currentUser = data.user;
         showDashboard();
       } else {
         showLogin();
@@ -198,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(res => res.json())
       .then(guilds => {
         guildsList = guilds;
+        window.guildsList = guilds;
         guildSelect.innerHTML = '<option value="">Sélectionnez un serveur...</option>';
         guilds.forEach(guild => {
           const option = document.createElement('option');

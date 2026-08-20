@@ -167,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(data => {
       if (data.authenticated) {
         currentUser = data.user;
+        window.currentUser = data.user;
         showDashboard();
       } else {
         showLogin();
