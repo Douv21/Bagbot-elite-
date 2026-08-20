@@ -2072,6 +2072,32 @@ apiApp.get('/debug-guild-clan', async (req, res) => {
   }
 });
 
+apiApp.get('/debug-clan-endpoint', async (req, res) => {
+  try {
+    const results = {};
+    for (const [id, g] of client.guilds.cache) {
+      const endpoints = [
+        `/guilds/${id}/clan`,
+        `/guilds/${id}/identity`,
+        `/guilds/${id}/profile`,
+        `/clans/${id}`
+      ];
+      results[g.name] = {};
+      for (const ep of endpoints) {
+        try {
+          const data = await client.rest.get(ep);
+          results[g.name][ep] = data;
+        } catch (e) {
+          results[g.name][ep] = e.status || e.message;
+        }
+      }
+    }
+    res.json({ success: true, results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 apiApp.get('/guilds', (req, res) => {
   const guilds = client.guilds.cache.map(guild => ({
     id: guild.id,
