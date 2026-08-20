@@ -3595,7 +3595,7 @@ Il/Elle remporte le rôle {role} et brille sur le serveur !</textarea>
                 <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px; margin-bottom: 15px;">
                   <div>
                     <label style="font-weight: 700; font-size: 0.8rem; text-transform: uppercase; color: #b9bbbe; display: block; margin-bottom: 6px;">NOM DE LA COMMANDE</label>
-                    <input type="text" id="cc-name-input" class="inner-input" placeholder="ex: regles, discord, vip" required style="background: #202225; border: 1px solid #40444b; color: #dcddde; font-size: 0.95rem; padding: 10px;">
+                    <input type="text" id="cc-name-input" class="inner-input" placeholder="ex: regles, shop, vip" required style="background: #202225; border: 1px solid #40444b; color: #dcddde; font-size: 0.95rem; padding: 10px;">
                   </div>
                   <div>
                     <label style="font-weight: 700; font-size: 0.8rem; text-transform: uppercase; color: #b9bbbe; display: block; margin-bottom: 6px;">DESCRIPTION</label>
@@ -3603,14 +3603,55 @@ Il/Elle remporte le rôle {role} et brille sur le serveur !</textarea>
                   </div>
                 </div>
 
-                <div style="margin-bottom: 15px;">
-                  <label style="font-weight: 700; font-size: 0.8rem; text-transform: uppercase; color: #b9bbbe; display: block; margin-bottom: 6px;">MESSAGE DE RÉPONSE (TEXTE)</label>
-                  <textarea id="cc-text-reply" class="inner-input" rows="3" placeholder="Texte envoyé par le bot (ex: Bienvenue {user} sur {server} ! Nous sommes {membercount} membres.)" style="background: #202225; border: 1px solid #40444b; color: #dcddde; font-size: 0.95rem; padding: 10px; width: 100%;"></textarea>
-                  <div style="font-size: 0.78rem; color: #8e9297; margin-top: 6px;">💡 Variables dynamiques : <code style="background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; color: #00b894;">{user}</code> <code style="background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; color: #00b894;">{username}</code> <code style="background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; color: #00b894;">{server}</code> <code style="background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; color: #00b894;">{membercount}</code> <code style="background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; color: #00b894;">{channel}</code></div>
+                <!-- SECTION CONDITIONS D'EXÉCUTION -->
+                <div style="background: rgba(32, 34, 37, 0.7); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px;">
+                  <h4 style="font-size: 0.95rem; color: #e17055; margin-bottom: 10px;"><i class="fa-solid fa-shield-halved"></i> Conditions d'Exécution (Optionnel)</h4>
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 10px;">
+                    <label style="font-size: 0.82rem; color: #dcddde; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                      <input type="checkbox" id="cc-cond-tag-check"> 🏷️ Exiger le Tag du Serveur
+                    </label>
+                    <input type="text" id="cc-cond-tag-val" placeholder="ex: B&G" class="inner-input" style="padding: 6px 10px; font-size: 0.85rem; background: #2f3136; border: 1px solid #40444b; color: #fff; border-radius: 6px;">
+
+                    <label style="font-size: 0.82rem; color: #dcddde; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                      <input type="checkbox" id="cc-cond-booster-check"> 🚀 Exiger Server Booster
+                    </label>
+                  </div>
+                  <div>
+                    <label style="font-weight: 600; font-size: 0.78rem; color: #b9bbbe; display: block; margin-bottom: 4px;">MESSAGE DE REFUS PERSONNALISÉ (si condition non remplie)</label>
+                    <input type="text" id="cc-cond-refusal-msg" placeholder="ex: ❌ Vous devez inclure le tag B&G dans votre pseudo pour utiliser cette commande !" class="inner-input" style="padding: 8px; font-size: 0.85rem; width: 100%; background: #2f3136; border: 1px solid #40444b; color: #fff; border-radius: 6px;">
+                  </div>
+                </div>
+
+                <!-- MENU DÉROULANT AJOUTER UNE ACTION -->
+                <div style="margin-bottom: 20px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                    <label style="font-weight: 700; font-size: 0.85rem; text-transform: uppercase; color: #00b894;"><i class="fa-solid fa-layer-group"></i> Actions à Exécuter</label>
+                    
+                    <!-- BOUTON DÉROULANT "AJOUTER UNE ACTION" -->
+                    <div style="position: relative; display: inline-block;">
+                      <select id="cc-add-action-select" class="inner-input" style="background: #d66d4b; color: #fff; font-weight: 700; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
+                        <option value="" disabled selected>+ Ajouter une action</option>
+                        <option value="reply">💬 Envoyer un message (Texte / Embed)</option>
+                        <option value="add_role">🎭 Ajouter des rôles</option>
+                        <option value="add_temp_role">⏳ Ajouter un rôle temporaire</option>
+                        <option value="remove_role">❌ Retirer des rôles</option>
+                        <option value="give_item">🎁 Article de boutique (Offrir un objet)</option>
+                        <option value="add_money">💰 Ajouter de l'argent / Karma</option>
+                        <option value="delete_trigger">🗑️ Supprimer le message déclencheur</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- CONTENEUR DES CARTES D'ACTIONS -->
+                  <div id="cc-actions-builder-container" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Rempli dynamiquement -->
+                  </div>
+
+                  <div style="font-size: 0.78rem; color: #8e9297; margin-top: 8px;">💡 Variables dynamiques : <code style="background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; color: #00b894;">{user}</code> <code style="background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; color: #00b894;">{username}</code> <code style="background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; color: #00b894;">{server}</code> <code style="background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; color: #00b894;">{membercount}</code> <code style="background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; color: #00b894;">{channel}</code></div>
                 </div>
 
                 <div style="text-align: right;">
-                  <button type="submit" class="btn" style="background: #00b894; color: #fff; font-weight: 700; padding: 10px 20px;"><i class="fa-solid fa-plus"></i> Créer la commande</button>
+                  <button type="submit" class="btn" style="background: #00b894; color: #fff; font-weight: 700; padding: 10px 20px; font-size: 1rem;"><i class="fa-solid fa-floppy-disk"></i> Enregistrer la commande</button>
                 </div>
               </form>
             </div>

@@ -6133,6 +6133,7 @@ function loadCustomCommands(guildId) {
       if (deleteInput) deleteInput.checked = !!settings.delete_trigger;
 
       renderCustomCommands(commands, guildId);
+      renderCcActionsList();
     })
     .catch(console.error);
 }
@@ -6150,7 +6151,7 @@ function renderCustomCommands(commands, guildId) {
     let actions = [];
     try { actions = JSON.parse(cmd.actions_json || '[]'); } catch(e) {}
     const textAction = actions.find(a => a.type === 'text' || a.type === 'reply');
-    const preview = textAction ? (textAction.text || textAction.content || '').substring(0, 60) + ((textAction.text || textAction.content || '').length > 60 ? '…' : '') : '—';
+    const preview = textAction ? (textAction.text || textAction.content || '').substring(0, 60) + ((textAction.text || textAction.content || '').length > 60 ? '…' : '') : `[${actions.length} action(s)]`;
     return `<tr>
       <td><strong style="color:#5865F2;">/${cmd.command_name}</strong></td>
       <td style="color:#b9bbbe; font-size:0.85rem;">${cmd.description || '—'}</td>
@@ -6173,72 +6174,6 @@ function deleteCustomCommand(guildId, commandName) {
 }
 window.deleteCustomCommand = deleteCustomCommand;
 window.loadCustomCommands = loadCustomCommands;
-
-// Form: Créer une commande
-(function initCustomCommandsListeners() {
-  const form = document.getElementById('form-add-custom-command');
-  if (form) {
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
-      if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
-
-      const commandName = document.getElementById('cc-name-input')?.value?.trim().replace(/^\//, '');
-      const description = document.getElementById('cc-desc-input')?.value?.trim();
-      const textReply = document.getElementById('cc-text-reply')?.value?.trim();
-
-      if (!commandName) return showToast('❌ Nom de commande requis.', true);
-
-      const actions = [];
-      if (textReply) actions.push({ type: 'text', content: textReply });
-
-      try {
-        const res = await fetch(`/api/bot/custom-commands/${guildId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ command_name: commandName, description, actions_json: JSON.stringify(actions) })
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          showToast('✅ Commande créée !');
-          form.reset();
-          loadCustomCommands(guildId);
-        } else {
-          showToast(`❌ ${data.error || 'Erreur création commande'}`, true);
-        }
-      } catch(err) {
-        showToast(`❌ Erreur réseau : ${err.message}`, true);
-      }
-    });
-  }
-
-  const saveSettingsBtn = document.getElementById('cc-save-settings-btn');
-  if (saveSettingsBtn) {
-    saveSettingsBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const guildId = document.getElementById('guild-select')?.value || (typeof guildSelect !== 'undefined' ? guildSelect?.value : null);
-      if (!guildId) return showToast('❌ Sélectionnez un serveur.', true);
-      const prefix = document.getElementById('cc-prefix-input')?.value || '/';
-      try {
-        const res = await fetch(`/api/bot/custom-commands/settings/${guildId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prefix })
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          showToast('✅ Préfixe enregistré !');
-        } else {
-          showToast(`❌ ${data.error || 'Erreur'}`, true);
-        }
-      } catch(err) {
-        showToast(`❌ Erreur réseau : ${err.message}`, true);
-      }
-    });
-  }
-})();
 
 // ============================================================
 // 💬 RÉACTIONS DE MOTS

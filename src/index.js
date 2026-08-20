@@ -2540,10 +2540,12 @@ apiApp.get('/bot/custom-commands/:guildId', (req, res) => {
 
 apiApp.post('/bot/custom-commands/:guildId', (req, res) => {
   const { guildId } = req.params;
-  const { command_name, description, actions_json } = req.body;
+  const { command_name, description, actions_json, conditions_json } = req.body || {};
   if (!command_name) return res.status(400).json({ error: 'Command name required' });
   const { saveCustomCommand } = require('./database/db');
-  saveCustomCommand(guildId, command_name, description || '', typeof actions_json === 'string' ? actions_json : JSON.stringify(actions_json || []));
+  const actJson = typeof actions_json === 'string' ? actions_json : JSON.stringify(actions_json || []);
+  const condJson = typeof conditions_json === 'string' ? conditions_json : JSON.stringify(conditions_json || []);
+  saveCustomCommand(guildId, command_name, description || '', actJson, condJson);
   res.json({ success: true });
 });
 
@@ -2687,7 +2689,7 @@ client.on('messageCreate', async (message) => {
 
   // 2. COMMANDES PERSONNALISÉES (CUSTOM COMMANDS)
   try {
-    const { getCustomCommandSettings, getCustomCommands } = require('./database/db');
+    const { getCustomCommandSettings, getCustomCommands, addTemporaryRole, updateEconomy, getEconomy, db } = require('./database/db');
     const cmdSettings = getCustomCommandSettings(guildId);
     const prefix = cmdSettings.prefix || '/';
 
@@ -2707,30 +2709,90 @@ client.on('messageCreate', async (message) => {
 
       if (matchedCmd) {
         let actions = [];
-        try {
-          actions = JSON.parse(matchedCmd.actions_json || '[]');
-        } catch (e) {}
+        let conditions = [];
+        try { actions = JSON.parse(matchedCmd.actions_json || '[]'); } catch (e) {}
+        try { conditions = JSON.parse(matchedCmd.conditions_json || '[]'); } catch (e) {}
 
+        const member = message.member;
+        const author = message.author;
+        const guild = message.guild;
+
+        // 1. ÉVALUATION DES CONDITIONS
+        let passedConditions = true;
+        let refusalMessage = null;
+
+        if (Array.isArray(conditions)) {
+          for (const cond of conditions) {
+            if (!cond || !cond.type) continue;
+
+            if (cond.type === 'has_server_tag' && cond.tag) {
+              const tagLower = cond.tag.toLowerCase();
+              const displayNameLower = (member?.displayName || author.username).toLowerCase();
+              const usernameLower = author.username.toLowerCase();
+              if (!displayNameLower.includes(tagLower) && !usernameLower.includes(tagLower)) {
+                passedConditions = false;
+                refusalMessage = cond.refusalMessage || `❌ Vous devez inclure le tag **${cond.tag}** dans votre pseudo pour utiliser cette commande.`;
+                break;
+              }
+            } else if (cond.type === 'is_booster') {
+              if (!member?.premiumSince) {
+                passedConditions = false;
+                refusalMessage = cond.refusalMessage || `❌ Cette commande est réservée aux **Boosters** du serveur ! 🚀`;
+                break;
+              }
+            } else if (cond.type === 'has_role' && cond.roleId) {
+              if (!member?.roles.cache.has(cond.roleId)) {
+                passedConditions = false;
+                refusalMessage = cond.refusalMessage || `❌ Vous ne possédez pas le rôle requis pour utiliser cette commande.`;
+                break;
+              }
+            } else if (cond.type === 'lacks_role' && cond.roleId) {
+              if (member?.roles.cache.has(cond.roleId)) {
+                passedConditions = false;
+                refusalMessage = cond.refusalMessage || `❌ Vous possédez un rôle qui vous interdit d'utiliser cette commande.`;
+                break;
+              }
+            }
+          }
+        }
+
+        if (!passedConditions) {
+          if (refusalMessage) {
+            await message.channel.send(refusalMessage).catch(() => null);
+          }
+          return;
+        }
+
+        // Formatage des variables
         const formatVars = (str) => {
           if (!str || typeof str !== 'string') return str;
-          const u = message.author;
-          const g = message.guild;
           return str
-            .replace(/\{user\}/gi, `<@${u.id}>`)
-            .replace(/\{user_mention\}/gi, `<@${u.id}>`)
-            .replace(/\{username\}/gi, u.username)
-            .replace(/\{user_id\}/gi, u.id)
-            .replace(/\{user_avatar\}/gi, u.displayAvatarURL({ dynamic: true }))
-            .replace(/\{server\}/gi, g ? g.name : 'Serveur')
-            .replace(/\{guild_name\}/gi, g ? g.name : 'Serveur')
-            .replace(/\{membercount\}/gi, g ? (g.memberCount || 0).toString() : '0')
+            .replace(/\{user\}/gi, `<@${author.id}>`)
+            .replace(/\{user_mention\}/gi, `<@${author.id}>`)
+            .replace(/\{username\}/gi, author.username)
+            .replace(/\{user_id\}/gi, author.id)
+            .replace(/\{user_avatar\}/gi, author.displayAvatarURL({ dynamic: true }))
+            .replace(/\{server\}/gi, guild ? guild.name : 'Serveur')
+            .replace(/\{guild_name\}/gi, guild ? guild.name : 'Serveur')
+            .replace(/\{membercount\}/gi, guild ? (guild.memberCount || 0).toString() : '0')
             .replace(/\{channel\}/gi, `<#${message.channel.id}>`);
         };
 
+        // Supprimer le message si configuré globalement OU s'il existe une action delete_trigger
+        let shouldDelete = !!cmdSettings.delete_trigger;
+        if (actions.some(a => a.type === 'delete_trigger')) {
+          shouldDelete = true;
+        }
+
+        if (shouldDelete && message.deletable) {
+          await message.delete().catch(() => null);
+        }
+
+        // 2. EXÉCUTION DES ACTIONS EN CHAÎNE
         for (const action of actions) {
           if ((action.type === 'reply' || action.type === 'text') && (action.text || action.content)) {
             const content = formatVars(action.text || action.content);
-            await message.channel.send(content);
+            await message.channel.send(content).catch(() => null);
           } else if (action.type === 'embed') {
             const { EmbedBuilder } = require('discord.js');
             const embed = new EmbedBuilder()
@@ -2741,16 +2803,42 @@ client.on('messageCreate', async (message) => {
             if (action.imageUrl) embed.setImage(action.imageUrl);
             if (action.thumbnailUrl) embed.setThumbnail(action.thumbnailUrl);
             if (action.footer) embed.setFooter({ text: formatVars(action.footer) });
-            await message.channel.send({ embeds: [embed] });
-          } else if (action.type === 'add_role' && action.roleId) {
-            await message.member?.roles.add(action.roleId).catch(() => null);
-          } else if (action.type === 'remove_role' && action.roleId) {
-            await message.member?.roles.remove(action.roleId).catch(() => null);
+            await message.channel.send({ embeds: [embed] }).catch(() => null);
+          } else if ((action.type === 'add_role' || action.type === 'add_roles') && (action.roleId || action.roleIds)) {
+            const roleIds = action.roleIds || [action.roleId];
+            for (const rId of roleIds) {
+              if (rId) await member?.roles.add(rId).catch(() => null);
+            }
+          } else if (action.type === 'add_temp_role' && action.roleId && action.durationMs) {
+            if (member && action.roleId) {
+              await member.roles.add(action.roleId).catch(() => null);
+              if (addTemporaryRole) {
+                addTemporaryRole(guildId, author.id, action.roleId, Date.now() + Number(action.durationMs));
+              }
+            }
+          } else if ((action.type === 'remove_role' || action.type === 'remove_roles') && (action.roleId || action.roleIds)) {
+            const roleIds = action.roleIds || [action.roleId];
+            for (const rId of roleIds) {
+              if (rId) await member?.roles.remove(rId).catch(() => null);
+            }
+          } else if ((action.type === 'give_item' || action.type === 'shop_item') && action.itemName) {
+            const qty = Number(action.quantity) || 1;
+            const existing = db.prepare('SELECT quantity FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?')
+              .get(guildId, author.id, action.itemName);
+            if (existing) {
+              db.prepare('UPDATE inventory SET quantity = quantity + ? WHERE guild_id = ? AND user_id = ? AND item_name = ?')
+                .run(qty, guildId, author.id, action.itemName);
+            } else {
+              db.prepare('INSERT INTO inventory (guild_id, user_id, item_name, quantity) VALUES (?, ?, ?, ?)')
+                .run(guildId, author.id, action.itemName, qty);
+            }
+          } else if (action.type === 'add_money' && action.amount) {
+            const amt = Number(action.amount) || 0;
+            if (amt !== 0 && getEconomy && updateEconomy) {
+              const eco = getEconomy(guildId, author.id);
+              updateEconomy(guildId, author.id, { bank: (eco?.bank || 0) + amt });
+            }
           }
-        }
-
-        if (cmdSettings.delete_trigger) {
-          await message.delete().catch(() => null);
         }
       }
     }

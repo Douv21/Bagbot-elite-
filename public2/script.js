@@ -6886,6 +6886,158 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================================
 // 🤖 COMMANDES PERSONNALISÉES (DASHBOARD 2)
 // ============================================================
+let ccCurrentActions = [];
+
+function initCcActionsBuilder() {
+  const select = document.getElementById('cc-add-action-select');
+  if (!select) return;
+
+  select.addEventListener('change', (e) => {
+    const actType = e.target.value;
+    if (!actType) return;
+    addCcActionCard(actType);
+    select.value = '';
+  });
+}
+
+function addCcActionCard(type, initialData = {}) {
+  const id = 'act_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+  const cardData = { id, type, ...initialData };
+  ccCurrentActions.push(cardData);
+  renderCcActionsList();
+}
+
+function removeCcActionCard(id) {
+  ccCurrentActions = ccCurrentActions.filter(a => a.id !== id);
+  renderCcActionsList();
+}
+
+function renderCcActionsList() {
+  const container = document.getElementById('cc-actions-builder-container');
+  if (!container) return;
+
+  if (!ccCurrentActions.length) {
+    container.innerHTML = `<div style="text-align: center; color: #72767d; border: 2px dashed #40444b; padding: 20px; border-radius: 8px; font-size: 0.85rem;">Aucune action configurée. Utilisez le menu <strong>"+ Ajouter une action"</strong> ci-dessus.</div>`;
+    return;
+  }
+
+  const rolesList = (typeof currentGuildRoles !== 'undefined' && Array.isArray(currentGuildRoles)) ? currentGuildRoles : (window.guildRoles || []);
+
+  container.innerHTML = ccCurrentActions.map((act, index) => {
+    let title = '';
+    let icon = '';
+    let fields = '';
+
+    if (act.type === 'reply') {
+      title = 'Envoyer un message (Texte / Embed)';
+      icon = 'fa-comment-dots';
+      fields = `
+        <div style="margin-bottom: 8px;">
+          <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">MESSAGE TEXTE</label>
+          <textarea class="inner-input cc-act-field" data-id="${act.id}" data-key="text" rows="2" placeholder="Texte de réponse (ex: Merci {user} !)" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; border-radius:6px; padding:8px;">${act.text || ''}</textarea>
+        </div>
+        <details style="margin-top:6px; font-size:0.8rem; color:#00b894;">
+          <summary style="cursor:pointer; font-weight:700;">🎨 Ajouter un Embed (Optionnel)</summary>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
+            <input type="text" class="inner-input cc-act-field" data-id="${act.id}" data-key="title" placeholder="Titre d'embed" value="${act.title || ''}" style="background:#202225; border:1px solid #40444b; color:#fff; padding:6px; font-size:0.85rem;">
+            <input type="color" class="inner-input cc-act-field" data-id="${act.id}" data-key="color" value="${act.color || '#5865F2'}" style="height:35px; width:100%; border:none; border-radius:4px; cursor:pointer;">
+          </div>
+          <textarea class="inner-input cc-act-field" data-id="${act.id}" data-key="description" rows="2" placeholder="Description de l'embed" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; margin-top:8px; padding:6px; font-size:0.85rem;">${act.description || ''}</textarea>
+          <input type="text" class="inner-input cc-act-field" data-id="${act.id}" data-key="imageUrl" placeholder="URL Image de l'embed (ex: https://...)" value="${act.imageUrl || ''}" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; margin-top:8px; padding:6px; font-size:0.85rem;">
+        </details>`;
+    } else if (act.type === 'add_role') {
+      title = 'Ajouter des rôles';
+      icon = 'fa-user-plus';
+      fields = `
+        <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">SÉLECTIONNER LE RÔLE À AJOUTER</label>
+        <select class="inner-input cc-act-field" data-id="${act.id}" data-key="roleId" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
+          <option value="">-- Choisir un rôle --</option>
+          ${rolesList.map(r => `<option value="${r.id}" ${act.roleId === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
+        </select>`;
+    } else if (act.type === 'add_temp_role') {
+      title = 'Ajouter un rôle temporaire';
+      icon = 'fa-clock';
+      fields = `
+        <div style="display:grid; grid-template-columns:2fr 1fr; gap:10px;">
+          <div>
+            <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">RÔLE TEMPORAIRE</label>
+            <select class="inner-input cc-act-field" data-id="${act.id}" data-key="roleId" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
+              <option value="">-- Choisir un rôle --</option>
+              ${rolesList.map(r => `<option value="${r.id}" ${act.roleId === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">DURÉE</label>
+            <select class="inner-input cc-act-field" data-id="${act.id}" data-key="durationMs" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
+              <option value="3600000" ${act.durationMs == 3600000 ? 'selected' : ''}>1 Heure</option>
+              <option value="43200000" ${act.durationMs == 43200000 ? 'selected' : ''}>12 Heures</option>
+              <option value="86400000" ${act.durationMs == 86400000 ? 'selected' : ''}>24 Heures</option>
+              <option value="259200000" ${act.durationMs == 259200000 ? 'selected' : ''}>3 Jours</option>
+              <option value="604800000" ${act.durationMs == 604800000 ? 'selected' : ''}>7 Jours</option>
+            </select>
+          </div>
+        </div>`;
+    } else if (act.type === 'remove_role') {
+      title = 'Retirer des rôles';
+      icon = 'fa-user-minus';
+      fields = `
+        <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">RÔLE À RETIRER</label>
+        <select class="inner-input cc-act-field" data-id="${act.id}" data-key="roleId" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
+          <option value="">-- Choisir un rôle --</option>
+          ${rolesList.map(r => `<option value="${r.id}" ${act.roleId === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
+        </select>`;
+    } else if (act.type === 'give_item') {
+      title = 'Article de boutique (Offrir un objet)';
+      icon = 'fa-gift';
+      fields = `
+        <div style="display:grid; grid-template-columns:3fr 1fr; gap:10px;">
+          <div>
+            <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">NOM DE L'OBJET</label>
+            <input type="text" class="inner-input cc-act-field" data-id="${act.id}" data-key="itemName" placeholder="ex: 👑 Badge VIP, 🎁 Cadeau" value="${act.itemName || ''}" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
+          </div>
+          <div>
+            <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">QUANTITÉ</label>
+            <input type="number" class="inner-input cc-act-field" data-id="${act.id}" data-key="quantity" value="${act.quantity || 1}" min="1" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">
+          </div>
+        </div>`;
+    } else if (act.type === 'add_money') {
+      title = 'Ajouter de l\'argent / Karma';
+      icon = 'fa-coins';
+      fields = `
+        <label style="font-size:0.75rem; color:#b9bbbe; font-weight:700;">MONTANT D'ARGENT À AJOUTER AU SOLDE</label>
+        <input type="number" class="inner-input cc-act-field" data-id="${act.id}" data-key="amount" placeholder="ex: 500" value="${act.amount || 100}" style="width:100%; background:#202225; border:1px solid #40444b; color:#fff; padding:8px; border-radius:6px;">`;
+    } else if (act.type === 'delete_trigger') {
+      title = 'Supprimer le message déclencheuse';
+      icon = 'fa-trash';
+      fields = `<div style="font-size:0.85rem; color:#b9bbbe;">🗑️ Le message envoyé par l'utilisateur pour déclencher la commande sera automatiquement effacé par le bot.</div>`;
+    }
+
+    return `
+      <div class="card glass inner-card" style="background: rgba(32, 34, 37, 0.9); border: 1px solid rgba(255,255,255,0.08); padding: 12px; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div style="font-weight: 700; color: #fff; font-size: 0.9rem;"><i class="fa-solid ${icon}" style="color: #d66d4b; margin-right: 6px;"></i> ${index + 1}. ${title}</div>
+          <button type="button" class="btn btn-danger" style="padding: 3px 8px; font-size: 0.75rem;" onclick="removeCcActionCard('${act.id}')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div>${fields}</div>
+      </div>`;
+  }).join('');
+
+  container.querySelectorAll('.cc-act-field').forEach(input => {
+    input.addEventListener('change', (e) => {
+      const id = e.target.getAttribute('data-id');
+      const key = e.target.getAttribute('data-key');
+      const val = e.target.value;
+      const targetAct = ccCurrentActions.find(a => a.id === id);
+      if (targetAct) targetAct[key] = val;
+    });
+  });
+}
+window.removeCcActionCard = removeCcActionCard;
+
+document.addEventListener('DOMContentLoaded', () => {
+  initCcActionsBuilder();
+});
+
 function loadCustomCommands(guildId) {
   if (!guildId) return;
   fetch(`/api/bot/custom-commands/${guildId}`)
@@ -6901,6 +7053,7 @@ function loadCustomCommands(guildId) {
       if (deleteInput) deleteInput.checked = !!settings.delete_trigger;
 
       renderCustomCommands(commands, guildId);
+      renderCcActionsList();
     })
     .catch(console.error);
 }
@@ -6918,7 +7071,7 @@ function renderCustomCommands(commands, guildId) {
     let actions = [];
     try { actions = JSON.parse(cmd.actions_json || '[]'); } catch(e) {}
     const textAction = actions.find(a => a.type === 'text' || a.type === 'reply');
-    const preview = textAction ? (textAction.text || textAction.content || '').substring(0, 60) + ((textAction.text || textAction.content || '').length > 60 ? '…' : '') : '—';
+    const preview = textAction ? (textAction.text || textAction.content || '').substring(0, 60) + ((textAction.text || textAction.content || '').length > 60 ? '…' : '') : `[${actions.length} action(s)]`;
     return `<tr>
       <td><strong style="color:#5865F2;">/${cmd.command_name}</strong></td>
       <td style="color:#b9bbbe; font-size:0.85rem;">${cmd.description || '—'}</td>
@@ -6980,23 +7133,47 @@ document.addEventListener('submit', async (e) => {
 
     const commandName = document.getElementById('cc-name-input')?.value?.trim().replace(/^\//, '');
     const description = document.getElementById('cc-desc-input')?.value?.trim();
-    const textReply = document.getElementById('cc-text-reply')?.value?.trim();
 
     if (!commandName) return showToast('❌ Nom de commande requis.', true);
-    if (!textReply) return showToast('❌ Message de réponse requis.', true);
 
-    const actions = [{ type: 'reply', text: textReply }];
+    // Collect conditions
+    const conditions = [];
+    const refusalMsg = document.getElementById('cc-cond-refusal-msg')?.value?.trim();
+    if (document.getElementById('cc-cond-tag-check')?.checked) {
+      const tagVal = document.getElementById('cc-cond-tag-val')?.value?.trim();
+      if (tagVal) conditions.push({ type: 'has_server_tag', tag: tagVal, refusalMessage: refusalMsg });
+    }
+    if (document.getElementById('cc-cond-booster-check')?.checked) {
+      conditions.push({ type: 'is_booster', refusalMessage: refusalMsg });
+    }
+
+    // Collect actions
+    const finalActions = ccCurrentActions.map(a => {
+      const clean = { ...a };
+      delete clean.id;
+      return clean;
+    });
+
+    if (!finalActions.length) {
+      return showToast('❌ Veuillez ajouter au moins une action via "+ Ajouter une action".', true);
+    }
 
     try {
       const res = await fetch(`/api/bot/custom-commands/${guildId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command_name: commandName, description, actions_json: JSON.stringify(actions) })
+        body: JSON.stringify({
+          command_name: commandName,
+          description,
+          actions_json: JSON.stringify(finalActions),
+          conditions_json: JSON.stringify(conditions)
+        })
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        showToast('✅ Commande créée avec succès !');
+        showToast('✅ Commande enregistrée avec succès !');
         e.target.reset();
+        ccCurrentActions = [];
         loadCustomCommands(guildId);
       } else {
         showToast(`❌ ${data.error || 'Erreur création commande'}`, true);

@@ -503,9 +503,11 @@ function initDatabase() {
       command_name TEXT,
       description TEXT,
       actions_json TEXT,
+      conditions_json TEXT,
       PRIMARY KEY (guild_id, command_name)
     )
   `).run();
+  try { db.prepare('ALTER TABLE custom_commands ADD COLUMN conditions_json TEXT').run(); } catch(e) {}
 
   db.prepare(`
     CREATE TABLE IF NOT EXISTS custom_command_settings (
@@ -2586,14 +2588,15 @@ function getCustomCommands(guildId) {
   return db.prepare('SELECT * FROM custom_commands WHERE guild_id = ?').all(guildId);
 }
 
-function saveCustomCommand(guildId, commandName, description, actionsJson) {
+function saveCustomCommand(guildId, commandName, description, actionsJson, conditionsJson = '[]') {
   db.prepare(`
-    INSERT INTO custom_commands (guild_id, command_name, description, actions_json)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO custom_commands (guild_id, command_name, description, actions_json, conditions_json)
+    VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(guild_id, command_name) DO UPDATE SET
       description = excluded.description,
-      actions_json = excluded.actions_json
-  `).run(guildId, commandName.toLowerCase(), description, actionsJson);
+      actions_json = excluded.actions_json,
+      conditions_json = excluded.conditions_json
+  `).run(guildId, commandName.toLowerCase(), description, actionsJson, typeof conditionsJson === 'string' ? conditionsJson : JSON.stringify(conditionsJson));
 }
 
 function deleteCustomCommand(guildId, commandName) {

@@ -1195,10 +1195,12 @@ app.get('/api/bot/custom-commands/:guildId', (req, res) => {
 
 app.post('/api/bot/custom-commands/:guildId', (req, res) => {
   const { guildId } = req.params;
-  const { command_name, description, actions_json } = req.body || {};
+  const { command_name, description, actions_json, conditions_json } = req.body || {};
   if (!command_name) return res.status(400).json({ error: 'Nom de commande requis' });
   const { saveCustomCommand } = require('./database/db');
-  saveCustomCommand(guildId, command_name, description || '', typeof actions_json === 'string' ? actions_json : JSON.stringify(actions_json || []));
+  const actJson = typeof actions_json === 'string' ? actions_json : JSON.stringify(actions_json || []);
+  const condJson = typeof conditions_json === 'string' ? conditions_json : JSON.stringify(conditions_json || []);
+  saveCustomCommand(guildId, command_name, description || '', actJson, condJson);
   res.json({ success: true });
 });
 
