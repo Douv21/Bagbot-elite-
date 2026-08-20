@@ -2738,10 +2738,14 @@ client.on('messageCreate', async (message) => {
           const tagLower = cond.tag.toLowerCase();
           const displayNameLower = (member?.displayName || author.username).toLowerCase();
           const usernameLower = author.username.toLowerCase();
-          if (!displayNameLower.includes(tagLower) && !usernameLower.includes(tagLower)) {
+          const hasTag = displayNameLower.includes(tagLower) || usernameLower.includes(tagLower);
+          if (!hasTag) {
             passedConditions = false;
             refusalMessage = cond.refusalMessage || `❌ Vous devez inclure le tag **${cond.tag}** dans votre pseudo pour utiliser cette commande.`;
             break;
+          } else if (cond.autoRoleId && member) {
+            // Si le membre a le tag : attribution automatique du rôle configuré !
+            await member.roles.add(cond.autoRoleId).catch(() => null);
           }
         } else if (cond.type === 'is_booster') {
           if (!member?.premiumSince) {

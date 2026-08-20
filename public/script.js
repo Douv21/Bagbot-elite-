@@ -6292,6 +6292,12 @@ function loadCustomCommands(guildId) {
     currentGuildRolesList = Array.isArray(rolesData) ? rolesData : [];
     currentGuildShopItemsList = (shopData && Array.isArray(shopData.items)) ? shopData.items : [];
 
+    const tagRoleSelect = document.getElementById('cc-cond-tag-role-select');
+    if (tagRoleSelect) {
+      tagRoleSelect.innerHTML = `<option value="">-- Aucun rôle supplémentaire --</option>` +
+        currentGuildRolesList.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+    }
+
     const settings = cmdData.settings || {};
     const commands = cmdData.commands || [];
 
@@ -6389,7 +6395,8 @@ document.addEventListener('submit', async (e) => {
     const refusalMsg = document.getElementById('cc-cond-refusal-msg')?.value?.trim();
     if (document.getElementById('cc-cond-tag-check')?.checked) {
       const tagVal = document.getElementById('cc-cond-tag-val')?.value?.trim();
-      if (tagVal) conditions.push({ type: 'has_server_tag', tag: tagVal, refusalMessage: refusalMsg });
+      const tagRoleId = document.getElementById('cc-cond-tag-role-select')?.value;
+      if (tagVal) conditions.push({ type: 'has_server_tag', tag: tagVal, autoRoleId: tagRoleId || null, refusalMessage: refusalMsg });
     }
     if (document.getElementById('cc-cond-booster-check')?.checked) {
       conditions.push({ type: 'is_booster', refusalMessage: refusalMsg });
