@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=65.0.0">
+  <link rel="stylesheet" href="style.css?v=70.0.0">
   <script>
     window.onerror = function(message, source, lineno, colno, error) {
       fetch('/api/log-error', {
@@ -682,7 +682,7 @@
                      edited directly on the dashed-outline clickable preview
                      below — same preview-only pattern as Arrivées & Départs
                      and Envoyeur d'Embeds. -->
-                <div class="embed-control-strip" style="margin-top: 20px;">
+                <div class="embed-control-strip" style="margin-top: 20px; background: rgba(88, 101, 242, 0.08); border: 1px solid rgba(88, 101, 242, 0.25); border-radius: 8px; padding: 16px;">
                   <div class="form-group strip-grow">
                     <label for="autorole-embed-channel"><i class="fa-solid fa-hashtag"></i> Salon de destination :</label>
                     <select id="autorole-embed-channel" class="channel-select" required>
@@ -700,7 +700,7 @@
                       <label for="autorole-embed-existing-msg"><i class="fa-solid fa-key"></i> ID message existant :</label>
                       <input type="text" id="autorole-embed-existing-msg" placeholder="ID message existant (optionnel)">
                     </div>
-                    <button type="button" id="btn-fetch-autorole-existing-msg" class="btn" style="background: #3498db; color: #fff; height: 42px; border-radius: 6px; padding: 0 14px; font-size: 0.82rem; font-weight: 600; flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;" title="Récupérer toutes les données de ce message">
+                    <button type="button" id="btn-fetch-autorole-existing-msg" class="btn" style="background: #5865F2; color: #fff; height: 42px; border-radius: 6px; padding: 0 16px; font-size: 0.88rem; font-weight: 700; border: none; cursor: pointer; flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 3px 8px rgba(88,101,242,0.35);" title="Récupérer toutes les données de ce message">
                       <i class="fa-solid fa-cloud-arrow-down"></i> Récupérer
                     </button>
                   </div>
