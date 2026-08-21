@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=55.0.0">
+  <link rel="stylesheet" href="style.css?v=60.0.0">
   <script>
     window.onerror = function(message, source, lineno, colno, error) {
       fetch('/api/log-error', {
@@ -654,11 +654,14 @@
                           </div>
 
                           <!-- Footer Actions -->
-                          <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px;">
-                            <button type="button" id="btn-cancel-selector-modal" style="background: transparent; color: #b5bac1; border: none; padding: 8px 16px; font-weight: 600; font-size: 0.88rem; cursor: pointer;">
+                          <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px;">
+                            <button type="button" id="btn-cancel-selector-modal" style="background: transparent; color: #b5bac1; border: none; padding: 8px 14px; font-weight: 600; font-size: 0.88rem; cursor: pointer;">
                               Annuler
                             </button>
-                            <button type="submit" style="background: #d96b52; color: #ffffff; border: none; padding: 8px 22px; border-radius: 6px; font-weight: 700; font-size: 0.88rem; cursor: pointer; box-shadow: 0 3px 8px rgba(217,107,82,0.35);">
+                            <button type="button" id="btn-save-as-new-selector" style="background: #2b2d31; border: 1px solid #d96b52; color: #ffffff; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; cursor: pointer;" title="Ajouter comme nouveau sélecteur sans remplacer l'existant">
+                              + Nouveau sélecteur
+                            </button>
+                            <button type="submit" style="background: linear-gradient(135deg, #d96b52, #e06c53); color: #ffffff; border: none; padding: 8px 22px; border-radius: 6px; font-weight: 700; font-size: 0.88rem; cursor: pointer; box-shadow: 0 3px 8px rgba(217,107,82,0.35);">
                               Valider
                             </button>
                           </div>

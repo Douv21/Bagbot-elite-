@@ -3459,28 +3459,29 @@ document.addEventListener('DOMContentLoaded', () => {
     autoroleSelectorsList.forEach((sel, index) => {
       const card = document.createElement('div');
       card.className = 'selector-item-card';
-      card.style.cssText = 'display: flex; gap: 8px; align-items: center; margin-bottom: 8px; width: 100%;';
+      card.style.cssText = 'display: flex; gap: 8px; align-items: center; margin-bottom: 10px; width: 100%; border-left: 4px solid #d96b52; border-radius: 8px; background: #2b2d31; padding: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);';
 
       card.innerHTML = `
         <!-- Boîte de poignée de glisser (gauche) -->
-        <div style="background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; padding: 12px 14px; color: #8e9297; cursor: grab; display: flex; align-items: center; justify-content: center; height: 46px;">
+        <div style="background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; padding: 10px 12px; color: #8e9297; cursor: grab; display: flex; align-items: center; justify-content: center; height: 44px;">
           <i class="fa-solid fa-grip-vertical" style="font-size: 1rem;"></i>
         </div>
         
         <!-- Carte principale (milieu) -->
-        <div style="background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; padding: 8px 14px; flex: 1; display: flex; justify-content: space-between; align-items: center; height: 46px;">
-          <div style="background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; padding: 8px 14px; flex: 1; display: flex; justify-content: space-between; align-items: center; margin-right: 12px; height: 34px;">
-            <span style="font-weight: 600; font-size: 0.92rem; color: #ffffff;">${sel.placeholder || 'Sélecteur ' + (index + 1)}</span>
-            <i class="fa-solid fa-chevron-down" style="color: #8e9297; font-size: 0.8rem;"></i>
+        <div style="background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; padding: 6px 12px; flex: 1; display: flex; justify-content: space-between; align-items: center; height: 44px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="background: rgba(217,107,82,0.2); color: #d96b52; border: 1px solid rgba(217,107,82,0.4); border-radius: 4px; padding: 2px 8px; font-size: 0.75rem; font-weight: 700;">#${index + 1}</span>
+            <span style="font-weight: 700; font-size: 0.92rem; color: #ffffff;">${sel.placeholder || 'Sélecteur ' + (index + 1)}</span>
+            <span style="color: #8e9297; font-size: 0.78rem;">(${sel.options ? sel.options.length : 0} options)</span>
           </div>
 
-          <button type="button" class="btn btn-edit-selector" style="background: transparent; border: 1px solid #4e5058; color: #ffffff; padding: 6px 16px; border-radius: 4px; font-weight: 600; font-size: 0.88rem; cursor: pointer; height: 34px; white-space: nowrap;">
-            Modifier
+          <button type="button" class="btn btn-edit-selector" style="background: #2b2d31; border: 1px solid #d96b52; color: #ffffff; padding: 5px 14px; border-radius: 6px; font-weight: 700; font-size: 0.82rem; cursor: pointer; white-space: nowrap; transition: background 0.2s;">
+            ✏️ Modifier
           </button>
         </div>
 
         <!-- Boîte de suppression (droite) -->
-        <div class="btn-delete-selector" style="background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; padding: 12px 14px; color: #8e9297; cursor: pointer; display: flex; align-items: center; justify-content: center; height: 46px;" title="Supprimer ce sélecteur">
+        <div class="btn-delete-selector" style="background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; padding: 10px 14px; color: #ed4245; cursor: pointer; display: flex; align-items: center; justify-content: center; height: 44px;" title="Supprimer ce sélecteur">
           <i class="fa-regular fa-trash-can" style="font-size: 1rem;"></i>
         </div>
       `;
@@ -3783,6 +3784,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnClose) {
       e.preventDefault();
       closeSelectorModal();
+      return;
+    }
+
+    const btnSaveNew = e.target.closest('#btn-save-as-new-selector');
+    if (btnSaveNew) {
+      e.preventDefault();
+      const indexInput = document.getElementById('modal-selector-index');
+      if (indexInput) indexInput.value = "-1";
+      const formSelectorEditor = document.getElementById('form-selector-editor');
+      if (formSelectorEditor) {
+        formSelectorEditor.requestSubmit ? formSelectorEditor.requestSubmit() : formSelectorEditor.dispatchEvent(new Event('submit', { cancelable: true }));
+      }
       return;
     }
   });
