@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=60.0.0">
+  <link rel="stylesheet" href="style.css?v=65.0.0">
   <script>
     window.onerror = function(message, source, lineno, colno, error) {
       fetch('/api/log-error', {
@@ -530,9 +530,7 @@
                         <label for="autorole-embed-type"><i class="fa-solid fa-list-check"></i> Type de Rôle Réaction :</label>
                         <select id="autorole-embed-type">
                           <option value="buttons">Boutons (Boutons cliquables)</option>
-                          <option value="select">Sélecteur (Menu déroulant - Choix unique)</option>
-                          <option value="multi_select">Sélecteur Multi-Choix (Menu déroulant - Choix multiples)</option>
-                          <option value="reactions">Réactions (Émojis sous le message)</option>
+                          <option value="select">Sélecteur (Menu déroulant)</option>
                         </select>
                       </div>
                       <div class="form-group" style="flex: 1;">
@@ -618,8 +616,7 @@
                               TYPE DE SÉLECTEUR
                             </label>
                             <select id="modal-selector-type" style="width: 100%; background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; color: #ffffff; font-size: 0.92rem; padding: 10px 14px; font-family: inherit; outline: none; cursor: pointer;">
-                              <option value="select">Ajout et retrait de rôles (Menu déroulant - Choix unique)</option>
-                              <option value="multi_select">Menu déroulant (Choix multiples)</option>
+                              <option value="select">Menu déroulant (Sélecteur)</option>
                               <option value="buttons">Rangée de boutons cliquables</option>
                             </select>
                           </div>

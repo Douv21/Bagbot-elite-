@@ -3814,7 +3814,28 @@ document.addEventListener('DOMContentLoaded', () => {
     renderButtonsCreatorPreview();
   });
 
+  function updateAutoroleTypeVisibility() {
+    const typeEl = document.getElementById('autorole-embed-type');
+    const type = typeEl ? typeEl.value : 'select';
+
+    const buttonsCreator = document.getElementById('autorole-buttons-creator');
+    const selectorsContainer = document.getElementById('selectors-list-container');
+    const btnOpenAddSelector = document.getElementById('btn-open-add-selector-modal');
+
+    if (type === 'buttons') {
+      if (buttonsCreator) buttonsCreator.style.display = 'block';
+      if (selectorsContainer) selectorsContainer.style.display = 'none';
+      if (btnOpenAddSelector) btnOpenAddSelector.style.display = 'none';
+    } else {
+      if (buttonsCreator) buttonsCreator.style.display = 'none';
+      if (selectorsContainer) selectorsContainer.style.display = 'flex';
+      if (btnOpenAddSelector) btnOpenAddSelector.style.display = 'inline-flex';
+    }
+  }
+
   function renderButtonsCreatorPreview() {
+    updateAutoroleTypeVisibility();
+
     const container = document.getElementById('autorole-embed-buttons-preview');
     const noButtonsText = document.getElementById('no-buttons-text');
     
@@ -3846,18 +3867,42 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Mettre à jour l'aperçu Discord réel pour TOUS les sélecteurs
+    // Mettre à jour l'aperçu Discord réel selon le Type sélectionné (Boutons ou Sélecteur)
     const previewButtonsContainer = document.getElementById('autorole-preview-buttons');
     if (previewButtonsContainer) {
       previewButtonsContainer.innerHTML = '';
       previewButtonsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 10px;';
 
-      if (autoroleSelectorsList && autoroleSelectorsList.length > 0) {
-        autoroleSelectorsList.forEach(sel => {
-          if (sel.type === 'buttons') {
+      const typeEl = document.getElementById('autorole-embed-type');
+      const selectedType = typeEl ? typeEl.value : 'select';
+
+      if (selectedType === 'buttons') {
+        // TYPE BOUTONS : AFFICHER UNIQUEMENT LES BOUTONS
+        if (autoroleButtonsList && autoroleButtonsList.length > 0) {
+          const btnRow = document.createElement('div');
+          btnRow.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; width: 100%;';
+
+          autoroleButtonsList.forEach(btn => {
+            const pBtn = document.createElement('button');
+            pBtn.type = 'button';
+            pBtn.style.cssText = 'padding: 8px 16px; font-size: 0.88rem; border-radius: 4px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.2);';
+            
+            let bgColor = '#5865F2';
+            let textColor = '#ffffff';
+            if (btn.style === 'SECONDARY') { bgColor = '#4f545c'; }
+            else if (btn.style === 'SUCCESS') { bgColor = '#43b581'; }
+            else if (btn.style === 'DANGER') { bgColor = '#f04747'; }
+            
+            pBtn.style.background = bgColor;
+            pBtn.style.color = textColor;
+            pBtn.innerHTML = `<span>${btn.emoji || ''}</span> <span>${btn.label || (typeof getRoleName === 'function' ? getRoleName(btn.role_id) : btn.role_id)}</span>`;
+            btnRow.appendChild(pBtn);
+          });
+          previewButtonsContainer.appendChild(btnRow);
+        } else if (autoroleSelectorsList && autoroleSelectorsList.length > 0) {
+          autoroleSelectorsList.forEach(sel => {
             const btnRow = document.createElement('div');
             btnRow.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; width: 100%;';
-
             (sel.options || []).forEach(btn => {
               const pBtn = document.createElement('button');
               pBtn.type = 'button';
@@ -3866,7 +3911,12 @@ document.addEventListener('DOMContentLoaded', () => {
               btnRow.appendChild(pBtn);
             });
             previewButtonsContainer.appendChild(btnRow);
-          } else {
+          });
+        }
+      } else {
+        // TYPE SÉLECTEUR : AFFICHER UNIQUEMENT LE MENU DÉROULANT
+        if (autoroleSelectorsList && autoroleSelectorsList.length > 0) {
+          autoroleSelectorsList.forEach(sel => {
             const selectWrap = document.createElement('div');
             selectWrap.style.cssText = 'width: 100%; margin-top: 8px;';
 
@@ -3888,34 +3938,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             selectWrap.appendChild(selectEl);
             previewButtonsContainer.appendChild(selectWrap);
-          }
-        });
-      } else if (autoroleButtonsList && autoroleButtonsList.length > 0) {
-        const typeEl = document.getElementById('autorole-embed-type');
-        const type = typeEl ? typeEl.value : 'buttons';
-
-        if (type === 'buttons') {
-          const btnRow = document.createElement('div');
-          btnRow.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; width: 100%;';
-
-          autoroleButtonsList.forEach(btn => {
-            const pBtn = document.createElement('button');
-            pBtn.type = 'button';
-            pBtn.style.cssText = 'padding: 8px 16px; font-size: 0.88rem; border-radius: 4px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.2);';
-            
-            let bgColor = '#5865F2';
-            let textColor = '#ffffff';
-            if (btn.style === 'SECONDARY') { bgColor = '#4f545c'; }
-            else if (btn.style === 'SUCCESS') { bgColor = '#43b581'; }
-            else if (btn.style === 'DANGER') { bgColor = '#f04747'; }
-            
-            pBtn.style.background = bgColor;
-            pBtn.style.color = textColor;
-            pBtn.innerHTML = `<span>${btn.emoji || ''}</span> <span>${btn.label || (typeof getRoleName === 'function' ? getRoleName(btn.role_id) : btn.role_id)}</span>`;
-            btnRow.appendChild(pBtn);
           });
-          previewButtonsContainer.appendChild(btnRow);
-        } else if (type === 'select' || type === 'multi_select') {
+        } else if (autoroleButtonsList && autoroleButtonsList.length > 0) {
           const selectWrap = document.createElement('div');
           selectWrap.style.cssText = 'width: 100%; margin-top: 10px;';
 
@@ -3925,7 +3949,7 @@ document.addEventListener('DOMContentLoaded', () => {
           
           const defaultOpt = document.createElement('option');
           defaultOpt.value = '';
-          defaultOpt.textContent = type === 'multi_select' ? '▼ Sélectionnez un ou plusieurs rôles (Multi-Sélecteur)...' : '▼ Sélectionnez un rôle dans le menu...';
+          defaultOpt.textContent = '▼ Sélectionnez un rôle dans le menu...';
           selectEl.appendChild(defaultOpt);
 
           autoroleButtonsList.forEach(btn => {
@@ -3938,8 +3962,6 @@ document.addEventListener('DOMContentLoaded', () => {
           selectWrap.appendChild(selectEl);
           previewButtonsContainer.appendChild(selectWrap);
         }
-      } else {
-        previewButtonsContainer.innerHTML = '<p style="color: #8e9297; font-style: italic; font-size: 0.85rem;">Aucun rôle / sélecteur configuré pour cet embed.</p>';
       }
     }
   }
