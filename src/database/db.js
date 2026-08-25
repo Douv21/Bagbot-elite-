@@ -234,6 +234,20 @@ function initDatabase() {
     )
   `).run();
 
+  // 9c. Configuration du Casino & Mini-jeux
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS casino_config (
+      guild_id TEXT,
+      game_name TEXT,
+      win_rate INTEGER DEFAULT 45,
+      min_bet INTEGER DEFAULT 10,
+      max_bet INTEGER DEFAULT 5000,
+      payout_multiplier REAL DEFAULT 2.0,
+      is_enabled INTEGER DEFAULT 1,
+      PRIMARY KEY (guild_id, game_name)
+    )
+  `).run();
+
   // Migrations pour ajouter les colonnes supplémentaires à la table shop
   try {
     db.prepare('ALTER TABLE shop ADD COLUMN role_duration_ms INTEGER DEFAULT 0').run();
@@ -1363,7 +1377,9 @@ const ensureDefaultShopItems = (guildId) => {
     // Réconfort & Tendresse
     { item_name: '🧸 Gros Nounours Réconfortant', price: 120, description: 'Un câlin géant et moelleux pour apporter douceur et chaleur réconfortante.', reward_xp: 60, reward_karma: 10 },
     { item_name: '☕ Chocolat Chaud & Guimauves', price: 80, description: 'Une tasse gourmande parfumée à la cannelle, bien enveloppante.', reward_xp: 40, reward_karma: 5 },
-    { item_name: '💆 Massage Attentionné', price: 280, description: 'Un massage délicat des épaules et de la nuque pour dénouer le stress.', reward_xp: 100, reward_karma: 20 }
+    { item_name: '💆 Massage Attentionné', price: 280, description: 'Un massage délicat des épaules et de la nuque pour dénouer le stress.', reward_xp: 100, reward_karma: 20 },
+    // Mini-Jeux & Compétition
+    { item_name: '🐓 Coq de Combat', price: 500, description: 'Un coq de combat robuste indispensable pour participer aux arènes de combat de coqs !', reward_xp: 150, reward_karma: 25 }
   ];
 
   const stmt = db.prepare(`
@@ -2061,12 +2077,71 @@ function getSondageResponses(sondageId) {
   return db.prepare('SELECT * FROM sondage_responses WHERE sondage_id = ? ORDER BY created_at DESC').all(sondageId);
 }
 
-function hasUserVotedSondage(sondageId, userId) {
-  const row = db.prepare('SELECT 1 FROM sondage_responses WHERE sondage_id = ? AND user_id = ?').get(sondageId, userId);
-  return !!row;
-}
+const getCasinoConfig = (guildId, gameName) => {
+  let row = db.prepare('SELECT * FROM casino_config WHERE guild_id = ? AND game_name = ?').get(guildId, gameName);
+  if (!row) {
+    let defWinRate = 45;
+    let defMinBet = 10;
+    let defMaxBet = 5000;
+    let defMultiplier = 2.0;
+
+    if (gameName === 'blackjack') { defWinRate = 45; defMultiplier = 2.0; }
+    else if (gameName === 'slots') { defWinRate = 35; defMultiplier = 3.0; }
+    else if (gameName === '421') { defWinRate = 40; defMultiplier = 2.5; }
+    else if (gameName === 'roulette') { defWinRate = 48; defMultiplier = 2.0; }
+    else if (gameName === 'poker') { defWinRate = 42; defMultiplier = 2.5; }
+    else if (gameName === 'coinflip') { defWinRate = 50; defMultiplier = 2.0; }
+    else if (gameName === 'coq') { defWinRate = 50; defMultiplier = 2.0; }
+
+    db.prepare(`
+      INSERT OR IGNORE INTO casino_config (guild_id, game_name, win_rate, min_bet, max_bet, payout_multiplier, is_enabled)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+    `).run(guildId, gameName, defWinRate, defMinBet, defMaxBet, defMultiplier);
+
+    row = {
+      guild_id: guildId,
+      game_name: gameName,
+      win_rate: defWinRate,
+      min_bet: defMinBet,
+      max_bet: defMaxBet,
+      payout_multiplier: defMultiplier,
+      is_enabled: 1
+    };
+  }
+  return row;
+};
+
+const updateCasinoConfig = (guildId, gameName, data) => {
+  const { win_rate, min_bet, max_bet, payout_multiplier, is_enabled } = data || {};
+  return db.prepare(`
+    INSERT INTO casino_config (guild_id, game_name, win_rate, min_bet, max_bet, payout_multiplier, is_enabled)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(guild_id, game_name) DO UPDATE SET
+      win_rate = EXCLUDED.win_rate,
+      min_bet = EXCLUDED.min_bet,
+      max_bet = EXCLUDED.max_bet,
+      payout_multiplier = EXCLUDED.payout_multiplier,
+      is_enabled = EXCLUDED.is_enabled
+  `).run(
+    guildId,
+    gameName,
+    win_rate !== undefined ? parseInt(win_rate) : 45,
+    min_bet !== undefined ? parseInt(min_bet) : 10,
+    max_bet !== undefined ? parseInt(max_bet) : 5000,
+    payout_multiplier !== undefined ? parseFloat(payout_multiplier) : 2.0,
+    is_enabled !== undefined ? (is_enabled ? 1 : 0) : 1
+  );
+};
+
+const getAllCasinoConfigs = (guildId) => {
+  const games = ['blackjack', 'slots', '421', 'roulette', 'poker', 'coinflip', 'coq'];
+  return games.map(name => getCasinoConfig(guildId, name));
+};
 
 module.exports = {
+  getCasinoConfig,
+  updateCasinoConfig,
+  getAllCasinoConfigs,
   createSondage,
   getSondage,
   saveSondageResponse,

@@ -153,6 +153,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (tabId === 'tab-gifs') {
         fetchAndRenderGifs();
+      } else if (tabId === 'tab-casino') {
+        loadCasinoConfig();
       } else if (tabId === 'tab-map') {
         const guildId = guildSelect ? guildSelect.value : '';
         const mapIframe = document.getElementById('map-iframe');
@@ -8863,5 +8865,117 @@ document.addEventListener('submit', async (e) => {
     }
   }
 });
+
+const casinoGamesMeta = [
+  { id: 'blackjack', name: '🃏 Blackjack (21)', desc: 'Jeu de cartes interactif contre le croupier' },
+  { id: 'slots', name: '🎰 Machine à Sous', desc: 'Rouleaux animés et combinaisons de symboles' },
+  { id: '421', name: '🎲 4-2-1 (Dés)', desc: 'Lancer de 3 dés et combinaisons mythiques' },
+  { id: 'roulette', name: '🎡 Roulette', desc: 'Pari sur Rouge/Noir, Pair/Impair ou Numéro (0-36)' },
+  { id: 'poker', name: '🎴 Vidéo Poker', desc: 'Tirage de 5 cartes et combinaisons de poker' },
+  { id: 'coinflip', name: '🪙 Pile ou Face', desc: 'Pari rapide 50/50 Quitte ou Double' },
+  { id: 'coq', name: '🐓 Combat de Coqs', desc: 'Duel d\'arène (nécessite Coq de Combat)' }
+];
+
+async function loadCasinoConfig() {
+  const container = document.getElementById('casino-games-container');
+  if (!container) return;
+  const currentGuildId = document.getElementById('guild-select')?.value || (typeof selectedGuildId !== 'undefined' ? selectedGuildId : '');
+  if (!currentGuildId) return;
+
+  try {
+    const res = await fetch(`/api/config/casino?guildId=${currentGuildId}`);
+    if (!res.ok) return;
+    const configs = await res.json();
+
+    container.innerHTML = '';
+
+    casinoGamesMeta.forEach(game => {
+      const cfg = configs.find(c => c.game_name === game.id) || {
+        win_rate: 45, min_bet: 10, max_bet: 5000, payout_multiplier: 2.0, is_enabled: 1
+      };
+
+      const card = document.createElement('div');
+      card.className = 'card glass';
+      card.style.cssText = 'padding: 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 15px;';
+      card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <div>
+            <h3 style="margin: 0; color: #fff; font-size: 1.05rem; font-weight: 700;">${game.name}</h3>
+            <span style="color: #949ba4; font-size: 0.82rem;">${game.desc}</span>
+          </div>
+          <label class="switch-label" style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 0.82rem; color: #fff;">Activer</span>
+            <input type="checkbox" id="casino-enable-${game.id}" ${cfg.is_enabled ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="form-row" style="display: flex; gap: 15px; flex-wrap: wrap;">
+          <div class="form-group" style="flex: 1; min-width: 130px;">
+            <label style="font-size: 0.8rem; font-weight: 600; color: #b9bbbe;">Taux de Victoire (%) :</label>
+            <input type="number" id="casino-winrate-${game.id}" value="${cfg.win_rate}" min="1" max="100" class="custom-input">
+          </div>
+          <div class="form-group" style="flex: 1; min-width: 130px;">
+            <label style="font-size: 0.8rem; font-weight: 600; color: #b9bbbe;">Mise Minimale :</label>
+            <input type="number" id="casino-minbet-${game.id}" value="${cfg.min_bet}" min="1" class="custom-input">
+          </div>
+          <div class="form-group" style="flex: 1; min-width: 130px;">
+            <label style="font-size: 0.8rem; font-weight: 600; color: #b9bbbe;">Mise Maximale :</label>
+            <input type="number" id="casino-maxbet-${game.id}" value="${cfg.max_bet}" min="1" class="custom-input">
+          </div>
+          <div class="form-group" style="flex: 1; min-width: 130px;">
+            <label style="font-size: 0.8rem; font-weight: 600; color: #b9bbbe;">Multiplicateur (x) :</label>
+            <input type="number" id="casino-mult-${game.id}" value="${cfg.payout_multiplier}" min="1" step="0.1" class="custom-input">
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+          <button type="button" class="btn btn-save btn-save-casino-game" data-game="${game.id}" style="background: #2ecc71; color: #fff; padding: 6px 16px; font-size: 0.85rem; font-weight: 700; border-radius: 6px; border: none; cursor: pointer;">
+            💾 Sauvegarder ${game.name.split(' ')[0]}
+          </button>
+        </div>
+      `;
+
+      card.querySelector('.btn-save-casino-game').addEventListener('click', () => saveCasinoGameConfig(game.id));
+      container.appendChild(card);
+    });
+  } catch (err) {
+    console.error('Erreur loadCasinoConfig:', err);
+  }
+}
+
+async function saveCasinoGameConfig(gameId) {
+  const currentGuildId = document.getElementById('guild-select')?.value || (typeof selectedGuildId !== 'undefined' ? selectedGuildId : '');
+  if (!currentGuildId) return showToast('❌ Sélectionnez un serveur.', true);
+
+  const isEnabled = document.getElementById(`casino-enable-${gameId}`)?.checked ? 1 : 0;
+  const winRate = document.getElementById(`casino-winrate-${gameId}`)?.value;
+  const minBet = document.getElementById(`casino-minbet-${gameId}`)?.value;
+  const maxBet = document.getElementById(`casino-maxbet-${gameId}`)?.value;
+  const mult = document.getElementById(`casino-mult-${gameId}`)?.value;
+
+  try {
+    const res = await fetch(`/api/config/casino?guildId=${currentGuildId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        game_name: gameId,
+        win_rate: winRate,
+        min_bet: minBet,
+        max_bet: maxBet,
+        payout_multiplier: mult,
+        is_enabled: isEnabled
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('✅ Configuration sauvegardée avec succès !');
+    } else {
+      showToast(`❌ ${data.error || 'Erreur lors de la sauvegarde'}`, true);
+    }
+  } catch (e) {
+    showToast('❌ Erreur de connexion.', true);
+  }
+}
 
 

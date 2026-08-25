@@ -185,6 +185,7 @@
             <div class="subcategory-title">Jeux & Défis</div>
             <button class="tab-btn" data-tab="tab-game"><i class="fa-solid fa-gamepad"></i> Jeu Mot Caché</button>
             <button class="tab-btn" data-tab="tab-action-verite"><i class="fa-solid fa-dice"></i> Action ou Vérité</button>
+            <button class="tab-btn" data-tab="tab-casino"><i class="fa-solid fa-dice-five" style="color: #f1c40f;"></i> Casino & Mini-Jeux <span class="nav-badge badge-gold">NEW</span></button>
           </div>
           <div class="sidebar-subcategory">
             <div class="subcategory-title">Interactions Sociales</div>
@@ -2638,6 +2639,20 @@
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+
+          <!-- Tab: Casino & Mini-Jeux -->
+          <div id="tab-casino" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-dice-five" style="color: #f1c40f;"></i> Configuration Casino & Mini-Jeux</h2>
+            <div class="card glass mb-4">
+              <p style="color: #b9bbbe; font-size: 0.9rem;">
+                Ajustez le taux de réussite (%), les mises minimale/maximale et les multiplicateurs de gain pour chaque mini-jeu du serveur (`/casino` & `/combat-coq`).
+              </p>
+            </div>
+
+            <div id="casino-games-container" style="display: flex; flex-direction: column; gap: 20px;">
+              <!-- Cartes des jeux générées en JS -->
             </div>
           </div>
 

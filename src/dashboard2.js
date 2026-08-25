@@ -1558,6 +1558,43 @@ app.post('/api/config/action-rewards/delete', (req, res) => {
   }
 });
 
+// --- CASINO CONFIG ENDPOINTS ---
+app.get('/api/config/casino', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { getAllCasinoConfigs } = require('./database/db');
+    const configs = getAllCasinoConfigs(guildId);
+    res.json(configs);
+  } catch (error) {
+    console.error('Erreur GET /api/config/casino:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/casino', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { game_name, win_rate, min_bet, max_bet, payout_multiplier, is_enabled } = req.body || {};
+    if (!game_name) return res.status(400).json({ error: 'Nom du jeu requis' });
+
+    const { updateCasinoConfig } = require('./database/db');
+    updateCasinoConfig(guildId, game_name, {
+      win_rate: parseInt(win_rate),
+      min_bet: parseInt(min_bet),
+      max_bet: parseInt(max_bet),
+      payout_multiplier: parseFloat(payout_multiplier),
+      is_enabled: is_enabled ? 1 : 0
+    });
+
+    res.json({ success: true, message: 'Configuration Casino sauvegardée !' });
+  } catch (error) {
+    console.error('Erreur POST /api/config/casino:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- ROLE BOOSTERS ENDPOINTS ---
 app.get('/api/config/role-boosters', (req, res) => {
   try {
