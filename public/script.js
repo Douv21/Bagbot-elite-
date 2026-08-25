@@ -3697,7 +3697,58 @@ document.addEventListener('DOMContentLoaded', () => {
     container.appendChild(row);
   }
 
-  // Event Delegation global pour l'ouverture / fermeture de la modale de sélecteur
+  function saveSelectorFromModal(isNew = false) {
+    const indexInput = document.getElementById('modal-selector-index');
+    let index = isNew ? -1 : parseInt(indexInput ? indexInput.value : "-1");
+
+    const placeholder = document.getElementById('modal-selector-placeholder')?.value?.trim() || '';
+    const type = document.getElementById('modal-selector-type')?.value || 'select';
+    const mode = document.getElementById('modal-selector-mode')?.value || 'normal';
+
+    const optionRows = document.querySelectorAll('#modal-selector-options-list .modal-option-row');
+    const collectedOptions = [];
+
+    optionRows.forEach(r => {
+      const emoji = r.querySelector('.opt-emoji')?.value?.trim() || '';
+      const role_id = r.querySelector('.opt-role')?.value || '';
+      const label = r.querySelector('.opt-label')?.value?.trim() || '';
+
+      if (role_id) {
+        collectedOptions.push({
+          role_id,
+          label: label || (typeof getRoleName === 'function' ? getRoleName(role_id) : 'Rôle'),
+          emoji,
+          style: 'PRIMARY'
+        });
+      }
+    });
+
+    if (collectedOptions.length === 0) {
+      alert('Veuillez ajouter au moins une option avec un rôle valide.');
+      return;
+    }
+
+    const selectorObj = {
+      placeholder: placeholder || 'Sélecteur',
+      type,
+      mode,
+      options: collectedOptions
+    };
+
+    if (index >= 0 && index < autoroleSelectorsList.length) {
+      autoroleSelectorsList[index] = selectorObj;
+    } else {
+      autoroleSelectorsList.push(selectorObj);
+    }
+
+    if (indexInput) indexInput.value = "-1";
+
+    closeSelectorModal();
+    renderSelectorsListUI();
+    renderButtonsCreatorPreview();
+  }
+
+  // Event Delegation global pour l'ouverture / fermeture / sauvegarde du sélecteur
   document.addEventListener('click', (e) => {
     const btnAdd = e.target.closest('#btn-open-add-selector-modal');
     if (btnAdd) {
@@ -3711,16 +3762,16 @@ document.addEventListener('DOMContentLoaded', () => {
       closeSelectorModal();
       return;
     }
-
     const btnSaveNew = e.target.closest('#btn-save-as-new-selector');
     if (btnSaveNew) {
       e.preventDefault();
-      const indexInput = document.getElementById('modal-selector-index');
-      if (indexInput) indexInput.value = "-1";
-      const formSelectorEditor = document.getElementById('form-selector-editor');
-      if (formSelectorEditor) {
-        formSelectorEditor.requestSubmit ? formSelectorEditor.requestSubmit() : formSelectorEditor.dispatchEvent(new Event('submit', { cancelable: true }));
-      }
+      saveSelectorFromModal(true);
+      return;
+    }
+    const btnSave = e.target.closest('#btn-save-selector-modal');
+    if (btnSave) {
+      e.preventDefault();
+      saveSelectorFromModal(false);
       return;
     }
   });
@@ -3728,60 +3779,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAddModalOpt = document.getElementById('btn-add-modal-option');
   if (btnAddModalOpt) {
     btnAddModalOpt.addEventListener('click', () => addModalOptionRow());
-  }
-
-  const formSelectorEditor = document.getElementById('form-selector-editor');
-  if (formSelectorEditor) {
-    formSelectorEditor.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const index = parseInt(document.getElementById('modal-selector-index').value);
-      const placeholder = document.getElementById('modal-selector-placeholder').value.trim();
-      const type = document.getElementById('modal-selector-type').value;
-      const mode = document.getElementById('modal-selector-mode').value;
-
-      const optionRows = document.querySelectorAll('#modal-selector-options-list .modal-option-row');
-      const collectedOptions = [];
-
-      optionRows.forEach(r => {
-        const emoji = r.querySelector('.opt-emoji')?.value?.trim() || '';
-        const role_id = r.querySelector('.opt-role')?.value || '';
-        const label = r.querySelector('.opt-label')?.value?.trim() || '';
-
-        if (role_id) {
-          collectedOptions.push({
-            role_id,
-            label: label || (typeof getRoleName === 'function' ? getRoleName(role_id) : 'Rôle'),
-            emoji,
-            style: 'PRIMARY'
-          });
-        }
-      });
-
-      if (collectedOptions.length === 0) {
-        alert('Veuillez ajouter au moins une option avec un rôle valide.');
-        return;
-      }
-
-      const selectorObj = {
-        placeholder: placeholder || 'Sélecteur',
-        type,
-        mode,
-        options: collectedOptions
-      };
-
-      if (index >= 0 && index < autoroleSelectorsList.length) {
-        autoroleSelectorsList[index] = selectorObj;
-      } else {
-        autoroleSelectorsList.push(selectorObj);
-      }
-
-      const indexInput = document.getElementById('modal-selector-index');
-      if (indexInput) indexInput.value = "-1";
-
-      closeSelectorModal();
-      renderSelectorsListUI();
-      renderButtonsCreatorPreview();
-    });
   }
 
   document.getElementById('btn-add-autorole-button').addEventListener('click', () => {

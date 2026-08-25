@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=70.0.0">
+  <link rel="stylesheet" href="style.css?v=75.0.0">
   <script>
     window.onerror = function(message, source, lineno, colno, error) {
       fetch('/api/log-error', {
@@ -597,7 +597,7 @@
                           </button>
                         </div>
 
-                        <form id="form-selector-editor">
+                        <div id="form-selector-editor">
                           <input type="hidden" id="modal-selector-index" value="-1">
 
                           <!-- Field 1: TEXTE DU SÉLECTEUR -->
@@ -605,7 +605,7 @@
                             <label style="font-weight: 700; font-size: 0.78rem; text-transform: uppercase; color: #b5bac1; display: block; margin-bottom: 6px;">
                               TEXTE DU SÉLECTEUR
                             </label>
-                            <input type="text" id="modal-selector-placeholder" placeholder="Genre" required style="width: 100%; background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; color: #ffffff; font-size: 0.92rem; padding: 10px 14px; font-family: inherit; outline: none;">
+                            <input type="text" id="modal-selector-placeholder" placeholder="Genre" style="width: 100%; background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; color: #ffffff; font-size: 0.92rem; padding: 10px 14px; font-family: inherit; outline: none;">
                           </div>
 
                           <!-- Field 2: TYPE DE SÉLECTEUR -->
@@ -656,11 +656,11 @@
                             <button type="button" id="btn-save-as-new-selector" style="background: #2b2d31; border: 1px solid #d96b52; color: #ffffff; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; cursor: pointer;" title="Ajouter comme nouveau sélecteur sans remplacer l'existant">
                               + Nouveau sélecteur
                             </button>
-                            <button type="submit" style="background: linear-gradient(135deg, #d96b52, #e06c53); color: #ffffff; border: none; padding: 8px 22px; border-radius: 6px; font-weight: 700; font-size: 0.88rem; cursor: pointer; box-shadow: 0 3px 8px rgba(217,107,82,0.35);">
+                            <button type="button" id="btn-save-selector-modal" style="background: linear-gradient(135deg, #d96b52, #e06c53); color: #ffffff; border: none; padding: 8px 22px; border-radius: 6px; font-weight: 700; font-size: 0.88rem; cursor: pointer; box-shadow: 0 3px 8px rgba(217,107,82,0.35);">
                               Valider
                             </button>
                           </div>
-                        </form>
+                        </div>
                       </div>
 
                       <!-- Barre du bas : Pills (Contenu, Image, Embed) + Bouton Ajouter un sélecteur -->
