@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getEconomy, updateEconomy, getActionGifs } = require('../../database/db');
+const { getEconomy, updateEconomy, getActionReward, getActionGifs } = require('../../database/db');
 const { generateAiEconomyPhrase } = require('../../utils/aiActionHelper');
 
 module.exports = {
@@ -44,6 +44,12 @@ module.exports = {
     await interaction.deferReply();
 
     const targetMember = await interaction.guild.members.fetch(target.id).catch(() => null);
+    const rewardConfig = getActionReward(guildId, 'voler');
+    const minStolen = rewardConfig ? rewardConfig.min_money : 50;
+    const maxStolen = rewardConfig ? rewardConfig.max_money : 250;
+    const minKarma = rewardConfig ? rewardConfig.min_karma : -3;
+    const maxKarma = rewardConfig ? rewardConfig.max_karma : -1;
+
     const success = Math.random() < 0.45; // 45% de chance
     let stolen = 0;
     let karmaChange = 0;
@@ -51,10 +57,14 @@ module.exports = {
     let color = 0x000000;
 
     if (success) {
-      // Voler entre 10% et 35% du portefeuille de la cible
+      // Voler un pourcentage du portefeuille, MAIS plafonné strictement par les réglages Dashboard
       const percent = Math.floor(Math.random() * 26) + 10;
-      stolen = Math.floor((targetEconomy.wallet * percent) / 100);
-      karmaChange = -3;
+      const rawStolen = Math.floor((targetEconomy.wallet * percent) / 100);
+      stolen = Math.max(minStolen, Math.min(rawStolen, maxStolen));
+      if (targetEconomy.wallet < stolen) {
+        stolen = targetEconomy.wallet;
+      }
+      karmaChange = Math.floor(Math.random() * (maxKarma - minKarma + 1)) + minKarma;
       title = '💸 Vol Réussi !';
       color = 0x2ecc71;
 
@@ -68,10 +78,10 @@ module.exports = {
         wallet: targetEconomy.wallet - stolen
       });
     } else {
-      // Payer une amende à la cible (entre 50 et 150 pièces)
-      const fine = Math.floor(Math.random() * 101) + 50;
+      // Payer une amende à la cible
+      const fine = Math.floor(Math.random() * (maxStolen - minStolen + 1)) + minStolen;
       stolen = -Math.min(economy.wallet, fine);
-      karmaChange = -1;
+      karmaChange = Math.floor(Math.random() * (maxKarma - minKarma + 1)) + minKarma;
       title = '👮 Pris la main dans le sac !';
       color = 0xe74c3c;
 

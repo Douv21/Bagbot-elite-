@@ -1,30 +1,49 @@
 const { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } = require('discord.js');
-const { getEconomy, updateEconomy, getActionGifs, getActionGifsAnyGuild, db } = require('../../database/db');
+const { getEconomy, updateEconomy, getActionGifs, db } = require('../../database/db');
 const fs = require('fs');
 const path = require('path');
 
 module.exports = {
-  data: new SlashCommandBuilder().setContexts([0, 1, 2]).setIntegrationTypes([0, 1])
+  data: new SlashCommandBuilder()
     .setName('mouiller')
     .setDescription("Mouiller quelqu\'un")
     .addUserOption(option => option.setName('cible').setDescription('Personne ciblée (optionnel)').setRequired(false))
-    .setNSFW(true)
     .setDMPermission(true),
 
   async execute(interaction) {
-    const { resolveTarget, getValidActionGifUrl, generateAiActionPhraseFast } = require('../../utils/actionRunner');
     await interaction.deferReply();
     const guildId = interaction.guild ? interaction.guild.id : null;
     const userId = interaction.user.id;
-    const target = await resolveTarget(interaction);
+    let target = interaction.options.getUser('cible');
+
+    if (!target) {
+      if (interaction.guild) {
+        const members = await interaction.guild.members.fetch({ limit: 100 }).catch(() => null);
+        const randomMember = members ? members.filter(m => m.id !== userId).random() : null;
+        target = randomMember ? randomMember.user : interaction.user;
+      } else {
+        target = interaction.user;
+      }
+    }
 
     const author = interaction.user;
     
-    // Rangs de récompense par défaut
-    const minReward = 5;
-    const maxReward = 15;
-    const karmaMin = 1;
-    const karmaMax = 3;
+    // Rangs de récompense (configurable par le Dashboard)
+    const { getActionReward } = require('../../database/db');
+    let minReward = 5;
+    let maxReward = 15;
+    let karmaMin = 1;
+    let karmaMax = 3;
+
+    if (guildId) {
+      const actReward = getActionReward(guildId, 'mouiller');
+      if (actReward) {
+        minReward = actReward.min_money !== undefined ? actReward.min_money : 5;
+        maxReward = actReward.max_money !== undefined ? actReward.max_money : 15;
+        karmaMin = actReward.min_karma !== undefined ? actReward.min_karma : 1;
+        karmaMax = actReward.max_karma !== undefined ? actReward.max_karma : 3;
+      }
+    }
     
     const karmaReward = Math.floor(Math.random() * (karmaMax - karmaMin + 1)) + karmaMin;
     const reward = Math.floor(Math.random() * (maxReward - minReward + 1)) + minReward;
@@ -52,14 +71,14 @@ module.exports = {
     const targetMember = interaction.guild ? await interaction.guild.members.fetch(target.id).catch(() => null) : null;
     let actionMessage = "";
 
-    // Tenter de générer une phrase unique via l'IA en temps réel (solo ou avec cible)
-    try {
+    // Tenter de générer une phrase unique via l'IA en temps réel
+    if (target.id !== userId) {
       const { generateAiActionPhrase } = require('../../utils/aiActionHelper');
-      const aiPhrase = await generateAiActionPhraseFast('mouiller', 'Mouiller quelqu\'un', interaction.member, targetMember);
+      const aiPhrase = await generateAiActionPhrase('mouiller', 'Mouiller quelqu\'un', interaction.member, targetMember);
       if (aiPhrase) {
         actionMessage = aiPhrase;
       }
-    } catch (e) { console.warn('[Action AI]', e.message); }
+    }
 
     // Fallback aux phrases configurées en base de données / par défaut
     if (!actionMessage) {
@@ -99,10 +118,19 @@ module.exports = {
     const files = [];
     const targetFiles = [];
     
-    const gifUrl = getValidActionGifUrl(guildId, 'mouiller');
+    let gifs = [];
+    if (guildId) {
+      gifs = getActionGifs(guildId, 'mouiller');
+    } else {
+      try {
+        gifs = db.prepare('SELECT * FROM action_gifs WHERE action_name = ?').all('mouiller');
+      } catch (e) {
+        console.error('Erreur lecture gifs en MP:', e);
+      }
+    }
 
-    const randomGif = getValidActionGifUrl(guildId, 'mouiller');
-    if (randomGif) {
+    if (gifs && gifs.length > 0) {
+      const randomGif = gifs[Math.floor(Math.random() * gifs.length)].gif_url;
       if (randomGif.startsWith('/uploads/')) {
         const absPath = path.join(__dirname, '../../../public', randomGif);
         if (fs.existsSync(absPath)) {
@@ -122,31 +150,33 @@ module.exports = {
     } else {
       embed.setFooter({ text: '💬 Exécuté en message privé (sans gain de pièces ou de karma)' });
     }
+
     const mention = target && target.id !== userId ? `<@${target.id}>` : null;
 
-    if (mention && interaction.guild && interaction.channel) {
+    if (mention && interaction.channel) {
       await interaction.deleteReply().catch(() => null);
       await interaction.channel.send({
         content: mention,
         embeds: [embed],
         files: files,
-        allowedMentions: { users: [target.id] }
+        allowedMentions: { parse: ['users'] }
       });
     } else {
+      await interaction.editReply({
+        embeds: [embed],
+        files: files
+      });
+    }
+
+    if (!guildId && target && target.id !== userId) {
       try {
-        await interaction.editReply({
-          content: mention,
+        await target.send({
+          content: `🔔 **<@${userId}>** vous a fait une action en MP !`,
           embeds: [embed],
-          files: files,
-          allowedMentions: mention ? { users: [target.id] } : { parse: [] }
+          files: targetFiles
         });
-      } catch (dmErr) {
-        embed.setImage(null);
-        await interaction.editReply({
-          content: mention,
-          embeds: [embed],
-          allowedMentions: mention ? { users: [target.id] } : { parse: [] }
-        }).catch(e2 => console.error('[DM Reply]', e2.message));
+      } catch (err) {
+        console.error('Impossible d\'envoyer le MP de l\'action à la cible :', err);
       }
     }
   }

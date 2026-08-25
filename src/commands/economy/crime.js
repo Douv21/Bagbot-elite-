@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getEconomy, updateEconomy, getActionGifs } = require('../../database/db');
+const { getEconomy, updateEconomy, getActionReward, getActionGifs } = require('../../database/db');
 const { generateAiEconomyPhrase } = require('../../utils/aiActionHelper');
 
 module.exports = {
@@ -23,6 +23,12 @@ module.exports = {
 
     await interaction.deferReply();
 
+    const rewardConfig = getActionReward(guildId, 'crime');
+    const minEarnings = rewardConfig ? rewardConfig.min_money : 200;
+    const maxEarnings = rewardConfig ? rewardConfig.max_money : 500;
+    const minKarma = rewardConfig ? rewardConfig.min_karma : -2;
+    const maxKarma = rewardConfig ? rewardConfig.max_karma : -1;
+
     const success = Math.random() < 0.5; // 50% de réussite
     let earnings = 0;
     let karmaLoss = 0;
@@ -30,8 +36,8 @@ module.exports = {
     let color = 0x000000;
 
     if (success) {
-      earnings = Math.floor(Math.random() * 351) + 250; // 250 à 600 pièces
-      karmaLoss = 2;
+      earnings = Math.floor(Math.random() * (maxEarnings - minEarnings + 1)) + minEarnings;
+      karmaLoss = Math.abs(Math.floor(Math.random() * (maxKarma - minKarma + 1)) + minKarma);
       title = '🕵️ Crime Réussi !';
       color = 0x2ecc71;
       
@@ -41,13 +47,13 @@ module.exports = {
         last_crime: now
       });
     } else {
-      const loss = Math.floor(Math.random() * 151) + 150; // 150 à 300 pièces
-      earnings = -loss;
-      karmaLoss = 1;
+      const loss = Math.floor(Math.random() * (maxEarnings - minEarnings + 1)) + minEarnings;
+      earnings = -Math.min(economy.wallet, loss);
+      karmaLoss = Math.abs(Math.floor(Math.random() * (maxKarma - minKarma + 1)) + minKarma);
       title = '👮 Pris par la Police !';
       color = 0xe74c3c;
 
-      const newWallet = Math.max(0, economy.wallet - loss);
+      const newWallet = Math.max(0, economy.wallet + earnings);
       updateEconomy(guildId, userId, {
         wallet: newWallet,
         karma: economy.karma - karmaLoss,

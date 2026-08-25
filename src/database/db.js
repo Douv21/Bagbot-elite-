@@ -1723,6 +1723,12 @@ const getActionReward = (guildId, actionName) => {
     } else if (actionName === 'pecher') {
       defMinMoney = 25; defMaxMoney = 400;
       defMinKarma = 1; defMaxKarma = 1;
+    } else if (actionName === 'voler') {
+      defMinMoney = 50; defMaxMoney = 250;
+      defMinKarma = -3; defMaxKarma = -1;
+    } else if (actionName === 'crime') {
+      defMinMoney = 200; defMaxMoney = 500;
+      defMinKarma = -2; defMaxKarma = -1;
     }
 
     reward = {

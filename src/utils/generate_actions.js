@@ -321,11 +321,22 @@ module.exports = {
 
     const author = interaction.user;
     
-    // Rangs de récompense par défaut
-    const minReward = 5;
-    const maxReward = 15;
-    const karmaMin = 1;
-    const karmaMax = 3;
+    // Rangs de récompense (configurable par le Dashboard)
+    const { getActionReward } = require('../../database/db');
+    let minReward = 5;
+    let maxReward = 15;
+    let karmaMin = 1;
+    let karmaMax = 3;
+
+    if (guildId) {
+      const actReward = getActionReward(guildId, '${esc(act.name)}');
+      if (actReward) {
+        minReward = actReward.min_money !== undefined ? actReward.min_money : 5;
+        maxReward = actReward.max_money !== undefined ? actReward.max_money : 15;
+        karmaMin = actReward.min_karma !== undefined ? actReward.min_karma : 1;
+        karmaMax = actReward.max_karma !== undefined ? actReward.max_karma : 3;
+      }
+    }
     
     const karmaReward = Math.floor(Math.random() * (karmaMax - karmaMin + 1)) + karmaMin;
     const reward = Math.floor(Math.random() * (maxReward - minReward + 1)) + minReward;
