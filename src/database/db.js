@@ -2077,6 +2077,11 @@ function getSondageResponses(sondageId) {
   return db.prepare('SELECT * FROM sondage_responses WHERE sondage_id = ? ORDER BY created_at DESC').all(sondageId);
 }
 
+function hasUserVotedSondage(sondageId, userId) {
+  const row = db.prepare('SELECT 1 FROM sondage_responses WHERE sondage_id = ? AND user_id = ?').get(sondageId, userId);
+  return !!row;
+}
+
 const getCasinoConfig = (guildId, gameName) => {
   let row = db.prepare('SELECT * FROM casino_config WHERE guild_id = ? AND game_name = ?').get(guildId, gameName);
   if (!row) {
