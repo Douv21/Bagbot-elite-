@@ -3970,31 +3970,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  document.getElementById('form-create-autorole-embed').addEventListener('submit', (e) => {
+  document.getElementById('form-create-autorole-embed')?.addEventListener('submit', (e) => {
     e.preventDefault();
-    const channel_id = document.getElementById('autorole-embed-channel').value;
-    const title = document.getElementById('autorole-embed-title').value.trim();
-    const description = document.getElementById('autorole-embed-desc').value.trim();
-    const color = document.getElementById('autorole-embed-color').value;
-    const thumbnail = parseInt(document.getElementById('autorole-embed-thumbnail').value);
-    const image_url = document.getElementById('autorole-embed-image').value.trim();
-    const type = document.getElementById('autorole-embed-type').value;
-    const mode = document.getElementById('autorole-embed-mode').value;
-    const existing_message_id = document.getElementById('autorole-embed-existing-msg').value.trim() || null;
+    const channel_id = document.getElementById('autorole-embed-channel')?.value;
+    const title = document.getElementById('autorole-embed-title')?.value?.trim() || '';
+    const description = document.getElementById('autorole-embed-desc')?.value?.trim() || '';
+    const color = document.getElementById('autorole-embed-color')?.value || '#5865F2';
+    const thumbnail = parseInt(document.getElementById('autorole-embed-thumbnail')?.value || '0');
+    const image_url = document.getElementById('autorole-embed-image')?.value?.trim() || '';
+    const type = document.getElementById('autorole-embed-type')?.value || 'buttons';
+    const mode = document.getElementById('autorole-embed-mode')?.value || 'normal';
+    const existing_message_id = document.getElementById('autorole-embed-existing-msg')?.value?.trim() || null;
+
+    if (!channel_id) {
+      showToast('⚠️ Veuillez choisir un salon de destination.', true);
+      return;
+    }
 
     if (!existing_message_id) {
-      if (!title) {
-        alert("Veuillez saisir un titre pour l'embed.");
-        return;
-      }
-      if (!description) {
-        alert("Veuillez saisir une description / message.");
+      if (!title && !description) {
+        showToast("⚠️ Veuillez saisir au moins un titre ou une description pour l'embed.", true);
         return;
       }
     }
 
-    if (autoroleSelectorsList.length === 0 && autoroleButtonsList.length === 0) {
-      alert('Veuillez ajouter au moins un sélecteur ou un rôle/bouton.');
+    if ((!autoroleSelectorsList || autoroleSelectorsList.length === 0) && (!autoroleButtonsList || autoroleButtonsList.length === 0)) {
+      showToast('⚠️ Veuillez ajouter au moins un sélecteur ou un rôle/bouton.', true);
       return;
     }
 
