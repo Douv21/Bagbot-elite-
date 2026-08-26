@@ -1074,10 +1074,10 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(console.error);
   }
 
-  document.getElementById('edit-mode-select').addEventListener('change', updateInteractiveEditor);
+  document.getElementById('edit-mode-select')?.addEventListener('change', updateInteractiveEditor);
 
-  document.getElementById('target-channel-select').addEventListener('change', (e) => {
-    const mode = document.getElementById('edit-mode-select').value;
+  document.getElementById('target-channel-select')?.addEventListener('change', (e) => {
+    const mode = document.getElementById('edit-mode-select')?.value;
     if (mode === 'welcome') {
       welcomeData.channel_id = e.target.value;
     } else {
@@ -1085,19 +1085,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  document.getElementById('embed-color-picker').addEventListener('input', (e) => {
-    const mode = document.getElementById('edit-mode-select').value;
+  document.getElementById('embed-color-picker')?.addEventListener('input', (e) => {
+    const mode = document.getElementById('edit-mode-select')?.value;
     const color = e.target.value;
     if (mode === 'welcome') {
       welcomeData.color = color;
     } else {
       leaveData.color = color;
     }
-    document.getElementById('discord-left-bar').style.borderColor = color;
+    const bar = document.getElementById('discord-left-bar');
+    if (bar) bar.style.borderColor = color;
   });
 
-  document.getElementById('embed-title-input').addEventListener('input', (e) => {
-    const mode = document.getElementById('edit-mode-select').value;
+  document.getElementById('embed-title-input')?.addEventListener('input', (e) => {
+    const mode = document.getElementById('edit-mode-select')?.value;
     if (mode === 'welcome') {
       welcomeData.title = e.target.value;
     } else {
@@ -1105,8 +1106,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  document.getElementById('embed-desc-field').addEventListener('input', (e) => {
-    const mode = document.getElementById('edit-mode-select').value;
+  document.getElementById('embed-desc-field')?.addEventListener('input', (e) => {
+    const mode = document.getElementById('edit-mode-select')?.value;
     if (mode === 'welcome') {
       welcomeData.desc = e.target.value;
     } else {
@@ -1114,8 +1115,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  document.getElementById('embed-author-name-input').addEventListener('input', (e) => {
-    const mode = document.getElementById('edit-mode-select').value;
+  document.getElementById('embed-author-name-input')?.addEventListener('input', (e) => {
+    const mode = document.getElementById('edit-mode-select')?.value;
     if (mode === 'welcome') {
       welcomeData.author_name = e.target.value;
     } else {
@@ -1123,10 +1124,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  document.getElementById('discord-author-box').addEventListener('click', (e) => {
+  document.getElementById('discord-author-box')?.addEventListener('click', (e) => {
     if (e.target.closest('#author-icon-wrapper') || e.target.id === 'embed-author-name-input') return;
     const wrapper = document.getElementById('author-icon-wrapper');
     const input = document.getElementById('embed-author-icon-input');
+    if (!wrapper || !input) return;
     if (wrapper.style.display === 'none') {
       wrapper.style.display = 'flex';
       input.focus();
@@ -1137,8 +1139,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  document.getElementById('embed-author-icon-input').addEventListener('input', (e) => {
-    const mode = document.getElementById('edit-mode-select').value;
+  document.getElementById('embed-author-icon-input')?.addEventListener('input', (e) => {
+    const mode = document.getElementById('edit-mode-select')?.value;
     const url = e.target.value;
     if (mode === 'welcome') {
       welcomeData.author_icon = url;
@@ -1147,18 +1149,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     const img = document.getElementById('embed-author-icon-img');
-    if (url) {
-      img.src = url;
-      img.style.display = 'block';
-    } else {
-      img.style.display = 'none';
+    if (img) {
+      if (url) {
+        img.src = url;
+        img.style.display = 'block';
+      } else {
+        img.style.display = 'none';
+      }
     }
   });
 
-
-
-  document.getElementById('embed-footer-input').addEventListener('input', (e) => {
-    const mode = document.getElementById('edit-mode-select').value;
+  document.getElementById('embed-footer-input')?.addEventListener('input', (e) => {
+    const mode = document.getElementById('edit-mode-select')?.value;
     if (mode === 'welcome') {
       welcomeData.footer = e.target.value;
     } else {
@@ -1166,21 +1168,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  document.getElementById('welcome-role-filter-select').addEventListener('change', (e) => {
+  document.getElementById('welcome-role-filter-select')?.addEventListener('change', (e) => {
     welcomeData.role_filter = e.target.value;
   });
 
-  document.getElementById('discord-thumbnail-box').addEventListener('click', () => {
-    const mode = document.getElementById('edit-mode-select').value;
+  document.getElementById('discord-thumbnail-box')?.addEventListener('click', () => {
+    const mode = document.getElementById('edit-mode-select')?.value;
     const data = mode === 'welcome' ? welcomeData : leaveData;
     data.thumbnail = !data.thumbnail;
     updateInteractiveEditor();
   });
 
-  document.getElementById('discord-image-box').addEventListener('click', (e) => {
+  document.getElementById('discord-image-box')?.addEventListener('click', (e) => {
     if (e.target.closest('#image-url-wrapper')) return;
     const wrapper = document.getElementById('image-url-wrapper');
     const input = document.getElementById('embed-image-input');
+    if (!wrapper || !input) return;
     if (wrapper.style.display === 'none') {
       wrapper.style.display = 'flex';
       input.focus();
@@ -1191,8 +1194,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  document.getElementById('embed-image-input').addEventListener('input', (e) => {
-    const mode = document.getElementById('edit-mode-select').value;
+  document.getElementById('embed-image-input')?.addEventListener('input', (e) => {
+    const mode = document.getElementById('edit-mode-select')?.value;
     const url = e.target.value;
     if (mode === 'welcome') {
       welcomeData.image_url = url;
@@ -1202,12 +1205,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const img = document.getElementById('discord-image-img');
     const overlay = document.getElementById('discord-image-overlay');
-    if (url) {
-      img.src = url;
-      img.style.display = 'block';
-      overlay.style.display = 'none';
-    } else {
-      img.style.display = 'none';
+    if (img) {
+      if (url) {
+        img.src = url;
+        img.style.display = 'block';
+        if (overlay) overlay.style.display = 'none';
+      } else {
+        img.style.display = 'none';
+        if (overlay) overlay.style.display = 'flex';
+      }
+    }
+  });
       overlay.style.display = 'flex';
     }
   });
