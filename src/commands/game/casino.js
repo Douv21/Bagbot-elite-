@@ -2,9 +2,10 @@ const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, Butt
 const { getEconomy, updateEconomy, getCasinoConfig } = require('../../database/db');
 
 module.exports = {
-  data: new SlashCommandBuilder()
+  data: new SlashCommandBuilder().setContexts([0, 1, 2]).setIntegrationTypes([0, 1])
     .setName('casino')
     .setDescription('Jouer à des jeux de casino pour tenter de doubler votre mise')
+    .setDMPermission(true)
     .addStringOption(option => 
       option.setName('jeu')
         .setDescription('Le jeu de casino auquel vous souhaitez jouer')

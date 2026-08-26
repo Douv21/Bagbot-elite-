@@ -1173,8 +1173,9 @@ client.on('interactionCreate', async interaction => {
 
     const isAllowedForEveryone = 
       (command.category === 'actions' || 
+       command.category === 'game' ||
        (command.category === 'economy' && !['dropargent', 'drop-argent', 'dropkarma', 'drop-karma', 'dropxp', 'drop-xp'].includes(interaction.commandName)) ||
-       ['travailler', 'daily', 'work', 'crime', 'rob', 'voler', 'pecher', 'action-verite', 'niveau', 'solde', 'karma', 'mapville', 'proche', 'boutique', 'leaderboard', 'confess', 'confesser', 'deposit', 'deposer', 'withdraw', 'retirer', 'donner', 'pay', 'lovecalc', 'mot-cache', 'tribunal', 'uno', 'star', 'gifle', 'patpat', 'quetes'].includes(interaction.commandName)) &&
+       ['casino', 'combat-coq', 'coq', 'travailler', 'daily', 'work', 'crime', 'rob', 'voler', 'pecher', 'action-verite', 'niveau', 'solde', 'karma', 'mapville', 'proche', 'boutique', 'leaderboard', 'confess', 'confesser', 'deposit', 'deposer', 'withdraw', 'retirer', 'donner', 'pay', 'lovecalc', 'mot-cache', 'tribunal', 'uno', 'star', 'gifle', 'patpat', 'quetes'].includes(interaction.commandName)) &&
       !['dashboard'].includes(interaction.commandName);
       
     if (!isAllowedForEveryone) {

@@ -2,9 +2,10 @@ const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { db, getEconomy, updateEconomy, getCasinoConfig, getActionGifs } = require('../../database/db');
 
 module.exports = {
-  data: new SlashCommandBuilder()
+  data: new SlashCommandBuilder().setContexts([0, 1, 2]).setIntegrationTypes([0, 1])
     .setName('combat-coq')
     .setDescription('Organiser un combat de coqs acharné dans l\'arène')
+    .setDMPermission(true)
     .addIntegerOption(option =>
       option.setName('mise')
         .setDescription('Montant de pièces à miser sur votre coq')
