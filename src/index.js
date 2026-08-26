@@ -1243,6 +1243,38 @@ client.on('interactionCreate', async interaction => {
     }
   }
 
+  // Vérification de l'activation du module correspondant
+  if (guildId) {
+    const { isModuleEnabled } = require('./database/db');
+    const cmdName = interaction.commandName;
+
+    const commandModuleMap = {
+      'casino': 'casino', 'combat-coq': 'casino', 'coq': 'casino',
+      'niveau': 'leveling', 'rank': 'leveling', 'leaderboard': 'leveling', 'xp': 'leveling',
+      'solde': 'shop', 'boutique': 'shop', 'buy': 'shop', 'acheter': 'shop', 'inventaire': 'shop', 'suite': 'shop',
+      'quetes': 'quests', 'daily': 'quests',
+      'karma': 'karma',
+      'ticket': 'tickets',
+      'confess': 'confessions', 'confesser': 'confessions',
+      'action-verite': 'action_verite',
+      'mot-cache': 'game_word',
+      'tribunal': 'tribunal',
+      'star': 'star'
+    };
+
+    let targetModule = commandModuleMap[cmdName];
+    if (!targetModule && command.category === 'actions') {
+      targetModule = 'gifs';
+    }
+
+    if (targetModule && !isModuleEnabled(guildId, targetModule)) {
+      return interaction.reply({
+        content: `❌ Le module correspondant à cette commande (\`${cmdName}\`) est actuellement désactivé sur ce serveur par les administrateurs.`,
+        ephemeral: true
+      });
+    }
+  }
+
   const userId = interaction.user.id;
   const oldKarma = guildId ? (require('./database/db').getEconomy(guildId, userId)?.karma || 0) : 0;
 

@@ -1595,6 +1595,42 @@ app.post('/api/config/casino', (req, res) => {
   }
 });
 
+// --- GUILD MODULES ENDPOINTS ---
+app.get('/api/config/modules', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { getGuildModules } = require('./database/db');
+    const modules = getGuildModules(guildId);
+    res.json(modules);
+  } catch (error) {
+    console.error('Erreur GET /api/config/modules:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/modules', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+    const { module_key, is_enabled, set_all, action_all } = req.body || {};
+    const { updateGuildModule, updateAllGuildModules } = require('./database/db');
+
+    if (set_all) {
+      updateAllGuildModules(guildId, action_all === 'enable');
+      return res.json({ success: true, message: action_all === 'enable' ? 'Tous les modules ont été activés !' : 'Tous les modules ont été désactivés !' });
+    }
+
+    if (!module_key) return res.status(400).json({ error: 'Clé du module requise' });
+
+    updateGuildModule(guildId, module_key, Boolean(is_enabled));
+    res.json({ success: true, message: 'État du module mis à jour !' });
+  } catch (error) {
+    console.error('Erreur POST /api/config/modules:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- ROLE BOOSTERS ENDPOINTS ---
 app.get('/api/config/role-boosters', (req, res) => {
   try {

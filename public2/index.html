@@ -138,6 +138,7 @@
             <button class="tab-btn" data-tab="tab-custom-commands"><i class="fa-solid fa-terminal" style="color: #00b894;"></i> Commandes Personnalisées <span class="nav-badge badge-green">NEW</span></button>
             <button class="tab-btn" data-tab="tab-word-reactions"><i class="fa-solid fa-icons" style="color: #e17055;"></i> Réactions aux Mots <span class="nav-badge badge-orange">NEW</span></button>
             <button class="tab-btn" data-tab="tab-server-bot-logo"><i class="fa-solid fa-image" style="color: #6c5ce7;"></i> Logo Bot Serveur <span class="nav-badge badge-purple">NEW</span></button>
+            <button class="tab-btn" data-tab="tab-modules"><i class="fa-solid fa-toggle-on" style="color: #00d2d3;"></i> Gestion des Modules <span class="nav-badge badge-blue">GLOBAL</span></button>
           </div>
           <div class="sidebar-subcategory">
             <div class="subcategory-title">Engagement</div>
@@ -2653,6 +2654,30 @@
 
             <div id="casino-games-container" style="display: flex; flex-direction: column; gap: 20px;">
               <!-- Cartes des jeux générées en JS -->
+            </div>
+          </div>
+
+          <!-- Tab: Gestion des Modules Globaux -->
+          <div id="tab-modules" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-toggle-on" style="color: #00d2d3;"></i> Gestion des Modules & Fonctionnalités du Bot</h2>
+            <div class="card glass mb-4">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div>
+                  <h3 style="margin: 0 0 5px 0; color: #fff;">🎛️ Panneau de Contrôle Général des Modules</h3>
+                  <p style="color: #b9bbbe; font-size: 0.88rem; margin: 0;">
+                    Activez ou désactivez chaque fonctionnalité du bot pour ce serveur. Les modules désactivés seront bloqués pour les membres sur Discord.
+                  </p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                  <button type="button" class="btn btn-save" id="btn-enable-all-modules" style="background: #2ecc71; font-weight: 600; padding: 8px 16px; font-size: 0.85rem;"><i class="fa-solid fa-check-double"></i> Tout Activer</button>
+                  <button type="button" class="btn btn-logout" id="btn-disable-all-modules" style="background: #e74c3c; font-weight: 600; padding: 8px 16px; font-size: 0.85rem;"><i class="fa-solid fa-ban"></i> Tout Désactiver</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Global Modules Grid Container -->
+            <div id="guild-modules-container" style="display: flex; flex-direction: column; gap: 25px;">
+              <!-- Catégories de modules générées dynamiquement en JS -->
             </div>
           </div>
 

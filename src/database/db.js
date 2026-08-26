@@ -248,6 +248,16 @@ function initDatabase() {
     )
   `).run();
 
+  // 9d. Gestion des Modules Globaux du Bot
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS guild_modules (
+      guild_id TEXT,
+      module_key TEXT,
+      is_enabled INTEGER DEFAULT 1,
+      PRIMARY KEY (guild_id, module_key)
+    )
+  `).run();
+
   // Migrations pour ajouter les colonnes supplémentaires à la table shop
   try {
     db.prepare('ALTER TABLE shop ADD COLUMN role_duration_ms INTEGER DEFAULT 0').run();
@@ -2143,7 +2153,59 @@ const getAllCasinoConfigs = (guildId) => {
   return games.map(name => getCasinoConfig(guildId, name));
 };
 
+const ALL_MODULE_KEYS = [
+  'welcome', 'boost', 'announcements', 'custom_commands', 'word_reactions',
+  'autoroles', 'reactionroles', 'autothread', 'logs', 'quarantine',
+  'automod', 'forums', 'tribunal', 'confessions', 'counting',
+  'game_word', 'action_verite', 'bump', 'gifs', 'casino',
+  'leveling', 'quests', 'karma', 'shop', 'tickets',
+  'star', 'assistant_ai'
+];
+
+const getGuildModules = (guildId) => {
+  const rows = db.prepare('SELECT module_key, is_enabled FROM guild_modules WHERE guild_id = ?').all(guildId);
+  const map = {};
+  ALL_MODULE_KEYS.forEach(key => {
+    map[key] = true;
+  });
+  rows.forEach(r => {
+    map[r.module_key] = r.is_enabled === 1;
+  });
+  return map;
+};
+
+const isModuleEnabled = (guildId, moduleKey) => {
+  if (!guildId || !moduleKey) return true;
+  const row = db.prepare('SELECT is_enabled FROM guild_modules WHERE guild_id = ? AND module_key = ?').get(guildId, moduleKey);
+  return row ? row.is_enabled === 1 : true;
+};
+
+const updateGuildModule = (guildId, moduleKey, isEnabled) => {
+  return db.prepare(`
+    INSERT INTO guild_modules (guild_id, module_key, is_enabled)
+    VALUES (?, ?, ?)
+    ON CONFLICT(guild_id, module_key) DO UPDATE SET
+      is_enabled = EXCLUDED.is_enabled
+  `).run(guildId, moduleKey, isEnabled ? 1 : 0);
+};
+
+const updateAllGuildModules = (guildId, isEnabled) => {
+  const stmt = db.prepare(`
+    INSERT INTO guild_modules (guild_id, module_key, is_enabled)
+    VALUES (?, ?, ?)
+    ON CONFLICT(guild_id, module_key) DO UPDATE SET
+      is_enabled = EXCLUDED.is_enabled
+  `);
+  ALL_MODULE_KEYS.forEach(key => {
+    stmt.run(guildId, key, isEnabled ? 1 : 0);
+  });
+};
+
 module.exports = {
+  getGuildModules,
+  isModuleEnabled,
+  updateGuildModule,
+  updateAllGuildModules,
   getCasinoConfig,
   updateCasinoConfig,
   getAllCasinoConfigs,

@@ -155,6 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchAndRenderGifs();
       } else if (tabId === 'tab-casino') {
         loadCasinoConfig();
+      } else if (tabId === 'tab-modules') {
+        loadGuildModules();
       } else if (tabId === 'tab-map') {
         const guildId = guildSelect ? guildSelect.value : '';
         const mapIframe = document.getElementById('map-iframe');
@@ -8977,5 +8979,183 @@ async function saveCasinoGameConfig(gameId) {
     showToast('❌ Erreur de connexion.', true);
   }
 }
+
+const allGuildModulesConfig = [
+  {
+    category: '⚙️ Gestion & Bot',
+    color: '#5865F2',
+    modules: [
+      { key: 'welcome', name: 'Arrivées & Départs', icon: 'fa-door-open', desc: 'Messages d\'accueil et de départ personnalisés avec embeds.' },
+      { key: 'boost', name: 'Remerciements Boost Nitro', icon: 'fa-rocket', desc: 'Annonces automatiques et bonus VIP pour les boosts de serveur.' },
+      { key: 'announcements', name: 'Annonces & Guides', icon: 'fa-bullhorn', desc: 'Publication guidée d\'annonces et règles du serveur.' },
+      { key: 'custom_commands', name: 'Commandes Personnalisées', icon: 'fa-terminal', desc: 'Commandes slash sur-mesure avec répondeur automatique.' },
+      { key: 'word_reactions', name: 'Réactions aux Mots', icon: 'fa-icons', desc: 'Ajout de réactions ou réponses sur détection de mot-clé.' },
+      { key: 'autoroles', name: 'Auto-Rôles à l\'Arrivée', icon: 'fa-user-plus', desc: 'Attribution automatique de rôles aux nouveaux membres.' },
+      { key: 'reactionroles', name: 'Rôles Réaction', icon: 'fa-rectangle-list', desc: 'Sélecteurs de rôles par boutons ou menus déroulants.' },
+      { key: 'autothread', name: 'Auto-Thread', icon: 'fa-hashtag', desc: 'Création automatique de fil sous chaque message.' },
+      { key: 'logs', name: 'Logs d\'Activité', icon: 'fa-list-check', desc: 'Historique des actions de modération et événements.' },
+      { key: 'assistant_ai', name: 'Assistant IA Admin', icon: 'fa-robot', desc: 'Assistance IA pour la gestion des rôles et règles.' }
+    ]
+  },
+  {
+    category: '🛡️ Sécurité & Modération',
+    color: '#e74c3c',
+    modules: [
+      { key: 'quarantine', name: 'Quarantaine Anti-Raid', icon: 'fa-shield-halved', desc: 'Isolement temporaire et retrait de rôles des membres suspects.' },
+      { key: 'automod', name: 'Auto-Modération', icon: 'fa-user-shield', desc: 'Détection automatique de spam, majuscules et liens.' },
+      { key: 'forums', name: 'Forums Illimités', icon: 'fa-comments', desc: 'Réouverture automatique des forums archivés.' },
+      { key: 'tribunal', name: 'Tribunal Discord', icon: 'fa-gavel', desc: 'Procès interactifs et jugements par la communauté.' }
+    ]
+  },
+  {
+    category: '🎮 Divertissement & Jeux',
+    color: '#2ecc71',
+    modules: [
+      { key: 'confessions', name: 'Confessions Anonymes', icon: 'fa-mask', desc: 'Soumission et modération de confessions anonymes.' },
+      { key: 'counting', name: 'Salons de Comptage', icon: 'fa-calculator', desc: 'Jeu de comptage collaboratif.' },
+      { key: 'game_word', name: 'Jeu Mot Caché', icon: 'fa-gamepad', desc: 'Devinette de mots avec indices et pièces à gagner.' },
+      { key: 'action_verite', name: 'Action ou Vérité', icon: 'fa-dice', desc: 'Questions et défis personnalisés.' },
+      { key: 'bump', name: 'Rappels de Bump', icon: 'fa-bell', desc: 'Notifications de rappel pour bump le serveur.' },
+      { key: 'gifs', name: 'GIFs & Actions RP', icon: 'fa-file-video', desc: 'Commandes d\'interactions et d\'actions animées RP.' },
+      { key: 'casino', name: 'Casino & Combats de Coqs', icon: 'fa-dice-five', desc: 'Blackjack, Slots, 421, Roulette, Poker, Coinflip et Combat de Coqs.' }
+    ]
+  },
+  {
+    category: '📈 Économie & Progression',
+    color: '#e67e22',
+    modules: [
+      { key: 'leveling', name: 'Niveaux & XP', icon: 'fa-arrow-trend-up', desc: 'XP textuel/vocal, cartes de rang et classement.' },
+      { key: 'quests', name: 'Système de Quêtes', icon: 'fa-scroll', desc: 'Missions quotidiennes récompensées en pièces.' },
+      { key: 'karma', name: 'Système de Karma', icon: 'fa-star', desc: 'Système de réputation des membres.' },
+      { key: 'shop', name: 'Boutique & Suites Privées', icon: 'fa-shop', desc: 'Achat d\'objets, rôles temporaires et suites privées.' },
+      { key: 'tickets', name: 'Support & Tickets', icon: 'fa-ticket', desc: 'Création de tickets avec formulaires.' },
+      { key: 'star', name: 'Star de la Semaine', icon: 'fa-star', desc: 'Mise en valeur du membre vedette de la semaine.' }
+    ]
+  }
+];
+
+async function loadGuildModules() {
+  const container = document.getElementById('guild-modules-container');
+  if (!container) return;
+  const currentGuildId = document.getElementById('guild-select')?.value || (typeof selectedGuildId !== 'undefined' ? selectedGuildId : '');
+  if (!currentGuildId) return;
+
+  try {
+    const res = await fetch(`/api/config/modules?guildId=${currentGuildId}`);
+    if (!res.ok) return;
+    const modulesStatus = await res.json();
+
+    container.innerHTML = '';
+
+    allGuildModulesConfig.forEach(cat => {
+      const catSection = document.createElement('div');
+      catSection.className = 'card glass';
+      catSection.style.cssText = 'padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);';
+
+      const catHeader = document.createElement('h3');
+      catHeader.style.cssText = `margin: 0 0 15px 0; color: ${cat.color}; font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 8px; font-weight: 700;`;
+      catHeader.innerHTML = cat.category;
+      catSection.appendChild(catHeader);
+
+      const grid = document.createElement('div');
+      grid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;';
+
+      cat.modules.forEach(mod => {
+        const isEnabled = modulesStatus[mod.key] !== false;
+        const modCard = document.createElement('div');
+        modCard.style.cssText = `background: ${isEnabled ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.25)'}; border: 1px solid ${isEnabled ? 'rgba(255,255,255,0.08)' : 'rgba(231,76,60,0.2)'}; border-radius: 10px; padding: 15px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease;`;
+
+        modCard.innerHTML = `
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid ${mod.icon}" style="font-size: 1.1rem; color: ${isEnabled ? cat.color : '#7f8c8d'};"></i>
+                <h4 style="margin: 0; color: ${isEnabled ? '#fff' : '#8e9297'}; font-size: 0.95rem; font-weight: 700;">${mod.name}</h4>
+              </div>
+              <span class="nav-badge ${isEnabled ? 'badge-green' : 'badge-purple'}" style="background: ${isEnabled ? 'rgba(46,204,113,0.15)' : 'rgba(231,76,60,0.15)'}; color: ${isEnabled ? '#2ecc71' : '#e74c3c'}; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; border: 1px solid ${isEnabled ? 'rgba(46,204,113,0.3)' : 'rgba(231,76,60,0.3)'};">
+                ${isEnabled ? 'ACTIF ✅' : 'INACTIF ❌'}
+              </span>
+            </div>
+            <p style="color: #949ba4; font-size: 0.8rem; margin: 0 0 12px 0; line-height: 1.4;">${mod.desc}</p>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 10px;">
+            <span style="font-size: 0.78rem; color: #b9bbbe; font-weight: 600;">Statut du module :</span>
+            <label class="switch-label" style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="module-toggle-${mod.key}" ${isEnabled ? 'checked' : ''}>
+              <span class="slider"></span>
+            </label>
+          </div>
+        `;
+
+        grid.appendChild(modCard);
+      });
+
+      catSection.appendChild(grid);
+      container.appendChild(catSection);
+    });
+
+    // Event listeners delegation for toggles
+    container.querySelectorAll('input[id^="module-toggle-"]').forEach(toggle => {
+      toggle.addEventListener('change', (e) => {
+        const key = e.target.id.replace('module-toggle-', '');
+        toggleGuildModule(key, e.target.checked);
+      });
+    });
+  } catch (err) {
+    console.error('Erreur loadGuildModules:', err);
+  }
+}
+
+async function toggleGuildModule(moduleKey, isEnabled) {
+  const currentGuildId = document.getElementById('guild-select')?.value || (typeof selectedGuildId !== 'undefined' ? selectedGuildId : '');
+  if (!currentGuildId) return showToast('❌ Sélectionnez un serveur.', true);
+
+  try {
+    const res = await fetch(`/api/config/modules?guildId=${currentGuildId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ module_key: moduleKey, is_enabled: isEnabled })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(isEnabled ? '✅ Module activé !' : '⚠️ Module désactivé !');
+      loadGuildModules();
+    } else {
+      showToast(`❌ ${data.error || 'Erreur lors du changement'}`, true);
+    }
+  } catch (err) {
+    showToast('❌ Erreur de connexion.', true);
+  }
+}
+
+async function setAllGuildModules(actionAll) {
+  const currentGuildId = document.getElementById('guild-select')?.value || (typeof selectedGuildId !== 'undefined' ? selectedGuildId : '');
+  if (!currentGuildId) return showToast('❌ Sélectionnez un serveur.', true);
+
+  try {
+    const res = await fetch(`/api/config/modules?guildId=${currentGuildId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ set_all: true, action_all: actionAll })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message);
+      loadGuildModules();
+    } else {
+      showToast(`❌ ${data.error || 'Erreur'}`, true);
+    }
+  } catch (err) {
+    showToast('❌ Erreur de connexion.', true);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btnEnableAll = document.getElementById('btn-enable-all-modules');
+  const btnDisableAll = document.getElementById('btn-disable-all-modules');
+  if (btnEnableAll) btnEnableAll.addEventListener('click', () => setAllGuildModules('enable'));
+  if (btnDisableAll) btnDisableAll.addEventListener('click', () => setAllGuildModules('disable'));
+});
 
 
