@@ -1216,13 +1216,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
-      overlay.style.display = 'flex';
-    }
-  });
 
-
-
-  document.getElementById('btn-change-bot-avatar').addEventListener('click', (e) => {
+  document.getElementById('btn-change-bot-avatar')?.addEventListener('click', (e) => {
     if (e && e.target && e.target.closest('#bot-avatar-wrapper')) return;
     const wrapper = document.getElementById('bot-avatar-wrapper');
     const input = document.getElementById('bot-avatar-url-input');
