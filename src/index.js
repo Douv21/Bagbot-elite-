@@ -250,6 +250,14 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId) => {
   const guild = interaction.guild;
   const botMember = guild.members.me;
 
+  if (typeof roleId === 'string' && roleId.startsWith('opt_')) {
+    const optIdx = parseInt(roleId.replace('opt_', ''), 10);
+    const dbOpts = db.prepare('SELECT role_id FROM autorole_options WHERE message_id = ?').all(messageId);
+    if (dbOpts && dbOpts[optIdx] && dbOpts[optIdx].role_id) {
+      roleId = dbOpts[optIdx].role_id;
+    }
+  }
+
   const rawIds = Array.isArray(roleId) 
     ? roleId 
     : String(roleId || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -361,8 +369,20 @@ const handleMultiRoleSelect = async (interaction, selectedRoleIds, messageId) =>
   const guild = interaction.guild;
   const botMember = guild.members.me;
 
-  const allOptions = db.prepare('SELECT role_id FROM autorole_options WHERE message_id = ?').all(messageId);
-  const possibleRoleIds = allOptions.map(o => o.role_id);
+  const dbOpts = db.prepare('SELECT role_id FROM autorole_options WHERE message_id = ?').all(messageId);
+  const resolvedRoleIds = [];
+  for (const rId of selectedRoleIds) {
+    if (typeof rId === 'string' && rId.startsWith('opt_')) {
+      const optIdx = parseInt(rId.replace('opt_', ''), 10);
+      if (dbOpts && dbOpts[optIdx] && dbOpts[optIdx].role_id) {
+        resolvedRoleIds.push(dbOpts[optIdx].role_id);
+      }
+    } else {
+      resolvedRoleIds.push(rId);
+    }
+  }
+
+  const possibleRoleIds = dbOpts.map(o => o.role_id);
 
   const added = [];
   const removed = [];
@@ -377,7 +397,7 @@ const handleMultiRoleSelect = async (interaction, selectedRoleIds, messageId) =>
       continue;
     }
 
-    const shouldHave = selectedRoleIds.includes(rId);
+    const shouldHave = resolvedRoleIds.includes(rId);
     const hasRole = member.roles.cache.has(rId);
 
     if (shouldHave && !hasRole) {
@@ -1506,14 +1526,19 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
           for (let i = 0; i < sel.options.length && actionRows.length < 5; i += 5) {
             const chunk = sel.options.slice(i, i + 5);
             const btnRow = new ActionRowBuilder();
-            chunk.forEach(opt => {
+            chunk.forEach((opt, optIdx) => {
               let styleCode = ButtonStyle.Primary;
               if (opt.style === 'SECONDARY') styleCode = ButtonStyle.Secondary;
               else if (opt.style === 'SUCCESS') styleCode = ButtonStyle.Success;
               else if (opt.style === 'DANGER') styleCode = ButtonStyle.Danger;
 
+              let btnVal = opt.role_id || '';
+              if (!btnVal || btnVal.length > 80) {
+                btnVal = `opt_${i + optIdx}`;
+              }
+
               const btn = new ButtonBuilder()
-                .setCustomId(`autorole_${opt.role_id}`)
+                .setCustomId(`autorole_${btnVal}`)
                 .setLabel(opt.label || 'Rôle')
                 .setStyle(styleCode);
               if (opt.emoji) btn.setEmoji(opt.emoji);
@@ -1535,10 +1560,14 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
               selectMenu.setMaxValues(1);
             }
 
-            const selectOptions = sel.options.map(opt => {
+            const selectOptions = sel.options.map((opt, optIdx) => {
+              let optVal = opt.role_id || '';
+              if (!optVal || optVal.length > 80) {
+                optVal = `opt_${optIdx}`;
+              }
               const optionObj = {
                 label: opt.label || 'Rôle',
-                value: opt.role_id
+                value: optVal
               };
               if (opt.emoji) optionObj.emoji = opt.emoji;
               return optionObj;
@@ -1554,14 +1583,19 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
           for (let i = 0; i < options.length && actionRows.length < 5; i += 5) {
             const chunk = options.slice(i, i + 5);
             const btnRow = new ActionRowBuilder();
-            chunk.forEach(opt => {
+            chunk.forEach((opt, optIdx) => {
               let styleCode = ButtonStyle.Primary;
               if (opt.style === 'SECONDARY') styleCode = ButtonStyle.Secondary;
               else if (opt.style === 'SUCCESS') styleCode = ButtonStyle.Success;
               else if (opt.style === 'DANGER') styleCode = ButtonStyle.Danger;
 
+              let btnVal = opt.role_id || '';
+              if (!btnVal || btnVal.length > 80) {
+                btnVal = `opt_${i + optIdx}`;
+              }
+
               const btn = new ButtonBuilder()
-                .setCustomId(`autorole_${opt.role_id}`)
+                .setCustomId(`autorole_${btnVal}`)
                 .setLabel(opt.label || 'Rôle')
                 .setStyle(styleCode);
               if (opt.emoji) btn.setEmoji(opt.emoji);
@@ -1581,10 +1615,14 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
             selectMenu.setMaxValues(options.length);
           }
 
-          const selectOptions = options.map(opt => {
+          const selectOptions = options.map((opt, optIdx) => {
+            let optVal = opt.role_id || '';
+            if (!optVal || optVal.length > 80) {
+              optVal = `opt_${optIdx}`;
+            }
             const optionObj = {
               label: opt.label || 'Rôle',
-              value: opt.role_id
+              value: optVal
             };
             if (opt.emoji) optionObj.emoji = opt.emoji;
             return optionObj;
