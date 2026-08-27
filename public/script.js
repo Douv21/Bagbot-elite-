@@ -3786,7 +3786,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const placeholder = document.getElementById('modal-selector-placeholder')?.value?.trim() || '';
     const type = document.getElementById('modal-selector-type')?.value || 'select';
-    const mode = document.getElementById('modal-selector-mode')?.value || 'normal';
+    const mode = document.getElementById('autorole-embed-mode')?.value || 'normal';
 
     const optionRows = document.querySelectorAll('#modal-selector-options-list .modal-option-row');
     const collectedOptions = [];
