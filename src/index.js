@@ -2458,12 +2458,16 @@ apiApp.get('/guilds/:guildId/messages/:messageId', async (req, res) => {
     }
 
     if (!message) {
-      const textChannels = Array.from(guild.channels.cache.values()).filter(ch => ch.isTextBased());
-      const results = await Promise.all(textChannels.map(ch => ch.messages.fetch(messageId).then(m => ({ msg: m, ch })).catch(() => null)));
-      const found = results.find(r => r && r.msg);
-      if (found) {
-        message = found.msg;
-        channel = found.ch;
+      const textChannels = Array.from(guild.channels.cache.values()).filter(ch => ch.isTextBased() && ch.viewable);
+      for (const ch of textChannels) {
+        try {
+          const m = await ch.messages.fetch(messageId).catch(() => null);
+          if (m) {
+            message = m;
+            channel = ch;
+            break;
+          }
+        } catch (e) {}
       }
     }
 
