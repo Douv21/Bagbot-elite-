@@ -3927,6 +3927,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rolesOptionsHtml = buildRolesSelectHTML(opt ? opt.role_id : '');
     const emojiVal = opt ? (opt.emoji || '') : '';
     const labelVal = opt ? (opt.label || '') : '';
+    const styleVal = opt ? (opt.style || 'PRIMARY') : 'PRIMARY';
 
     row.innerHTML = `
       <!-- Poignée :: -->
@@ -3936,6 +3937,14 @@ document.addEventListener('DOMContentLoaded', () => {
       <button type="button" class="btn-emoji-picker" style="width: 36px; height: 36px; background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; color: #fff; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Cliquer pour choisir l'émoji">
         ${emojiVal || '➕'}
       </button>
+
+      <!-- Style du bouton (Couleur) -->
+      <select class="opt-style" style="background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; color: #fff; font-size: 0.8rem; padding: 6px 8px; outline: none; cursor: pointer;" title="Couleur du bouton">
+        <option value="PRIMARY" ${styleVal === 'PRIMARY' ? 'selected' : ''}>🔵 Bleu</option>
+        <option value="SECONDARY" ${styleVal === 'SECONDARY' ? 'selected' : ''}>⚪ Gris</option>
+        <option value="SUCCESS" ${styleVal === 'SUCCESS' ? 'selected' : ''}>🟢 Vert</option>
+        <option value="DANGER" ${styleVal === 'DANGER' ? 'selected' : ''}>🔴 Rouge</option>
+      </select>
 
       <!-- Pill Badge du rôle (Cercle couleur + Émoji + Dropdown rôle + Tags sous le rôle) -->
       <div style="flex: 2.5; display: flex; flex-direction: column; background: #1e1f22; border: 1px solid #3498db; border-radius: 10px; padding: 6px 12px; min-width: 200px;">
@@ -4081,7 +4090,7 @@ document.addEventListener('DOMContentLoaded', () => {
           role_id,
           label: label || (typeof getRoleName === 'function' ? getRoleName(role_id) : 'Rôle'),
           emoji,
-          style: 'PRIMARY'
+          style: r.querySelector('.opt-style')?.value || 'PRIMARY'
         });
       }
     });
