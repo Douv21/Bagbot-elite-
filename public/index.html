@@ -532,6 +532,16 @@
                         <option value="select">Sélecteur (Menu déroulant)</option>
                       </select>
                     </div>
+                    <div style="flex: 1; min-width: 180px;">
+                      <label for="autorole-embed-mode" style="font-size: 0.8rem; font-weight: 600; color: #b9bbbe; margin-bottom: 4px; display: block;"><i class="fa-solid fa-sliders"></i> Mode de rôle :</label>
+                      <select id="autorole-embed-mode">
+                        <option value="normal" selected>Normal (Bascule / Toggle)</option>
+                        <option value="unique">Unique (1 rôle max par sélecteur)</option>
+                        <option value="add">Ajout uniquement (Ne retire jamais)</option>
+                        <option value="reversed">Retrait uniquement (Ne donne jamais)</option>
+                        <option value="verify">Définitif (Donne le rôle 1x permanamment)</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 

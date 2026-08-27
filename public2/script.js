@@ -4224,7 +4224,7 @@ document.addEventListener('DOMContentLoaded', () => {
         type,
         mode,
         existing_message_id,
-        selectors: autoroleSelectorsList,
+        selectors: (autoroleSelectorsList || []).map(sel => ({ ...sel, mode: mode })),
         options: autoroleButtonsList
       })
     })
