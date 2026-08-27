@@ -4155,6 +4155,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let editingAutoroleButtonIndex = -1;
 
+  // S'assurer que le select de style des boutons est transformé en widget custom
+  // même s'il était dans un bloc caché (display:none) au moment du init global
+  const btnStyleEl = document.getElementById('new-button-style');
+  if (btnStyleEl && !btnStyleEl.dataset.searchableTransformed) {
+    if (typeof makeSelectSearchable === 'function') makeSelectSearchable(btnStyleEl);
+  }
+
   const newBtnRoleEl = document.getElementById('new-button-role');
   const newBtnRoleTagsEl = document.getElementById('new-button-role-tags');
   if (newBtnRoleEl && newBtnRoleTagsEl) {
@@ -7104,7 +7111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tabQuestsBtn.addEventListener('click', loadQuestsConfig);
   }
 
-  function initializeSearchableSelects() {
+  function resyncCustomSelects() {
     document.querySelectorAll('select.custom-select, select.channel-select, select.role-select, select.announce-channel-select, select.category-select').forEach(select => {
       if (select.syncCustomSelect) {
         try { select.syncCustomSelect(); } catch (e) {}
@@ -7113,6 +7120,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   initializeSearchableSelects();
+  resyncCustomSelects();
 
   const btnSendFeatures = document.getElementById('btn-send-features-embed');
   if (btnSendFeatures) {
