@@ -3452,6 +3452,45 @@ document.addEventListener('DOMContentLoaded', () => {
     return html;
   }
 
+  function updateRoleSelectTags(selectEl, tagsContainerEl) {
+    if (!selectEl || !tagsContainerEl) return;
+    tagsContainerEl.innerHTML = '';
+    const selectedOptions = Array.from(selectEl.selectedOptions).filter(o => o.value);
+    
+    if (selectedOptions.length === 0) {
+      tagsContainerEl.innerHTML = '<span style="font-size: 0.72rem; color: #8e9297; font-style: italic;">Aucun rôle sélectionné</span>';
+      return;
+    }
+
+    selectedOptions.forEach(opt => {
+      const roleId = opt.value;
+      const roleObj = (typeof rolesList !== 'undefined' && Array.isArray(rolesList)) ? rolesList.find(r => String(r.id) === String(roleId)) : null;
+      let color = '#5865F2';
+      if (roleObj && roleObj.color && roleObj.color !== 0) {
+        color = `#${roleObj.color.toString(16).padStart(6, '0')}`;
+      }
+
+      const tag = document.createElement('span');
+      tag.style.cssText = `display: inline-flex; align-items: center; gap: 4px; background: ${color}25; border: 1px solid ${color}; color: #fff; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; font-weight: 600;`;
+      tag.innerHTML = `
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: ${color}; display: inline-block;"></span>
+        ${opt.text}
+        <i class="fa-solid fa-xmark btn-remove-role-tag" style="cursor: pointer; opacity: 0.8; margin-left: 4px; color: #ff5555;" title="Retirer ce rôle"></i>
+      `;
+
+      const btnRemove = tag.querySelector('.btn-remove-role-tag');
+      if (btnRemove) {
+        btnRemove.addEventListener('click', (e) => {
+          e.stopPropagation();
+          opt.selected = false;
+          selectEl.dispatchEvent(new Event('change'));
+        });
+      }
+
+      tagsContainerEl.appendChild(tag);
+    });
+  }
+
   function renderSelectorsListUI() {
     const container = document.getElementById('selectors-list-container');
     if (!container) return;
@@ -3471,27 +3510,52 @@ document.addEventListener('DOMContentLoaded', () => {
       card.className = 'selector-item-card';
       card.style.cssText = 'display: flex; gap: 8px; align-items: center; margin-bottom: 10px; width: 100%; border-left: 4px solid #d96b52; border-radius: 8px; background: #2b2d31; padding: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);';
 
+      let optionsListHtml = '';
+      if (sel.options && sel.options.length > 0) {
+        optionsListHtml = sel.options.map(opt => {
+          const roleIds = String(opt.role_id || '').split(',').map(s => s.trim()).filter(Boolean);
+          const tags = roleIds.map(rId => {
+            const roleObj = (typeof rolesList !== 'undefined' && Array.isArray(rolesList)) ? rolesList.find(r => String(r.id) === String(rId)) : null;
+            const name = roleObj ? roleObj.name : rId;
+            let color = '#5865F2';
+            if (roleObj && roleObj.color && roleObj.color !== 0) {
+              color = `#${roleObj.color.toString(16).padStart(6, '0')}`;
+            }
+            return `<span style="display: inline-flex; align-items: center; gap: 4px; background: ${color}25; border: 1px solid ${color}; color: #fff; padding: 1px 6px; border-radius: 10px; font-size: 0.72rem; font-weight: 600;"><span style="width: 5px; height: 5px; border-radius: 50%; background: ${color}; display: inline-block;"></span>${name}</span>`;
+          }).join(' ');
+          return `
+            <div style="display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.25); padding: 4px 8px; border-radius: 6px; margin-top: 4px; flex-wrap: wrap;">
+              <span style="font-size: 0.8rem; color: #fff; font-weight: 600;">${opt.emoji || '👨'} ${opt.label || 'Option'}</span>
+              <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-left: 4px;">${tags || '<span style="font-size: 0.7rem; color: #8e9297;">Aucun rôle</span>'}</div>
+            </div>
+          `;
+        }).join('');
+      }
+
       card.innerHTML = `
         <!-- Boîte de poignée de glisser (gauche) -->
-        <div style="background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; padding: 10px 12px; color: #8e9297; cursor: grab; display: flex; align-items: center; justify-content: center; height: 44px;">
+        <div style="background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; padding: 10px 12px; color: #8e9297; cursor: grab; display: flex; align-items: center; justify-content: center; min-height: 50px;">
           <i class="fa-solid fa-grip-vertical" style="font-size: 1rem;"></i>
         </div>
         
         <!-- Carte principale (milieu) -->
-        <div style="background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; padding: 6px 12px; flex: 1; display: flex; justify-content: space-between; align-items: center; height: 44px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="background: rgba(217,107,82,0.2); color: #d96b52; border: 1px solid rgba(217,107,82,0.4); border-radius: 4px; padding: 2px 8px; font-size: 0.75rem; font-weight: 700;">#${index + 1}</span>
-            <span style="font-weight: 700; font-size: 0.92rem; color: #ffffff;">${sel.placeholder || 'Sélecteur ' + (index + 1)}</span>
-            <span style="color: #8e9297; font-size: 0.78rem;">(${sel.options ? sel.options.length : 0} options)</span>
-          </div>
+        <div style="background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; padding: 8px 12px; flex: 1; display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="background: rgba(217,107,82,0.2); color: #d96b52; border: 1px solid rgba(217,107,82,0.4); border-radius: 4px; padding: 2px 8px; font-size: 0.75rem; font-weight: 700;">#${index + 1}</span>
+              <span style="font-weight: 700; font-size: 0.92rem; color: #ffffff;">${sel.placeholder || 'Sélecteur ' + (index + 1)}</span>
+              <span style="color: #8e9297; font-size: 0.78rem;">(${sel.options ? sel.options.length : 0} options)</span>
+            </div>
 
-          <button type="button" class="btn btn-edit-selector" style="background: #2b2d31; border: 1px solid #d96b52; color: #ffffff; padding: 5px 14px; border-radius: 6px; font-weight: 700; font-size: 0.82rem; cursor: pointer; white-space: nowrap; transition: background 0.2s;">
-            ✏️ Modifier
-          </button>
+            <button type="button" class="btn btn-edit-selector" style="background: #2b2d31; border: 1px solid #d96b52; color: #ffffff; padding: 5px 14px; border-radius: 6px; font-weight: 700; font-size: 0.82rem; cursor: pointer; white-space: nowrap; transition: background 0.2s;">
+              ✏️ Modifier
+            </button>
+          </div>
+          ${optionsListHtml ? `<div style="display: flex; flex-direction: column; gap: 2px;">${optionsListHtml}</div>` : ''}
         </div>
 
         <!-- Boîte de suppression (droite) -->
-        <div class="btn-delete-selector" style="background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; padding: 10px 14px; color: #ed4245; cursor: pointer; display: flex; align-items: center; justify-content: center; height: 44px;" title="Supprimer ce sélecteur">
+        <div class="btn-delete-selector" style="background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; padding: 10px 14px; color: #ed4245; cursor: pointer; display: flex; align-items: center; justify-content: center; min-height: 50px;" title="Supprimer ce sélecteur">
           <i class="fa-regular fa-trash-can" style="font-size: 1rem;"></i>
         </div>
       `;
@@ -3702,13 +3766,16 @@ document.addEventListener('DOMContentLoaded', () => {
         ${emojiVal}
       </button>
 
-      <!-- Pill Badge du rôle (Cercle couleur + Émoji + Dropdown rôle) -->
-      <div style="flex: 2; display: flex; align-items: center; background: #1e1f22; border: 1px solid #3498db; border-radius: 20px; padding: 4px 12px; min-width: 180px;">
-        <span class="role-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #3498db; display: inline-block; margin-right: 6px; flex-shrink: 0;"></span>
-        <input type="text" class="opt-emoji" value="${emojiVal}" placeholder="👨" style="width: 28px; background: #2b2d31; border: 1px solid #383a40; border-radius: 4px; font-size: 0.95rem; color: #fff; text-align: center; outline: none; margin-right: 6px; padding: 2px 0;">
-        <select class="opt-role role-select" style="width: 100%; background: transparent; border: none; color: #3498db; font-weight: 700; font-size: 0.88rem; outline: none; cursor: pointer;">
-          ${rolesOptionsHtml}
-        </select>
+      <!-- Pill Badge du rôle (Cercle couleur + Émoji + Dropdown rôle + Tags sous le rôle) -->
+      <div style="flex: 2.5; display: flex; flex-direction: column; background: #1e1f22; border: 1px solid #3498db; border-radius: 10px; padding: 6px 12px; min-width: 200px;">
+        <div style="display: flex; align-items: center; width: 100%;">
+          <span class="role-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #3498db; display: inline-block; margin-right: 6px; flex-shrink: 0;"></span>
+          <input type="text" class="opt-emoji" value="${emojiVal}" placeholder="👨" style="width: 28px; background: #2b2d31; border: 1px solid #383a40; border-radius: 4px; font-size: 0.95rem; color: #fff; text-align: center; outline: none; margin-right: 6px; padding: 2px 0;">
+          <select class="opt-role role-select" multiple size="3" style="width: 100%; max-height: 70px; background: transparent; border: none; color: #3498db; font-weight: 700; font-size: 0.82rem; outline: none; cursor: pointer;">
+            ${rolesOptionsHtml}
+          </select>
+        </div>
+        <div class="opt-role-tags" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; min-height: 20px;"></div>
       </div>
 
       <!-- Intitulé personnalisé de l'option -->
@@ -3734,6 +3801,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnEmoji = row.querySelector('.btn-emoji-picker');
     const optEmojiInput = row.querySelector('.opt-emoji');
     const statusBadge = row.querySelector('.badge-status');
+    const optRoleTags = row.querySelector('.opt-role-tags');
 
     if (btnEmoji && optEmojiInput) {
       btnEmoji.addEventListener('click', () => openEmojiPickerPopover(optEmojiInput, btnEmoji));
@@ -3745,7 +3813,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const updatePillColor = () => {
       if (!roleSelect) return;
-      const selectedId = roleSelect.value;
+      const selectedOpts = Array.from(roleSelect.selectedOptions).filter(o => o.value);
+      const selectedId = selectedOpts[0] ? selectedOpts[0].value : null;
       const roleObj = (typeof rolesList !== 'undefined' && Array.isArray(rolesList)) ? rolesList.find(r => String(r.id) === String(selectedId)) : null;
       let color = '#3498db';
       if (roleObj && roleObj.color && roleObj.color !== 0) {
@@ -3756,15 +3825,18 @@ document.addEventListener('DOMContentLoaded', () => {
         roleSelect.style.color = color;
         if (roleSelect.parentElement) roleSelect.parentElement.style.borderColor = color;
       }
+      if (optRoleTags) {
+        updateRoleSelectTags(roleSelect, optRoleTags);
+      }
       if (statusBadge) {
-        if (selectedId) {
+        if (selectedOpts.length > 0) {
           statusBadge.style.background = '#23a55a';
           statusBadge.textContent = '✓';
-          statusBadge.title = 'Rôle configuré avec succès !';
+          statusBadge.title = `${selectedOpts.length} rôle(s) configuré(s) !`;
         } else {
           statusBadge.style.background = '#da373c';
           statusBadge.textContent = '!';
-          statusBadge.title = 'Veuillez choisir un rôle';
+          statusBadge.title = 'Veuillez choisir un ou plusieurs rôles';
         }
       }
     };
@@ -3876,6 +3948,14 @@ document.addEventListener('DOMContentLoaded', () => {
     btnAddModalOpt.addEventListener('click', () => addModalOptionRow());
   }
 
+  const newBtnRoleEl = document.getElementById('new-button-role');
+  const newBtnRoleTagsEl = document.getElementById('new-button-role-tags');
+  if (newBtnRoleEl && newBtnRoleTagsEl) {
+    newBtnRoleEl.addEventListener('change', () => {
+      updateRoleSelectTags(newBtnRoleEl, newBtnRoleTagsEl);
+    });
+  }
+
   const btnAddAutoroleBtn = document.getElementById('btn-add-autorole-button');
   if (btnAddAutoroleBtn) {
     btnAddAutoroleBtn.addEventListener('click', () => {
@@ -3962,13 +4042,32 @@ document.addEventListener('DOMContentLoaded', () => {
       autoroleButtonsList.forEach((btn, index) => {
         const wrapper = document.createElement('div');
         wrapper.className = 'badge';
-        wrapper.style.cssText = 'padding: 8px 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; margin-bottom: 6px;';
+        wrapper.style.cssText = 'padding: 10px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; width: 100%;';
 
         const styleLabel = btn.style === 'SUCCESS' ? 'Vert' : (btn.style === 'DANGER' ? 'Rouge' : (btn.style === 'SECONDARY' ? 'Gris' : 'Bleu'));
-        const roleNameStr = typeof getRoleName === 'function' ? getRoleName(btn.role_id) : (btn.role_id || 'Rôle');
+        const roleIds = String(btn.role_id || '').split(',').map(s => s.trim()).filter(Boolean);
+        const roleTagsHtml = roleIds.map(rId => {
+          const roleObj = (typeof rolesList !== 'undefined' && Array.isArray(rolesList)) ? rolesList.find(r => String(r.id) === String(rId)) : null;
+          const name = roleObj ? roleObj.name : rId;
+          let color = '#5865F2';
+          if (roleObj && roleObj.color && roleObj.color !== 0) {
+            color = `#${roleObj.color.toString(16).padStart(6, '0')}`;
+          }
+          return `<span style="display: inline-flex; align-items: center; gap: 4px; background: ${color}25; border: 1px solid ${color}; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;"><span style="width: 6px; height: 6px; border-radius: 50%; background: ${color}; display: inline-block;"></span>${name}</span>`;
+        }).join(' ');
+
         wrapper.innerHTML = `
-          <span style="font-weight: 600; color: #ffffff;">${btn.emoji || '📌'} ${btn.label || roleNameStr} <small style="color: #b9bbbe;">(${roleNameStr})</small> <span style="background: rgba(88,101,242,0.3); padding: 2px 6px; border-radius: 4px; font-size: 0.72rem;">${styleLabel}</span></span>
-          <button type="button" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 1rem; padding: 0 4px;" title="Retirer ce rôle"><i class="fa-solid fa-xmark"></i></button>
+          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+            <span style="font-weight: 700; color: #ffffff; font-size: 0.9rem;">
+              ${btn.emoji || '📌'} ${btn.label || 'Bouton'}
+              <span style="background: rgba(88,101,242,0.3); padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; margin-left: 6px;">${styleLabel}</span>
+            </span>
+            <button type="button" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 1.1rem; padding: 0 4px;" title="Supprimer ce bouton"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+            <span style="font-size: 0.75rem; color: #b9bbbe; font-weight: 600;">🏷️ Rôles attribués (${roleIds.length}) :</span>
+            ${roleTagsHtml || '<span style="font-size: 0.72rem; color: #8e9297;">Aucun rôle</span>'}
+          </div>
         `;
 
         const btnRemove = wrapper.querySelector('button');
