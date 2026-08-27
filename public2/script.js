@@ -4194,12 +4194,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const previewImg = document.getElementById('autorole-preview-image');
+    const imageOverlay = document.querySelector('#autorole-image-box .discord-image-input-overlay');
     if (previewImg) {
       if (imageUrl) {
         previewImg.src = imageUrl;
         previewImg.style.display = 'block';
+        if (imageOverlay) imageOverlay.style.display = 'none';
       } else {
         previewImg.style.display = 'none';
+        if (imageOverlay) imageOverlay.style.display = 'flex';
       }
     }
   };
@@ -7827,32 +7830,9 @@ function initSondageModule() {
 
   const loadMessageDetailsIntoForm = (item) => {
     if (!item) return;
-    if (existingMsgInput) existingMsgInput.value = item.id;
-    const titleEl = document.getElementById('autorole-embed-title');
-    if (titleEl) titleEl.value = item.title || '';
-    const descEl = document.getElementById('autorole-embed-desc');
-    if (descEl) descEl.value = item.description || '';
-    const colorEl = document.getElementById('autorole-embed-color');
-    if (colorEl) colorEl.value = item.color || '#5865F2';
-    const thumbEl = document.getElementById('autorole-embed-thumbnail');
-    if (thumbEl) thumbEl.value = item.thumbnail ? '1' : '0';
-    const imgEl = document.getElementById('autorole-embed-image');
-    if (imgEl) imgEl.value = item.image_url || '';
-    const typeEl = document.getElementById('autorole-embed-type');
-    if (typeEl) typeEl.value = item.type || 'buttons';
-
-    if (Array.isArray(item.options)) {
-      autoroleButtonsList = item.options.map(opt => ({
-        role_id: opt.role_id,
-        label: opt.label || '',
-        emoji: opt.emoji || '',
-        style: opt.style || 'PRIMARY'
-      }));
+    if (typeof populateAutoroleEmbedForm === 'function') {
+      populateAutoroleEmbedForm(item);
     }
-
-    if (typeof renderButtonsCreatorPreview === 'function') renderButtonsCreatorPreview();
-    if (typeof updateAutorolePreview === 'function') updateAutorolePreview();
-    showToast('Message existant et ses rôles/boutons chargés dans le formulaire !');
   };
 
   if (autoroleChanSelect) {
@@ -7894,17 +7874,22 @@ function initSondageModule() {
       const msgId = selectChannelAutoroles.value;
       if (!msgId) return;
 
-      const item = fetchedChannelMessagesList.find(m => m.id === msgId);
-      if (item) {
-        loadMessageDetailsIntoForm(item);
-      } else {
-        fetch(`/api/config/embeds/fetch-message-details?messageId=${msgId}`)
-          .then(res => res.json())
-          .then(det => {
-            if (det && det.id) loadMessageDetailsIntoForm(det);
-          })
-          .catch(console.error);
-      }
+      const channelId = autoroleChanSelect ? autoroleChanSelect.value : '';
+      if (existingMsgInput) existingMsgInput.value = msgId;
+
+      showToast('🔍 Récupération des données complètes du message...');
+      fetch(`/api/config/autorole-embeds/fetch-message?channelId=${channelId || ''}&messageId=${msgId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && !data.error) {
+            populateAutoroleEmbedForm(data);
+          } else {
+            showToast(`❌ Erreur : ${data.error || 'Impossible de récupérer ce message'}`, true);
+          }
+        })
+        .catch(err => {
+          showToast(`❌ Erreur réseau : ${err.message}`, true);
+        });
     });
   }
 
