@@ -612,12 +612,20 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (customId.startsWith('autorole_')) {
-      const roleId = customId.split('_')[1];
+      let sIdx = 0;
+      let roleId = customId.replace('autorole_', '');
+      if (customId.startsWith('autorole_sel_')) {
+        const parts = customId.replace('autorole_sel_', '').split('_');
+        if (parts.length >= 2) {
+          sIdx = parseInt(parts[0], 10);
+          roleId = `opt_${parts[0]}_${parts[1]}`;
+        }
+      }
       if (!roleId) return;
 
       try {
         await interaction.deferReply({ ephemeral: true });
-        await handleRoleModeAssignment(interaction, roleId, interaction.message.id);
+        await handleRoleModeAssignment(interaction, roleId, interaction.message.id, sIdx);
       } catch (err) {
         console.error('Erreur bouton:', err);
       }
@@ -939,12 +947,18 @@ client.on('interactionCreate', async interaction => {
     } else if (interaction.customId === 'autorole_select_menu' || interaction.customId === 'autorole_multi_select_menu' || interaction.customId.startsWith('autorole_select_') || interaction.customId.startsWith('autorole_multi_select_')) {
       try {
         await interaction.deferReply({ ephemeral: true });
+        let sIdx = 0;
+        if (interaction.customId.startsWith('autorole_select_')) {
+          const parsed = parseInt(interaction.customId.replace('autorole_select_', ''), 10);
+          if (!isNaN(parsed)) sIdx = parsed;
+        }
+
         if (interaction.customId === 'autorole_multi_select_menu' || interaction.customId.startsWith('autorole_multi_select_')) {
-          await handleMultiRoleSelect(interaction, interaction.values || [], interaction.message.id);
+          await handleMultiRoleSelect(interaction, interaction.values || [], interaction.message.id, sIdx);
         } else {
           const roleId = interaction.values[0];
           if (roleId) {
-            await handleRoleModeAssignment(interaction, roleId, interaction.message.id);
+            await handleRoleModeAssignment(interaction, roleId, interaction.message.id, sIdx);
           } else {
             await interaction.editReply({ content: '❌ Aucun rôle sélectionné.' });
           }
