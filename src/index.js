@@ -288,17 +288,25 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId) => {
       }
     }
 
-    if (mode === 'reversed') { // inversé
-      if (member.roles.cache.has(roleId)) {
-        await member.roles.remove(roleId);
-        return interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été retiré (mode inversé).` });
-      } else {
+    if (mode === 'add') { // Ajout uniquement
+      if (!member.roles.cache.has(roleId)) {
         await member.roles.add(roleId);
-        return interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été attribué (mode inversé).` });
+        return interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été attribué.` });
+      } else {
+        return interaction.editReply({ content: `Vous possédez déjà le rôle **${role.name}**.` });
       }
     }
 
-    // mode normal (bascule)
+    if (mode === 'reversed' || mode === 'remove') { // Retrait uniquement
+      if (member.roles.cache.has(roleId)) {
+        await member.roles.remove(roleId);
+        return interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été retiré.` });
+      } else {
+        return interaction.editReply({ content: `Vous ne possédez pas le rôle **${role.name}**.` });
+      }
+    }
+
+    // Mode normal (Classique / Bascule)
     if (member.roles.cache.has(roleId)) {
       await member.roles.remove(roleId);
       return interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été retiré.` });

@@ -535,10 +535,11 @@
                     <div style="flex: 1; min-width: 160px;">
                       <label for="autorole-embed-mode" style="font-size: 0.8rem; font-weight: 600; color: #b9bbbe; margin-bottom: 4px; display: block;"><i class="fa-solid fa-gears"></i> Mode :</label>
                       <select id="autorole-embed-mode">
-                        <option value="normal">Bascule (Donne/Retire)</option>
-                        <option value="reversed">Inversé (Retire/Donne)</option>
-                        <option value="unique">Unique (un seul rôle actif)</option>
-                        <option value="verify">Définitif (donne sans retirer)</option>
+                        <option value="normal">Classique (Ajoute et retire les autres)</option>
+                        <option value="add">Ajout (Ajoute les rôles sélectionnés)</option>
+                        <option value="reversed">Retrait (Retire les rôles sélectionnés)</option>
+                        <option value="unique">Unique (1 seul rôle actif à la fois)</option>
+                        <option value="verify">Définitif (Donne sans pouvoir le retirer)</option>
                       </select>
                     </div>
                   </div>
@@ -628,10 +629,11 @@
                               STYLE DE FONCTIONNEMENT
                             </label>
                             <select id="modal-selector-mode" style="width: 100%; background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; color: #ffffff; font-size: 0.92rem; padding: 10px 14px; font-family: inherit; outline: none; cursor: pointer;">
-                              <option value="normal">Classique - Ajoute les rôles sélectionnés et retire les autres.</option>
-                              <option value="unique">Unique - Un seul rôle à la fois.</option>
-                              <option value="reversed">Inversé - Retire les rôles sélectionnés.</option>
-                              <option value="verify">Définitif - Donne sans pouvoir retirer.</option>
+                              <option value="normal">Classique - Ajoute le rôle sélectionné et retire les autres.</option>
+                              <option value="add">Ajout - Ajoute les rôles sélectionnés sans les retirer.</option>
+                              <option value="reversed">Retrait - Retire les rôles sélectionnés.</option>
+                              <option value="unique">Unique - Un seul rôle actif à la fois.</option>
+                              <option value="verify">Définitif - Donne le rôle sans pouvoir le retirer.</option>
                             </select>
                             <small style="color: #949ba4; font-size: 0.8rem; display: block; margin-top: 4px;">Ajoute les rôles sélectionnés et retire les autres.</small>
                           </div>
