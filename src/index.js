@@ -294,14 +294,34 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId) => {
     const validNames = validRoles.map(r => `**${r.name}**`).join(', ');
 
     if (mode === 'unique') {
-      const allOptions = db.prepare('SELECT role_id FROM autorole_options WHERE message_id = ?').all(messageId);
       const allConfiguredRoleIds = new Set();
+      
+      const allOptions = db.prepare('SELECT role_id FROM autorole_options WHERE message_id = ?').all(messageId);
       allOptions.forEach(o => {
         String(o.role_id || '').split(',').forEach(id => {
-          const clean = id.trim();
-          if (clean) allConfiguredRoleIds.add(clean);
+          const m = id.trim().match(/\d{17,20}/);
+          if (m) allConfiguredRoleIds.add(m[0]);
         });
       });
+
+      const embedRecord = db.prepare('SELECT selectors_json FROM autorole_embeds WHERE message_id = ?').get(messageId);
+      if (embedRecord && embedRecord.selectors_json) {
+        try {
+          const parsedSel = JSON.parse(embedRecord.selectors_json);
+          if (Array.isArray(parsedSel)) {
+            parsedSel.forEach(s => {
+              if (s.options && Array.isArray(s.options)) {
+                s.options.forEach(opt => {
+                  String(opt.role_id || '').split(',').forEach(id => {
+                    const m = id.trim().match(/\d{17,20}/);
+                    if (m) allConfiguredRoleIds.add(m[0]);
+                  });
+                });
+              }
+            });
+          }
+        } catch (e) {}
+      }
 
       const rolesToRemove = Array.from(allConfiguredRoleIds).filter(rId => !validIds.includes(rId) && member.roles.cache.has(rId));
       if (rolesToRemove.length > 0) {
@@ -311,7 +331,7 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId) => {
       const rolesToAdd = validIds.filter(rId => !member.roles.cache.has(rId));
       if (rolesToAdd.length > 0) {
         await member.roles.add(rolesToAdd);
-        return interaction.editReply({ content: `✅ Rôle(s) ${validNames} attribué(s) (les autres rôles associés ont été retirés).` });
+        return interaction.editReply({ content: `✅ Rôle(s) ${validNames} attribué(s) (les autres rôles de ce menu ont été retirés).` });
       } else {
         return interaction.editReply({ content: `Vous possédez déjà le(s) rôle(s) ${validNames}.` });
       }
@@ -1522,7 +1542,8 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
       selectors.slice(0, 5).forEach((sel, sIdx) => {
         if (!sel.options || sel.options.length === 0) return;
         const selType = sel.type || 'select';
-        if (selType === 'buttons') {
+        const isDropdown = (type === 'select' || type === 'multi_select') || (selType !== 'buttons');
+        if (!isDropdown) {
           for (let i = 0; i < sel.options.length && actionRows.length < 5; i += 5) {
             const chunk = sel.options.slice(i, i + 5);
             const btnRow = new ActionRowBuilder();
