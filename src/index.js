@@ -250,11 +250,29 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId) => {
   const guild = interaction.guild;
   const botMember = guild.members.me;
 
+  let currentSelectorIdx = null;
+
   if (typeof roleId === 'string' && roleId.startsWith('opt_')) {
-    const optIdx = parseInt(roleId.replace('opt_', ''), 10);
-    const dbOpts = db.prepare('SELECT role_id FROM autorole_options WHERE message_id = ?').all(messageId);
-    if (dbOpts && dbOpts[optIdx] && dbOpts[optIdx].role_id) {
-      roleId = dbOpts[optIdx].role_id;
+    const parts = roleId.replace('opt_', '').split('_');
+    if (parts.length >= 2) {
+      currentSelectorIdx = parseInt(parts[0], 10);
+      const optIdx = parseInt(parts[1], 10);
+      const embedRecord = db.prepare('SELECT selectors_json FROM autorole_embeds WHERE message_id = ?').get(messageId);
+      if (embedRecord && embedRecord.selectors_json) {
+        try {
+          const parsedSel = JSON.parse(embedRecord.selectors_json);
+          if (parsedSel[currentSelectorIdx] && parsedSel[currentSelectorIdx].options && parsedSel[currentSelectorIdx].options[optIdx]) {
+            roleId = parsedSel[currentSelectorIdx].options[optIdx].role_id;
+          }
+        } catch (e) {}
+      }
+    }
+    if (typeof roleId === 'string' && roleId.startsWith('opt_')) {
+      const optIdx = parseInt(roleId.replace('opt_', ''), 10);
+      const dbOpts = db.prepare('SELECT role_id FROM autorole_options WHERE message_id = ?').all(messageId);
+      if (dbOpts && dbOpts[optIdx] && dbOpts[optIdx].role_id) {
+        roleId = dbOpts[optIdx].role_id;
+      }
     }
   }
 
@@ -294,36 +312,46 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId) => {
     const validNames = validRoles.map(r => `**${r.name}**`).join(', ');
 
     if (mode === 'unique') {
-      const allConfiguredRoleIds = new Set();
-      
-      const allOptions = db.prepare('SELECT role_id FROM autorole_options WHERE message_id = ?').all(messageId);
-      allOptions.forEach(o => {
-        String(o.role_id || '').split(',').forEach(id => {
-          const m = id.trim().match(/\d{17,20}/);
-          if (m) allConfiguredRoleIds.add(m[0]);
-        });
-      });
-
+      const groupRoleIds = new Set();
       const embedRecord = db.prepare('SELECT selectors_json FROM autorole_embeds WHERE message_id = ?').get(messageId);
+      let parsedSel = null;
       if (embedRecord && embedRecord.selectors_json) {
-        try {
-          const parsedSel = JSON.parse(embedRecord.selectors_json);
-          if (Array.isArray(parsedSel)) {
-            parsedSel.forEach(s => {
-              if (s.options && Array.isArray(s.options)) {
-                s.options.forEach(opt => {
-                  String(opt.role_id || '').split(',').forEach(id => {
-                    const m = id.trim().match(/\d{17,20}/);
-                    if (m) allConfiguredRoleIds.add(m[0]);
-                  });
-                });
-              }
-            });
-          }
-        } catch (e) {}
+        try { parsedSel = JSON.parse(embedRecord.selectors_json); } catch (e) {}
       }
 
-      const rolesToRemove = Array.from(allConfiguredRoleIds).filter(rId => !validIds.includes(rId) && member.roles.cache.has(rId));
+      if (parsedSel && Array.isArray(parsedSel) && currentSelectorIdx !== null && parsedSel[currentSelectorIdx]) {
+        const targetSel = parsedSel[currentSelectorIdx];
+        if (targetSel.options && Array.isArray(targetSel.options)) {
+          targetSel.options.forEach(opt => {
+            String(opt.role_id || '').split(',').forEach(id => {
+              const m = id.trim().match(/\d{17,20}/);
+              if (m) groupRoleIds.add(m[0]);
+            });
+          });
+        }
+      } else {
+        const allOptions = db.prepare('SELECT role_id FROM autorole_options WHERE message_id = ?').all(messageId);
+        allOptions.forEach(o => {
+          String(o.role_id || '').split(',').forEach(id => {
+            const m = id.trim().match(/\d{17,20}/);
+            if (m) groupRoleIds.add(m[0]);
+          });
+        });
+        if (parsedSel && Array.isArray(parsedSel)) {
+          parsedSel.forEach(s => {
+            if (s.options && Array.isArray(s.options)) {
+              s.options.forEach(opt => {
+                String(opt.role_id || '').split(',').forEach(id => {
+                  const m = id.trim().match(/\d{17,20}/);
+                  if (m) groupRoleIds.add(m[0]);
+                });
+              });
+            }
+          });
+        }
+      }
+
+      const rolesToRemove = Array.from(groupRoleIds).filter(rId => !validIds.includes(rId) && member.roles.cache.has(rId));
       if (rolesToRemove.length > 0) {
         await member.roles.remove(rolesToRemove).catch(() => null);
       }
@@ -1555,7 +1583,7 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
 
               let btnVal = opt.role_id || '';
               if (!btnVal || btnVal.length > 80) {
-                btnVal = `opt_${i + optIdx}`;
+                btnVal = `opt_${sIdx}_${i + optIdx}`;
               }
 
               const btn = new ButtonBuilder()
@@ -1584,7 +1612,7 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
             const selectOptions = sel.options.map((opt, optIdx) => {
               let optVal = opt.role_id || '';
               if (!optVal || optVal.length > 80) {
-                optVal = `opt_${optIdx}`;
+                optVal = `opt_${sIdx}_${optIdx}`;
               }
               const optionObj = {
                 label: opt.label || 'Rôle',
