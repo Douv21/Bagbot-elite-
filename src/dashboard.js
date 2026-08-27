@@ -1738,7 +1738,9 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
     const { messageId } = await botResponse.json();
 
     // 2. Enregistrer dans SQLite
-    const selectorsJson = selectors && selectors.length > 0 ? JSON.stringify(selectors) : null;
+    const finalSelectors = (type === 'buttons') ? [] : (selectors || []);
+    const selectorsJson = finalSelectors.length > 0 ? JSON.stringify(finalSelectors) : null;
+
     addAutoroleEmbed(
       guildId, 
       messageId, 
@@ -1754,8 +1756,12 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
     );
     
     db.prepare('DELETE FROM autorole_options WHERE message_id = ?').run(messageId);
-    if (selectors && selectors.length > 0) {
-      selectors.forEach(sel => {
+    if (type === 'buttons' && options && options.length > 0) {
+      for (const opt of options) {
+        addAutoroleOption(messageId, opt.role_id, opt.label, opt.emoji, opt.style || 'PRIMARY');
+      }
+    } else if (finalSelectors.length > 0) {
+      finalSelectors.forEach(sel => {
         if (sel.options) {
           sel.options.forEach(opt => {
             addAutoroleOption(messageId, opt.role_id, opt.label, opt.emoji, opt.style || 'PRIMARY');

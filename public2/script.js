@@ -4035,6 +4035,9 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         });
       }
+      if (typeof makeSelectMultiple === 'function') {
+        makeSelectMultiple(roleSelect);
+      }
       updatePillColor();
     }
 
@@ -5563,10 +5566,20 @@ document.addEventListener('DOMContentLoaded', () => {
           checkbox.checked = option.selected;
           checkbox.style.cursor = 'pointer';
           
+          item.appendChild(checkbox);
+
+          const roleId = option.value;
+          const roleObj = (typeof rolesList !== 'undefined' && Array.isArray(rolesList)) ? rolesList.find(r => String(r.id) === String(roleId)) : null;
+          if (roleObj && roleObj.color && roleObj.color !== 0) {
+            const hexColor = `#${roleObj.color.toString(16).padStart(6, '0')}`;
+            const dot = document.createElement('span');
+            dot.style.cssText = `width: 8px; height: 8px; border-radius: 50%; background: ${hexColor}; flex-shrink: 0; display: inline-block;`;
+            item.appendChild(dot);
+          }
+          
           const labelSpan = document.createElement('span');
           labelSpan.textContent = option.text;
           
-          item.appendChild(checkbox);
           item.appendChild(labelSpan);
 
           if (option.selected) {
