@@ -3435,17 +3435,20 @@ document.addEventListener('DOMContentLoaded', () => {
   let autoroleSelectorsList = [];
 
   function buildRolesSelectHTML(selectedRoleId = '') {
-    let html = '<option value="">-- Choisir un rôle --</option>';
+    const selectedIds = String(selectedRoleId || '').split(',').map(s => s.trim()).filter(Boolean);
+    let html = '<option value="">-- Choisir un ou plusieurs rôles (jusqu\'à 20) --</option>';
     if (typeof rolesList !== 'undefined' && Array.isArray(rolesList) && rolesList.length > 0) {
       rolesList.forEach(r => {
-        const isSel = String(r.id) === String(selectedRoleId) ? 'selected' : '';
+        const isSel = selectedIds.includes(String(r.id)) ? 'selected' : '';
         html += `<option value="${r.id}" ${isSel}>${r.name}</option>`;
       });
     }
-    if (selectedRoleId && (!typeof rolesList !== 'undefined' || !rolesList.find(r => String(r.id) === String(selectedRoleId)))) {
-      const fallbackName = typeof getRoleName === 'function' ? getRoleName(selectedRoleId) : selectedRoleId;
-      html += `<option value="${selectedRoleId}" selected>${fallbackName}</option>`;
-    }
+    selectedIds.forEach(id => {
+      if (id && (typeof rolesList === 'undefined' || !rolesList || !rolesList.find(r => String(r.id) === String(id)))) {
+        const fallbackName = typeof getRoleName === 'function' ? getRoleName(id) : id;
+        html += `<option value="${id}" selected>${fallbackName}</option>`;
+      }
+    });
     return html;
   }
 
@@ -3795,7 +3798,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     optionRows.forEach(r => {
       const emoji = r.querySelector('.opt-emoji')?.value?.trim() || '';
-      const role_id = r.querySelector('.opt-role')?.value || '';
+      const roleSelectEl = r.querySelector('.opt-role');
+      let selectedRoles = [];
+      if (roleSelectEl && roleSelectEl.multiple) {
+        selectedRoles = Array.from(roleSelectEl.selectedOptions).map(o => o.value).filter(Boolean);
+      } else if (roleSelectEl && roleSelectEl.value) {
+        selectedRoles = [roleSelectEl.value];
+      }
+      const role_id = selectedRoles.slice(0, 20).join(',');
       const label = r.querySelector('.opt-label')?.value?.trim() || '';
 
       if (role_id) {
@@ -3869,15 +3879,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAddAutoroleBtn = document.getElementById('btn-add-autorole-button');
   if (btnAddAutoroleBtn) {
     btnAddAutoroleBtn.addEventListener('click', () => {
-      const role_id = document.getElementById('new-button-role').value;
+      const roleSelectEl = document.getElementById('new-button-role');
+      let selectedRoles = [];
+      if (roleSelectEl && roleSelectEl.multiple) {
+        selectedRoles = Array.from(roleSelectEl.selectedOptions).map(o => o.value).filter(Boolean);
+      } else if (roleSelectEl && roleSelectEl.value) {
+        selectedRoles = [roleSelectEl.value];
+      }
+
+      if (selectedRoles.length === 0) {
+        alert('Veuillez sélectionner au moins un rôle.');
+        return;
+      }
+
+      const role_id = selectedRoles.slice(0, 20).join(',');
       const label = document.getElementById('new-button-label').value.trim();
       const emoji = document.getElementById('new-button-emoji').value.trim();
       const style = document.getElementById('new-button-style').value;
 
-      if (!role_id) {
-        alert('Veuillez sélectionner un rôle.');
-        return;
-      }
       if (!label) {
         alert('Veuillez saisir un libellé pour le bouton.');
         return;
@@ -3890,7 +3909,9 @@ document.addEventListener('DOMContentLoaded', () => {
       autoroleButtonsList.push({ role_id, label, emoji, style });
       
       // Reset inputs
-      document.getElementById('new-button-role').value = '';
+      if (roleSelectEl) {
+        Array.from(roleSelectEl.options).forEach(o => o.selected = false);
+      }
       document.getElementById('new-button-label').value = '';
       document.getElementById('new-button-emoji').value = '';
       document.getElementById('new-button-style').value = 'PRIMARY';
@@ -4972,8 +4993,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getRoleName(roleId) {
-    const role = rolesList.find(r => r.id === roleId);
-    return role ? role.name : roleId;
+    if (!roleId) return 'Aucun rôle';
+    const ids = String(roleId).split(',').map(s => s.trim()).filter(Boolean);
+    if (ids.length === 0) return 'Aucun rôle';
+    const names = ids.map(id => {
+      const role = (typeof rolesList !== 'undefined' && Array.isArray(rolesList)) ? rolesList.find(r => String(r.id) === String(id)) : null;
+      return role ? role.name : id;
+    });
+    return names.join(' + ');
   }
 
   function getChannelName(channelId) {

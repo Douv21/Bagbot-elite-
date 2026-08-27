@@ -249,70 +249,104 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId) => {
   const member = interaction.member;
   const guild = interaction.guild;
   const botMember = guild.members.me;
-  const role = guild.roles.cache.get(roleId);
 
-  if (!role) {
-    return interaction.editReply({ content: '❌ Ce rôle n\'existe plus sur ce serveur.' });
+  const rawIds = Array.isArray(roleId) 
+    ? roleId 
+    : String(roleId || '').split(',').map(s => s.trim()).filter(Boolean);
+
+  const cleanRoleIds = rawIds.map(id => {
+    const m = id.match(/\d{17,20}/);
+    return m ? m[0] : id;
+  }).filter(Boolean).slice(0, 20);
+
+  if (cleanRoleIds.length === 0) {
+    return interaction.editReply({ content: '❌ Aucun rôle valide configuré pour cette option.' });
   }
 
-  if (role.position >= botMember.roles.highest.position) {
-    return interaction.editReply({ content: '❌ Je n\'ai pas les permissions suffisantes pour gérer ce rôle (le rôle est au-dessus de mon rôle le plus élevé).' });
+  const validRoles = [];
+
+  for (const rId of cleanRoleIds) {
+    const role = guild.roles.cache.get(rId);
+    if (!role) continue;
+    if (role.position >= botMember.roles.highest.position) {
+      return interaction.editReply({ content: `❌ Je n'ai pas les permissions suffisantes pour gérer le rôle **${role.name}** (position trop élevée).` });
+    }
+    validRoles.push(role);
+  }
+
+  if (validRoles.length === 0) {
+    return interaction.editReply({ content: '❌ Aucun des rôles configurés n\'existe plus sur ce serveur.' });
   }
 
   const embedRule = db.prepare('SELECT mode FROM autorole_embeds WHERE message_id = ?').get(messageId);
   const mode = embedRule ? embedRule.mode : 'normal';
 
   try {
+    const validIds = validRoles.map(r => r.id);
+    const validNames = validRoles.map(r => `**${r.name}**`).join(', ');
+
     if (mode === 'unique') {
-      // Retirer tous les autres rôles configurés sur ce message
       const allOptions = db.prepare('SELECT role_id FROM autorole_options WHERE message_id = ?').all(messageId);
-      const rolesToRemove = allOptions.map(o => o.role_id).filter(r => r !== roleId && member.roles.cache.has(r));
-      
+      const allConfiguredRoleIds = new Set();
+      allOptions.forEach(o => {
+        String(o.role_id || '').split(',').forEach(id => {
+          const clean = id.trim();
+          if (clean) allConfiguredRoleIds.add(clean);
+        });
+      });
+
+      const rolesToRemove = Array.from(allConfiguredRoleIds).filter(rId => !validIds.includes(rId) && member.roles.cache.has(rId));
       if (rolesToRemove.length > 0) {
-        await member.roles.remove(rolesToRemove);
+        await member.roles.remove(rolesToRemove).catch(() => null);
       }
-      if (!member.roles.cache.has(roleId)) {
-        await member.roles.add(roleId);
-        return interaction.editReply({ content: `✅ Rôle **${role.name}** attribué (les autres rôles associés ont été retirés).` });
+
+      const rolesToAdd = validIds.filter(rId => !member.roles.cache.has(rId));
+      if (rolesToAdd.length > 0) {
+        await member.roles.add(rolesToAdd);
+        return interaction.editReply({ content: `✅ Rôle(s) ${validNames} attribué(s) (les autres rôles associés ont été retirés).` });
       } else {
-        return interaction.editReply({ content: `Vous possédez déjà le rôle **${role.name}**.` });
+        return interaction.editReply({ content: `Vous possédez déjà le(s) rôle(s) ${validNames}.` });
       }
     }
 
     if (mode === 'verify') { // définitif
-      if (member.roles.cache.has(roleId)) {
-        return interaction.editReply({ content: `Vous possédez déjà le rôle **${role.name}** (mode définitif).` });
+      const rolesToAdd = validIds.filter(rId => !member.roles.cache.has(rId));
+      if (rolesToAdd.length > 0) {
+        await member.roles.add(rolesToAdd);
+        return interaction.editReply({ content: `✅ Rôle(s) ${validNames} vous a/ont été attribué(s) définitivement.` });
       } else {
-        await member.roles.add(roleId);
-        return interaction.editReply({ content: `✅ Rôle **${role.name}** vous a été attribué définitivement.` });
+        return interaction.editReply({ content: `Vous possédez déjà le(s) rôle(s) ${validNames} (mode définitif).` });
       }
     }
 
     if (mode === 'add') { // Ajout uniquement
-      if (!member.roles.cache.has(roleId)) {
-        await member.roles.add(roleId);
-        return interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été attribué.` });
+      const rolesToAdd = validIds.filter(rId => !member.roles.cache.has(rId));
+      if (rolesToAdd.length > 0) {
+        await member.roles.add(rolesToAdd);
+        return interaction.editReply({ content: `✅ Rôle(s) ${validNames} vous a/ont été attribué(s).` });
       } else {
-        return interaction.editReply({ content: `Vous possédez déjà le rôle **${role.name}**.` });
+        return interaction.editReply({ content: `Vous possédez déjà le(s) rôle(s) ${validNames}.` });
       }
     }
 
     if (mode === 'reversed' || mode === 'remove') { // Retrait uniquement
-      if (member.roles.cache.has(roleId)) {
-        await member.roles.remove(roleId);
-        return interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été retiré.` });
+      const rolesToRemove = validIds.filter(rId => member.roles.cache.has(rId));
+      if (rolesToRemove.length > 0) {
+        await member.roles.remove(rolesToRemove);
+        return interaction.editReply({ content: `✅ Rôle(s) ${validNames} vous a/ont été retiré(s).` });
       } else {
-        return interaction.editReply({ content: `Vous ne possédez pas le rôle **${role.name}**.` });
+        return interaction.editReply({ content: `Vous ne possédez pas le(s) rôle(s) ${validNames}.` });
       }
     }
 
     // Mode normal (Classique / Bascule)
-    if (member.roles.cache.has(roleId)) {
-      await member.roles.remove(roleId);
-      return interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été retiré.` });
+    const hasAll = validIds.every(rId => member.roles.cache.has(rId));
+    if (hasAll) {
+      await member.roles.remove(validIds);
+      return interaction.editReply({ content: `✅ Le(s) rôle(s) ${validNames} vous a/ont été retiré(s).` });
     } else {
-      await member.roles.add(roleId);
-      return interaction.editReply({ content: `✅ Le rôle **${role.name}** vous a été attribué.` });
+      await member.roles.add(validIds);
+      return interaction.editReply({ content: `✅ Le(s) rôle(s) ${validNames} vous a/ont été attribué(s).` });
     }
   } catch (err) {
     console.error('Erreur attribution rôle:', err);
