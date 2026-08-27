@@ -3611,12 +3611,12 @@ document.addEventListener('DOMContentLoaded', () => {
     popover.style.cssText = `
       position: fixed;
       top: ${rect.bottom + 6}px;
-      left: ${Math.max(10, Math.min(window.innerWidth - 280, rect.left - 100))}px;
-      width: 270px;
+      left: ${Math.max(10, Math.min(window.innerWidth - 310, rect.left - 100))}px;
+      width: 300px;
       background: #1e1f22;
       border: 1px solid #383a40;
-      border-radius: 10px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      border-radius: 12px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.85);
       z-index: 9999999;
       padding: 12px;
       display: flex;
@@ -3624,35 +3624,73 @@ document.addEventListener('DOMContentLoaded', () => {
       gap: 10px;
     `;
 
-    const emojis = [
-      '👨', '👩', '⭐', '👑', '🎮', '❤️', '💙', '💜', '💚', '💛', '🖤', '🤍',
-      '🔥', '⚡', '💎', '🚀', '📌', '🎨', '🎵', '🎁', '🛡️', '⚔️', '🏆', '🎉',
-      '✨', '😃', '😎', '👍', '🔴', '🔵', '🟢', '🟡', '🟣', '⚫', '⚪', '🔞',
-      '💬', '📜', '🔔', '📣', '✅', '❌', '➡️', '💡', '🎯', '📍', '🍿', '🎲'
+    const allSmartphoneEmojis = [
+      // Visages & Émotions
+      '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '🫠', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🫡', '🤐', '🤨', '😐', '😑', '😶', '🫥', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '🥸', '😎', '🤓', '🧐', '😕', '🫤', '😟', '🙁', '😮', '😯', '😲', '😳', '🥺', '🥹', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬', '😈', '👿', '💀', '☠️', '💩', '🤡', '👹', '👺', '👻', '👽', '👾', '🤖',
+      // Mains, Personnes & Symboles
+      '👍', '👎', '👏', '🙌', '👐', '🤲', '🤝', '👊', '🤛', '🤜', '🤞', '✌️', '🤟', '🤘', '🤌', '🤏', '👌', '👉', '👈', '👆', '👇', '☝️', '✋', '🤚', '🖐️', '🖖', '👋', '🤙', '💪', '🦾', '👨', '👩', '🧑', '👶', '👧', '👦', '👵', '👴', '👮‍♂️', '👮‍♀️', '🕵️‍♂️', '🕵️‍♀️', '💂‍♂️', '💂‍♀️', '🥷', '👑', '🎩', '🎓',
+      // Coeurs & Couleurs
+      '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '⭐', '🌟', '✨', '⚡', '🔥', '💥', '❄️', '🌈', '💎', '🚀', '📌', '📍', '💡', '🎯', '🎲', '🎰', '🎨', '🎵', '🎶', '🎁', '🏆', '🎉', '🔞', '💬', '📜', '🔔', '📣', '✅', '❌', '➡️', '⬅️', '⬆️', '⬇️', '🔴', '🔵', '🟢', '🟡', '🟣', '⚫', '⚪', '🟤', '🟧', '🟨', '🟩', '🟦', '🟪', '⬛', '⬜'
     ];
 
     const header = document.createElement('div');
     header.style.cssText = 'font-weight: 700; font-size: 0.82rem; color: #b5bac1; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center;';
-    header.innerHTML = '<span>Sélectionner un émoji</span> <span style="cursor: pointer; color: #8e9297; font-size: 1.1rem;" id="close-emoji-popover">✕</span>';
+    header.innerHTML = '<span>Sélectionner un émoji smartphone</span> <span style="cursor: pointer; color: #8e9297; font-size: 1.1rem;" id="close-emoji-popover">✕</span>';
     popover.appendChild(header);
 
-    const grid = document.createElement('div');
-    grid.style.cssText = 'display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; max-height: 180px; overflow-y: auto; padding-right: 4px;';
+    // Barre de recherche + Bouton effacer
+    const searchRow = document.createElement('div');
+    searchRow.style.cssText = 'display: flex; gap: 6px; align-items: center;';
 
-    emojis.forEach(emo => {
-      const item = document.createElement('button');
-      item.type = 'button';
-      item.textContent = emo;
-      item.style.cssText = 'font-size: 1.2rem; background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; padding: 6px; cursor: pointer; transition: transform 0.1s, background 0.1s; display: flex; align-items: center; justify-content: center;';
-      item.addEventListener('mouseenter', () => { item.style.background = '#383a40'; item.style.transform = 'scale(1.15)'; });
-      item.addEventListener('mouseleave', () => { item.style.background = '#2b2d31'; item.style.transform = 'scale(1)'; });
-      item.addEventListener('click', () => {
-        targetInput.value = emo;
-        targetBtn.textContent = emo;
-        popover.remove();
-      });
-      grid.appendChild(item);
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = '🔍 Filtrer les émojis...';
+    searchInput.style.cssText = 'flex: 1; background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; padding: 6px 8px; font-size: 0.82rem; color: #fff; outline: none;';
+
+    const btnClear = document.createElement('button');
+    btnClear.type = 'button';
+    btnClear.textContent = '❌ Aucun';
+    btnClear.title = 'Effacer et ne mettre aucun émoji';
+    btnClear.style.cssText = 'background: #da373c; color: #fff; border: none; border-radius: 6px; padding: 6px 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer; flex-shrink: 0; transition: background 0.15s;';
+    btnClear.addEventListener('mouseenter', () => btnClear.style.background = '#a1282b');
+    btnClear.addEventListener('mouseleave', () => btnClear.style.background = '#da373c');
+    btnClear.addEventListener('click', () => {
+      targetInput.value = '';
+      targetBtn.textContent = '➕';
+      popover.remove();
     });
+
+    searchRow.appendChild(searchInput);
+    searchRow.appendChild(btnClear);
+    popover.appendChild(searchRow);
+
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; max-height: 210px; overflow-y: auto; padding-right: 4px;';
+
+    const renderGrid = (filterQuery = '') => {
+      grid.innerHTML = '';
+      const filtered = allSmartphoneEmojis.filter(emo => !filterQuery || emo.includes(filterQuery));
+      filtered.forEach(emo => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.textContent = emo;
+        item.style.cssText = 'font-size: 1.25rem; background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; padding: 4px; cursor: pointer; transition: transform 0.1s, background 0.1s; display: flex; align-items: center; justify-content: center;';
+        item.addEventListener('mouseenter', () => { item.style.background = '#383a40'; item.style.transform = 'scale(1.2)'; });
+        item.addEventListener('mouseleave', () => { item.style.background = '#2b2d31'; item.style.transform = 'scale(1)'; });
+        item.addEventListener('click', () => {
+          targetInput.value = emo;
+          targetBtn.textContent = emo;
+          popover.remove();
+        });
+        grid.appendChild(item);
+      });
+      if (filtered.length === 0) {
+        grid.innerHTML = '<div style="grid-column: span 7; color: #8e9297; font-size: 0.8rem; text-align: center; padding: 12px 0;">Aucun émoji trouvé</div>';
+      }
+    };
+
+    renderGrid();
+    searchInput.addEventListener('input', (e) => renderGrid(e.target.value.trim()));
 
     popover.appendChild(grid);
     document.body.appendChild(popover);
@@ -3677,7 +3715,7 @@ document.addEventListener('DOMContentLoaded', () => {
     row.style.cssText = 'display: flex; gap: 8px; align-items: center; background: #2b2d31; padding: 8px 12px; border-radius: 8px; border: 1px solid #383a40; margin-bottom: 8px;';
 
     const rolesOptionsHtml = buildRolesSelectHTML(opt ? opt.role_id : '');
-    const emojiVal = opt ? (opt.emoji || '👨') : '👨';
+    const emojiVal = opt ? (opt.emoji || '') : '';
     const labelVal = opt ? (opt.label || '') : '';
 
     row.innerHTML = `
@@ -3686,14 +3724,14 @@ document.addEventListener('DOMContentLoaded', () => {
       
       <!-- Bouton Emoji 🙂 -->
       <button type="button" class="btn-emoji-picker" style="width: 36px; height: 36px; background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; color: #fff; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Cliquer pour choisir l'émoji">
-        ${emojiVal}
+        ${emojiVal || '➕'}
       </button>
 
       <!-- Pill Badge du rôle (Cercle couleur + Émoji + Dropdown rôle + Tags sous le rôle) -->
       <div style="flex: 2.5; display: flex; flex-direction: column; background: #1e1f22; border: 1px solid #3498db; border-radius: 10px; padding: 6px 12px; min-width: 200px;">
         <div style="display: flex; align-items: center; width: 100%;">
           <span class="role-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #3498db; display: inline-block; margin-right: 6px; flex-shrink: 0;"></span>
-          <input type="text" class="opt-emoji" value="${emojiVal}" placeholder="👨" style="width: 28px; background: #2b2d31; border: 1px solid #383a40; border-radius: 4px; font-size: 0.95rem; color: #fff; text-align: center; outline: none; margin-right: 6px; padding: 2px 0;">
+          <input type="text" class="opt-emoji" value="${emojiVal}" placeholder="😃" style="width: 28px; background: #2b2d31; border: 1px solid #383a40; border-radius: 4px; font-size: 0.95rem; color: #fff; text-align: center; outline: none; margin-right: 6px; padding: 2px 0;">
           <select class="opt-role role-select" multiple size="3" style="width: 100%; max-height: 70px; background: transparent; border: none; color: #3498db; font-weight: 700; font-size: 0.82rem; outline: none; cursor: pointer;">
             ${rolesOptionsHtml}
           </select>
@@ -3729,7 +3767,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnEmoji && optEmojiInput) {
       btnEmoji.addEventListener('click', () => openEmojiPickerPopover(optEmojiInput, btnEmoji));
       optEmojiInput.addEventListener('input', () => {
-        btnEmoji.textContent = optEmojiInput.value.trim() || '👨';
+        btnEmoji.textContent = optEmojiInput.value.trim() || '➕';
       });
       optEmojiInput.addEventListener('focus', () => openEmojiPickerPopover(optEmojiInput, btnEmoji));
     }

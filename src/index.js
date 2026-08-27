@@ -2787,10 +2787,17 @@ apiApp.get('/guilds/:guildId/messages/:messageId', async (req, res) => {
               else if (rawData.style === 3 || rawData.style === 'SUCCESS') styleStr = 'SUCCESS';
               else if (rawData.style === 4 || rawData.style === 'DANGER') styleStr = 'DANGER';
 
-              const emojiObj = rawData.emoji;
+              const emojiObj = rawData.emoji || rawData.data?.emoji;
               let emojiStr = emojiObj ? (emojiObj.id ? (emojiObj.animated ? `<a:${emojiObj.name}:${emojiObj.id}>` : `<:${emojiObj.name}:${emojiObj.id}>`) : emojiObj.name) : '';
               
-              const optObj = { role_id: roleId || '', label: rawData.label || 'Bouton', emoji: emojiStr, style: styleStr };
+              if (!emojiStr && roleId) {
+                const foundRole = guild.roles.cache.get(roleId);
+                if (foundRole && foundRole.unicodeEmoji) {
+                  emojiStr = foundRole.unicodeEmoji;
+                }
+              }
+
+              const optObj = { role_id: roleId || '', label: rawData.label || 'Bouton', emoji: emojiStr || '', style: styleStr };
               options.push(optObj);
               rowOptions.push(optObj);
             } else if (compTypeNum === 3 || compTypeNum === 5 || compTypeNum === 6 || compTypeNum === 7 || compTypeNum === 8 || rawData.options || rawData.type === 'STRING_SELECT' || rawData.type === 'ROLE_SELECT') {
@@ -2809,14 +2816,22 @@ apiApp.get('/guilds/:guildId/messages/:messageId', async (req, res) => {
                     if (foundRole) roleId = foundRole.id;
                   }
 
-                  const emojiObj = optData.emoji;
+                  const emojiObj = optData.emoji || optData.data?.emoji;
                   let emojiStr = emojiObj ? (emojiObj.id ? (emojiObj.animated ? `<a:${emojiObj.name}:${emojiObj.id}>` : `<:${emojiObj.name}:${emojiObj.id}>`) : emojiObj.name) : '';
-                  const optObj = { role_id: roleId || '', label: optData.label || 'Option', emoji: emojiStr, style: 'PRIMARY' };
+
+                  if (!emojiStr && roleId) {
+                    const foundRole = guild.roles.cache.get(roleId);
+                    if (foundRole && foundRole.unicodeEmoji) {
+                      emojiStr = foundRole.unicodeEmoji;
+                    }
+                  }
+
+                  const optObj = { role_id: roleId || '', label: optData.label || 'Option', emoji: emojiStr || '', style: 'PRIMARY' };
                   options.push(optObj);
                   rowOptions.push(optObj);
                 });
               } else {
-                const optObj = { role_id: '', label: rowPlaceholder || 'Sélecteur de Rôles', emoji: '📌', style: 'PRIMARY' };
+                const optObj = { role_id: '', label: rowPlaceholder || 'Sélecteur de Rôles', emoji: '', style: 'PRIMARY' };
                 options.push(optObj);
                 rowOptions.push(optObj);
               }
