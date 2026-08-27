@@ -304,8 +304,21 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId, selector
     return interaction.editReply({ content: '❌ Aucun des rôles configurés n\'existe plus sur ce serveur.' });
   }
 
-  const embedRule = db.prepare('SELECT mode FROM autorole_embeds WHERE message_id = ?').get(messageId);
-  const mode = embedRule ? embedRule.mode : 'normal';
+  const embedRecord = db.prepare('SELECT mode, selectors_json FROM autorole_embeds WHERE message_id = ?').get(messageId);
+  const embedMode = embedRecord ? embedRecord.mode : 'normal';
+
+  let parsedSel = null;
+  if (embedRecord && embedRecord.selectors_json) {
+    try { parsedSel = JSON.parse(embedRecord.selectors_json); } catch (e) {}
+  }
+
+  let targetSel = null;
+  if (parsedSel && Array.isArray(parsedSel) && currentSelectorIdx !== null && parsedSel[currentSelectorIdx]) {
+    targetSel = parsedSel[currentSelectorIdx];
+  }
+
+  // Priority: 1. Selector-specific mode (e.g. from modal), 2. Embed global mode, 3. 'normal'
+  const mode = (targetSel && targetSel.mode) ? targetSel.mode : embedMode;
 
   try {
     const validIds = validRoles.map(r => r.id);
@@ -313,22 +326,13 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId, selector
 
     if (mode === 'unique') {
       const groupRoleIds = new Set();
-      const embedRecord = db.prepare('SELECT selectors_json FROM autorole_embeds WHERE message_id = ?').get(messageId);
-      let parsedSel = null;
-      if (embedRecord && embedRecord.selectors_json) {
-        try { parsedSel = JSON.parse(embedRecord.selectors_json); } catch (e) {}
-      }
-
-      if (parsedSel && Array.isArray(parsedSel) && currentSelectorIdx !== null && parsedSel[currentSelectorIdx]) {
-        const targetSel = parsedSel[currentSelectorIdx];
-        if (targetSel.options && Array.isArray(targetSel.options)) {
-          targetSel.options.forEach(opt => {
-            String(opt.role_id || '').split(',').forEach(id => {
-              const m = id.trim().match(/\d{17,20}/);
-              if (m) groupRoleIds.add(m[0]);
-            });
+      if (targetSel && targetSel.options && Array.isArray(targetSel.options)) {
+        targetSel.options.forEach(opt => {
+          String(opt.role_id || '').split(',').forEach(id => {
+            const m = id.trim().match(/\d{17,20}/);
+            if (m) groupRoleIds.add(m[0]);
           });
-        }
+        });
       }
 
       if (groupRoleIds.size === 0) {
