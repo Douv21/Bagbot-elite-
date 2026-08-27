@@ -2473,34 +2473,36 @@ apiApp.get('/guilds/:guildId/messages/:messageId', async (req, res) => {
     const options = [];
     const selectors = [];
 
-    // Extraction Titre, Description et Champs (Fields DraftBot)
+    // Extraction Titre, Description, Champs et Images/GIFs de TOUS les embeds
     let title = '';
     let descriptionParts = [];
     let hexColor = '#5865F2';
     let imageUrl = '';
     let thumbnail = 0;
 
-    if (emb) {
-      title = emb.title || '';
-      if (emb.description) descriptionParts.push(emb.description);
-      if (emb.fields && emb.fields.length > 0) {
-        emb.fields.forEach(f => {
-          if (f.name || f.value) {
-            descriptionParts.push(`**${f.name}**\n${f.value}`);
-          }
-        });
-      }
-      if (emb.hexColor && emb.hexColor !== '#000000') {
-        hexColor = emb.hexColor;
-      } else if (emb.color) {
-        hexColor = `#${emb.color.toString(16).padStart(6, '0')}`;
-      }
-      if (emb.image && emb.image.url) {
-        imageUrl = emb.image.url;
-      }
-      if (emb.thumbnail && emb.thumbnail.url) {
-        thumbnail = 1;
-      }
+    if (message.embeds && message.embeds.length > 0) {
+      message.embeds.forEach((eItem, idx) => {
+        if (!title && eItem.title) title = eItem.title;
+        if (eItem.description) descriptionParts.push(eItem.description);
+        if (eItem.fields && eItem.fields.length > 0) {
+          eItem.fields.forEach(f => {
+            if (f.name || f.value) {
+              descriptionParts.push(`**${f.name}**\n${f.value}`);
+            }
+          });
+        }
+        if (hexColor === '#5865F2') {
+          if (eItem.hexColor && eItem.hexColor !== '#000000') hexColor = eItem.hexColor;
+          else if (eItem.color) hexColor = `#${eItem.color.toString(16).padStart(6, '0')}`;
+        }
+        if (!imageUrl) {
+          if (eItem.image && eItem.image.url) imageUrl = eItem.image.url;
+          else if (eItem.data?.image?.url) imageUrl = eItem.data.image.url;
+          else if (eItem.thumbnail && eItem.thumbnail.url) imageUrl = eItem.thumbnail.url;
+          else if (eItem.url && (eItem.url.includes('.gif') || eItem.url.includes('.png') || eItem.url.includes('.jpg') || eItem.url.includes('.webp'))) imageUrl = eItem.url;
+        }
+        if (eItem.thumbnail && eItem.thumbnail.url) thumbnail = 1;
+      });
     }
 
     if (!title && descriptionParts.length === 0 && message.content) {
@@ -2508,53 +2510,80 @@ apiApp.get('/guilds/:guildId/messages/:messageId', async (req, res) => {
     }
 
     if (!imageUrl && message.attachments && message.attachments.size > 0) {
-      const firstAtt = message.attachments.first();
-      if (firstAtt && firstAtt.url) imageUrl = firstAtt.url;
+      const imgAtt = Array.from(message.attachments.values()).find(att => att.contentType?.includes('image') || att.url.match(/\.(png|jpg|jpeg|gif|webp)$/i) || att.url);
+      if (imgAtt && imgAtt.url) imageUrl = imgAtt.url;
+    }
+
+    if (!imageUrl && (message.content || '')) {
+      const match = message.content.match(/https?:\/\/\S+\.(?:png|jpg|jpeg|gif|webp)(?:\?\S+)?/i);
+      if (match) imageUrl = match[0];
     }
 
     const fullDescription = descriptionParts.join('\n\n');
 
-    // Extraction des Composants (Boutons et Sélecteurs)
+    // Extraction des Composants (Boutons, StringSelect, RoleSelect...)
     if (message.components && message.components.length > 0) {
       message.components.forEach((row, rIdx) => {
-        if (row.components && row.components.length > 0) {
+        const rowComponents = row.components || row.data?.components || [];
+        if (rowComponents.length > 0) {
           const rowOptions = [];
           let rowType = 'buttons';
           let rowPlaceholder = `Sélecteur ${rIdx + 1}`;
 
-          row.components.forEach(comp => {
-            const compTypeNum = typeof comp.type === 'number' ? comp.type : (comp.type === 'BUTTON' ? 2 : (comp.type === 'STRING_SELECT' || comp.type === 'SELECT_MENU' ? 3 : 2));
+          rowComponents.forEach(comp => {
+            const rawData = comp.data || comp;
+            const compTypeNum = typeof rawData.type === 'number' ? rawData.type : (rawData.type === 'BUTTON' ? 2 : (rawData.type === 'STRING_SELECT' || rawData.type === 'SELECT_MENU' ? 3 : 2));
 
-            if (compTypeNum === 2 || comp.type === 'BUTTON' || comp.style !== undefined) {
-              const rawId = comp.customId || '';
-              const roleMatch = rawId.match(/\d{17,20}/);
-              const roleId = roleMatch ? roleMatch[0] : rawId;
+            const rawCustomId = rawData.custom_id || rawData.customId || '';
+            const rawPlaceholder = rawData.placeholder || '';
+            if (rawPlaceholder) rowPlaceholder = rawPlaceholder;
+
+            if (compTypeNum === 2 || rawData.type === 'BUTTON' || rawData.style !== undefined) {
+              const roleMatch = rawCustomId.match(/\d{17,20}/);
+              let roleId = roleMatch ? roleMatch[0] : rawCustomId;
+
+              if (!roleId && rawData.label) {
+                const foundRole = guild.roles.cache.find(r => r.name.toLowerCase() === rawData.label.toLowerCase());
+                if (foundRole) roleId = foundRole.id;
+              }
 
               let styleStr = 'PRIMARY';
-              if (comp.style === 2 || comp.style === 'SECONDARY') styleStr = 'SECONDARY';
-              else if (comp.style === 3 || comp.style === 'SUCCESS') styleStr = 'SUCCESS';
-              else if (comp.style === 4 || comp.style === 'DANGER') styleStr = 'DANGER';
+              if (rawData.style === 2 || rawData.style === 'SECONDARY') styleStr = 'SECONDARY';
+              else if (rawData.style === 3 || rawData.style === 'SUCCESS') styleStr = 'SUCCESS';
+              else if (rawData.style === 4 || rawData.style === 'DANGER') styleStr = 'DANGER';
 
-              let emojiStr = comp.emoji ? (comp.emoji.id ? (comp.emoji.animated ? `<a:${comp.emoji.name}:${comp.emoji.id}>` : `<:${comp.emoji.name}:${comp.emoji.id}>`) : comp.emoji.name) : '';
+              const emojiObj = rawData.emoji;
+              let emojiStr = emojiObj ? (emojiObj.id ? (emojiObj.animated ? `<a:${emojiObj.name}:${emojiObj.id}>` : `<:${emojiObj.name}:${emojiObj.id}>`) : emojiObj.name) : '';
               
-              const optObj = { role_id: roleId, label: comp.label || '', emoji: emojiStr, style: styleStr };
+              const optObj = { role_id: roleId || '', label: rawData.label || 'Bouton', emoji: emojiStr, style: styleStr };
               options.push(optObj);
               rowOptions.push(optObj);
-            } else if (compTypeNum === 3 || comp.type === 'STRING_SELECT' || comp.type === 'SELECT_MENU' || comp.options) {
-              rowType = (comp.maxValues && comp.maxValues > 1) ? 'multi_select' : 'select';
-              if (comp.placeholder) rowPlaceholder = comp.placeholder;
+            } else if (compTypeNum === 3 || compTypeNum === 5 || compTypeNum === 6 || compTypeNum === 7 || compTypeNum === 8 || rawData.options || rawData.type === 'STRING_SELECT' || rawData.type === 'ROLE_SELECT') {
+              rowType = (rawData.max_values > 1 || rawData.maxValues > 1) ? 'multi_select' : 'select';
 
-              if (comp.options && comp.options.length > 0) {
-                comp.options.forEach(opt => {
-                  const rawVal = opt.value || '';
+              const rawOptions = rawData.options || [];
+              if (rawOptions.length > 0) {
+                rawOptions.forEach(opt => {
+                  const optData = opt.data || opt;
+                  const rawVal = optData.value || '';
                   const roleMatch = rawVal.match(/\d{17,20}/);
-                  const roleId = roleMatch ? roleMatch[0] : rawVal;
+                  let roleId = roleMatch ? roleMatch[0] : rawVal;
 
-                  let emojiStr = opt.emoji ? (opt.emoji.id ? (opt.emoji.animated ? `<a:${opt.emoji.name}:${opt.emoji.id}>` : `<:${opt.emoji.name}:${opt.emoji.id}>`) : opt.emoji.name) : '';
-                  const optObj = { role_id: roleId, label: opt.label || '', emoji: emojiStr, style: 'PRIMARY' };
+                  if (!roleId && optData.label) {
+                    const foundRole = guild.roles.cache.find(r => r.name.toLowerCase() === optData.label.toLowerCase());
+                    if (foundRole) roleId = foundRole.id;
+                  }
+
+                  const emojiObj = optData.emoji;
+                  let emojiStr = emojiObj ? (emojiObj.id ? (emojiObj.animated ? `<a:${emojiObj.name}:${emojiObj.id}>` : `<:${emojiObj.name}:${emojiObj.id}>`) : emojiObj.name) : '';
+                  const optObj = { role_id: roleId || '', label: optData.label || 'Option', emoji: emojiStr, style: 'PRIMARY' };
                   options.push(optObj);
                   rowOptions.push(optObj);
                 });
+              } else {
+                const optObj = { role_id: '', label: rowPlaceholder || 'Sélecteur de Rôles', emoji: '📌', style: 'PRIMARY' };
+                options.push(optObj);
+                rowOptions.push(optObj);
               }
             }
           });

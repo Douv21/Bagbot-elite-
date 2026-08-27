@@ -1916,6 +1916,17 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
       cleanMsgId = linkMatch[2];
     }
 
+    // 1. Tenter la récupération en direct via l'API Local Bot Bridge
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const botRes = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/messages/${cleanMsgId}${channelId ? `?channelId=${channelId}` : ''}`).catch(() => null);
+    if (botRes && botRes.ok) {
+      const msgData = await botRes.json();
+      if (msgData && !msgData.error) {
+        return res.json(msgData);
+      }
+    }
+
+    // 2. Fallback DB SQLite si non trouvable en direct
     const { getAutoroleEmbeds, getAutoroleOptions } = require('./database/db');
     const dbEmbeds = getAutoroleEmbeds(guildId) || [];
     const foundDb = dbEmbeds.find(e => String(e.message_id).trim() === cleanMsgId);
@@ -1939,13 +1950,6 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
         options: options,
         selectors: parsedSelectors
       });
-    }
-
-    const botApiPort = process.env.BOT_API_PORT || 49605;
-    const botRes = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/messages/${cleanMsgId}${channelId ? `?channelId=${channelId}` : ''}`).catch(() => null);
-    if (botRes && botRes.ok) {
-      const msgData = await botRes.json();
-      return res.json(msgData);
     }
 
     if (typeof client !== 'undefined' && client && client.guilds) {
