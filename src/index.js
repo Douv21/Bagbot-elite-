@@ -1702,11 +1702,12 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
           }
         } else {
           if (actionRows.length < 5) {
+            const isMultiChoice = (mode !== 'unique') || (selType === 'multi_select') || (type === 'multi_select');
             const selectMenu = new StringSelectMenuBuilder()
-              .setCustomId(`autorole_select_${sIdx}`)
-              .setPlaceholder(sel.placeholder || sel.title || 'Sélectionnez un rôle...');
+              .setCustomId(isMultiChoice ? `autorole_multi_select_${sIdx}` : `autorole_select_${sIdx}`)
+              .setPlaceholder(sel.placeholder || sel.title || (isMultiChoice ? 'Sélectionnez un ou plusieurs rôles...' : 'Sélectionnez un rôle...'));
 
-            if (selType === 'multi_select') {
+            if (isMultiChoice) {
               selectMenu.setMinValues(0);
               selectMenu.setMaxValues(sel.options.length);
             } else {
@@ -1760,13 +1761,17 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
         }
       } else if (type === 'select' || type === 'multi_select') {
         if (options && options.length > 0) {
+          const isMultiChoice = (mode !== 'unique') || (type === 'multi_select');
           const selectMenu = new StringSelectMenuBuilder()
-            .setCustomId(type === 'multi_select' ? 'autorole_multi_select_menu' : 'autorole_select_menu')
-            .setPlaceholder(type === 'multi_select' ? 'Sélectionnez un ou plusieurs rôles...' : 'Sélectionnez un rôle...');
+            .setCustomId(isMultiChoice ? 'autorole_multi_select_menu' : 'autorole_select_menu')
+            .setPlaceholder(isMultiChoice ? 'Sélectionnez un ou plusieurs rôles...' : 'Sélectionnez un rôle...');
 
-          if (type === 'multi_select') {
+          if (isMultiChoice) {
             selectMenu.setMinValues(0);
             selectMenu.setMaxValues(options.length);
+          } else {
+            selectMenu.setMinValues(1);
+            selectMenu.setMaxValues(1);
           }
 
           const selectOptions = options.map((opt, optIdx) => {
