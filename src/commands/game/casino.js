@@ -438,7 +438,7 @@ async function handleBlackjack(interaction, guildId, userId, initialBet, config)
     );
     if (allowDouble) {
       row.addComponents(
-        new ButtonBuilder().setCustomId(`bj_double_${userId}`).setLabel(`Doubler 💰 (${initialBet}🪙)`).setStyle(ButtonStyle.Warning).setDisabled(!canDouble)
+        new ButtonBuilder().setCustomId(`bj_double_${userId}`).setLabel(`Doubler 💰 (${initialBet}🪙)`).setStyle(ButtonStyle.Secondary).setDisabled(!canDouble)
       );
     }
     return row;
