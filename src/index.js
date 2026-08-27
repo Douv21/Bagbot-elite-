@@ -244,13 +244,13 @@ client.on('inviteDelete', invite => {
 });
 
 // Helper pour l'attribution des rôles réaction selon le mode
-const handleRoleModeAssignment = async (interaction, roleId, messageId) => {
+const handleRoleModeAssignment = async (interaction, roleId, messageId, selectorIdx = 0) => {
   const { db } = require('./database/db');
   const member = interaction.member;
   const guild = interaction.guild;
   const botMember = guild.members.me;
 
-  let currentSelectorIdx = null;
+  let currentSelectorIdx = (typeof selectorIdx === 'number' && !isNaN(selectorIdx)) ? selectorIdx : 0;
 
   if (typeof roleId === 'string' && roleId.startsWith('opt_')) {
     const parts = roleId.replace('opt_', '').split('_');
@@ -329,7 +329,9 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId) => {
             });
           });
         }
-      } else {
+      }
+
+      if (groupRoleIds.size === 0) {
         const allOptions = db.prepare('SELECT role_id FROM autorole_options WHERE message_id = ?').all(messageId);
         allOptions.forEach(o => {
           String(o.role_id || '').split(',').forEach(id => {
@@ -349,6 +351,31 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId) => {
             }
           });
         }
+      }
+
+      // Triple-Layer Fallback: Parse Discord components directly from interaction message if DB has no record
+      if (groupRoleIds.size === 0 && interaction && interaction.message && interaction.message.components) {
+        interaction.message.components.forEach((row, rIdx) => {
+          row.components.forEach(comp => {
+            if (comp.options && Array.isArray(comp.options)) {
+              if (currentSelectorIdx === null || currentSelectorIdx === undefined || rIdx === currentSelectorIdx) {
+                comp.options.forEach(opt => {
+                  String(opt.value || '').split(',').forEach(id => {
+                    const m = id.trim().match(/\d{17,20}/);
+                    if (m) groupRoleIds.add(m[0]);
+                  });
+                });
+              }
+            }
+            if (comp.customId && comp.customId.startsWith('autorole_')) {
+              const rawRole = comp.customId.replace('autorole_sel_', '').replace('autorole_', '');
+              String(rawRole).split(',').forEach(id => {
+                const m = id.trim().match(/\d{17,20}/);
+                if (m) groupRoleIds.add(m[0]);
+              });
+            }
+          });
+        });
       }
 
       const rolesToRemove = Array.from(groupRoleIds).filter(rId => !validIds.includes(rId) && member.roles.cache.has(rId));
@@ -411,32 +438,92 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId) => {
 };
 
 // Helper pour l'attribution des rôles multi-sélection
-const handleMultiRoleSelect = async (interaction, selectedRoleIds, messageId) => {
+const handleMultiRoleSelect = async (interaction, selectedRoleIds, messageId, selectorIdx = 0) => {
   const { db } = require('./database/db');
   const member = interaction.member;
   const guild = interaction.guild;
   const botMember = guild.members.me;
 
+  const resolvedIdsSet = new Set();
   const dbOpts = db.prepare('SELECT role_id FROM autorole_options WHERE message_id = ?').all(messageId);
-  const resolvedRoleIds = [];
-  for (const rId of selectedRoleIds) {
+
+  selectedRoleIds.forEach(rId => {
+    let target = rId;
     if (typeof rId === 'string' && rId.startsWith('opt_')) {
-      const optIdx = parseInt(rId.replace('opt_', ''), 10);
-      if (dbOpts && dbOpts[optIdx] && dbOpts[optIdx].role_id) {
-        resolvedRoleIds.push(dbOpts[optIdx].role_id);
+      const parts = rId.replace('opt_', '').split('_');
+      if (parts.length >= 2) {
+        const sIdx = parseInt(parts[0], 10);
+        const optIdx = parseInt(parts[1], 10);
+        const embedRecord = db.prepare('SELECT selectors_json FROM autorole_embeds WHERE message_id = ?').get(messageId);
+        if (embedRecord && embedRecord.selectors_json) {
+          try {
+            const parsedSel = JSON.parse(embedRecord.selectors_json);
+            if (parsedSel[sIdx] && parsedSel[sIdx].options && parsedSel[sIdx].options[optIdx]) {
+              target = parsedSel[sIdx].options[optIdx].role_id;
+            }
+          } catch (e) {}
+        }
       }
-    } else {
-      resolvedRoleIds.push(rId);
+      if (typeof target === 'string' && target.startsWith('opt_')) {
+        const optIdx = parseInt(target.replace('opt_', ''), 10);
+        if (dbOpts && dbOpts[optIdx] && dbOpts[optIdx].role_id) {
+          target = dbOpts[optIdx].role_id;
+        }
+      }
     }
+    String(target || '').split(',').forEach(id => {
+      const m = id.trim().match(/\d{17,20}/);
+      if (m) resolvedIdsSet.add(m[0]);
+    });
+  });
+
+  const possibleRoleIdsSet = new Set();
+  dbOpts.forEach(o => {
+    String(o.role_id || '').split(',').forEach(id => {
+      const m = id.trim().match(/\d{17,20}/);
+      if (m) possibleRoleIdsSet.add(m[0]);
+    });
+  });
+
+  const embedRecord = db.prepare('SELECT selectors_json FROM autorole_embeds WHERE message_id = ?').get(messageId);
+  if (embedRecord && embedRecord.selectors_json) {
+    try {
+      const parsedSel = JSON.parse(embedRecord.selectors_json);
+      if (Array.isArray(parsedSel)) {
+        const selObj = parsedSel[selectorIdx] || parsedSel[0];
+        if (selObj && selObj.options) {
+          selObj.options.forEach(opt => {
+            String(opt.role_id || '').split(',').forEach(id => {
+              const m = id.trim().match(/\d{17,20}/);
+              if (m) possibleRoleIdsSet.add(m[0]);
+            });
+          });
+        }
+      }
+    } catch (e) {}
   }
 
-  const possibleRoleIds = dbOpts.map(o => o.role_id);
+  // Triple-Layer Fallback: Parse Discord components directly
+  if (possibleRoleIdsSet.size === 0 && interaction && interaction.message && interaction.message.components) {
+    interaction.message.components.forEach(row => {
+      row.components.forEach(comp => {
+        if (comp.options && Array.isArray(comp.options)) {
+          comp.options.forEach(opt => {
+            String(opt.value || '').split(',').forEach(id => {
+              const m = id.trim().match(/\d{17,20}/);
+              if (m) possibleRoleIdsSet.add(m[0]);
+            });
+          });
+        }
+      });
+    });
+  }
 
   const added = [];
   const removed = [];
   const errors = [];
 
-  for (const rId of possibleRoleIds) {
+  for (const rId of Array.from(possibleRoleIdsSet)) {
     const role = guild.roles.cache.get(rId);
     if (!role) continue;
 
@@ -445,7 +532,7 @@ const handleMultiRoleSelect = async (interaction, selectedRoleIds, messageId) =>
       continue;
     }
 
-    const shouldHave = resolvedRoleIds.includes(rId);
+    const shouldHave = resolvedIdsSet.has(rId);
     const hasRole = member.roles.cache.has(rId);
 
     if (shouldHave && !hasRole) {
