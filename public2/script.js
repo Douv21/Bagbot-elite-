@@ -4378,6 +4378,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formCard = document.getElementById('form-create-autorole-embed');
     if (formCard) formCard.scrollIntoView({ behavior: 'smooth' });
   }
+  window.populateAutoroleEmbedForm = populateAutoroleEmbedForm;
 
   function renderAutoroleJoin(list) {
     const container = document.getElementById('autorole-join-list');
