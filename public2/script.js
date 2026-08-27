@@ -4243,13 +4243,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const buttonsCreator = document.getElementById('autorole-buttons-creator');
     const selectorsContainer = document.getElementById('selectors-list-container');
     const btnOpenAddSelector = document.getElementById('btn-open-add-selector-modal');
-
-    if (buttonsCreator) buttonsCreator.style.display = 'block';
+    const modalEditor = document.getElementById('modal-selector-editor');
 
     if (type === 'buttons') {
+      if (buttonsCreator) buttonsCreator.style.display = 'block';
       if (selectorsContainer) selectorsContainer.style.display = 'none';
       if (btnOpenAddSelector) btnOpenAddSelector.style.display = 'none';
+      if (modalEditor) modalEditor.style.display = 'none';
     } else {
+      if (buttonsCreator) buttonsCreator.style.display = 'none';
       if (selectorsContainer) selectorsContainer.style.display = 'flex';
       if (btnOpenAddSelector) btnOpenAddSelector.style.display = 'inline-flex';
     }
