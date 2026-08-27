@@ -3700,13 +3700,16 @@ document.addEventListener('DOMContentLoaded', () => {
       </button>
 
       <!-- Pill Badge du rôle (Cercle couleur + Émoji + Dropdown rôle) -->
-      <div style="flex: 2; display: flex; align-items: center; background: #1e1f22; border: 1px solid #3498db; border-radius: 20px; padding: 4px 12px;">
+      <div style="flex: 2; display: flex; align-items: center; background: #1e1f22; border: 1px solid #3498db; border-radius: 20px; padding: 4px 12px; min-width: 180px;">
         <span class="role-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #3498db; display: inline-block; margin-right: 6px; flex-shrink: 0;"></span>
         <input type="text" class="opt-emoji" value="${emojiVal}" placeholder="👨" style="width: 28px; background: #2b2d31; border: 1px solid #383a40; border-radius: 4px; font-size: 0.95rem; color: #fff; text-align: center; outline: none; margin-right: 6px; padding: 2px 0;">
         <select class="opt-role role-select" style="width: 100%; background: transparent; border: none; color: #3498db; font-weight: 700; font-size: 0.88rem; outline: none; cursor: pointer;">
           ${rolesOptionsHtml}
         </select>
       </div>
+
+      <!-- Intitulé personnalisé de l'option -->
+      <input type="text" class="opt-label" value="${labelVal}" placeholder="Libellé (ex: Homme)" style="flex: 1; min-width: 120px; background: #1e1f22; border: 1px solid #383a40; border-radius: 6px; color: #fff; font-size: 0.85rem; padding: 8px 10px; outline: none;">
 
       <!-- Bouton Action Plus (+) -->
       <button type="button" class="btn-add-action-popup" style="width: 28px; height: 28px; border-radius: 50%; background: #383a40; border: none; color: #dcddde; display: inline-flex; justify-content: center; align-items: center; cursor: pointer; flex-shrink: 0;" title="Ajouter une action (Message, Rôles...)">

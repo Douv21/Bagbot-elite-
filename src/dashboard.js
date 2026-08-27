@@ -1860,7 +1860,7 @@ app.post('/api/config/autorole-embeds/delete', async (req, res) => {
     if (!message_id) return res.status(400).json({ error: 'ID de message requis' });
 
     // 1. Essayer de supprimer le message sur Discord directement
-    if (client && client.guilds) {
+    if (typeof client !== 'undefined' && client && client.guilds) {
       const guild = client.guilds.cache.get(guildId);
       if (guild) {
         let channel = channel_id ? guild.channels.cache.get(channel_id) : null;

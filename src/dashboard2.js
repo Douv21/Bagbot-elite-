@@ -1744,7 +1744,7 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { channel_id, title, description, color, thumbnail, image_url, options, type = 'buttons', mode = 'normal', existing_message_id = null } = req.body || {};
+    const { channel_id, title, description, color, thumbnail, image_url, options = [], selectors = [], type = 'buttons', mode = 'normal', existing_message_id = null } = req.body || {};
     if (!channel_id) return res.status(400).json({ error: 'ID du salon requis' });
 
     // 1. Communiquer avec l'API locale du bot pour envoyer ou éditer le message
@@ -1761,6 +1761,7 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
         thumbnail: thumbnail ? 1 : 0,
         imageUrl: image_url,
         options: options || [],
+        selectors: selectors || [],
         type,
         mode,
         existingMessageId: existing_message_id
@@ -1775,6 +1776,7 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
     const { messageId } = await botResponse.json();
 
     // 2. Enregistrer dans SQLite
+    const selectorsJson = selectors && selectors.length > 0 ? JSON.stringify(selectors) : null;
     addAutoroleEmbed(
       guildId, 
       messageId, 
@@ -1785,12 +1787,21 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
       thumbnail ? 1 : 0, 
       image_url,
       type,
-      mode
+      mode,
+      selectorsJson
     );
     
     db.prepare('DELETE FROM autorole_options WHERE message_id = ?').run(messageId);
 
-    if (options && options.length > 0) {
+    if (selectors && selectors.length > 0) {
+      selectors.forEach(sel => {
+        if (sel.options) {
+          sel.options.forEach(opt => {
+            addAutoroleOption(messageId, opt.role_id, opt.label, opt.emoji, opt.style || 'PRIMARY');
+          });
+        }
+      });
+    } else if (options && options.length > 0) {
       for (const opt of options) {
         addAutoroleOption(messageId, opt.role_id, opt.label, opt.emoji, opt.style || 'PRIMARY');
       }
@@ -1798,7 +1809,7 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
 
     res.json({ success: true, messageId });
   } catch (error) {
-    console.error(error);
+    console.error('Erreur API autorole embed:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1813,7 +1824,7 @@ app.post('/api/config/autorole-embeds/delete', async (req, res) => {
     if (!message_id) return res.status(400).json({ error: 'ID de message requis' });
 
     // 1. Essayer de supprimer le message sur Discord directement
-    if (client && client.guilds) {
+    if (typeof client !== 'undefined' && client && client.guilds) {
       const guild = client.guilds.cache.get(guildId);
       if (guild) {
         let channel = channel_id ? guild.channels.cache.get(channel_id) : null;
