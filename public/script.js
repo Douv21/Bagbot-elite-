@@ -4142,7 +4142,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     document.getElementById('new-button-label').value = '';
     document.getElementById('new-button-emoji').value = '';
-    document.getElementById('new-button-style').value = 'PRIMARY';
+    const styleResetEl = document.getElementById('new-button-style');
+    if (styleResetEl) {
+      styleResetEl.value = 'PRIMARY';
+      if (styleResetEl.syncCustomSelect) styleResetEl.syncCustomSelect();
+    }
 
     const btnAdd = document.getElementById('btn-add-autorole-button');
     if (btnAdd) {
@@ -4244,7 +4248,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const styleEl = document.getElementById('new-button-style');
             if (labelEl) labelEl.value = btn.label || '';
             if (emojiEl) emojiEl.value = btn.emoji || '';
-            if (styleEl) styleEl.value = btn.style || 'PRIMARY';
+            if (styleEl) {
+              styleEl.value = btn.style || 'PRIMARY';
+              if (styleEl.syncCustomSelect) styleEl.syncCustomSelect();
+            }
 
             const btnAdd = document.getElementById('btn-add-autorole-button');
             if (btnAdd) {
