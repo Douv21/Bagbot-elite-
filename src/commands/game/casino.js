@@ -887,126 +887,192 @@ async function resolveDealerTurn(interaction, guildId, userId, bet, playerHand, 
 }
 
 // ==========================================
-// 🐓 COMBAT DE COQ (ARÈNE INTERACTIVE)
+// 🐓 COMBAT DE COQ (ARÈNE HYPER-RÉALISTE)
 // ==========================================
 async function handleCockfight(interaction, guildId, userId, bet, config) {
   await interaction.deferReply();
 
-  const roosterChoiceRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`coq_pick_red_${userId}`).setLabel('🔴 Coq Rouge (Attaquant)').setStyle(ButtonStyle.Danger),
-    new ButtonBuilder().setCustomId(`coq_pick_blue_${userId}`).setLabel('🔵 Coq Bleu (Agile)').setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId(`coq_pick_gold_${userId}`).setLabel('🟡 Coq Doré (Robuste)').setStyle(ButtonStyle.Success)
+  // PHASE 1: CHOIX DE LA RACE DU CHAMPION
+  const breedRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`coq_b_gaulois_${userId}`).setLabel('🔴 Coq Gaulois (Attaque & Critiques)').setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId(`coq_b_shamo_${userId}`).setLabel('🔵 Shamo Japonais (Esquive & Vitesse)').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId(`coq_b_asil_${userId}`).setLabel('🟡 Asil d\'Inde (Résistance & PV)').setStyle(ButtonStyle.Success)
   );
 
   const initEmbed = new EmbedBuilder()
-    .setTitle('🐓 Arène de Combat de Coq - Choix du Champion')
+    .setTitle('🐓 Arène de Combat de Coq - Choix de la Race')
     .setDescription(
-      'Choisissez votre coq de combat pour entrer dans l\'arène :\n\n' +
-      '🔴 **Coq Rouge** : Dégâts élevés, coup critique dévastateur !\n' +
-      '🔵 **Coq Bleu** : Très agile, fortes chances d\'esquive et contre-attaque !\n' +
-      '🟡 **Coq Doré** : Armure solide et santé renforcée !'
+      '**Bienvenue dans le Ring d\'Arène !** Sélectionnez la race de votre champion :\n\n' +
+      '🔴 **Coq Gaulois de Combat** : Puissance de frappe brute et ergots acérés (+35% de coups critiques).\n' +
+      '🔵 **Shamo Japonais** : Maître de l\'esquive et de la contre-attaque rapide (+30% d\'esquive).\n' +
+      '🟡 **Asil d\'Inde (Malais)** : Squelette massif et peau renforcée (130 HP de départ).'
     )
     .setColor(0xd35400)
-    .addFields({ name: '💰 Mise de combat', value: `${bet} pièces`, inline: true });
+    .addFields({ name: '💰 Mise d\'entrée', value: `${bet} pièces`, inline: true });
 
-  const msg = await interaction.editReply({ embeds: [initEmbed], components: [roosterChoiceRow] });
-  const choiceCollector = msg.createMessageComponentCollector({ time: 30000 });
+  const msg = await interaction.editReply({ embeds: [initEmbed], components: [breedRow] });
+  const breedCollector = msg.createMessageComponentCollector({ time: 30000 });
 
-  choiceCollector.on('collect', async btnInt => {
-    if (btnInt.user.id !== userId) {
-      return btnInt.reply({ content: '❌ Seul le dresseur d\'origine peut choisir son coq.', ephemeral: true });
+  breedCollector.on('collect', async bCtx => {
+    if (bCtx.user.id !== userId) {
+      return bCtx.reply({ content: '❌ Seul le dresseur d\'origine peut choisir son coq.', ephemeral: true });
     }
-    choiceCollector.stop();
+    breedCollector.stop();
 
-    let roosterType = '🔴 Coq Rouge';
-    let playerMaxHp = 100;
-    let playerCritChance = 0.25;
-    let playerDodgeChance = 0.10;
+    let breedName = '🔴 Coq Gaulois de Combat';
+    let baseHp = 100;
+    let critBonus = 0.35;
+    let dodgeBonus = 0.10;
 
-    if (btnInt.customId.includes('blue')) {
-      roosterType = '🔵 Coq Bleu';
-      playerDodgeChance = 0.30;
-      playerCritChance = 0.15;
-    } else if (btnInt.customId.includes('gold')) {
-      roosterType = '🟡 Coq Doré';
-      playerMaxHp = 125;
-      playerCritChance = 0.15;
+    if (bCtx.customId.includes('shamo')) {
+      breedName = '🔵 Shamo Japonais';
+      dodgeBonus = 0.30;
+      critBonus = 0.15;
+    } else if (bCtx.customId.includes('asil')) {
+      breedName = '🟡 Asil d\'Inde';
+      baseHp = 130;
+      critBonus = 0.15;
     }
 
-    await startCockfightBattle(btnInt, roosterType, playerMaxHp, playerCritChance, playerDodgeChance, bet);
+    // PHASE 2: ÉQUIPEMENT DES ÉPERONS ET MATÉRIEL
+    await promptEquipmentPhase(bCtx, breedName, baseHp, critBonus, dodgeBonus, bet);
   });
 
-  async function startCockfightBattle(iCtx, playerRoosterName, playerMaxHp, critChance, dodgeChance, currentBet) {
+  async function promptEquipmentPhase(iCtx, breedName, baseHp, critBonus, dodgeBonus, currentBet) {
+    const gearRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`coq_g_steel_${userId}`).setLabel('⚔️ Éperons en Acier (+Dégâts)').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId(`coq_g_armor_${userId}`).setLabel('🛡️ Harnais en Cuir (-Dégâts Subis)').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId(`coq_g_tonic_${userId}`).setLabel('🧪 Potion de Fureur (+15 HP Max)').setStyle(ButtonStyle.Success)
+    );
+
+    const gearEmbed = new EmbedBuilder()
+      .setTitle(`🐓 Préparation de ${breedName}`)
+      .setDescription(
+        '**Équipez votre coq avant le coup d\'envoi dans le ring :**\n\n' +
+        '⚔️ **Éperons en Acier Tranchants** : Multiplie les dégâts des coups d\'éperon.\n' +
+        '🛡️ **Harnais en Cuir Renforcé** : Réduit de 25% les dégâts infligés par l\'adversaire.\n' +
+        '🧪 **Potion de Fureur & Vigueur** : Augmente la santé maximale de +15 HP.'
+      )
+      .setColor(0xd35400)
+      .addFields({ name: '🐓 Champion', value: breedName, inline: true });
+
+    let gearMsg = await iCtx.update({ embeds: [gearEmbed], components: [gearRow], fetchReply: true });
+    const gearCollector = gearMsg.createMessageComponentCollector({ time: 30000 });
+
+    gearCollector.on('collect', async gCtx => {
+      if (gCtx.user.id !== userId) {
+        return gCtx.reply({ content: '❌ Seul le dresseur d\'origine peut équiper son coq.', ephemeral: true });
+      }
+      gearCollector.stop();
+
+      let gearName = '⚔️ Éperons en Acier';
+      let dmgMult = 1.25;
+      let dmgReduction = 0;
+      let playerMaxHp = baseHp;
+
+      if (gCtx.customId.includes('armor')) {
+        gearName = '🛡️ Harnais en Cuir';
+        dmgReduction = 0.25;
+        dmgMult = 1.0;
+      } else if (gCtx.customId.includes('tonic')) {
+        gearName = '🧪 Potion de Fureur';
+        playerMaxHp += 15;
+        dmgMult = 1.1;
+      }
+
+      await startRealCockfightArena(gCtx, breedName, gearName, playerMaxHp, critBonus, dodgeBonus, dmgMult, dmgReduction, currentBet);
+    });
+  }
+
+  // PHASE 3: COMBAT D'ARÈNE TOUR PAR TOUR
+  async function startRealCockfightArena(iCtx, breedName, gearName, playerMaxHp, critBonus, dodgeBonus, dmgMult, dmgReduction, currentBet) {
     let playerHp = playerMaxHp;
     let enemyHp = 100;
-    let enemyRoosterName = '🦅 Coq Adverse de l\'Arène';
-    let logHistory = ['🏁 **Le combat commence !** Les deux coqs s\'observent férocement.'];
+    let enemyName = '🦅 Coq Étranger de l\'Arène';
+    let roundNum = 1;
+    let logHistory = [`🏁 **Ronde 1 !** ${breedName} armé de ${gearName} pénètre dans l'arène en poussant un retentissant chant de guerre !`];
 
     const getHealthBar = (current, max) => {
-      const percentage = Math.max(0, Math.min(1, current / max));
-      const filled = Math.round(percentage * 8);
-      const empty = 8 - filled;
-      return `[ ${'█'.repeat(filled)}${'░'.repeat(empty)} ] ${current}/${max} HP`;
+      const pct = Math.max(0, Math.min(1, current / max));
+      const filled = Math.round(pct * 10);
+      const empty = 10 - filled;
+      let statusStr = '🟢 (En pleine forme)';
+      if (pct < 0.3) statusStr = '🔴 (🩸 En sang !)';
+      else if (pct < 0.6) statusStr = '🟠 (🪶 Blessé)';
+
+      return `\`[${'█'.repeat(filled)}${'░'.repeat(empty)}]\` **${current}/${max} HP** ${statusStr}`;
     };
 
-    const getBattleButtons = (disabled = false) => {
-      if (disabled) return [];
-      return [
-        new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId(`coq_act_bec_${userId}`).setLabel('⚔️ Coup de Bec').setStyle(ButtonStyle.Primary),
-          new ButtonBuilder().setCustomId(`coq_act_eperon_${userId}`).setLabel('⚡ Coup d\'Éperon').setStyle(ButtonStyle.Danger),
-          new ButtonBuilder().setCustomId(`coq_act_parade_${userId}`).setLabel('🛡️ Parade & Contre').setStyle(ButtonStyle.Success)
-        )
-      ];
+    const getBattleButtons = (isRageAvailable = false) => {
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`coq_act_bec_${userId}`).setLabel('⚔️ Coup de Bec').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId(`coq_act_eperon_${userId}`).setLabel('⚡ Coup d\'Éperon').setStyle(ButtonStyle.Danger),
+        new ButtonBuilder().setCustomId(`coq_act_parade_${userId}`).setLabel('🛡️ Parade & Contre').setStyle(ButtonStyle.Success)
+      );
+
+      if (isRageAvailable) {
+        row.addComponents(
+          new ButtonBuilder().setCustomId(`coq_act_rage_${userId}`).setLabel('🔥 Envol de Fureur (Ultime)').setStyle(ButtonStyle.Danger)
+        );
+      }
+      return [row];
     };
 
     const buildBattleEmbed = () => {
+      const isRage = (playerHp / playerMaxHp) < 0.5;
       const embed = new EmbedBuilder()
-        .setTitle('🐓 Combat de Coq - Arène en Direct')
+        .setTitle(`🐓 Arène de Combat - Tour ${roundNum}`)
         .setDescription(
-          `**${playerRoosterName} (Vous) :**\n${getHealthBar(playerHp, playerMaxHp)}\n\n` +
-          `**${enemyRoosterName} :**\n${getHealthBar(enemyHp, 100)}\n\n` +
-          `📋 **Journal de Combat :**\n${logHistory.slice(-3).join('\n')}`
+          `**${breedName} (Vous - ${gearName}) :**\n${getHealthBar(playerHp, playerMaxHp)}\n\n` +
+          `**${enemyName} :**\n${getHealthBar(enemyHp, 100)}\n\n` +
+          `📋 **Journal d'Arène :**\n${logHistory.slice(-4).join('\n')}`
         )
-        .setColor(0xd35400)
-        .addFields({ name: '💰 En jeu', value: `${currentBet} pièces`, inline: true })
-        .setTimestamp();
+        .setColor(isRage ? 0xe74c3c : 0xd35400)
+        .addFields({ name: '💰 En Jeu', value: `**${currentBet} pièces**`, inline: true })
+        .setFooter({ text: isRage ? '🔥 Votre coq est blessé ! L\'Envol de Fureur est disponible !' : 'Choisissez la prochaine attaque de votre champion.' });
       return embed;
     };
 
-    let battleMsg = await iCtx.update({ embeds: [buildBattleEmbed()], components: getBattleButtons(false), fetchReply: true });
+    const isRageInit = (playerHp / playerMaxHp) < 0.5;
+    let battleMsg = await iCtx.update({ embeds: [buildBattleEmbed()], components: getBattleButtons(isRageInit), fetchReply: true });
     const battleCollector = battleMsg.createMessageComponentCollector({ time: 60000 });
 
-    battleCollector.on('collect', async bInt => {
-      if (bInt.user.id !== userId) {
-        return bInt.reply({ content: '❌ Seul le dresseur d\'origine peut donner des ordres.', ephemeral: true });
+    battleCollector.on('collect', async bCtx => {
+      if (bCtx.user.id !== userId) {
+        return bCtx.reply({ content: '❌ Seul le dresseur d\'origine peut donner des ordres.', ephemeral: true });
       }
 
+      roundNum++;
       let pDmg = 0;
       let eDmg = 0;
-      let actionLog = '';
+      let actionLog = `🥊 **Tour ${roundNum - 1} :** `;
 
-      if (bInt.customId.includes('bec')) {
-        pDmg = Math.floor(Math.random() * 11) + 15;
-        if (Math.random() < critChance) {
-          pDmg = Math.floor(pDmg * 1.5);
-          actionLog += `💥 **Coup critique !** Votre ${playerRoosterName} donne un violent coup de bec (-${pDmg} HP) !\n`;
+      // PLAYER TURN
+      if (bCtx.customId.includes('bec')) {
+        pDmg = Math.floor((Math.random() * 11 + 16) * dmgMult);
+        if (Math.random() < critBonus) {
+          pDmg = Math.floor(pDmg * 1.6);
+          actionLog += `💥 **Coup de bec précis au visage !** (-${pDmg} HP) !`;
         } else {
-          actionLog += `⚔️ Votre ${playerRoosterName} donne un coup de bec (-${pDmg} HP).\n`;
+          actionLog += `⚔️ Coup de bec rapide (-${pDmg} HP).`;
         }
-      } else if (bInt.customId.includes('eperon')) {
-        if (Math.random() < 0.25) {
-          actionLog += `💨 Votre ${playerRoosterName} tente un coup d'éperon mais rate sa cible !\n`;
+      } else if (bCtx.customId.includes('eperon')) {
+        if (Math.random() < 0.22) { // 22% miss
+          actionLog += `💨 Tentative de coup d'éperon sautée qui manque la cible !`;
         } else {
-          pDmg = Math.floor(Math.random() * 21) + 25;
-          actionLog += `⚡ **Coup d'éperon dévastateur !** (-${pDmg} HP) !\n`;
+          pDmg = Math.floor((Math.random() * 21 + 28) * dmgMult);
+          actionLog += `⚡ **Volée d'éperons sanglante !** (-${pDmg} HP) ! 🪶`;
         }
-      } else if (bInt.customId.includes('parade')) {
-        actionLog += `🛡️ Votre ${playerRoosterName} se met en posture défensive.\n`;
+      } else if (bCtx.customId.includes('parade')) {
+        actionLog += `🛡️ Position défensive adoptée.`;
+      } else if (bCtx.customId.includes('rage')) {
+        pDmg = Math.floor((Math.random() * 25 + 38) * dmgMult);
+        actionLog += `🔥 **ENVOL DE FUREUR !** Votre coq s'élance dans les airs et terrasse l'adversaire (-${pDmg} HP) ! 🩸`;
       }
 
       enemyHp = Math.max(0, enemyHp - pDmg);
 
+      // CHECK ENEMY KO
       if (enemyHp <= 0) {
         battleCollector.stop();
         const mult = config.payout_multiplier || 2.0;
@@ -1015,56 +1081,59 @@ async function handleCockfight(interaction, guildId, userId, bet, config) {
         updateEconomy(guildId, userId, { wallet: eco.wallet + winnings });
 
         const victoryEmbed = new EmbedBuilder()
-          .setTitle('🏆 KO VICTOIRE ! Votre Coq l\'emporte !')
+          .setTitle('🏆 KO SPECTACULAIRE ! Votre Coq est le Roi de l\'Arène !')
           .setDescription(
-            `**${playerRoosterName} :** ${getHealthBar(playerHp, playerMaxHp)}\n` +
-            `**${enemyRoosterName} :** KO (0/100 HP)\n\n` +
-            `🎉 Votre coq a terrassé son adversaire dans l'arène !`
+            `**${breedName} :** ${getHealthBar(playerHp, playerMaxHp)}\n` +
+            `**${enemyName} :** \`[░░░░░░░░░░]\` **0/100 HP** 💀 KO !\n\n` +
+            `🎉 Le coq adverse s'effondre sur le tapis dans une nuée de plumes ! Vous remportez le grand prix d'arène !`
           )
           .setColor(0x2ecc71)
           .addFields(
             { name: '💰 Mise', value: `${currentBet} pièces`, inline: true },
-            { name: '🎉 Gains', value: `+${winnings} pièces (x${mult})`, inline: true }
+            { name: '🎉 Gains Totaux', value: `**+${winnings} pièces** (x${mult})`, inline: true }
           )
           .setTimestamp();
 
-        return bInt.update({ embeds: [victoryEmbed], components: [] });
+        return bCtx.update({ embeds: [victoryEmbed], components: [] });
       }
 
-      if (Math.random() < dodgeChance) {
-        actionLog += `🌀 **Esquive spectaculaire !** Votre ${playerRoosterName} esquive la riposte adverse !`;
+      // ENEMY TURN
+      if (Math.random() < dodgeBonus) {
+        actionLog += `\n🌀 **Esquive fabuleuse !** Votre ${breedName} évite le coup ennemi avec agilité !`;
       } else {
-        eDmg = Math.floor(Math.random() * 16) + 12;
-        if (bInt.customId.includes('parade')) {
-          eDmg = Math.floor(eDmg * 0.3);
-          const counterDmg = Math.floor(Math.random() * 11) + 10;
+        eDmg = Math.floor((Math.random() * 16 + 14) * (1 - dmgReduction));
+        if (bCtx.customId.includes('parade')) {
+          eDmg = Math.floor(eDmg * 0.25);
+          const counterDmg = Math.floor(Math.random() * 12 + 12);
           enemyHp = Math.max(0, enemyHp - counterDmg);
-          actionLog += `🛡️ Parade réussie ! Dégâts subis réduits (-${eDmg} HP) et contre-attaque (-${counterDmg} HP) !`;
+          actionLog += `\n🛡️ Parade parfaite ! Dégâts subis réduits (-${eDmg} HP) et riposte cinglante (-${counterDmg} HP) !`;
         } else {
-          actionLog += `🦅 Le Coq Adverse riposte violemment (-${eDmg} HP) !`;
+          actionLog += `\n🦅 Le Coq Adverse donne un coup d'ergot violent (-${eDmg} HP) !`;
         }
       }
 
       playerHp = Math.max(0, playerHp - eDmg);
       logHistory.push(actionLog);
 
+      // CHECK PLAYER KO
       if (playerHp <= 0) {
         battleCollector.stop();
         const defeatEmbed = new EmbedBuilder()
-          .setTitle('❌ KO DÉFAITE ! Votre Coq s\'est effondré...')
+          .setTitle('❌ KO DÉFAITE... Votre Coq s\'est effondré dans l\'arène.')
           .setDescription(
-            `**${playerRoosterName} :** KO (0/${playerMaxHp} HP)\n` +
-            `**${enemyRoosterName} :** ${getHealthBar(enemyHp, 100)}\n\n` +
-            `💀 Votre champion est K.O. Vous avez perdu votre mise.`
+            `**${breedName} :** \`[░░░░░░░░░░]\` **0/${playerMaxHp} HP** 💀 KO !\n` +
+            `**${enemyName} :** ${getHealthBar(enemyHp, 100)}\n\n` +
+            `💀 Votre champion a succombé aux blessures. Vous perdez votre mise.`
           )
           .setColor(0xe74c3c)
           .addFields({ name: '💰 Perte', value: `-${currentBet} pièces`, inline: true })
           .setTimestamp();
 
-        return bInt.update({ embeds: [defeatEmbed], components: [] });
+        return bCtx.update({ embeds: [defeatEmbed], components: [] });
       }
 
-      await bInt.update({ embeds: [buildBattleEmbed()], components: getBattleButtons(false) });
+      const isRageNext = (playerHp / playerMaxHp) < 0.5;
+      await bCtx.update({ embeds: [buildBattleEmbed()], components: getBattleButtons(isRageNext) });
     });
 
     battleCollector.on('end', (collected, reason) => {
