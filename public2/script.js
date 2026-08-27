@@ -3452,6 +3452,136 @@ document.addEventListener('DOMContentLoaded', () => {
     return html;
   }
 
+  function openRolePickerPopover(roleSelectEl, triggerEl) {
+    if (!roleSelectEl || !triggerEl) return;
+    let existing = document.getElementById('role-picker-popover');
+    if (existing) existing.remove();
+
+    const rect = triggerEl.getBoundingClientRect();
+    const popover = document.createElement('div');
+    popover.id = 'role-picker-popover';
+    popover.style.cssText = `
+      position: fixed;
+      top: ${Math.min(window.innerHeight - 340, rect.bottom + 6)}px;
+      left: ${Math.max(10, Math.min(window.innerWidth - 330, rect.left))}px;
+      width: 320px;
+      background: #1e1f22;
+      border: 1px solid #383a40;
+      border-radius: 12px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.85);
+      z-index: 9999999;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    `;
+
+    const header = document.createElement('div');
+    header.style.cssText = 'font-weight: 700; font-size: 0.82rem; color: #b5bac1; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center;';
+    header.innerHTML = '<span>🔍 Recherche & Sélection de Rôles</span> <span style="cursor: pointer; color: #8e9297; font-size: 1.1rem;" id="close-role-popover">✕</span>';
+    popover.appendChild(header);
+
+    const searchRow = document.createElement('div');
+    searchRow.style.cssText = 'display: flex; gap: 6px; align-items: center;';
+
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = '🔎 Chercher un rôle...';
+    searchInput.style.cssText = 'flex: 1; background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; padding: 6px 10px; font-size: 0.82rem; color: #fff; outline: none;';
+
+    const btnClearAll = document.createElement('button');
+    btnClearAll.type = 'button';
+    btnClearAll.textContent = '❌ Vider';
+    btnClearAll.title = 'Décocher tous les rôles';
+    btnClearAll.style.cssText = 'background: #da373c; color: #fff; border: none; border-radius: 6px; padding: 6px 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer; flex-shrink: 0;';
+    btnClearAll.addEventListener('click', () => {
+      Array.from(roleSelectEl.options).forEach(o => o.selected = false);
+      roleSelectEl.dispatchEvent(new Event('change'));
+      renderRoleList();
+    });
+
+    searchRow.appendChild(searchInput);
+    searchRow.appendChild(btnClearAll);
+    popover.appendChild(searchRow);
+
+    const roleListDiv = document.createElement('div');
+    roleListDiv.style.cssText = 'display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; padding-right: 4px;';
+
+    const renderRoleList = (query = '') => {
+      roleListDiv.innerHTML = '';
+      const roles = (typeof rolesList !== 'undefined' && Array.isArray(rolesList)) ? rolesList.filter(r => r.name !== '@everyone') : [];
+      const filtered = roles.filter(r => !query || r.name.toLowerCase().includes(query.toLowerCase()));
+
+      if (filtered.length === 0) {
+        roleListDiv.innerHTML = '<div style="color: #8e9297; font-size: 0.8rem; text-align: center; padding: 12px 0;">Aucun rôle trouvé</div>';
+        return;
+      }
+
+      filtered.forEach(r => {
+        const isSelected = Array.from(roleSelectEl.selectedOptions).some(o => String(o.value) === String(r.id));
+        let color = '#5865F2';
+        if (r.color && r.color !== 0) {
+          color = `#${r.color.toString(16).padStart(6, '0')}`;
+        }
+
+        const item = document.createElement('div');
+        item.style.cssText = `
+          display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; cursor: pointer;
+          background: ${isSelected ? 'rgba(88,101,242,0.2)' : '#2b2d31'};
+          border: 1px solid ${isSelected ? '#5865F2' : '#383a40'};
+          transition: background 0.15s;
+        `;
+
+        item.innerHTML = `
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: ${color}; flex-shrink: 0;"></span>
+          <span style="flex: 1; font-size: 0.85rem; color: #fff; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${r.name}</span>
+          <input type="checkbox" ${isSelected ? 'checked' : ''} style="cursor: pointer; accent-color: #5865F2;">
+        `;
+
+        item.addEventListener('click', () => {
+          let opt = Array.from(roleSelectEl.options).find(o => String(o.value) === String(r.id));
+          if (!opt) {
+            opt = document.createElement('option');
+            opt.value = r.id;
+            opt.textContent = r.name;
+            roleSelectEl.appendChild(opt);
+          }
+          opt.selected = !opt.selected;
+          roleSelectEl.dispatchEvent(new Event('change'));
+          renderRoleList(searchInput.value.trim());
+        });
+
+        roleListDiv.appendChild(item);
+      });
+    };
+
+    renderRoleList();
+    searchInput.addEventListener('input', (e) => renderRoleList(e.target.value.trim()));
+
+    popover.appendChild(roleListDiv);
+
+    const footer = document.createElement('div');
+    footer.style.cssText = 'display: flex; justify-content: flex-end; margin-top: 4px;';
+    const btnVal = document.createElement('button');
+    btnVal.type = 'button';
+    btnVal.textContent = '✓ Valider';
+    btnVal.style.cssText = 'background: #23a55a; color: #fff; border: none; border-radius: 6px; padding: 6px 16px; font-size: 0.82rem; font-weight: 700; cursor: pointer;';
+    btnVal.addEventListener('click', () => popover.remove());
+    footer.appendChild(btnVal);
+    popover.appendChild(footer);
+
+    document.body.appendChild(popover);
+    popover.querySelector('#close-role-popover').addEventListener('click', () => popover.remove());
+
+    const closeOnClickOutside = (e) => {
+      if (!popover.contains(e.target) && !triggerEl.contains(e.target)) {
+        popover.remove();
+        document.removeEventListener('click', closeOnClickOutside);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', closeOnClickOutside), 10);
+  }
+
   function updateRoleSelectTags(selectEl, tagsContainerEl) {
     if (!selectEl || !tagsContainerEl) return;
     tagsContainerEl.innerHTML = '';
@@ -3815,8 +3945,11 @@ document.addEventListener('DOMContentLoaded', () => {
           <select class="opt-role role-select" multiple size="3" style="width: 100%; max-height: 70px; background: transparent; border: none; color: #3498db; font-weight: 700; font-size: 0.82rem; outline: none; cursor: pointer;">
             ${rolesOptionsHtml}
           </select>
+          <button type="button" class="btn-role-search-popover" style="background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; color: #b5bac1; font-size: 0.8rem; padding: 4px 8px; cursor: pointer; margin-left: 4px; flex-shrink: 0;" title="Rechercher des rôles">
+            🔍
+          </button>
         </div>
-        <div class="opt-role-tags" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; min-height: 20px;"></div>
+        <div class="opt-role-tags" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; min-height: 20px; cursor: pointer;" title="Cliquer pour choisir/rechercher des rôles"></div>
       </div>
 
       <!-- Intitulé personnalisé de l'option -->
@@ -3891,6 +4024,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
       roleSelect.addEventListener('change', updatePillColor);
+      const btnSearchRole = row.querySelector('.btn-role-search-popover');
+      if (btnSearchRole) {
+        btnSearchRole.addEventListener('click', () => openRolePickerPopover(roleSelect, btnSearchRole));
+      }
+      if (optRoleTags) {
+        optRoleTags.addEventListener('click', (e) => {
+          if (!e.target.classList.contains('btn-remove-role-tag')) {
+            openRolePickerPopover(roleSelect, optRoleTags);
+          }
+        });
+      }
       updatePillColor();
     }
 
@@ -3997,11 +4141,20 @@ document.addEventListener('DOMContentLoaded', () => {
     btnAddModalOpt.addEventListener('click', () => addModalOptionRow());
   }
 
+  let editingAutoroleButtonIndex = -1;
+
   const newBtnRoleEl = document.getElementById('new-button-role');
   const newBtnRoleTagsEl = document.getElementById('new-button-role-tags');
   if (newBtnRoleEl && newBtnRoleTagsEl) {
     newBtnRoleEl.addEventListener('change', () => {
       updateRoleSelectTags(newBtnRoleEl, newBtnRoleTagsEl);
+    });
+    newBtnRoleTagsEl.style.cursor = 'pointer';
+    newBtnRoleTagsEl.title = 'Cliquer pour rechercher et sélectionner des rôles';
+    newBtnRoleTagsEl.addEventListener('click', (e) => {
+      if (!e.target.classList.contains('btn-remove-role-tag')) {
+        openRolePickerPopover(newBtnRoleEl, newBtnRoleTagsEl);
+      }
     });
   }
 
@@ -4030,20 +4183,30 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Veuillez saisir un libellé pour le bouton.');
         return;
       }
-      if (autoroleButtonsList.length >= 25) {
-        alert('Vous pouvez ajouter un maximum de 25 rôles/options.');
-        return;
-      }
 
-      autoroleButtonsList.push({ role_id, label, emoji, style });
+      if (editingAutoroleButtonIndex >= 0 && editingAutoroleButtonIndex < autoroleButtonsList.length) {
+        autoroleButtonsList[editingAutoroleButtonIndex] = { role_id, label, emoji, style };
+        editingAutoroleButtonIndex = -1;
+      } else {
+        if (autoroleButtonsList.length >= 25) {
+          alert('Vous pouvez ajouter un maximum de 25 rôles/options.');
+          return;
+        }
+        autoroleButtonsList.push({ role_id, label, emoji, style });
+      }
       
-      // Reset inputs
+      // Reset inputs & button appearance
       if (roleSelectEl) {
         Array.from(roleSelectEl.options).forEach(o => o.selected = false);
+        if (newBtnRoleTagsEl) updateRoleSelectTags(roleSelectEl, newBtnRoleTagsEl);
       }
       document.getElementById('new-button-label').value = '';
       document.getElementById('new-button-emoji').value = '';
       document.getElementById('new-button-style').value = 'PRIMARY';
+
+      btnAddAutoroleBtn.innerHTML = '<i class="fa-solid fa-plus"></i>';
+      btnAddAutoroleBtn.style.background = '';
+      btnAddAutoroleBtn.title = 'Ajouter le bouton';
 
       renderButtonsCreatorPreview();
     });
@@ -4111,7 +4274,10 @@ document.addEventListener('DOMContentLoaded', () => {
               ${btn.emoji || '📌'} ${btn.label || 'Bouton'}
               <span style="background: rgba(88,101,242,0.3); padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; margin-left: 6px;">${styleLabel}</span>
             </span>
-            <button type="button" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 1.1rem; padding: 0 4px;" title="Supprimer ce bouton"><i class="fa-solid fa-xmark"></i></button>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button type="button" class="btn-edit-autorole-btn" style="background: none; border: none; color: #3498db; cursor: pointer; font-size: 1rem; padding: 0 4px;" title="Modifier ce bouton"><i class="fa-solid fa-pen"></i></button>
+              <button type="button" class="btn-remove-autorole-btn" style="background: none; border: none; color: #ff5555; cursor: pointer; font-size: 1.1rem; padding: 0 4px;" title="Supprimer ce bouton"><i class="fa-solid fa-xmark"></i></button>
+            </div>
           </div>
           <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
             <span style="font-size: 0.75rem; color: #b9bbbe; font-weight: 600;">🏷️ Rôles attribués (${roleIds.length}) :</span>
@@ -4119,10 +4285,39 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         `;
 
-        const btnRemove = wrapper.querySelector('button');
+        const btnEdit = wrapper.querySelector('.btn-edit-autorole-btn');
+        if (btnEdit) {
+          btnEdit.addEventListener('click', () => {
+            editingAutoroleButtonIndex = index;
+            const roleSelectEl = document.getElementById('new-button-role');
+            const selectedIds = String(btn.role_id || '').split(',').map(s => s.trim()).filter(Boolean);
+            if (roleSelectEl) {
+              Array.from(roleSelectEl.options).forEach(o => {
+                o.selected = selectedIds.includes(o.value);
+              });
+              if (newBtnRoleTagsEl) updateRoleSelectTags(roleSelectEl, newBtnRoleTagsEl);
+            }
+            const labelEl = document.getElementById('new-button-label');
+            const emojiEl = document.getElementById('new-button-emoji');
+            const styleEl = document.getElementById('new-button-style');
+            if (labelEl) labelEl.value = btn.label || '';
+            if (emojiEl) emojiEl.value = btn.emoji || '';
+            if (styleEl) styleEl.value = btn.style || 'PRIMARY';
+
+            const btnAdd = document.getElementById('btn-add-autorole-button');
+            if (btnAdd) {
+              btnAdd.innerHTML = '<i class="fa-solid fa-check"></i>';
+              btnAdd.style.background = '#23a55a';
+              btnAdd.title = 'Enregistrer les modifications';
+            }
+          });
+        }
+
+        const btnRemove = wrapper.querySelector('.btn-remove-autorole-btn');
         if (btnRemove) {
           btnRemove.addEventListener('click', () => {
             autoroleButtonsList.splice(index, 1);
+            if (editingAutoroleButtonIndex === index) editingAutoroleButtonIndex = -1;
             renderButtonsCreatorPreview();
           });
         }
