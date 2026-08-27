@@ -3899,6 +3899,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const autoroleTypeEl = document.getElementById('autorole-embed-type');
+  if (autoroleTypeEl) {
+    autoroleTypeEl.addEventListener('change', () => {
+      updateAutoroleTypeVisibility();
+      renderButtonsCreatorPreview();
+    });
+  }
+
   function updateAutoroleTypeVisibility() {
     const typeEl = document.getElementById('autorole-embed-type');
     const type = typeEl ? typeEl.value : 'select';
@@ -3917,6 +3925,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btnOpenAddSelector) btnOpenAddSelector.style.display = 'inline-flex';
     }
   }
+
+  updateAutoroleTypeVisibility();
 
   function renderButtonsCreatorPreview() {
     updateAutoroleTypeVisibility();
