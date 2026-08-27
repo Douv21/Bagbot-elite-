@@ -1389,7 +1389,10 @@ const ensureDefaultShopItems = (guildId) => {
     { item_name: '☕ Chocolat Chaud & Guimauves', price: 80, description: 'Une tasse gourmande parfumée à la cannelle, bien enveloppante.', reward_xp: 40, reward_karma: 5 },
     { item_name: '💆 Massage Attentionné', price: 280, description: 'Un massage délicat des épaules et de la nuque pour dénouer le stress.', reward_xp: 100, reward_karma: 20 },
     // Mini-Jeux & Compétition
-    { item_name: '🐓 Coq de Combat', price: 500, description: 'Un coq de combat robuste indispensable pour participer aux arènes de combat de coqs !', reward_xp: 150, reward_karma: 25 }
+    { item_name: '🐓 Coq de Combat', price: 500, description: 'Un coq de combat robuste indispensable pour participer aux arènes de combat de coqs !', reward_xp: 150, reward_karma: 25 },
+    { item_name: '⚔️ Éperons en Acier', price: 250, description: 'Éperons de combat ultra-tranchants (+35% dégâts). S\'use à chaque combat !', reward_xp: 50, reward_karma: 10 },
+    { item_name: '🛡️ Harnais en Cuir', price: 200, description: 'Protection en cuir renforcé pour coq (-25% dégâts subis). S\'use à chaque combat !', reward_xp: 40, reward_karma: 10 },
+    { item_name: '🧪 Potion de Fureur', price: 150, description: 'Breuvage dynamisant pour coq (+20 HP Max). Consommé à chaque combat !', reward_xp: 30, reward_karma: 5 }
   ];
 
   const stmt = db.prepare(`
