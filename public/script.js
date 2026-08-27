@@ -3803,6 +3803,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     if (roleSelect) {
+      // Forcer la sélection programmatique des rôles (le HTML 'selected' dans innerHTML n'est pas toujours fiable pour les <select multiple>)
+      if (opt && opt.role_id) {
+        const selectedIds = String(opt.role_id).split(',').map(s => s.trim()).filter(Boolean);
+        Array.from(roleSelect.options).forEach(option => {
+          option.selected = selectedIds.includes(option.value);
+        });
+      }
       roleSelect.addEventListener('change', updatePillColor);
       updatePillColor();
     }

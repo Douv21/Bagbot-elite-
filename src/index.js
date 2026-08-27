@@ -2774,9 +2774,12 @@ apiApp.get('/guilds/:guildId/messages/:messageId', async (req, res) => {
             if (rawPlaceholder) rowPlaceholder = rawPlaceholder;
 
             if (compTypeNum === 2 || rawData.type === 'BUTTON' || rawData.style !== undefined) {
-              const roleMatch = rawCustomId.match(/\d{17,20}/);
-              let roleId = roleMatch ? roleMatch[0] : rawCustomId;
+              // Extraire l'ID Discord valide (17-20 chiffres) du customId
+              const roleMatches = rawCustomId.match(/\d{17,20}/g) || [];
+              // Filtrer pour ne garder que les IDs qui correspondent à un rôle existant du serveur
+              let roleId = roleMatches.find(id => guild.roles.cache.has(id)) || '';
 
+              // Fallback: chercher le rôle par son nom si aucun ID trouvé
               if (!roleId && rawData.label) {
                 const foundRole = guild.roles.cache.find(r => r.name.toLowerCase() === rawData.label.toLowerCase());
                 if (foundRole) roleId = foundRole.id;
@@ -2808,9 +2811,13 @@ apiApp.get('/guilds/:guildId/messages/:messageId', async (req, res) => {
                 rawOptions.forEach(opt => {
                   const optData = opt.data || opt;
                   const rawVal = optData.value || '';
-                  const roleMatch = rawVal.match(/\d{17,20}/);
-                  let roleId = roleMatch ? roleMatch[0] : rawVal;
+                  // Gérer les valeurs multiples séparées par virgule
+                  const roleMatches = rawVal.match(/\d{17,20}/g) || [];
+                  // Filtrer pour ne garder que les IDs qui existent sur le serveur
+                  const validIds = roleMatches.filter(id => guild.roles.cache.has(id));
+                  let roleId = validIds.join(',');
 
+                  // Fallback: chercher par nom de rôle
                   if (!roleId && optData.label) {
                     const foundRole = guild.roles.cache.find(r => r.name.toLowerCase() === optData.label.toLowerCase());
                     if (foundRole) roleId = foundRole.id;
