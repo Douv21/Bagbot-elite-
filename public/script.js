@@ -4174,12 +4174,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectorsContainer = document.getElementById('selectors-list-container');
     const btnOpenAddSelector = document.getElementById('btn-open-add-selector-modal');
 
+    if (buttonsCreator) buttonsCreator.style.display = 'block';
+
     if (type === 'buttons') {
-      if (buttonsCreator) buttonsCreator.style.display = 'block';
       if (selectorsContainer) selectorsContainer.style.display = 'none';
       if (btnOpenAddSelector) btnOpenAddSelector.style.display = 'none';
     } else {
-      if (buttonsCreator) buttonsCreator.style.display = 'none';
       if (selectorsContainer) selectorsContainer.style.display = 'flex';
       if (btnOpenAddSelector) btnOpenAddSelector.style.display = 'inline-flex';
     }
