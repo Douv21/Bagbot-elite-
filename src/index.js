@@ -2471,10 +2471,15 @@ apiApp.get('/guilds/:guildId/messages/:messageId', async (req, res) => {
 
     const emb = message.embeds.length > 0 ? message.embeds[0] : null;
     const options = [];
+    const selectors = [];
 
     if (message.components && message.components.length > 0) {
-      message.components.forEach(row => {
-        if (row.components) {
+      message.components.forEach((row, rIdx) => {
+        if (row.components && row.components.length > 0) {
+          const rowOptions = [];
+          let rowType = 'buttons';
+          let rowPlaceholder = `Sélecteur ${rIdx + 1}`;
+
           row.components.forEach(comp => {
             if (comp.type === 2) {
               const roleId = comp.customId ? comp.customId.replace('autorole_', '') : '';
@@ -2483,14 +2488,29 @@ apiApp.get('/guilds/:guildId/messages/:messageId', async (req, res) => {
               else if (comp.style === 3) styleStr = 'SUCCESS';
               else if (comp.style === 4) styleStr = 'DANGER';
               let emojiStr = comp.emoji ? (comp.emoji.id ? (comp.emoji.animated ? `<a:${comp.emoji.name}:${comp.emoji.id}>` : `<:${comp.emoji.name}:${comp.emoji.id}>`) : comp.emoji.name) : '';
-              options.push({ role_id: roleId, label: comp.label || '', emoji: emojiStr, style: styleStr });
+              const optObj = { role_id: roleId, label: comp.label || '', emoji: emojiStr, style: styleStr };
+              options.push(optObj);
+              rowOptions.push(optObj);
             } else if (comp.type === 3 && comp.options) {
+              rowType = (comp.maxValues && comp.maxValues > 1) ? 'multi_select' : 'select';
+              if (comp.placeholder) rowPlaceholder = comp.placeholder;
               comp.options.forEach(opt => {
                 let emojiStr = opt.emoji ? (opt.emoji.id ? (opt.emoji.animated ? `<a:${opt.emoji.name}:${opt.emoji.id}>` : `<:${opt.emoji.name}:${opt.emoji.id}>`) : opt.emoji.name) : '';
-                options.push({ role_id: opt.value, label: opt.label || '', emoji: emojiStr, style: 'PRIMARY' });
+                const optObj = { role_id: opt.value, label: opt.label || '', emoji: emojiStr, style: 'PRIMARY' };
+                options.push(optObj);
+                rowOptions.push(optObj);
               });
             }
           });
+
+          if (rowOptions.length > 0) {
+            selectors.push({
+              placeholder: rowPlaceholder,
+              type: rowType,
+              mode: 'normal',
+              options: rowOptions
+            });
+          }
         }
       });
     }
@@ -2521,6 +2541,7 @@ apiApp.get('/guilds/:guildId/messages/:messageId', async (req, res) => {
       thumbnail: (emb && emb.thumbnail) ? 1 : 0,
       image_url: imageUrl,
       options: options,
+      selectors: selectors,
       type: (message.components && message.components[0] && message.components[0].components[0] && message.components[0].components[0].type === 3) 
         ? ((message.components[0].components[0].maxValues && message.components[0].components[0].maxValues > 1) ? 'multi_select' : 'select') 
         : (options.length > 0 && options[0].role_id === '' ? 'reactions' : 'buttons')

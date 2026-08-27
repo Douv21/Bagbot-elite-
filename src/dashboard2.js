@@ -2025,7 +2025,14 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
       });
     }
 
-    if (client && client.guilds) {
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const botRes = await fetch(`http://127.0.0.1:${botApiPort}/guilds/${guildId}/messages/${cleanMsgId}${channelId ? `?channelId=${channelId}` : ''}`).catch(() => null);
+    if (botRes && botRes.ok) {
+      const msgData = await botRes.json();
+      return res.json(msgData);
+    }
+
+    if (typeof client !== 'undefined' && client && client.guilds) {
       const guild = client.guilds.cache.get(guildId);
       if (guild) {
         let targetMsg = null;
