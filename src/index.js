@@ -489,10 +489,12 @@ const handleMultiRoleSelect = async (interaction, selectedRoleIds, messageId, se
     });
   });
 
-  const embedRecord = db.prepare('SELECT selectors_json FROM autorole_embeds WHERE message_id = ?').get(messageId);
-  if (embedRecord && embedRecord.selectors_json) {
+  const embedRecord2 = db.prepare('SELECT mode, selectors_json FROM autorole_embeds WHERE message_id = ?').get(messageId);
+  const embedMode = embedRecord2 ? embedRecord2.mode : 'normal';
+  let selectorMode = embedMode;
+  if (embedRecord2 && embedRecord2.selectors_json) {
     try {
-      const parsedSel = JSON.parse(embedRecord.selectors_json);
+      const parsedSel = JSON.parse(embedRecord2.selectors_json);
       if (Array.isArray(parsedSel)) {
         const selObj = parsedSel[selectorIdx] || parsedSel[0];
         if (selObj && selObj.options) {
@@ -503,6 +505,7 @@ const handleMultiRoleSelect = async (interaction, selectedRoleIds, messageId, se
             });
           });
         }
+        if (selObj && selObj.mode) selectorMode = selObj.mode;
       }
     } catch (e) {}
   }
@@ -527,24 +530,54 @@ const handleMultiRoleSelect = async (interaction, selectedRoleIds, messageId, se
   const removed = [];
   const errors = [];
 
-  for (const rId of Array.from(possibleRoleIdsSet)) {
-    const role = guild.roles.cache.get(rId);
-    if (!role) continue;
-
-    if (role.position >= botMember.roles.highest.position) {
-      errors.push(role.name);
-      continue;
+  if (selectorMode === 'add') {
+    // Ajout uniquement : ajouter les rôles sélectionnés, ne jamais en retirer
+    for (const rId of Array.from(resolvedIdsSet)) {
+      const role = guild.roles.cache.get(rId);
+      if (!role) continue;
+      if (role.position >= botMember.roles.highest.position) { errors.push(role.name); continue; }
+      if (!member.roles.cache.has(rId)) {
+        await member.roles.add(rId).catch(() => errors.push(role.name));
+        added.push(role.name);
+      }
     }
-
-    const shouldHave = resolvedIdsSet.has(rId);
-    const hasRole = member.roles.cache.has(rId);
-
-    if (shouldHave && !hasRole) {
-      await member.roles.add(rId).catch(() => errors.push(role.name));
-      added.push(role.name);
-    } else if (!shouldHave && hasRole) {
-      await member.roles.remove(rId).catch(() => errors.push(role.name));
-      removed.push(role.name);
+  } else if (selectorMode === 'remove') {
+    // Retrait uniquement : retirer les rôles sélectionnés
+    for (const rId of Array.from(resolvedIdsSet)) {
+      const role = guild.roles.cache.get(rId);
+      if (!role) continue;
+      if (role.position >= botMember.roles.highest.position) { errors.push(role.name); continue; }
+      if (member.roles.cache.has(rId)) {
+        await member.roles.remove(rId).catch(() => errors.push(role.name));
+        removed.push(role.name);
+      }
+    }
+  } else if (selectorMode === 'verify') {
+    // Définitif : ajouter les rôles sélectionnés, ne jamais en retirer
+    for (const rId of Array.from(resolvedIdsSet)) {
+      const role = guild.roles.cache.get(rId);
+      if (!role) continue;
+      if (role.position >= botMember.roles.highest.position) { errors.push(role.name); continue; }
+      if (!member.roles.cache.has(rId)) {
+        await member.roles.add(rId).catch(() => errors.push(role.name));
+        added.push(role.name);
+      }
+    }
+  } else {
+    // Mode normal (bascule) : ajouter les sélectionnés, retirer les non-sélectionnés
+    for (const rId of Array.from(possibleRoleIdsSet)) {
+      const role = guild.roles.cache.get(rId);
+      if (!role) continue;
+      if (role.position >= botMember.roles.highest.position) { errors.push(role.name); continue; }
+      const shouldHave = resolvedIdsSet.has(rId);
+      const hasRole = member.roles.cache.has(rId);
+      if (shouldHave && !hasRole) {
+        await member.roles.add(rId).catch(() => errors.push(role.name));
+        added.push(role.name);
+      } else if (!shouldHave && hasRole) {
+        await member.roles.remove(rId).catch(() => errors.push(role.name));
+        removed.push(role.name);
+      }
     }
   }
 

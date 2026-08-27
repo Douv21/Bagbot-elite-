@@ -863,7 +863,22 @@
 
 
 
-                      <!-- Section Header: OPTIONS DU SÉLECTEUR -->
+                      
+                        <!-- Field 2b: MODE D'ATTRIBUTION -->
+                        <div style="margin-bottom: 16px;">
+                          <label style="font-weight: 700; font-size: 0.78rem; text-transform: uppercase; color: #b5bac1; display: block; margin-bottom: 6px;">
+                            MODE D'ATTRIBUTION
+                          </label>
+                          <select id="modal-selector-mode" style="width: 100%; background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; color: #ffffff; font-size: 0.92rem; padding: 10px 14px; font-family: inherit; outline: none; cursor: pointer;">
+                            <option value="normal">🔄 Normal (Bascule : ajoute OU retire)</option>
+                            <option value="add">➕ Ajout uniquement</option>
+                            <option value="remove">➖ Retrait uniquement</option>
+                            <option value="unique">☝️ Unique (remplace les autres rôles du sélecteur)</option>
+                            <option value="verify">✅ Définitif (ajoute et ne peut plus être retiré)</option>
+                          </select>
+                        </div>
+
+                          <!-- Section Header: OPTIONS DU SÉLECTEUR -->
                       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                         <label style="font-weight: 700; font-size: 0.78rem; text-transform: uppercase; color: #b5bac1; margin: 0;">
                           OPTIONS DU SÉLECTEUR

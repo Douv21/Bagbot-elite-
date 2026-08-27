@@ -3468,6 +3468,9 @@ document.addEventListener('DOMContentLoaded', () => {
               <span style="background: rgba(217,107,82,0.2); color: #d96b52; border: 1px solid rgba(217,107,82,0.4); border-radius: 4px; padding: 2px 8px; font-size: 0.75rem; font-weight: 700;">#${index + 1}</span>
               <span style="font-weight: 700; font-size: 0.92rem; color: #ffffff;">${sel.placeholder || 'Sélecteur ' + (index + 1)}</span>
               <span style="color: #8e9297; font-size: 0.78rem;">(${sel.options ? sel.options.length : 0} options)</span>
+              <span style="background: rgba(88,101,242,0.15); border: 1px solid rgba(88,101,242,0.4); color: #8ea0f5; border-radius: 4px; padding: 1px 7px; font-size: 0.72rem; font-weight: 700; margin-left: 4px;">${
+                sel.mode === 'add' ? '➕ Ajout' : sel.mode === 'remove' ? '➖ Retrait' : sel.mode === 'unique' ? '☝️ Unique' : sel.mode === 'verify' ? '✅ Définitif' : '🔄 Normal'
+              }</span>
             </div>
 
             <button type="button" class="btn btn-edit-selector" style="background: #2b2d31; border: 1px solid #d96b52; color: #ffffff; padding: 5px 14px; border-radius: 6px; font-weight: 700; font-size: 0.82rem; cursor: pointer; white-space: nowrap; transition: background 0.2s;">
@@ -3517,6 +3520,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (placeholderEl) placeholderEl.value = sel.placeholder || '';
       if (typeEl) typeEl.value = sel.type || 'select';
       if (modeEl) modeEl.value = sel.mode || 'normal';
+      // Synchronise le <select> modal-selector-mode s'il existe
+      const modalSelectorMode = document.getElementById('modal-selector-mode');
+      if (modalSelectorMode) modalSelectorMode.value = sel.mode || 'normal';
 
       if (sel.options && sel.options.length > 0) {
         sel.options.forEach(opt => addModalOptionRow(opt));
@@ -3528,6 +3534,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (titleEl) titleEl.textContent = 'AJOUTER UN SÉLECTEUR';
       if (placeholderEl) placeholderEl.value = '';
       if (typeEl) typeEl.value = 'select';
+      const modalSelectorMode2 = document.getElementById('modal-selector-mode');
+      if (modalSelectorMode2) modalSelectorMode2.value = 'normal';
       if (modeEl) modeEl.value = 'normal';
       addModalOptionRow();
       addModalOptionRow();
@@ -3831,7 +3839,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const placeholder = document.getElementById('modal-selector-placeholder')?.value?.trim() || '';
     const type = document.getElementById('modal-selector-type')?.value || 'select';
-    const mode = document.getElementById('autorole-embed-mode')?.value || 'normal';
+    // Lire le mode propre à ce sélecteur (modal-selector-mode), PAS le mode global
+    const mode = document.getElementById('modal-selector-mode')?.value || 'normal';
 
     const optionRows = document.querySelectorAll('#modal-selector-options-list .modal-option-row');
     const collectedOptions = [];
@@ -4189,7 +4198,7 @@ document.addEventListener('DOMContentLoaded', () => {
         type,
         mode,
         existing_message_id,
-        selectors: (autoroleSelectorsList || []).map(sel => ({ ...sel, mode: mode })),
+        selectors: (autoroleSelectorsList || []),
         options: autoroleButtonsList
       })
     })
