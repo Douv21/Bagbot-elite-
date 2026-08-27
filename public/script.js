@@ -4168,7 +4168,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateAutoroleTypeVisibility() {
     const typeEl = document.getElementById('autorole-embed-type');
-    const type = typeEl ? typeEl.value : 'select';
+    const type = (typeEl && typeEl.value) ? typeEl.value : 'buttons';
 
     const buttonsCreator = document.getElementById('autorole-buttons-creator');
     const selectorsContainer = document.getElementById('selectors-list-container');
