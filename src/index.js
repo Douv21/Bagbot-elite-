@@ -2458,7 +2458,7 @@ apiApp.get('/guilds/:guildId/messages/:messageId', async (req, res) => {
     }
 
     if (!message) {
-      const textChannels = Array.from(guild.channels.cache.values()).filter(ch => ch.isTextBased() && ch.id !== channelId);
+      const textChannels = Array.from(guild.channels.cache.values()).filter(ch => ch.isTextBased());
       const results = await Promise.all(textChannels.map(ch => ch.messages.fetch(messageId).then(m => ({ msg: m, ch })).catch(() => null)));
       const found = results.find(r => r && r.msg);
       if (found) {
@@ -2473,6 +2473,48 @@ apiApp.get('/guilds/:guildId/messages/:messageId', async (req, res) => {
     const options = [];
     const selectors = [];
 
+    // Extraction Titre, Description et Champs (Fields DraftBot)
+    let title = '';
+    let descriptionParts = [];
+    let hexColor = '#5865F2';
+    let imageUrl = '';
+    let thumbnail = 0;
+
+    if (emb) {
+      title = emb.title || '';
+      if (emb.description) descriptionParts.push(emb.description);
+      if (emb.fields && emb.fields.length > 0) {
+        emb.fields.forEach(f => {
+          if (f.name || f.value) {
+            descriptionParts.push(`**${f.name}**\n${f.value}`);
+          }
+        });
+      }
+      if (emb.hexColor && emb.hexColor !== '#000000') {
+        hexColor = emb.hexColor;
+      } else if (emb.color) {
+        hexColor = `#${emb.color.toString(16).padStart(6, '0')}`;
+      }
+      if (emb.image && emb.image.url) {
+        imageUrl = emb.image.url;
+      }
+      if (emb.thumbnail && emb.thumbnail.url) {
+        thumbnail = 1;
+      }
+    }
+
+    if (!title && descriptionParts.length === 0 && message.content) {
+      descriptionParts.push(message.content);
+    }
+
+    if (!imageUrl && message.attachments && message.attachments.size > 0) {
+      const firstAtt = message.attachments.first();
+      if (firstAtt && firstAtt.url) imageUrl = firstAtt.url;
+    }
+
+    const fullDescription = descriptionParts.join('\n\n');
+
+    // Extraction des Composants (Boutons et Sélecteurs)
     if (message.components && message.components.length > 0) {
       message.components.forEach((row, rIdx) => {
         if (row.components && row.components.length > 0) {
@@ -2481,25 +2523,39 @@ apiApp.get('/guilds/:guildId/messages/:messageId', async (req, res) => {
           let rowPlaceholder = `Sélecteur ${rIdx + 1}`;
 
           row.components.forEach(comp => {
-            if (comp.type === 2) {
-              const roleId = comp.customId ? comp.customId.replace('autorole_', '') : '';
+            const compTypeNum = typeof comp.type === 'number' ? comp.type : (comp.type === 'BUTTON' ? 2 : (comp.type === 'STRING_SELECT' || comp.type === 'SELECT_MENU' ? 3 : 2));
+
+            if (compTypeNum === 2 || comp.type === 'BUTTON' || comp.style !== undefined) {
+              const rawId = comp.customId || '';
+              const roleMatch = rawId.match(/\d{17,20}/);
+              const roleId = roleMatch ? roleMatch[0] : rawId;
+
               let styleStr = 'PRIMARY';
-              if (comp.style === 2) styleStr = 'SECONDARY';
-              else if (comp.style === 3) styleStr = 'SUCCESS';
-              else if (comp.style === 4) styleStr = 'DANGER';
+              if (comp.style === 2 || comp.style === 'SECONDARY') styleStr = 'SECONDARY';
+              else if (comp.style === 3 || comp.style === 'SUCCESS') styleStr = 'SUCCESS';
+              else if (comp.style === 4 || comp.style === 'DANGER') styleStr = 'DANGER';
+
               let emojiStr = comp.emoji ? (comp.emoji.id ? (comp.emoji.animated ? `<a:${comp.emoji.name}:${comp.emoji.id}>` : `<:${comp.emoji.name}:${comp.emoji.id}>`) : comp.emoji.name) : '';
+              
               const optObj = { role_id: roleId, label: comp.label || '', emoji: emojiStr, style: styleStr };
               options.push(optObj);
               rowOptions.push(optObj);
-            } else if (comp.type === 3 && comp.options) {
+            } else if (compTypeNum === 3 || comp.type === 'STRING_SELECT' || comp.type === 'SELECT_MENU' || comp.options) {
               rowType = (comp.maxValues && comp.maxValues > 1) ? 'multi_select' : 'select';
               if (comp.placeholder) rowPlaceholder = comp.placeholder;
-              comp.options.forEach(opt => {
-                let emojiStr = opt.emoji ? (opt.emoji.id ? (opt.emoji.animated ? `<a:${opt.emoji.name}:${opt.emoji.id}>` : `<:${opt.emoji.name}:${opt.emoji.id}>`) : opt.emoji.name) : '';
-                const optObj = { role_id: opt.value, label: opt.label || '', emoji: emojiStr, style: 'PRIMARY' };
-                options.push(optObj);
-                rowOptions.push(optObj);
-              });
+
+              if (comp.options && comp.options.length > 0) {
+                comp.options.forEach(opt => {
+                  const rawVal = opt.value || '';
+                  const roleMatch = rawVal.match(/\d{17,20}/);
+                  const roleId = roleMatch ? roleMatch[0] : rawVal;
+
+                  let emojiStr = opt.emoji ? (opt.emoji.id ? (opt.emoji.animated ? `<a:${opt.emoji.name}:${opt.emoji.id}>` : `<:${opt.emoji.name}:${opt.emoji.id}>`) : opt.emoji.name) : '';
+                  const optObj = { role_id: roleId, label: opt.label || '', emoji: emojiStr, style: 'PRIMARY' };
+                  options.push(optObj);
+                  rowOptions.push(optObj);
+                });
+              }
             }
           });
 
@@ -2515,6 +2571,32 @@ apiApp.get('/guilds/:guildId/messages/:messageId', async (req, res) => {
       });
     }
 
+    // Extraction des mentions de rôles dans le texte si aucun composant bouton n'a été trouvé
+    if (options.length === 0) {
+      const textToScan = `${title} ${fullDescription}`;
+      const roleMatches = Array.from(textToScan.matchAll(/<@&(\d{17,20})>/g)).map(m => m[1]);
+      const uniqueRoles = Array.from(new Set(roleMatches));
+
+      if (uniqueRoles.length > 0) {
+        uniqueRoles.forEach((rId, idx) => {
+          const optObj = {
+            role_id: rId,
+            label: `Rôle ${idx + 1}`,
+            emoji: '📌',
+            style: 'PRIMARY'
+          };
+          options.push(optObj);
+        });
+        selectors.push({
+          placeholder: 'Rôles Détectés',
+          type: 'select',
+          mode: 'normal',
+          options: [...options]
+        });
+      }
+    }
+
+    // Extraction des réactions si pas de composants
     if (options.length === 0 && message.reactions && message.reactions.cache.size > 0) {
       message.reactions.cache.forEach(reaction => {
         let emojiStr = reaction.emoji.id ? (reaction.emoji.animated ? `<a:${reaction.emoji.name}:${reaction.emoji.id}>` : `<:${reaction.emoji.name}:${reaction.emoji.id}>`) : reaction.emoji.name;
@@ -2522,29 +2604,21 @@ apiApp.get('/guilds/:guildId/messages/:messageId', async (req, res) => {
       });
     }
 
-    let imageUrl = '';
-    if (emb && emb.image && emb.image.url) {
-      imageUrl = emb.image.url;
-    } else if (message.attachments && message.attachments.size > 0) {
-      const firstAtt = message.attachments.first();
-      if (firstAtt && firstAtt.url) imageUrl = firstAtt.url;
-    }
+    const detectedType = (selectors.length > 0 && selectors[0].type) ? selectors[0].type : (options.length > 0 && options[0].role_id === '' ? 'reactions' : 'buttons');
 
     res.json({
       id: message.id,
       channel_id: channel.id,
       author: message.author ? message.author.tag : 'Inconnu',
       is_bot_owner: message.author && message.author.id === client.user.id,
-      title: emb ? (emb.title || '') : '',
-      description: emb ? (emb.description || (message.content || '')) : (message.content || ''),
-      color: emb ? (emb.hexColor || '#5865F2') : '#5865F2',
-      thumbnail: (emb && emb.thumbnail) ? 1 : 0,
+      title: title,
+      description: fullDescription,
+      color: hexColor,
+      thumbnail: thumbnail,
       image_url: imageUrl,
       options: options,
       selectors: selectors,
-      type: (message.components && message.components[0] && message.components[0].components[0] && message.components[0].components[0].type === 3) 
-        ? ((message.components[0].components[0].maxValues && message.components[0].components[0].maxValues > 1) ? 'multi_select' : 'select') 
-        : (options.length > 0 && options[0].role_id === '' ? 'reactions' : 'buttons')
+      type: detectedType
     });
   } catch (error) {
     console.error('Erreur message-details bridge:', error);
