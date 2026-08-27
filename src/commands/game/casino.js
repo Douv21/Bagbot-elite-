@@ -539,25 +539,26 @@ async function handlePoker(interaction, guildId, userId, bet, config) {
   const getActionRows = (done = false) => {
     if (done) return [];
     const row1 = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`poker_hold_0_${userId}`).setLabel(`C1 ${holds[0] ? '🔒 Garder' : '❌ Échanger'}`).setStyle(holds[0] ? ButtonStyle.Success : ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`poker_hold_1_${userId}`).setLabel(`C2 ${holds[1] ? '🔒 Garder' : '❌ Échanger'}`).setStyle(holds[1] ? ButtonStyle.Success : ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`poker_hold_2_${userId}`).setLabel(`C3 ${holds[2] ? '🔒 Garder' : '❌ Échanger'}`).setStyle(holds[2] ? ButtonStyle.Success : ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`poker_hold_3_${userId}`).setLabel(`C4 ${holds[3] ? '🔒 Garder' : '❌ Échanger'}`).setStyle(holds[3] ? ButtonStyle.Success : ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`poker_hold_4_${userId}`).setLabel(`C5 ${holds[4] ? '🔒 Garder' : '❌ Échanger'}`).setStyle(holds[4] ? ButtonStyle.Success : ButtonStyle.Secondary)
+      hand.map((c, idx) => 
+        new ButtonBuilder()
+          .setCustomId(`poker_hold_${idx}_${userId}`)
+          .setLabel(`${c.rank}${c.suit} ${holds[idx] ? '🔒 (GARDER)' : '🔄 (CHANGER)'}`)
+          .setStyle(holds[idx] ? ButtonStyle.Success : ButtonStyle.Secondary)
+      )
     );
     const row2 = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`poker_draw_${userId}`).setLabel('🎴 Tirer / Échanger les cartes').setStyle(ButtonStyle.Primary)
+      new ButtonBuilder().setCustomId(`poker_draw_${userId}`).setLabel('🎴 Valider & Tirer les cartes').setStyle(ButtonStyle.Primary)
     );
     return [row1, row2];
   };
 
   const buildEmbed = (statusStr = '') => {
-    const handDisplay = hand.map((c, idx) => `\`[ ${c.rank}${c.suit} ]\` ${holds[idx] ? '🔒' : ''}`).join('   ');
+    const handDisplay = hand.map((c, idx) => `\`[ ${c.rank}${c.suit} ]\` ${holds[idx] ? '🔒 *(Gardé)*' : '🔄 *(À changer)*'}`).join('   ');
     const embed = new EmbedBuilder()
       .setTitle('🎴 Vidéo Poker - Jacks or Better')
       .setDescription(
-        `**Votre main :**\n${handDisplay}\n\n` +
-        (statusStr ? `*${statusStr}*` : '*Cliquez sur les cartes pour les garder (🔒) ou échanger (❌), puis validez avec Tirer !*')
+        `**Votre main actuelle :**\n${handDisplay}\n\n` +
+        (statusStr ? `*${statusStr}*` : '*Cliquez sur les cartes ci-dessous pour alterner entre **GARDER** (🔒) ou **CHANGER** (🔄), puis validez !*')
       )
       .setColor(0x3498db)
       .addFields({ name: '💰 Mise', value: `${bet} pièces`, inline: true });
