@@ -4174,27 +4174,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const embedCard = document.getElementById('autorole-discord-embed');
 
     // Gestion du message existant
+    embedCard.style.display = 'block';
+    let banner = document.getElementById('autorole-preview-existing-banner');
     if (existingMsgId) {
-      embedCard.style.display = 'none';
-      let banner = document.getElementById('autorole-preview-existing-banner');
       if (!banner) {
         banner = document.createElement('div');
         banner.id = 'autorole-preview-existing-banner';
-        banner.style.background = 'rgba(241, 196, 15, 0.15)';
-        banner.style.border = '1px solid #f1c40f';
-        banner.style.padding = '10px';
-        banner.style.borderRadius = '4px';
-        banner.style.color = '#f1c40f';
+        banner.style.background = 'rgba(52, 152, 219, 0.15)';
+        banner.style.border = '1px solid #3498db';
+        banner.style.padding = '10px 14px';
+        banner.style.borderRadius = '6px';
+        banner.style.color = '#3498db';
         banner.style.fontSize = '0.85rem';
-        banner.style.marginBottom = '10px';
+        banner.style.marginBottom = '12px';
+        banner.style.fontWeight = '600';
         embedCard.parentNode.insertBefore(banner, embedCard);
       }
-      banner.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Les contrôles seront ajoutés directement sur le message Discord existant <strong>${existingMsgId}</strong>.`;
+      banner.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Mode Édition : Message Discord chargé <strong>[${existingMsgId}]</strong>.`;
       banner.style.display = 'block';
-    } else {
-      embedCard.style.display = 'block';
-      const banner = document.getElementById('autorole-preview-existing-banner');
-      if (banner) banner.style.display = 'none';
+    } else if (banner) {
+      banner.style.display = 'none';
     }
 
     document.getElementById('autorole-preview-title').textContent = title;
