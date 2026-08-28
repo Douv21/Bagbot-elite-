@@ -7906,6 +7906,71 @@ function updateSondagePreview() {
   document.querySelectorAll('.sondage-preview-icon-item').forEach(el => {
     el.textContent = iconVal;
   });
+
+  const questionsPreviewContainer = document.getElementById('sondage-modal-preview-questions');
+  if (questionsPreviewContainer) {
+    const questionRows = document.querySelectorAll('.sondage-question-row');
+    const hasGeneralRemark = document.getElementById('sondage_has_general_remark')?.checked;
+    const textFormat = selectTextType ? selectTextType.value : 'long';
+    
+    if (questionRows.length > 0) {
+      let qHtml = '';
+      questionRows.forEach((qRow, idx) => {
+        const qLabelInput = qRow.querySelector('.sondage-q-label');
+        const qTypeSelect = qRow.querySelector('.sondage-q-type');
+        const qOptsInput = qRow.querySelector('.sondage-q-options');
+
+        const qLabel = (qLabelInput && qLabelInput.value.trim()) ? qLabelInput.value.trim() : `Question ${idx + 1}`;
+        const qType = qTypeSelect ? qTypeSelect.value : 'rating_text';
+
+        let inputBoxPreview = '';
+        if (qType === 'rating_text' || qType === 'rating') {
+          inputBoxPreview = `<div style="background: #202225; color: #72767d; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">Note de 1 à 5 (${iconVal})</div>`;
+        } else if (qType === 'text_long') {
+          inputBoxPreview = `<div style="background: #202225; color: #72767d; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">Explication (Paragraphe Multiligne)</div>`;
+        } else if (qType === 'text_short') {
+          inputBoxPreview = `<div style="background: #202225; color: #72767d; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">Réponse courte (Ligne unique)</div>`;
+        } else if (qType === 'radio' || qType === 'checkbox') {
+          const optsText = (qOptsInput && qOptsInput.value.trim()) ? qOptsInput.value.trim() : 'Option 1, Option 2';
+          inputBoxPreview = `<div style="background: #202225; color: #b9bbbe; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">Choix: ${optsText}</div>`;
+        }
+
+        qHtml += `
+          <div style="margin-bottom: 8px;">
+            <label style="color: #b9bbbe; font-size: 0.75rem; display: block; font-weight: 600;">${idx + 1}. ${qLabel}</label>
+            ${inputBoxPreview}
+          </div>
+        `;
+      });
+
+      if (hasGeneralRemark) {
+        qHtml += `
+          <div>
+            <label style="color: #b9bbbe; font-size: 0.75rem; display: block; font-weight: 600;">Remarques & Observations Générales</label>
+            <div style="background: #202225; color: #72767d; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">${textFormat === 'court' ? 'Ligne unique' : 'Rédigez ici vos explications...'}</div>
+          </div>
+        `;
+      }
+
+      questionsPreviewContainer.innerHTML = qHtml;
+    } else {
+      let defaultHtml = `
+        <div style="margin-bottom: 6px;">
+          <label style="color: #b9bbbe; font-size: 0.75rem; display: block;">Votre Note de 1 à 5 (${iconVal})</label>
+          <div style="background: #202225; color: #72767d; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">Entrez un chiffre de 1 à 5 (ex: 5)</div>
+        </div>
+      `;
+      if (hasGeneralRemark) {
+        defaultHtml += `
+          <div>
+            <label style="color: #b9bbbe; font-size: 0.75rem; display: block;">Explication / Vos remarques (${textFormat === 'court' ? 'Ligne unique' : 'Paragraphe Multiligne'})</label>
+            <div style="background: #202225; color: #72767d; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">Rédigez ici vos explications...</div>
+          </div>
+        `;
+      }
+      questionsPreviewContainer.innerHTML = defaultHtml;
+    }
+  }
 }
 
 function renderSondagesSavedList(sondages) {
