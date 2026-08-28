@@ -7899,11 +7899,36 @@ function updateSondagePreview() {
   const modalTitle = document.getElementById('sondage-modal-preview-title');
   const modalTextType = document.getElementById('sondage-modal-text-type');
 
+  const inputAvatar = document.getElementById('sondage_avatar_image');
+  const inputBanner = document.getElementById('sondage_banner_image');
+  const previewThumbnail = document.getElementById('sondage-preview-thumbnail');
+  const previewBanner = document.getElementById('sondage-preview-banner');
+
   if (previewBorder && inputColor) previewBorder.style.borderLeftColor = inputColor.value || '#78A8C6';
   if (previewTitle && inputTitle) previewTitle.textContent = inputTitle.value.trim() ? `📊 ${inputTitle.value.trim()}` : "📊 Avis sur l'Événement du Serveur";
   if (previewDesc && inputDesc) previewDesc.textContent = inputDesc.value.trim() ? inputDesc.value.trim() : "Consignes affichées dans l'embed au-dessus du bouton...";
   if (modalTitle && inputTitle) modalTitle.textContent = `Modal : ${inputTitle.value.trim() || "Avis sur l'Événement du Serveur"}`;
-  
+
+  if (previewThumbnail && inputAvatar) {
+    const url = inputAvatar.value.trim();
+    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+      previewThumbnail.src = url;
+      previewThumbnail.style.display = 'block';
+    } else {
+      previewThumbnail.style.display = 'none';
+    }
+  }
+
+  if (previewBanner && inputBanner) {
+    const url = inputBanner.value.trim();
+    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+      previewBanner.src = url;
+      previewBanner.style.display = 'block';
+    } else {
+      previewBanner.style.display = 'none';
+    }
+  }
+
   if (modalTextType && selectTextType) {
     modalTextType.textContent = selectTextType.value === 'court' ? 'Ligne unique' : 'Paragraphe Multiligne';
   }
@@ -8213,6 +8238,11 @@ function initSondageModule() {
   if (selectTextType) selectTextType.addEventListener('change', updateSondagePreview);
   if (inputColor) inputColor.addEventListener('input', updateSondagePreview);
   if (hasGeneralRemark) hasGeneralRemark.addEventListener('change', updateSondagePreview);
+
+  const inputAvatarImg = document.getElementById('sondage_avatar_image');
+  const inputBannerImg = document.getElementById('sondage_banner_image');
+  if (inputAvatarImg) inputAvatarImg.addEventListener('input', updateSondagePreview);
+  if (inputBannerImg) inputBannerImg.addEventListener('input', updateSondagePreview);
 
   if (form) {
     form.addEventListener('submit', async (e) => {

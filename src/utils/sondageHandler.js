@@ -297,6 +297,17 @@ function buildSondageEmbeds(sondage, responses, responsePayload, userTag = '') {
   const fullFormText = items.join('\n\n');
   const userHeader = userTag ? `👤 **Avis transmis par :** ${userTag}\n\n` : '';
 
+  function isValidImg(url) {
+    return url && typeof url === 'string' && url.trim() && (url.trim().startsWith('http://') || url.trim().startsWith('https://'));
+  }
+
+  if (isValidImg(sondage.avatar_image)) {
+    mainEmbed.setThumbnail(sondage.avatar_image.trim());
+  }
+  if (isValidImg(sondage.banner_image)) {
+    mainEmbed.setImage(sondage.banner_image.trim());
+  }
+
   const ficheEmbed = new EmbedBuilder()
     .setTitle(`📝 Formulaire Reçu : ${sondage.title}`)
     .setDescription(
@@ -308,11 +319,11 @@ function buildSondageEmbeds(sondage, responses, responsePayload, userTag = '') {
     .setColor(sondage.color || '#78A8C6')
     .setTimestamp();
 
-  if (sondage.avatar_image && sondage.avatar_image.trim()) {
+  if (isValidImg(sondage.avatar_image)) {
     ficheEmbed.setThumbnail(sondage.avatar_image.trim());
   }
 
-  if (sondage.banner_image && sondage.banner_image.trim()) {
+  if (isValidImg(sondage.banner_image)) {
     ficheEmbed.setImage(sondage.banner_image.trim());
   }
 

@@ -2069,18 +2069,18 @@ apiApp.post('/bot/send-sondage', async (req, res) => {
 
     const embed = new EmbedBuilder()
       .setTitle(`📊 ${title}`)
-      .setDescription(
-        (description ? `${description}\n` : '') +
-        sectionsListStr +
-        `\n\n*Cliquez sur le bouton ci-dessous pour remplir l'évaluation !*`
-      )
-      .addFields({
-        name: '📈 Statistiques en temps réel',
-        value: 'Aucune évaluation enregistrée pour le moment.'
-      })
-      .setColor(color)
+      .setDescription(description ? description : '')
+      .setColor(color || '#F1C40F')
       .setFooter({ text: `ID Sondage : ${sondageId} • Bagbot Elite` })
       .setTimestamp();
+
+    if (avatarImage && typeof avatarImage === 'string' && avatarImage.trim() && (avatarImage.trim().startsWith('http://') || avatarImage.trim().startsWith('https://'))) {
+      embed.setThumbnail(avatarImage.trim());
+    }
+
+    if (bannerImage && typeof bannerImage === 'string' && bannerImage.trim() && (bannerImage.trim().startsWith('http://') || bannerImage.trim().startsWith('https://'))) {
+      embed.setImage(bannerImage.trim());
+    }
 
     const { getActivePublicUrl } = require('./utils/helpers');
     const basePublicUrl = await getActivePublicUrl();
