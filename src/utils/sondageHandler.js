@@ -229,28 +229,10 @@ async function handleSondageInteraction(interaction) {
     saveSondageResponse(sondageId, interaction.user.id, Math.round(overallRating), JSON.stringify(responsePayload));
 
     const responses = getSondageResponses(sondageId);
-    const totalVotes = responses.length;
-
-    let globalAvg = 0;
-    if (totalVotes > 0) {
-      const sum = responses.reduce((acc, r) => acc + (r.rating || 5), 0);
-      globalAvg = (sum / totalVotes).toFixed(1);
-    }
-
-    const embed = new EmbedBuilder()
-      .setTitle(`📊 ${sondage.title}`)
-      .setDescription(
-        (sondage.description ? `${sondage.description}\n\n` : '') +
-        `**📈 Statistiques d'Évaluation en Temps Réel :**\n` +
-        `• **Note globale moyenne :** ${globalAvg}/5 ${icon}\n` +
-        `• **Nombre de fiches d'évaluations :** ${totalVotes} membre(s)`
-      )
-      .setColor(sondage.color || '#F1C40F')
-      .setFooter({ text: `ID Sondage : ${sondageId} • Bagbot Elite` })
-      .setTimestamp();
+    const { mainEmbed, ficheEmbed } = buildSondageEmbeds(sondage, responses, responsePayload, interaction.user.tag);
 
     if (interaction.message && interaction.message.editable) {
-      await interaction.message.edit({ embeds: [embed] }).catch(() => null);
+      await interaction.message.edit({ embeds: [mainEmbed] }).catch(() => null);
     }
 
     if (sondage.results_channel_id) {
@@ -262,38 +244,6 @@ async function handleSondageInteraction(interaction) {
         } catch (e) {}
 
         const mentionsContent = Array.isArray(mentionsArr) && mentionsArr.length > 0 ? mentionsArr.join(' ') : null;
-
-        const items = [];
-        sectionScores.forEach(sec => {
-          let scoreText = getStarRatingStr(sec.rating, icon);
-          let val = sec.observation ? `${scoreText}\n*Remarques :* "${sec.observation}"` : scoreText;
-          items.push({ name: sec.label, value: val });
-        });
-
-        if (generalRemark.trim()) {
-          items.push({ name: '📌 Remarques & Suggestions Générales', value: `"${generalRemark.trim()}"` });
-        }
-
-        const embedContent = items.map(item => `**${item.name}**\n${item.value}`).join('\n\n');
-        const shortDesc = sondage.short_description && sondage.short_description.trim() ? sondage.short_description.trim() : 'Voici les réponses reçues :';
-
-        const ficheEmbed = new EmbedBuilder()
-          .setTitle(sondage.title || 'Nouvelle réponse au formulaire')
-          .setDescription(`${shortDesc}\n\n${embedContent}`)
-          .setColor(sondage.color || '#78A8C6')
-          .setTimestamp();
-
-        if (sondage.avatar_image && sondage.avatar_image.trim()) {
-          ficheEmbed.setThumbnail(sondage.avatar_image.trim());
-        } else {
-          ficheEmbed.setThumbnail(interaction.user.displayAvatarURL({ extension: 'png', size: 128 }));
-        }
-
-        if (sondage.banner_image && sondage.banner_image.trim()) {
-          ficheEmbed.setImage(sondage.banner_image.trim());
-        }
-
-        ficheEmbed.setFooter({ text: `Réponse soumise par ${interaction.user.tag} • ID: ${interaction.user.id}` });
 
         await resultsChannel.send({
           content: mentionsContent,
@@ -309,4 +259,118 @@ async function handleSondageInteraction(interaction) {
   return false;
 }
 
-module.exports = { handleSondageInteraction, getStarRatingStr };
+function buildSondageEmbeds(sondage, responses, responsePayload, userTag = '') {
+  const icon = sondage.rating_icon || '⭐';
+  const totalVotes = responses ? responses.length : 0;
+
+  // 1. Calcul des frequences de notes (5 a 1) et pourcentage
+  const ratingCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  let totalSum = 0;
+
+  if (responses && responses.length > 0) {
+    responses.forEach(r => {
+      let score = Math.round(r.rating || 5);
+      if (score < 1) score = 1;
+      if (score > 5) score = 5;
+      ratingCounts[score]++;
+      totalSum += score;
+    });
+  }
+
+  const globalAvg = totalVotes > 0 ? (totalSum / totalVotes).toFixed(1) : '5.0';
+
+  const makeBar = (pct, len = 8) => {
+    const filled = Math.round((pct / 100) * len);
+    return '█'.repeat(filled) + '░'.repeat(len - filled);
+  };
+
+  const statLines = [5, 4, 3, 2, 1].map(star => {
+    const count = ratingCounts[star];
+    const pct = totalVotes > 0 ? ((count / totalVotes) * 100).toFixed(1) : '0.0';
+    const bar = makeBar(parseFloat(pct));
+    return `${star} ${icon} : \`${bar}\` **${count}** (${pct}%)`;
+  }).join('\n');
+
+  const statsSectionText = 
+    `**📈 Statistiques d'Évaluation en Temps Réel :**\n` +
+    `• **Note globale moyenne :** ${globalAvg} / 5 ${icon}\n` +
+    `• **Nombre de fiches reçues :** ${totalVotes} membre(s)\n\n` +
+    `**📊 Répartition des votes par pourcentage :**\n${statLines}`;
+
+  // 2. Embed principal (Salon du sondage)
+  const mainEmbed = new EmbedBuilder()
+    .setTitle(`📊 ${sondage.title}`)
+    .setDescription(
+      (sondage.description ? `${sondage.description}\n\n` : '') +
+      statsSectionText
+    )
+    .setColor(sondage.color || '#F1C40F')
+    .setFooter({ text: `ID Sondage : ${sondage.id} • Bagbot Elite` })
+    .setTimestamp();
+
+  // 3. Fiche complete transmise (Salon de transmission)
+  const items = [];
+  const sectionScores = (responsePayload && responsePayload.sectionScores) ? responsePayload.sectionScores : [];
+
+  sectionScores.forEach((sec, idx) => {
+    const qLabel = sec.label || `Question ${idx + 1}`;
+    const qType = sec.type || 'rating_text';
+    const score = parseInt(sec.rating) || 5;
+
+    let ansDisplay = '';
+    if (qType === 'rating_text' || qType === 'rating') {
+      const starsStr = icon.repeat(Math.max(1, Math.min(5, score)));
+      ansDisplay = `**Note :** ${score}/5 ${starsStr}`;
+      if (sec.observation) {
+        ansDisplay += `\n💬 *Observation :* "${sec.observation}"`;
+      }
+    } else if (qType === 'scale') {
+      const starsStr = icon.repeat(Math.max(1, Math.min(5, score)));
+      ansDisplay = `**Note :** ${sec.observation || `${score}/10`} (${starsStr})`;
+    } else if (qType === 'radio' || qType === 'checkbox') {
+      ansDisplay = `**Choix sélectionné(s) :** ${sec.observation || 'Aucun'}`;
+    } else {
+      ansDisplay = `**Réponse :** "${sec.observation || 'Aucune'}"`;
+    }
+
+    items.push(`📋 **${idx + 1}. ${qLabel}**\n${ansDisplay}`);
+  });
+
+  if (responsePayload && responsePayload.generalRemark && responsePayload.generalRemark.trim()) {
+    items.push(`📌 **Remarques & Observations Générales :**\n"${responsePayload.generalRemark.trim()}"`);
+  }
+
+  const shortDesc = sondage.short_description && sondage.short_description.trim()
+    ? sondage.short_description.trim()
+    : 'Voici la fiche de réponse complète reçue :';
+
+  const fullFormText = items.join('\n\n');
+  const userHeader = userTag ? `👤 **Avis transmis par :** ${userTag}\n\n` : '';
+
+  const ficheEmbed = new EmbedBuilder()
+    .setTitle(`📝 Formulaire Reçu : ${sondage.title}`)
+    .setDescription(
+      `${userHeader}*${shortDesc}*\n\n` +
+      `───────────────────────────\n` +
+      `${fullFormText}\n` +
+      `───────────────────────────\n\n` +
+      statsSectionText
+    )
+    .setColor(sondage.color || '#78A8C6')
+    .setTimestamp();
+
+  if (sondage.avatar_image && sondage.avatar_image.trim()) {
+    ficheEmbed.setThumbnail(sondage.avatar_image.trim());
+  }
+
+  if (sondage.banner_image && sondage.banner_image.trim()) {
+    ficheEmbed.setImage(sondage.banner_image.trim());
+  }
+
+  const authorText = userTag ? `Formulaire soumis par ${userTag}` : `Formulaire soumis en ligne`;
+  ficheEmbed.setFooter({ text: authorText });
+
+  return { mainEmbed, ficheEmbed };
+}
+
+module.exports = { handleSondageInteraction, getStarRatingStr, buildSondageEmbeds };

@@ -2119,7 +2119,7 @@ apiApp.post('/bot/submit-web-form', async (req, res) => {
   try {
     const { sondageId, userTag, sectionScores = [], generalRemark = '' } = req.body;
     const { getSondage, saveSondageResponse, getSondageResponses } = require('./database/db');
-    const { getStarRatingStr } = require('./utils/sondageHandler');
+    const { buildSondageEmbeds } = require('./utils/sondageHandler');
 
     const sondage = getSondage(sondageId);
     if (!sondage) return res.status(404).json({ error: 'Sondage introuvable en base de données' });
@@ -2148,36 +2148,16 @@ apiApp.post('/bot/submit-web-form', async (req, res) => {
 
     const guild = client.guilds.cache.get(sondage.guild_id);
     if (guild) {
+      const responses = getSondageResponses(sondageId);
+      const { mainEmbed, ficheEmbed } = buildSondageEmbeds(sondage, responses, responsePayload, userTag);
+
       const channel = guild.channels.cache.get(sondage.channel_id);
       if (channel && channel.isTextBased()) {
-        const responses = getSondageResponses(sondageId);
-        const totalVotes = responses.length;
-
-        let globalAvg = 0;
-        if (totalVotes > 0) {
-          const sum = responses.reduce((acc, r) => acc + (r.rating || 5), 0);
-          globalAvg = (sum / totalVotes).toFixed(1);
-        }
-
-        const icon = sondage.rating_icon || '⭐';
-
-        const embed = new EmbedBuilder()
-          .setTitle(`📊 ${sondage.title}`)
-          .setDescription(
-            (sondage.description ? `${sondage.description}\n\n` : '') +
-            `**📈 Statistiques d'Évaluation en Temps Réel :**\n` +
-            `• **Note globale moyenne :** ${globalAvg}/5 ${icon}\n` +
-            `• **Nombre de fiches d'évaluations :** ${totalVotes} membre(s)`
-          )
-          .setColor(sondage.color || '#F1C40F')
-          .setFooter({ text: `ID Sondage : ${sondageId} • Bagbot Elite` })
-          .setTimestamp();
-
         const messages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
         if (messages) {
           const origMsg = messages.find(m => m.embeds.length > 0 && m.embeds[0].footer && m.embeds[0].footer.text && m.embeds[0].footer.text.includes(sondageId));
           if (origMsg && origMsg.editable) {
-            await origMsg.edit({ embeds: [embed] }).catch(() => null);
+            await origMsg.edit({ embeds: [mainEmbed] }).catch(() => null);
           }
         }
       }
@@ -2191,37 +2171,6 @@ apiApp.post('/bot/submit-web-form', async (req, res) => {
           } catch (e) {}
 
           const mentionsContent = Array.isArray(mentionsArr) && mentionsArr.length > 0 ? mentionsArr.join(' ') : null;
-
-          const items = [];
-          sectionScores.forEach(sec => {
-            let scoreText = getStarRatingStr(sec.rating, sondage.rating_icon || '⭐');
-            let val = sec.observation ? `${scoreText}\n*Remarques :* "${sec.observation}"` : scoreText;
-            items.push({ name: sec.label, value: val });
-          });
-
-          if (generalRemark && generalRemark.trim()) {
-            items.push({ name: '📌 Remarques & Suggestions Générales', value: `"${generalRemark.trim()}"` });
-          }
-
-          const embedContent = items.map(item => `**${item.name}**\n${item.value}`).join('\n\n');
-          const shortDesc = sondage.short_description && sondage.short_description.trim() ? sondage.short_description.trim() : 'Voici les réponses reçues :';
-
-          const ficheEmbed = new EmbedBuilder()
-            .setTitle(sondage.title || 'Nouvelle réponse au formulaire')
-            .setDescription(`${shortDesc}\n\n${embedContent}`)
-            .setColor(sondage.color || '#78A8C6')
-            .setTimestamp();
-
-          if (sondage.avatar_image && sondage.avatar_image.trim()) {
-            ficheEmbed.setThumbnail(sondage.avatar_image.trim());
-          }
-
-          if (sondage.banner_image && sondage.banner_image.trim()) {
-            ficheEmbed.setImage(sondage.banner_image.trim());
-          }
-
-          const authorText = userTag ? `Réponse soumise via Web par ${userTag}` : `Réponse soumise via le Formulaire Web`;
-          ficheEmbed.setFooter({ text: authorText });
 
           await resultsChannel.send({
             content: mentionsContent,
@@ -2289,36 +2238,16 @@ apiApp.post('/bot/submit-google-form', async (req, res) => {
 
     const guild = client.guilds.cache.get(sondage.guild_id);
     if (guild) {
+      const responses = getSondageResponses(sondageId);
+      const { mainEmbed, ficheEmbed } = buildSondageEmbeds(sondage, responses, responsePayload, userEmail);
+
       const channel = guild.channels.cache.get(sondage.channel_id);
       if (channel && channel.isTextBased()) {
-        const responses = getSondageResponses(sondageId);
-        const totalVotes = responses.length;
-
-        let globalAvg = 0;
-        if (totalVotes > 0) {
-          const sum = responses.reduce((acc, r) => acc + (r.rating || 5), 0);
-          globalAvg = (sum / totalVotes).toFixed(1);
-        }
-
-        const icon = sondage.rating_icon || '⭐';
-
-        const embed = new EmbedBuilder()
-          .setTitle(`📊 ${sondage.title}`)
-          .setDescription(
-            (sondage.description ? `${sondage.description}\n\n` : '') +
-            `**📈 Statistiques Google Forms en Temps Réel :**\n` +
-            `• **Note globale moyenne :** ${globalAvg}/5 ${icon}\n` +
-            `• **Nombre de fiches d'évaluations :** ${totalVotes} réponse(s)`
-          )
-          .setColor(sondage.color || '#F1C40F')
-          .setFooter({ text: `ID Sondage : ${sondageId} • Bagbot Elite` })
-          .setTimestamp();
-
         const messages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
         if (messages) {
           const origMsg = messages.find(m => m.embeds.length > 0 && m.embeds[0].footer && m.embeds[0].footer.text && m.embeds[0].footer.text.includes(sondageId));
           if (origMsg && origMsg.editable) {
-            await origMsg.edit({ embeds: [embed] }).catch(() => null);
+            await origMsg.edit({ embeds: [mainEmbed] }).catch(() => null);
           }
         }
       }
@@ -2332,26 +2261,6 @@ apiApp.post('/bot/submit-google-form', async (req, res) => {
           } catch (e) {}
 
           const mentionsContent = Array.isArray(mentionsArr) && mentionsArr.length > 0 ? mentionsArr.join(' ') : null;
-
-          const embedContent = items.map(item => `**${item.name}**\n${item.value}`).join('\n\n');
-          const shortDesc = sondage.short_description && sondage.short_description.trim() ? sondage.short_description.trim() : 'Voici la réponse reçue depuis Google Forms :';
-
-          const ficheEmbed = new EmbedBuilder()
-            .setTitle(sondage.title || 'Nouvelle réponse Google Forms')
-            .setDescription(`${shortDesc}\n\n${embedContent}`)
-            .setColor(sondage.color || '#78A8C6')
-            .setTimestamp();
-
-          if (sondage.avatar_image && sondage.avatar_image.trim()) {
-            ficheEmbed.setThumbnail(sondage.avatar_image.trim());
-          }
-
-          if (sondage.banner_image && sondage.banner_image.trim()) {
-            ficheEmbed.setImage(sondage.banner_image.trim());
-          }
-
-          const authorText = userEmail ? `Réponse Google Forms soumise par ${userEmail}` : `Réponse soumise via Google Forms`;
-          ficheEmbed.setFooter({ text: authorText });
 
           await resultsChannel.send({
             content: mentionsContent,
