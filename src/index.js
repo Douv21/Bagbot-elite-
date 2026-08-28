@@ -2090,7 +2090,11 @@ apiApp.post('/bot/send-sondage', async (req, res) => {
       new ButtonBuilder()
         .setLabel('📋 Remplir le Formulaire')
         .setStyle(ButtonStyle.Link)
-        .setURL(formUrl)
+        .setURL(formUrl),
+      new ButtonBuilder()
+        .setCustomId(`sondage_results:${sondageId}`)
+        .setLabel('📈 Voir les Résultats')
+        .setStyle(ButtonStyle.Secondary)
     );
 
     let sentMessage = null;

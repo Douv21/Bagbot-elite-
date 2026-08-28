@@ -45,6 +45,59 @@ async function handleSondageInteraction(interaction) {
   const customId = interaction.customId;
   if (!customId || !customId.startsWith('sondage_')) return false;
 
+  // Clic sur "Voir les Résultats" -> Affiche le bilan du sondage en message EPHEMERE
+  if (interaction.isButton() && customId.startsWith('sondage_results:')) {
+    const sondageId = customId.replace('sondage_results:', '');
+    const sondage = getSondage(sondageId);
+    if (!sondage) {
+      return interaction.reply({ content: '❌ Ce sondage n\'existe plus en base de données.', ephemeral: true });
+    }
+
+    const responses = getSondageResponses(sondageId);
+    const icon = sondage.rating_icon || '⭐';
+    const totalVotes = responses ? responses.length : 0;
+
+    const ratingCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    let totalSum = 0;
+
+    if (responses && responses.length > 0) {
+      responses.forEach(r => {
+        let score = Math.round(r.rating || 5);
+        if (score < 1) score = 1;
+        if (score > 5) score = 5;
+        ratingCounts[score]++;
+        totalSum += score;
+      });
+    }
+
+    const globalAvg = totalVotes > 0 ? (totalSum / totalVotes).toFixed(1) : '5.0';
+
+    const makeBar = (pct, len = 8) => {
+      const filled = Math.round((pct / 100) * len);
+      return '█'.repeat(filled) + '░'.repeat(len - filled);
+    };
+
+    const statLines = [5, 4, 3, 2, 1].map(star => {
+      const count = ratingCounts[star];
+      const pct = totalVotes > 0 ? ((count / totalVotes) * 100).toFixed(1) : '0.0';
+      const bar = makeBar(parseFloat(pct));
+      return `${star} ${icon} : \`${bar}\` **${count}** (${pct}%)`;
+    }).join('\n');
+
+    const resultsEmbed = new EmbedBuilder()
+      .setTitle(`📈 Résultats du Sondage : ${sondage.title}`)
+      .setDescription(
+        `• **Note globale moyenne :** ${globalAvg} / 5 ${icon}\n` +
+        `• **Nombre total d'évaluations :** ${totalVotes} membre(s)\n\n` +
+        `**📊 Répartition des votes par pourcentage :**\n${statLines}`
+      )
+      .setColor(sondage.color || '#5865F2')
+      .setFooter({ text: `Résultats en direct • Visible uniquement par vous` })
+      .setTimestamp();
+
+    return interaction.reply({ embeds: [resultsEmbed], ephemeral: true });
+  }
+
   // 1. Clic sur "Participer au Sondage" -> Ouvre le Formulaire Modal Discord
   if (interaction.isButton() && customId.startsWith('sondage_vote:')) {
     const sondageId = customId.replace('sondage_vote:', '');
@@ -302,7 +355,7 @@ function buildSondageEmbeds(sondage, responses, responsePayload, userTag = '') {
     .setTitle(`📊 ${sondage.title}`)
     .setDescription(
       (sondage.description ? `${sondage.description}\n\n` : '') +
-      statsSectionText
+      `💡 *Cliquez sur le bouton "**📈 Voir les Résultats**" ci-dessous pour consulter les statistiques et pourcentages en direct (message éphémère).*`
     )
     .setColor(sondage.color || '#F1C40F')
     .setFooter({ text: `ID Sondage : ${sondage.id} • Bagbot Elite` })
