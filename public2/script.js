@@ -9674,4 +9674,39 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnDisableAll) btnDisableAll.addEventListener('click', () => setAllGuildModules('disable'));
 });
 
+window.handleImgUpload = async function(event, targetInputId) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const targetInput = document.getElementById(targetInputId);
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    if (typeof showToast === 'function') showToast('⏳ Téléversement de l\'image en cours...');
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (res.ok && (data.url || data.path)) {
+      let uploadedUrl = data.url || data.path;
+      if (uploadedUrl.startsWith('/uploads/')) {
+        uploadedUrl = window.location.origin + uploadedUrl;
+      }
+      if (targetInput) {
+        targetInput.value = uploadedUrl;
+        targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+        targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      if (typeof updateSondagePreview === 'function') updateSondagePreview();
+      if (typeof showToast === 'function') showToast('✅ Image téléversée avec succès !');
+    } else {
+      if (typeof showToast === 'function') showToast(`❌ Erreur téléversement : ${data.error || 'Erreur inconnue'}`, true);
+    }
+  } catch (err) {
+    if (typeof showToast === 'function') showToast(`❌ Erreur réseau : ${err.message}`, true);
+  }
+};
+
 

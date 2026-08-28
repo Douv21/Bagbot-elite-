@@ -250,10 +250,14 @@ async function handleSondageInteraction(interaction) {
 function buildSondageEmbeds(sondage, responses, responsePayload, userTag = '') {
   const icon = sondage.rating_icon || '⭐';
 
+  const safeDesc = (sondage.description && sondage.description.trim())
+    ? sondage.description.trim()
+    : '📋 Formulaire interactif - Cliquez sur le bouton ci-dessous pour répondre.';
+
   // 1. Embed principal (Salon du sondage)
   const mainEmbed = new EmbedBuilder()
     .setTitle(`📊 ${sondage.title}`)
-    .setDescription(sondage.description ? sondage.description : '')
+    .setDescription(safeDesc)
     .setColor(sondage.color || '#F1C40F')
     .setFooter({ text: `ID Sondage : ${sondage.id} • Bagbot Elite` })
     .setTimestamp();

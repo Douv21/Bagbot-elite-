@@ -2067,23 +2067,32 @@ apiApp.post('/bot/send-sondage', async (req, res) => {
       sectionsListStr = '\n\n**Sections d\'évaluation :**\n' + sections.map(s => `• ${s.label}`).join('\n');
     }
 
+    const { getActivePublicUrl } = require('./utils/helpers');
+    const basePublicUrl = await getActivePublicUrl();
+
+    let cleanAvatar = (avatarImage && typeof avatarImage === 'string') ? avatarImage.trim() : '';
+    if (cleanAvatar.startsWith('/uploads/')) cleanAvatar = `${basePublicUrl}${cleanAvatar}`;
+
+    let cleanBanner = (bannerImage && typeof bannerImage === 'string') ? bannerImage.trim() : '';
+    if (cleanBanner.startsWith('/uploads/')) cleanBanner = `${basePublicUrl}${cleanBanner}`;
+
+    const safeDescription = (description && description.trim()) ? description.trim() : '📋 Formulaire interactif - Cliquez sur le bouton ci-dessous pour répondre.';
+
     const embed = new EmbedBuilder()
       .setTitle(`📊 ${title}`)
-      .setDescription(description ? description : '')
+      .setDescription(safeDescription)
       .setColor(color || '#F1C40F')
       .setFooter({ text: `ID Sondage : ${sondageId} • Bagbot Elite` })
       .setTimestamp();
 
-    if (avatarImage && typeof avatarImage === 'string' && avatarImage.trim() && (avatarImage.trim().startsWith('http://') || avatarImage.trim().startsWith('https://'))) {
-      embed.setThumbnail(avatarImage.trim());
+    if (cleanAvatar && (cleanAvatar.startsWith('http://') || cleanAvatar.startsWith('https://'))) {
+      embed.setThumbnail(cleanAvatar);
     }
 
-    if (bannerImage && typeof bannerImage === 'string' && bannerImage.trim() && (bannerImage.trim().startsWith('http://') || bannerImage.trim().startsWith('https://'))) {
-      embed.setImage(bannerImage.trim());
+    if (cleanBanner && (cleanBanner.startsWith('http://') || cleanBanner.startsWith('https://'))) {
+      embed.setImage(cleanBanner);
     }
 
-    const { getActivePublicUrl } = require('./utils/helpers');
-    const basePublicUrl = await getActivePublicUrl();
     const formUrl = (googleFormUrl && googleFormUrl.trim()) ? googleFormUrl.trim() : `${basePublicUrl}/form.html?id=${sondageId}`;
 
     const row = new ActionRowBuilder().addComponents(
