@@ -408,29 +408,73 @@ async function handleRoulette(interaction, guildId, userId, bet, config, choice)
   const startRouletteSpin = async (iCtx, userChoice) => {
     const winRate = config.win_rate || 48;
     const isWin = (Math.random() * 100) < winRate;
-    const choiceClean = userChoice.toLowerCase().trim();
+    const choiceClean = String(userChoice || '').toLowerCase().trim();
 
     const redNumbers = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
-    let winningNum = Math.floor(Math.random() * 37);
+    const blackNumbers = [2, 4, 6, 8, 10, 11, 13, 15, 17, 20, 22, 24, 26, 28, 29, 31, 33, 35];
+    const pairNumbers = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36];
+    const impairNumbers = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35];
+
+    let winningNum;
+    const numChoice = parseInt(choiceClean, 10);
 
     if (isWin) {
-      if (choiceClean === 'rouge') winningNum = redNumbers[Math.floor(Math.random() * redNumbers.length)];
-      else if (choiceClean === 'noir') {
-        const blackNums = Array.from({length: 36}, (_, i) => i + 1).filter(n => !redNumbers.includes(n));
-        winningNum = blackNums[Math.floor(Math.random() * blackNums.length)];
-      } else if (choiceClean === 'pair') winningNum = 2 * (Math.floor(Math.random() * 18) + 1);
-      else if (choiceClean === 'impair') winningNum = 2 * Math.floor(Math.random() * 18) + 1;
-      else if (!isNaN(parseInt(choiceClean))) winningNum = Math.max(0, Math.min(36, parseInt(choiceClean)));
+      if (!isNaN(numChoice) && numChoice >= 0 && numChoice <= 36) {
+        winningNum = numChoice;
+      } else if (choiceClean === 'rouge') {
+        winningNum = redNumbers[Math.floor(Math.random() * redNumbers.length)];
+      } else if (choiceClean === 'noir') {
+        winningNum = blackNumbers[Math.floor(Math.random() * blackNumbers.length)];
+      } else if (choiceClean === 'pair') {
+        winningNum = pairNumbers[Math.floor(Math.random() * pairNumbers.length)];
+      } else if (choiceClean === 'impair') {
+        winningNum = impairNumbers[Math.floor(Math.random() * impairNumbers.length)];
+      } else {
+        winningNum = Math.floor(Math.random() * 37);
+      }
+    } else {
+      if (!isNaN(numChoice) && numChoice >= 0 && numChoice <= 36) {
+        const losingNums = Array.from({ length: 37 }, (_, i) => i).filter(n => n !== numChoice);
+        winningNum = losingNums[Math.floor(Math.random() * losingNums.length)];
+      } else if (choiceClean === 'rouge') {
+        const losingNums = [0, ...blackNumbers];
+        winningNum = losingNums[Math.floor(Math.random() * losingNums.length)];
+      } else if (choiceClean === 'noir') {
+        const losingNums = [0, ...redNumbers];
+        winningNum = losingNums[Math.floor(Math.random() * losingNums.length)];
+      } else if (choiceClean === 'pair') {
+        const losingNums = [0, ...impairNumbers];
+        winningNum = losingNums[Math.floor(Math.random() * losingNums.length)];
+      } else if (choiceClean === 'impair') {
+        const losingNums = [0, ...pairNumbers];
+        winningNum = losingNums[Math.floor(Math.random() * losingNums.length)];
+      } else {
+        winningNum = Math.floor(Math.random() * 37);
+      }
     }
 
     const isRed = redNumbers.includes(winningNum);
-    const colorStr = winningNum === 0 ? '🟢 Vert (0)' : (isRed ? '🔴 Rouge' : '⚫ Noir');
+    const isBlack = blackNumbers.includes(winningNum);
+    let colorStr = winningNum === 0 ? '🟢 Vert (0)' : (isRed ? '🔴 Rouge' : '⚫ Noir');
+    if (winningNum !== 0) {
+      colorStr += winningNum % 2 === 0 ? ' | ⚖️ Pair' : ' | ⚡ Impair';
+    }
 
+    let playerWon = false;
     let multiplier = 0;
-    if (!isNaN(parseInt(choiceClean)) && parseInt(choiceClean) === winningNum) {
+
+    if (!isNaN(numChoice) && numChoice === winningNum) {
+      playerWon = true;
       multiplier = 10.0;
-    } else if (isWin) {
-      multiplier = config.payout_multiplier || 2.0;
+    } else if (winningNum !== 0) {
+      if (choiceClean === 'rouge' && isRed) playerWon = true;
+      else if (choiceClean === 'noir' && isBlack) playerWon = true;
+      else if (choiceClean === 'pair' && winningNum % 2 === 0) playerWon = true;
+      else if (choiceClean === 'impair' && winningNum % 2 !== 0) playerWon = true;
+
+      if (playerWon) {
+        multiplier = config.payout_multiplier || 2.0;
+      }
     }
 
     const winnings = Math.floor(bet * multiplier);
@@ -443,11 +487,11 @@ async function handleRoulette(interaction, guildId, userId, bet, config, choice)
     const embed = new EmbedBuilder()
       .setTitle('🎡 Roulette de Casino')
       .setDescription(`\n🎡 La bille a tourné sur la roulette et s'est arrêtée sur **${winningNum}** (${colorStr}) !\n`)
-      .setColor(winnings > 0 ? 0x2ecc71 : 0xe74c3c)
+      .setColor(playerWon ? 0x2ecc71 : 0xe74c3c)
       .addFields(
         { name: '🎯 Pari Placé', value: `${userChoice.toUpperCase()}`, inline: true },
         { name: '💰 Mise', value: `${bet} pièces`, inline: true },
-        { name: winnings > 0 ? '🎉 Gains' : '❌ Perdu', value: winnings > 0 ? `+${winnings} pièces (x${multiplier})` : `-${bet} pièces`, inline: true }
+        { name: playerWon ? '🎉 Gains' : '❌ Perdu', value: playerWon ? `+${winnings} pièces (x${multiplier})` : `-${bet} pièces`, inline: true }
       )
       .setTimestamp();
 
