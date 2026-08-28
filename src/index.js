@@ -1731,6 +1731,35 @@ const API_PORT = process.env.BOT_API_PORT || 49605;
 
 apiApp.use(express.json());
 
+const parseEmojiForDiscord = (emojiStr, roleId, guild) => {
+  let targetEmoji = emojiStr ? String(emojiStr).trim() : '';
+
+  if (!targetEmoji && roleId && guild) {
+    const roleObj = guild.roles.cache.get(roleId);
+    if (roleObj) {
+      if (roleObj.unicodeEmoji) {
+        targetEmoji = roleObj.unicodeEmoji;
+      } else if (roleObj.name) {
+        const match = roleObj.name.match(/^(\p{Extended_Pictographic}|\p{Emoji_Presentation})/u);
+        if (match) targetEmoji = match[0];
+      }
+    }
+  }
+
+  if (!targetEmoji) return null;
+
+  const customMatch = targetEmoji.match(/^<(a)?:([a-zA-Z0-9_]+):(\d{17,20})>$/);
+  if (customMatch) {
+    return {
+      animated: Boolean(customMatch[1]),
+      name: customMatch[2],
+      id: customMatch[3]
+    };
+  }
+
+  return targetEmoji;
+};
+
 apiApp.post('/bot/send-autorole', async (req, res) => {
   try {
     const { guildId, channelId, title, description, color, thumbnail, imageUrl, options = [], selectors = [], type = 'buttons', mode = 'normal', existingMessageId } = req.body;
@@ -1743,14 +1772,12 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
     let isSameChannelEdit = false;
 
     if (existingMessageId) {
-      // 1. Chercher dans le salon cible
       message = await channel.messages.fetch(existingMessageId).catch(() => null);
       if (message) {
         if (message.author.id === client.user.id) {
           isSameChannelEdit = true;
         }
       } else {
-        // 2. Si le salon cible est différent (copie dans un autre salon), chercher en parallèle dans tous les salons
         const textChannels = Array.from(guild.channels.cache.values()).filter(ch => ch.isTextBased() && ch.id !== channelId);
         const results = await Promise.all(textChannels.map(ch => ch.messages.fetch(existingMessageId).then(m => ({ msg: m, ch })).catch(() => null)));
         const found = results.find(r => r && r.msg);
@@ -1787,7 +1814,8 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
                 .setCustomId(`autorole_${btnVal}`)
                 .setLabel(opt.label || 'Rôle')
                 .setStyle(styleCode);
-              if (opt.emoji) btn.setEmoji(opt.emoji);
+              const pEmoji = parseEmojiForDiscord(opt.emoji, opt.role_id, guild);
+              if (pEmoji) btn.setEmoji(pEmoji);
               btnRow.addComponents(btn);
             });
             actionRows.push(btnRow);
@@ -1818,7 +1846,8 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
                 label: opt.label || 'Rôle',
                 value: optVal
               };
-              if (opt.emoji) optionObj.emoji = opt.emoji;
+              const pEmoji = parseEmojiForDiscord(opt.emoji, opt.role_id, guild);
+              if (pEmoji) optionObj.emoji = pEmoji;
               return optionObj;
             });
             selectMenu.addOptions(selectOptions);
@@ -1847,7 +1876,8 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
                 .setCustomId(`autorole_${btnVal}`)
                 .setLabel(opt.label || 'Rôle')
                 .setStyle(styleCode);
-              if (opt.emoji) btn.setEmoji(opt.emoji);
+              const pEmoji = parseEmojiForDiscord(opt.emoji, opt.role_id, guild);
+              if (pEmoji) btn.setEmoji(pEmoji);
               btnRow.addComponents(btn);
             });
             actionRows.push(btnRow);
@@ -1877,7 +1907,8 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
               label: opt.label || 'Rôle',
               value: optVal
             };
-            if (opt.emoji) optionObj.emoji = opt.emoji;
+            const pEmoji = parseEmojiForDiscord(opt.emoji, opt.role_id, guild);
+            if (pEmoji) optionObj.emoji = pEmoji;
             return optionObj;
           });
           selectMenu.addOptions(selectOptions);
@@ -2549,12 +2580,21 @@ apiApp.get('/guilds/:guildId/roles', async (req, res) => {
     await guild.roles.fetch();
     const sortedRoles = [...guild.roles.cache.values()]
       .sort((a, b) => b.position - a.position);
-    const roles = sortedRoles.map(role => ({
-      id: role.id,
-      name: role.name,
-      color: role.color,
-      position: role.position
-    }));
+    const roles = sortedRoles.map(role => {
+      let emoji = role.unicodeEmoji || null;
+      if (!emoji && role.name) {
+        const match = role.name.match(/^(\p{Extended_Pictographic}|\p{Emoji_Presentation})/u);
+        if (match) emoji = match[0];
+      }
+      return {
+        id: role.id,
+        name: role.name,
+        color: role.color,
+        position: role.position,
+        unicodeEmoji: role.unicodeEmoji || null,
+        emoji: emoji || ''
+      };
+    });
     res.json(roles);
   } catch (error) {
     console.error('Error fetching roles:', error);

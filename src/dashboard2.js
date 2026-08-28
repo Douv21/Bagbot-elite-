@@ -2114,10 +2114,18 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
                   const roleIdMatch = rawRoleId.match(/\d{17,20}/);
                   const roleId = roleIdMatch ? roleIdMatch[0] : rawRoleId;
 
+                  const extractEmojiString = (emObj) => {
+                    if (!emObj) return '';
+                    if (emObj.id) {
+                      return emObj.animated ? `<a:${emObj.name}:${emObj.id}>` : `<:${emObj.name}:${emObj.id}>`;
+                    }
+                    return emObj.name || '';
+                  };
+
                   const optObj = {
                     role_id: roleId,
                     label: comp.label || 'Bouton',
-                    emoji: comp.emoji ? (comp.emoji.name || comp.emoji.id) : '',
+                    emoji: extractEmojiString(comp.emoji),
                     style: comp.style === 1 ? 'PRIMARY' : (comp.style === 2 ? 'SECONDARY' : (comp.style === 3 ? 'SUCCESS' : (comp.style === 4 ? 'DANGER' : 'PRIMARY')))
                   };
                   extractedOptions.push(optObj);
@@ -2136,7 +2144,7 @@ app.get('/api/config/autorole-embeds/fetch-message', async (req, res) => {
                       const optObj = {
                         role_id: roleId,
                         label: opt.label || 'Option',
-                        emoji: opt.emoji ? (opt.emoji.name || opt.emoji.id) : '',
+                        emoji: extractEmojiString(opt.emoji),
                         style: 'PRIMARY'
                       };
                       extractedOptions.push(optObj);
