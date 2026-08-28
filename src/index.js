@@ -1066,7 +1066,10 @@ client.on('interactionCreate', async interaction => {
       try {
         await interaction.deferReply({ ephemeral: true });
         let sIdx = 0;
-        if (interaction.customId.startsWith('autorole_select_')) {
+        if (interaction.customId.startsWith('autorole_multi_select_')) {
+          const parsed = parseInt(interaction.customId.replace('autorole_multi_select_', ''), 10);
+          if (!isNaN(parsed)) sIdx = parsed;
+        } else if (interaction.customId.startsWith('autorole_select_')) {
           const parsed = parseInt(interaction.customId.replace('autorole_select_', ''), 10);
           if (!isNaN(parsed)) sIdx = parsed;
         }
