@@ -4482,6 +4482,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    const finalSelectors = (type === 'buttons') ? [] : (autoroleSelectorsList || []);
+    const finalOptions = (type === 'buttons') ? (autoroleButtonsList || []) : [];
+
     showToast('Envoi de la configuration...');
     fetch('/api/config/autorole-embeds/add', {
       method: 'POST',
@@ -4496,8 +4499,8 @@ document.addEventListener('DOMContentLoaded', () => {
         type,
         mode,
         existing_message_id,
-        selectors: (autoroleSelectorsList || []),
-        options: autoroleButtonsList
+        selectors: finalSelectors,
+        options: finalOptions
       })
     })
     .then(res => res.json())
@@ -4749,7 +4752,9 @@ document.addEventListener('DOMContentLoaded', () => {
       style: opt.style || 'PRIMARY'
     }));
 
-    if (item.selectors && item.selectors.length > 0) {
+    if (item.type === 'buttons') {
+      autoroleSelectorsList = [];
+    } else if (item.selectors && item.selectors.length > 0) {
       autoroleSelectorsList = item.selectors;
     } else if (item.options && item.options.length > 0) {
       autoroleSelectorsList = [{

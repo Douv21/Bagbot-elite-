@@ -1709,6 +1709,9 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
     const { channel_id, title, description, color, thumbnail, image_url, options = [], selectors = [], type = 'buttons', mode = 'normal', existing_message_id = null } = req.body || {};
     if (!channel_id) return res.status(400).json({ error: 'ID du salon requis' });
 
+    const finalSelectors = (type === 'buttons') ? [] : (selectors || []);
+    const finalOptions = options || [];
+
     // 1. Communiquer avec l'API locale du bot pour envoyer ou éditer le message
     const botApiPort = process.env.BOT_API_PORT || 49605;
     const botResponse = await fetch(`http://127.0.0.1:${botApiPort}/bot/send-autorole`, {
@@ -1722,8 +1725,8 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
         color,
         thumbnail: thumbnail ? 1 : 0,
         imageUrl: image_url,
-        options: options || [],
-        selectors: selectors || [],
+        options: finalOptions,
+        selectors: finalSelectors,
         type,
         mode,
         existingMessageId: existing_message_id
@@ -1738,7 +1741,6 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
     const { messageId } = await botResponse.json();
 
     // 2. Enregistrer dans SQLite
-    const finalSelectors = (type === 'buttons') ? [] : (selectors || []);
     const selectorsJson = finalSelectors.length > 0 ? JSON.stringify(finalSelectors) : null;
 
     addAutoroleEmbed(
@@ -1756,8 +1758,8 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
     );
     
     db.prepare('DELETE FROM autorole_options WHERE message_id = ?').run(messageId);
-    if (type === 'buttons' && options && options.length > 0) {
-      for (const opt of options) {
+    if (type === 'buttons' && finalOptions.length > 0) {
+      for (const opt of finalOptions) {
         addAutoroleOption(messageId, opt.role_id, opt.label, opt.emoji, opt.style || 'PRIMARY');
       }
     } else if (finalSelectors.length > 0) {
@@ -1768,8 +1770,8 @@ app.post('/api/config/autorole-embeds/add', async (req, res) => {
           });
         }
       });
-    } else if (options && options.length > 0) {
-      for (const opt of options) {
+    } else if (finalOptions.length > 0) {
+      for (const opt of finalOptions) {
         addAutoroleOption(messageId, opt.role_id, opt.label, opt.emoji, opt.style || 'PRIMARY');
       }
     }

@@ -1704,7 +1704,7 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
     const { StringSelectMenuBuilder } = require('discord.js');
     let actionRows = [];
 
-    if (selectors && Array.isArray(selectors) && selectors.length > 0) {
+    if (type !== 'buttons' && selectors && Array.isArray(selectors) && selectors.length > 0) {
       selectors.slice(0, 5).forEach((sel, sIdx) => {
         if (!sel.options || sel.options.length === 0) return;
         const selType = sel.type || 'select';
