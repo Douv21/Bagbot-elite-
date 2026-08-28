@@ -806,6 +806,15 @@ app.get('/api/config', (req, res) => {
     const autoroleEmbeds = getAutoroleEmbeds(guildId);
     for (const embed of autoroleEmbeds) {
       embed.options = getAutoroleOptions(embed.message_id);
+      if (embed.selectors_json) {
+        try {
+          embed.selectors = JSON.parse(embed.selectors_json);
+        } catch (e) {
+          embed.selectors = [];
+        }
+      } else {
+        embed.selectors = [];
+      }
     }
     const autorolesOnJoin = getAutorolesOnJoin(guildId);
     const autorolesOnRole = getAutorolesOnRole(guildId);

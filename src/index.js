@@ -1732,7 +1732,9 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
           }
         } else {
           if (actionRows.length < 5) {
-            const isMultiChoice = (mode !== 'unique') || (selType === 'multi_select') || (type === 'multi_select');
+            const selMode = sel.mode || mode;
+            const selTypeEffective = sel.type || type;
+            const isMultiChoice = (selMode === 'multi_select' || selTypeEffective === 'multi_select') && selMode !== 'unique';
             const selectMenu = new StringSelectMenuBuilder()
               .setCustomId(isMultiChoice ? `autorole_multi_select_${sIdx}` : `autorole_select_${sIdx}`)
               .setPlaceholder(sel.placeholder || sel.title || (isMultiChoice ? 'Sélectionnez un ou plusieurs rôles...' : 'Sélectionnez un rôle...'));
