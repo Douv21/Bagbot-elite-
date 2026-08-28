@@ -324,7 +324,69 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId, selector
     const validIds = validRoles.map(r => r.id);
     const validNames = validRoles.map(r => `**${r.name}**`).join(', ');
 
-    if (mode === 'unique' || mode === 'unique_verify') {
+    if (mode === 'unique_verify') {
+      const groupRoleIds = new Set();
+      if (targetSel && targetSel.options && Array.isArray(targetSel.options)) {
+        targetSel.options.forEach(opt => {
+          String(opt.role_id || '').split(',').forEach(id => {
+            const m = id.trim().match(/\d{17,20}/);
+            if (m) groupRoleIds.add(m[0]);
+          });
+        });
+      }
+
+      if (groupRoleIds.size === 0 && interaction && interaction.component && Array.isArray(interaction.component.options)) {
+        interaction.component.options.forEach(opt => {
+          let val = opt.value || '';
+          if (val.startsWith('opt_')) {
+            const parts = val.replace('opt_', '').split('_');
+            if (parts.length >= 2) {
+              const sIdx = parseInt(parts[0], 10);
+              const optIdx = parseInt(parts[1], 10);
+              if (parsedSel && parsedSel[sIdx] && parsedSel[sIdx].options && parsedSel[sIdx].options[optIdx]) {
+                val = parsedSel[sIdx].options[optIdx].role_id;
+              }
+            }
+          }
+          String(val).split(',').forEach(id => {
+            const m = id.trim().match(/\d{17,20}/);
+            if (m) groupRoleIds.add(m[0]);
+          });
+        });
+      }
+
+      // Fallback si pas de JSON de sélecteur explicite
+      if (groupRoleIds.size === 0 && (!parsedSel || parsedSel.length <= 1)) {
+        const allOptions = db.prepare('SELECT role_id FROM autorole_options WHERE message_id = ?').all(messageId);
+        allOptions.forEach(o => {
+          String(o.role_id || '').split(',').forEach(id => {
+            const m = id.trim().match(/\d{17,20}/);
+            if (m) groupRoleIds.add(m[0]);
+          });
+        });
+      }
+
+      // Vérifier si le membre possède déjà UN rôle quelconque dans ce sélecteur
+      const existingFromGroup = Array.from(groupRoleIds).filter(rId => member.roles.cache.has(rId));
+      if (existingFromGroup.length > 0) {
+        const hasCurrentChoice = validIds.every(rId => member.roles.cache.has(rId));
+        if (hasCurrentChoice) {
+          return interaction.editReply({ content: `Vous possédez déjà le rôle ${validNames} (mode unique et définitif).` });
+        } else {
+          return interaction.editReply({ content: `🔒 **Sélection définitive :** Vous possédez déjà un rôle dans ce sélecteur et il ne peut plus être modifié ni changé.` });
+        }
+      }
+
+      const rolesToAdd = validIds.filter(rId => !member.roles.cache.has(rId));
+      if (rolesToAdd.length > 0) {
+        await member.roles.add(rolesToAdd);
+        return interaction.editReply({ content: `✅ Rôle(s) ${validNames} vous a/ont été attribué(s) définitivement.` });
+      } else {
+        return interaction.editReply({ content: `Vous possédez déjà le(s) rôle(s) ${validNames}.` });
+      }
+    }
+
+    if (mode === 'unique') {
       const groupRoleIds = new Set();
       if (targetSel && targetSel.options && Array.isArray(targetSel.options)) {
         targetSel.options.forEach(opt => {
@@ -376,7 +438,7 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId, selector
         await member.roles.add(rolesToAdd);
         return interaction.editReply({ content: `✅ Rôle(s) ${validNames} attribué(s) (les autres rôles de ce sélecteur ont été retirés).` });
       } else {
-        return interaction.editReply({ content: `Vous possédez déjà le(s) rôle(s) ${validNames} (${mode === 'unique_verify' ? 'mode unique et définitif' : 'mode unique'}).` });
+        return interaction.editReply({ content: `Vous possédez déjà le(s) rôle(s) ${validNames}.` });
       }
     }
 
