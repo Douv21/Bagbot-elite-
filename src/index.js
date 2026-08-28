@@ -324,7 +324,7 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId, selector
     const validIds = validRoles.map(r => r.id);
     const validNames = validRoles.map(r => `**${r.name}**`).join(', ');
 
-    if (mode === 'unique') {
+    if (mode === 'unique' || mode === 'unique_verify') {
       const groupRoleIds = new Set();
       if (targetSel && targetSel.options && Array.isArray(targetSel.options)) {
         targetSel.options.forEach(opt => {
@@ -374,9 +374,9 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId, selector
       const rolesToAdd = validIds.filter(rId => !member.roles.cache.has(rId));
       if (rolesToAdd.length > 0) {
         await member.roles.add(rolesToAdd);
-        return interaction.editReply({ content: `✅ Rôle(s) ${validNames} attribué(s) (les autres rôles de ce menu ont été retirés).` });
+        return interaction.editReply({ content: `✅ Rôle(s) ${validNames} attribué(s) (les autres rôles de ce sélecteur ont été retirés).` });
       } else {
-        return interaction.editReply({ content: `Vous possédez déjà le(s) rôle(s) ${validNames}.` });
+        return interaction.editReply({ content: `Vous possédez déjà le(s) rôle(s) ${validNames} (${mode === 'unique_verify' ? 'mode unique et définitif' : 'mode unique'}).` });
       }
     }
 
@@ -1734,7 +1734,7 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
           if (actionRows.length < 5) {
             const selMode = sel.mode || mode;
             const selTypeEffective = sel.type || type;
-            const isMultiChoice = (selMode === 'multi_select' || selTypeEffective === 'multi_select') && selMode !== 'unique';
+            const isMultiChoice = (selMode === 'multi_select' || selTypeEffective === 'multi_select') && (selMode !== 'unique' && selMode !== 'unique_verify');
             const selectMenu = new StringSelectMenuBuilder()
               .setCustomId(isMultiChoice ? `autorole_multi_select_${sIdx}` : `autorole_select_${sIdx}`)
               .setPlaceholder(sel.placeholder || sel.title || (isMultiChoice ? 'Sélectionnez un ou plusieurs rôles...' : 'Sélectionnez un rôle...'));
@@ -1793,7 +1793,7 @@ apiApp.post('/bot/send-autorole', async (req, res) => {
         }
       } else if (type === 'select' || type === 'multi_select') {
         if (options && options.length > 0) {
-          const isMultiChoice = (mode !== 'unique') || (type === 'multi_select');
+          const isMultiChoice = (type === 'multi_select' || mode === 'multi_select') && (mode !== 'unique' && mode !== 'unique_verify');
           const selectMenu = new StringSelectMenuBuilder()
             .setCustomId(isMultiChoice ? 'autorole_multi_select_menu' : 'autorole_select_menu')
             .setPlaceholder(isMultiChoice ? 'Sélectionnez un ou plusieurs rôles...' : 'Sélectionnez un rôle...');
