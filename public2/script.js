@@ -4895,34 +4895,19 @@ document.addEventListener('DOMContentLoaded', () => {
         card.className = 'card';
         card.style.background = 'rgba(255,255,255,0.03)';
         card.style.border = '1px solid rgba(255,255,255,0.08)';
-        card.style.padding = '12px 15px';
+        card.style.padding = '10px 14px';
         card.style.borderRadius = '6px';
         card.style.display = 'flex';
-        card.style.flexDirection = 'column';
-        card.style.gap = '8px';
-
-        const buttonsHtml = (item.options || []).map(opt => {
-          const styleClass = opt.style === 'SUCCESS' ? 'btn-save' : (opt.style === 'DANGER' ? 'btn-delete' : 'btn-add');
-          return `<span class="badge ${styleClass}" style="margin-right: 5px; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
-            ${opt.emoji || ''} ${opt.label} (${getRoleName(opt.role_id)})
-          </span>`;
-        }).join(' ');
+        card.style.justifyContent = 'space-between';
+        card.style.alignItems = 'center';
+        card.style.gap = '12px';
 
         card.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <h4 style="margin: 0; color: #fff;">${item.title || '(Message Existant)'}</h4>
-            </div>
-            <div style="display: flex; gap: 6px;">
-              <button type="button" class="btn btn-edit-embed btn-sm" style="padding: 4px 8px; font-size: 0.8rem; background: #3498db; color: #fff;"><i class="fa-solid fa-pen-to-square"></i> Modifier</button>
-              <button type="button" class="btn btn-delete btn-sm" style="padding: 4px 8px; font-size: 0.8rem;"><i class="fa-solid fa-trash"></i> Supprimer</button>
-            </div>
+          <h4 style="margin: 0; color: #fff; font-size: 0.92rem; font-weight: 600; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.title || '(Message Existant)'}</h4>
+          <div style="display: flex; gap: 6px; flex-shrink: 0;">
+            <button type="button" class="btn btn-edit-embed btn-sm" style="padding: 5px 10px; font-size: 0.8rem; background: #3498db; color: #fff; border-radius: 4px; border: none; cursor: pointer;"><i class="fa-solid fa-pen-to-square"></i> Modifier</button>
+            <button type="button" class="btn btn-delete btn-sm" style="padding: 5px 10px; font-size: 0.8rem; background: #da373c; color: #fff; border-radius: 4px; border: none; cursor: pointer;"><i class="fa-solid fa-trash"></i> Supprimer</button>
           </div>
-          <p style="margin: 2px 0; font-size: 0.85rem; color: #b9bbbe;">
-            <i class="fa-solid fa-hashtag"></i> Salon: <strong>${channelName}</strong> · ID Message: <code>${item.message_id}</code>
-          </p>
-          <p style="margin: 2px 0; font-size: 0.85rem; color: #8e9297; font-style: italic;">"${item.description || ''}"</p>
-          ${buttonsHtml ? `<div style="margin-top: 5px; display: flex; flex-wrap: wrap; gap: 5px;">${buttonsHtml}</div>` : ''}
         `;
 
         const editBtn = card.querySelector('.btn-edit-embed');
