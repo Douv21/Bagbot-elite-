@@ -8196,6 +8196,7 @@ function initSondageModule() {
   if (customIconInput) customIconInput.addEventListener('input', updateSondagePreview);
   if (selectTextType) selectTextType.addEventListener('change', updateSondagePreview);
   if (inputColor) inputColor.addEventListener('input', updateSondagePreview);
+  if (hasGeneralRemark) hasGeneralRemark.addEventListener('change', updateSondagePreview);
 
   if (form) {
     form.addEventListener('submit', async (e) => {
