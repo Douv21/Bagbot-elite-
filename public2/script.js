@@ -3950,7 +3950,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div style="flex: 2.5; display: flex; flex-direction: column; background: #1e1f22; border: 1px solid #3498db; border-radius: 10px; padding: 6px 12px; min-width: 200px;">
         <div style="display: flex; align-items: center; width: 100%;">
           <span class="role-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #3498db; display: inline-block; margin-right: 6px; flex-shrink: 0;"></span>
-          <input type="text" class="opt-emoji" value="${emojiVal}" placeholder="😃" style="width: 28px; background: #2b2d31; border: 1px solid #383a40; border-radius: 4px; font-size: 0.95rem; color: #fff; text-align: center; outline: none; margin-right: 6px; padding: 2px 0;">
+          <input type="text" class="opt-emoji" value="${emojiVal}" placeholder="😃" title="Taper un émoji avec le clavier de votre téléphone" style="width: 52px; min-width: 48px; height: 32px; background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; font-size: 1.1rem; color: #fff; text-align: center; outline: none; margin-right: 6px; padding: 2px 4px;">
           <select class="opt-role role-select" multiple size="3" style="width: 100%; max-height: 70px; background: transparent; border: none; color: #3498db; font-weight: 700; font-size: 0.82rem; outline: none; cursor: pointer;">
             ${rolesOptionsHtml}
           </select>
@@ -3988,10 +3988,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnEmoji && optEmojiInput) {
       btnEmoji.addEventListener('click', () => openEmojiPickerPopover(optEmojiInput, btnEmoji));
-      optEmojiInput.addEventListener('input', () => {
+      const syncEmoji = () => {
         btnEmoji.textContent = optEmojiInput.value.trim() || '➕';
-      });
-      optEmojiInput.addEventListener('focus', () => openEmojiPickerPopover(optEmojiInput, btnEmoji));
+      };
+      optEmojiInput.addEventListener('input', syncEmoji);
+      optEmojiInput.addEventListener('change', syncEmoji);
+      optEmojiInput.addEventListener('keyup', syncEmoji);
     }
 
     const updatePillColor = () => {
