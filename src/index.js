@@ -335,49 +335,33 @@ const handleRoleModeAssignment = async (interaction, roleId, messageId, selector
         });
       }
 
-      if (groupRoleIds.size === 0) {
+      if (groupRoleIds.size === 0 && interaction && interaction.component && Array.isArray(interaction.component.options)) {
+        interaction.component.options.forEach(opt => {
+          let val = opt.value || '';
+          if (val.startsWith('opt_')) {
+            const parts = val.replace('opt_', '').split('_');
+            if (parts.length >= 2) {
+              const sIdx = parseInt(parts[0], 10);
+              const optIdx = parseInt(parts[1], 10);
+              if (parsedSel && parsedSel[sIdx] && parsedSel[sIdx].options && parsedSel[sIdx].options[optIdx]) {
+                val = parsedSel[sIdx].options[optIdx].role_id;
+              }
+            }
+          }
+          String(val).split(',').forEach(id => {
+            const m = id.trim().match(/\d{17,20}/);
+            if (m) groupRoleIds.add(m[0]);
+          });
+        });
+      }
+
+      // Fallback si pas de JSON de sélecteur explicite
+      if (groupRoleIds.size === 0 && (!parsedSel || parsedSel.length <= 1)) {
         const allOptions = db.prepare('SELECT role_id FROM autorole_options WHERE message_id = ?').all(messageId);
         allOptions.forEach(o => {
           String(o.role_id || '').split(',').forEach(id => {
             const m = id.trim().match(/\d{17,20}/);
             if (m) groupRoleIds.add(m[0]);
-          });
-        });
-        if (parsedSel && Array.isArray(parsedSel)) {
-          parsedSel.forEach(s => {
-            if (s.options && Array.isArray(s.options)) {
-              s.options.forEach(opt => {
-                String(opt.role_id || '').split(',').forEach(id => {
-                  const m = id.trim().match(/\d{17,20}/);
-                  if (m) groupRoleIds.add(m[0]);
-                });
-              });
-            }
-          });
-        }
-      }
-
-      // Triple-Layer Fallback: Parse Discord components directly from interaction message if DB has no record
-      if (groupRoleIds.size === 0 && interaction && interaction.message && interaction.message.components) {
-        interaction.message.components.forEach((row, rIdx) => {
-          row.components.forEach(comp => {
-            if (comp.options && Array.isArray(comp.options)) {
-              if (currentSelectorIdx === null || currentSelectorIdx === undefined || rIdx === currentSelectorIdx) {
-                comp.options.forEach(opt => {
-                  String(opt.value || '').split(',').forEach(id => {
-                    const m = id.trim().match(/\d{17,20}/);
-                    if (m) groupRoleIds.add(m[0]);
-                  });
-                });
-              }
-            }
-            if (comp.customId && comp.customId.startsWith('autorole_')) {
-              const rawRole = comp.customId.replace('autorole_sel_', '').replace('autorole_', '');
-              String(rawRole).split(',').forEach(id => {
-                const m = id.trim().match(/\d{17,20}/);
-                if (m) groupRoleIds.add(m[0]);
-              });
-            }
           });
         });
       }
@@ -482,21 +466,16 @@ const handleMultiRoleSelect = async (interaction, selectedRoleIds, messageId, se
   });
 
   const possibleRoleIdsSet = new Set();
-  dbOpts.forEach(o => {
-    String(o.role_id || '').split(',').forEach(id => {
-      const m = id.trim().match(/\d{17,20}/);
-      if (m) possibleRoleIdsSet.add(m[0]);
-    });
-  });
-
   const embedRecord2 = db.prepare('SELECT mode, selectors_json FROM autorole_embeds WHERE message_id = ?').get(messageId);
   const embedMode = embedRecord2 ? embedRecord2.mode : 'normal';
   let selectorMode = embedMode;
+
+  let parsedSel2 = null;
   if (embedRecord2 && embedRecord2.selectors_json) {
     try {
-      const parsedSel = JSON.parse(embedRecord2.selectors_json);
-      if (Array.isArray(parsedSel)) {
-        const selObj = parsedSel[selectorIdx] || parsedSel[0];
+      parsedSel2 = JSON.parse(embedRecord2.selectors_json);
+      if (Array.isArray(parsedSel2)) {
+        const selObj = parsedSel2[selectorIdx] !== undefined ? parsedSel2[selectorIdx] : parsedSel2[0];
         if (selObj && selObj.options) {
           selObj.options.forEach(opt => {
             String(opt.role_id || '').split(',').forEach(id => {
@@ -510,18 +489,33 @@ const handleMultiRoleSelect = async (interaction, selectedRoleIds, messageId, se
     } catch (e) {}
   }
 
-  // Triple-Layer Fallback: Parse Discord components directly
-  if (possibleRoleIdsSet.size === 0 && interaction && interaction.message && interaction.message.components) {
-    interaction.message.components.forEach(row => {
-      row.components.forEach(comp => {
-        if (comp.options && Array.isArray(comp.options)) {
-          comp.options.forEach(opt => {
-            String(opt.value || '').split(',').forEach(id => {
-              const m = id.trim().match(/\d{17,20}/);
-              if (m) possibleRoleIdsSet.add(m[0]);
-            });
-          });
+  // Fallback 1: Extraire des options du menu déroulant actuel qui a déclenché l'interaction
+  if (possibleRoleIdsSet.size === 0 && interaction && interaction.component && Array.isArray(interaction.component.options)) {
+    interaction.component.options.forEach(opt => {
+      let val = opt.value || '';
+      if (val.startsWith('opt_')) {
+        const parts = val.replace('opt_', '').split('_');
+        if (parts.length >= 2) {
+          const sIdx = parseInt(parts[0], 10);
+          const optIdx = parseInt(parts[1], 10);
+          if (parsedSel2 && parsedSel2[sIdx] && parsedSel2[sIdx].options && parsedSel2[sIdx].options[optIdx]) {
+            val = parsedSel2[sIdx].options[optIdx].role_id;
+          }
         }
+      }
+      String(val).split(',').forEach(id => {
+        const m = id.trim().match(/\d{17,20}/);
+        if (m) possibleRoleIdsSet.add(m[0]);
+      });
+    });
+  }
+
+  // Fallback 2: Si aucun sélecteur JSON spécifique n'est trouvé
+  if (possibleRoleIdsSet.size === 0 && (!parsedSel2 || parsedSel2.length <= 1)) {
+    dbOpts.forEach(o => {
+      String(o.role_id || '').split(',').forEach(id => {
+        const m = id.trim().match(/\d{17,20}/);
+        if (m) possibleRoleIdsSet.add(m[0]);
       });
     });
   }
