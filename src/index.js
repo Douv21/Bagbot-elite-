@@ -2082,20 +2082,15 @@ apiApp.post('/bot/send-sondage', async (req, res) => {
       .setFooter({ text: `ID Sondage : ${sondageId} • Bagbot Elite` })
       .setTimestamp();
 
-    const hostIp = process.env.PUBLIC_IP || '82.65.75.176';
-    const dashPort = process.env.PORT || process.env.DASHBOARD_PORT || 49601;
-    const formUrl = (googleFormUrl && googleFormUrl.trim()) ? googleFormUrl.trim() : (process.env.PUBLIC_URL || process.env.DASHBOARD_PUBLIC_URL || `http://${hostIp}:${dashPort}/form.html?id=${sondageId}`);
+    const { getActivePublicUrl } = require('./utils/helpers');
+    const basePublicUrl = await getActivePublicUrl();
+    const formUrl = (googleFormUrl && googleFormUrl.trim()) ? googleFormUrl.trim() : `${basePublicUrl}/form.html?id=${sondageId}`;
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setLabel('📋 Remplir le Formulaire')
         .setStyle(ButtonStyle.Link)
-        .setURL(formUrl),
-      new ButtonBuilder()
-        .setCustomId(`sondage_vote:${sondageId}`)
-        .setLabel('⚡ Vote Rapide Discord')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('📝')
+        .setURL(formUrl)
     );
 
     let sentMessage = null;

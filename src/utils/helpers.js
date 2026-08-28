@@ -283,7 +283,6 @@ async function getActivePublicUrl() {
   if (process.env.DASHBOARD_PUBLIC_URL && !process.env.DASHBOARD_PUBLIC_URL.includes('trycloudflare.com')) {
     return process.env.DASHBOARD_PUBLIC_URL;
   }
-  if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL;
 
   // 3. Fallback IP / Port local
   const ip = process.env.PUBLIC_IP || '82.65.75.176';
