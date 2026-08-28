@@ -28,6 +28,22 @@ window.showToast = function(message, isError = false) {
   }, 4000);
 };
 
+window.safeSetVal = function(id, val) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.value = (val !== undefined && val !== null) ? val : '';
+    if (typeof el.syncCustomSelect === 'function') el.syncCustomSelect();
+  }
+};
+
+window.safeSetCheck = function(id, bool) {
+  const el = document.getElementById(id);
+  if (el) el.checked = !!bool;
+};
+
+const safeSetVal = window.safeSetVal;
+const safeSetCheck = window.safeSetCheck;
+
 document.addEventListener('DOMContentLoaded', () => {
   // Elements
   const loginContainer = document.getElementById('login-container');
