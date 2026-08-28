@@ -407,8 +407,15 @@
           })
         });
 
-        const data = await res.json();
-        if (data.success) {
+        let data = {};
+        const responseText = await res.text();
+        try {
+          data = JSON.parse(responseText);
+        } catch (e) {
+          data = { error: `Erreur serveur (${res.status})` };
+        }
+
+        if (res.ok && data.success) {
           document.getElementById('form-body').style.display = 'none';
           document.getElementById('success-screen').style.display = 'block';
         } else {
