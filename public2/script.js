@@ -876,6 +876,10 @@ document.addEventListener('DOMContentLoaded', () => {
             safeSetVal('karma_threshold_3', karma.threshold_3 ?? 100);
             safeSetVal('karma_xp_mult_3', karma.xp_mult_3 ?? 2.0);
             safeSetVal('karma_discount_3', karma.discount_3 ?? 20);
+
+            safeSetCheck('karma_auto_reset_enabled', karma.auto_reset_enabled);
+            safeSetVal('karma_reset_day', karma.reset_day ?? 1);
+            safeSetVal('karma_reset_hour', karma.reset_hour ?? 0);
           })
           .catch(console.error);
 
@@ -1914,7 +1918,10 @@ document.addEventListener('DOMContentLoaded', () => {
       discount_2: parseFloat(document.getElementById('karma_discount_2').value) || 10,
       threshold_3: parseInt(document.getElementById('karma_threshold_3').value) || 100,
       xp_mult_3: parseFloat(document.getElementById('karma_xp_mult_3').value) || 2.0,
-      discount_3: parseFloat(document.getElementById('karma_discount_3').value) || 20
+      discount_3: parseFloat(document.getElementById('karma_discount_3').value) || 20,
+      auto_reset_enabled: document.getElementById('karma_auto_reset_enabled') ? document.getElementById('karma_auto_reset_enabled').checked : false,
+      reset_day: parseInt(document.getElementById('karma_reset_day')?.value) ?? 1,
+      reset_hour: parseInt(document.getElementById('karma_reset_hour')?.value) ?? 0
     };
 
     fetch('/api/config/karma', {
@@ -1933,6 +1940,66 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(err => showToast('Erreur: ' + err.message, true));
   });
+
+  // Formulaire Remise à zéro hebdomadaire du Karma
+  const formKarmaReset = document.getElementById('form-karma-reset');
+  if (formKarmaReset) {
+    formKarmaReset.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const data = {
+        is_active: document.getElementById('karma_is_active') ? document.getElementById('karma_is_active').checked : true,
+        announce_rewards: document.getElementById('karma_announce_rewards') ? document.getElementById('karma_announce_rewards').checked : true,
+        threshold_1: parseInt(document.getElementById('karma_threshold_1')?.value) || 20,
+        xp_mult_1: parseFloat(document.getElementById('karma_xp_mult_1')?.value) || 1.2,
+        discount_1: parseFloat(document.getElementById('karma_discount_1')?.value) || 5,
+        threshold_2: parseInt(document.getElementById('karma_threshold_2')?.value) || 50,
+        xp_mult_2: parseFloat(document.getElementById('karma_xp_mult_2')?.value) || 1.5,
+        discount_2: parseFloat(document.getElementById('karma_discount_2')?.value) || 10,
+        threshold_3: parseInt(document.getElementById('karma_threshold_3')?.value) || 100,
+        xp_mult_3: parseFloat(document.getElementById('karma_xp_mult_3')?.value) || 2.0,
+        discount_3: parseFloat(document.getElementById('karma_discount_3')?.value) || 20,
+        auto_reset_enabled: document.getElementById('karma_auto_reset_enabled') ? document.getElementById('karma_auto_reset_enabled').checked : false,
+        reset_day: parseInt(document.getElementById('karma_reset_day')?.value) ?? 1,
+        reset_hour: parseInt(document.getElementById('karma_reset_hour')?.value) ?? 0
+      };
+
+      fetch('/api/config/karma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          showToast('Planning de remise à zéro du Karma enregistré !');
+          loadGuildConfiguration();
+        } else {
+          showToast('Erreur: ' + resData.error, true);
+        }
+      })
+      .catch(err => showToast('Erreur: ' + err.message, true));
+    });
+  }
+
+  const btnKarmaResetNow = document.getElementById('btn-karma-reset-now');
+  if (btnKarmaResetNow) {
+    btnKarmaResetNow.addEventListener('click', async () => {
+      if (!confirm('⚠️ Êtes-vous sûr de vouloir réinitialiser le Karma de TOUS les membres du serveur à 0 immédiatement ? Cette action est irréversible !')) {
+        return;
+      }
+      try {
+        const res = await fetch('/api/config/karma/reset-now', { method: 'POST' });
+        const resData = await res.json();
+        if (resData.success) {
+          showToast(resData.message || '✅ Karma réinitialisé pour tous les membres !');
+        } else {
+          showToast('❌ Erreur: ' + resData.error, true);
+        }
+      } catch (err) {
+        showToast('❌ Erreur de connexion.', true);
+      }
+    });
+  }
 
   // Rappel de Bumps
   if (formBump) {

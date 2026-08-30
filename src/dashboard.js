@@ -29,6 +29,7 @@ const {
   deleteCountingChannel,
   getKarmaConfig,
   updateKarmaConfig,
+  resetGuildKarma,
   getUnlimitedForums,
   updateUnlimitedForums,
   getActionVeriteItems,
@@ -3416,7 +3417,10 @@ app.post('/api/config/karma', (req, res) => {
       discount_2, 
       threshold_3, 
       xp_mult_3, 
-      discount_3 
+      discount_3,
+      auto_reset_enabled,
+      reset_day,
+      reset_hour
     } = req.body || {};
 
     updateKarmaConfig(guildId, {
@@ -3430,10 +3434,26 @@ app.post('/api/config/karma', (req, res) => {
       discount_2: parseFloat(discount_2) || 10,
       threshold_3: parseInt(threshold_3) || 100,
       xp_mult_3: parseFloat(xp_mult_3) || 2.0,
-      discount_3: parseFloat(discount_3) || 20
+      discount_3: parseFloat(discount_3) || 20,
+      auto_reset_enabled: auto_reset_enabled ? 1 : 0,
+      reset_day: parseInt(reset_day) !== undefined ? parseInt(reset_day) : 1,
+      reset_hour: parseInt(reset_hour) !== undefined ? parseInt(reset_hour) : 0
     });
 
     res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/config/karma/reset-now', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const result = resetGuildKarma(guildId);
+    res.json({ success: true, message: `Karma réinitialisé avec succès (${result.changes} membres réinitialisés).` });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });

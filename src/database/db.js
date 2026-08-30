@@ -40,9 +40,18 @@ function initDatabase() {
       discount_2 REAL DEFAULT 10,
       threshold_3 INTEGER DEFAULT 100,
       xp_mult_3 REAL DEFAULT 2.0,
-      discount_3 REAL DEFAULT 20
+      discount_3 REAL DEFAULT 20,
+      auto_reset_enabled INTEGER DEFAULT 0,
+      reset_day INTEGER DEFAULT 1,
+      reset_hour INTEGER DEFAULT 0,
+      last_reset_key TEXT DEFAULT ''
     )
   `).run();
+
+  try { db.prepare('ALTER TABLE karma_config ADD COLUMN auto_reset_enabled INTEGER DEFAULT 0').run(); } catch (e) {}
+  try { db.prepare('ALTER TABLE karma_config ADD COLUMN reset_day INTEGER DEFAULT 1').run(); } catch (e) {}
+  try { db.prepare('ALTER TABLE karma_config ADD COLUMN reset_hour INTEGER DEFAULT 0').run(); } catch (e) {}
+  try { db.prepare('ALTER TABLE karma_config ADD COLUMN last_reset_key TEXT DEFAULT ""').run(); } catch (e) {}
 
   // 2. Système de Niveaux (Leveling)
   db.prepare(`
@@ -1458,6 +1467,14 @@ const updateKarmaConfig = (guildId, updates) => {
   return db.prepare(`UPDATE karma_config SET ${fields} WHERE guild_id = ?`).run(...values, guildId);
 };
 
+const resetGuildKarma = (guildId) => {
+  return db.prepare('UPDATE economy SET karma = 0 WHERE guild_id = ?').run(guildId);
+};
+
+const getAutoResetKarmaConfigs = () => {
+  return db.prepare('SELECT * FROM karma_config WHERE auto_reset_enabled = 1').all();
+};
+
 const getUnlimitedForums = (guildId) => {
   return db.prepare('SELECT channel_id FROM unlimited_forums WHERE guild_id = ?').all(guildId).map(r => r.channel_id);
 };
@@ -2270,6 +2287,8 @@ module.exports = {
   deleteTemporaryRole,
   getKarmaConfig,
   updateKarmaConfig,
+  resetGuildKarma,
+  getAutoResetKarmaConfigs,
   getUnlimitedForums,
   updateUnlimitedForums,
   getActionVeriteItems,

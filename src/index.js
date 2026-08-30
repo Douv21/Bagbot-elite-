@@ -1707,6 +1707,11 @@ client.once('ready', async () => {
     setInterval(() => checkStarElections(client), 60000);
     checkStarElections(client);
 
+    // Remise à zéro hebdomadaire automatique du Karma (toutes les 60s)
+    const { checkKarmaWeeklyResets } = require('./utils/karmaResetManager');
+    setInterval(() => checkKarmaWeeklyResets(client), 60000);
+    checkKarmaWeeklyResets(client);
+
     // Mettre en cache tous les membres de tous les serveurs au démarrage
     client.guilds.cache.forEach(guild => {
       guild.members.fetch()
