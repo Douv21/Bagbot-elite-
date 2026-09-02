@@ -307,15 +307,23 @@ async function handle421(interaction, guildId, userId, bet, config) {
   const evalCombination = (dArray) => {
     const sorted = [...dArray].sort((a, b) => b - a);
     const code = sorted.join('');
+    const winRate = config.win_rate !== undefined ? config.win_rate : 40;
+    const baseMult = config.payout_multiplier || 2.5;
 
-    if (code === '421') return { name: '🔥 GRAND 4-2-1 ! (Jackpot x5)', mult: 5.0 };
+    if (code === '421') return { name: '🔥 GRAND 4-2-1 ! (Jackpot x5)', mult: Math.max(5.0, baseMult * 2) };
     if (dArray[0] === dArray[1] && dArray[1] === dArray[2]) {
-      if (dArray[0] === 1) return { name: '💥 Brelan d\'As ! (x4)', mult: 4.0 };
-      return { name: `🎉 Brelan de ${dArray[0]} (x3)`, mult: 3.0 };
+      if (dArray[0] === 1) return { name: '💥 Brelan d\'As ! (x4)', mult: Math.max(4.0, baseMult * 1.5) };
+      return { name: `🎉 Brelan de ${dArray[0]} (x${baseMult})`, mult: baseMult };
     }
-    if (code === '654' || code === '543' || code === '432' || code === '321') return { name: '✨ Grande Suite (x2)', mult: 2.0 };
+    if (code === '654' || code === '543' || code === '432' || code === '321') return { name: '✨ Grande Suite (x2)', mult: Math.max(2.0, baseMult) };
     if (code === '221') return { name: '❌ Nénette (2-2-1) ! Perdu !', mult: 0 };
-    return { name: '🎲 Lancer de Dés', mult: (config.win_rate && Math.random() * 100 < config.win_rate) ? 1.5 : 0 };
+    
+    // Application du taux de victoire (win_rate) pour les tirages classiques
+    const isWinRoll = (Math.random() * 100) < winRate;
+    if (isWinRoll) {
+      return { name: '🎲 Lancer Gagnant !', mult: Math.max(1.5, baseMult * 0.75) };
+    }
+    return { name: '❌ Aucun alignement gagnant', mult: 0 };
   };
 
   const buildEmbed = (statusMsg = '') => {
@@ -621,6 +629,9 @@ async function handlePoker(interaction, guildId, userId, bet, config) {
     } else if (iCtx.customId.startsWith('poker_draw')) {
       collector.stop();
 
+      const winRate = config.win_rate !== undefined ? config.win_rate : 42;
+      const isWinDraw = (Math.random() * 100) < winRate;
+
       // Replace non-held cards
       for (let k = 0; k < 5; k++) {
         if (!holds[k]) {
@@ -628,7 +639,26 @@ async function handlePoker(interaction, guildId, userId, bet, config) {
         }
       }
 
-      const result = evaluatePokerHand(hand);
+      let result = evaluatePokerHand(hand);
+
+      // Si le win_rate favorise le joueur et que le tirage initial a perdu, tente de compléter une paire/combinaison gagnante
+      if (isWinDraw && result.mult === 0) {
+        const heldRanks = hand.filter((_, idx) => holds[idx]).map(c => c.rank);
+        if (heldRanks.length > 0) {
+          const targetRank = heldRanks[0];
+          const unheldIndices = [0, 1, 2, 3, 4].filter(idx => !holds[idx]);
+          if (unheldIndices.length > 0) {
+            const suits = ['♠️', '♥️', '♦️', '♣️'];
+            const targetSuit = suits.find(s => !hand.some(c => c.rank === targetRank && c.suit === s)) || '♠️';
+            hand[unheldIndices[0]] = { rank: targetRank, value: hand.find(c => c.rank === targetRank)?.value || 11, suit: targetSuit };
+            result = evaluatePokerHand(hand);
+          }
+        }
+      }
+
+      if (result.mult > 0 && config.payout_multiplier) {
+        result.mult = Math.max(result.mult, parseFloat(config.payout_multiplier));
+      }
       const winnings = Math.floor(bet * result.mult);
       const eco = getEconomy(guildId, userId);
 
@@ -881,6 +911,14 @@ async function resolveDealerTurn(interaction, guildId, userId, bet, playerHand, 
   while (dScore < 17) {
     dealerHand.push(deck.pop());
     dScore = calculateHandScore(dealerHand);
+  }
+
+  const winRate = config.win_rate !== undefined ? config.win_rate : 45;
+  const isWinGame = (Math.random() * 100) < winRate;
+
+  // Si le win_rate favorise le joueur et que le joueur n'a pas dépassé 21, ajuster le score du croupier
+  if (isWinGame && pScore <= 21 && dScore <= 21 && dScore >= pScore) {
+    dScore = 22; // Le croupier dépasse 21 (Bust)
   }
 
   let finalTitle = '';

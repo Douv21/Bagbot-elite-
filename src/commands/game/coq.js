@@ -112,19 +112,22 @@ module.exports = {
       }
       breedCollector.stop();
 
+      const winRate = (config && config.win_rate !== undefined) ? config.win_rate : 50;
+      const winRateScale = winRate / 50;
+
       let breedName = '🔴 Coq Gaulois de Combat';
       let baseHp = 100;
-      let critBonus = 0.35;
-      let dodgeBonus = 0.10;
+      let critBonus = Math.min(0.8, 0.35 * winRateScale);
+      let dodgeBonus = Math.min(0.7, 0.10 * winRateScale);
 
       if (bCtx.customId.includes('shamo')) {
         breedName = '🔵 Shamo Japonais';
-        dodgeBonus = 0.30;
-        critBonus = 0.15;
+        dodgeBonus = Math.min(0.7, 0.30 * winRateScale);
+        critBonus = Math.min(0.8, 0.15 * winRateScale);
       } else if (bCtx.customId.includes('asil')) {
         breedName = '🟡 Asil d\'Inde';
-        baseHp = 130;
-        critBonus = 0.15;
+        baseHp = Math.round(130 * Math.max(0.7, winRateScale));
+        critBonus = Math.min(0.8, 0.15 * winRateScale);
       }
 
       await promptEquipmentPhase(bCtx, breedName, baseHp, critBonus, dodgeBonus, bet);
@@ -334,7 +337,9 @@ module.exports = {
 
         // TOUR ADVERSAIRE (IA AMÉLIORÉE & DIFFICILE)
         const isEnemyRage = (enemyHp / enemyMaxHp) < 0.4;
-        const enemyDmgBase = isEnemyRage ? 1.3 : 1.0;
+        const winRate = (config && config.win_rate !== undefined) ? config.win_rate : 50;
+        const enemyWinScale = Math.max(0.4, Math.min(1.6, (100 - winRate) / 50));
+        const enemyDmgBase = (isEnemyRage ? 1.3 : 1.0) * enemyWinScale;
 
         if (Math.random() < dodgeBonus) {
           actionLog += `\n🌀 **Esquive fabuleuse !** Votre ${breedName} évite l'attaque ennemie avec agilité !`;
@@ -366,6 +371,12 @@ module.exports = {
             // Feinte et feinte défensive ennemie
             actionLog += `\n🦅 ${enemyName} feinte et cherche la faille dans votre garde !`;
           }
+        }
+
+        if (playerHp - eDmg <= 0 && !opponent && (Math.random() * 100 < winRate)) {
+          eDmg = Math.max(0, playerHp - 1);
+          actionLog += `\n✨ **SURSAUT DE SURVIE !** Votre ${breedName} esquive l'attaque fatale et contre-attaque ! (-20 HP)`;
+          enemyHp = Math.max(0, enemyHp - 20);
         }
 
         playerHp = Math.max(0, playerHp - eDmg);
