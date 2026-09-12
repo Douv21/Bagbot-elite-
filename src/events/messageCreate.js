@@ -153,10 +153,14 @@ module.exports = {
 
           const { incrementCountingStat, getCountingStats, resetCountingStats } = require('../database/db');
 
-          const emojiSuccess = countingChan.emoji_success || '✅';
-          const emojiError = countingChan.emoji_error || '❌';
-          const emojiHighscore = countingChan.emoji_highscore || '🏆';
-          const emojiChance = countingChan.emoji_chance || '🍀';
+          const safeEmoji = (emojiStr) => {
+            if (!emojiStr || typeof emojiStr !== 'string') return null;
+            const trimmed = emojiStr.trim();
+            if (!trimmed.includes(':')) return trimmed;
+            const match = trimmed.match(/<a?:(\w+):(\d+)>/);
+            if (match) return { name: match[1], id: match[2] };
+            return null;
+          };
 
           const executeReset = async (reason) => {
             try {
@@ -174,17 +178,22 @@ module.exports = {
               const targetResetNumber = (countingChan.start_number !== undefined && countingChan.start_number !== null) ? countingChan.start_number : 0;
               db.prepare('UPDATE counting_channels SET current_number = ?, last_user_id = NULL WHERE channel_id = ?').run(targetResetNumber, message.channel.id);
 
+              const isReverseMode = countingChan.mode === 'reverse' || countingChan.mode === 'reversed' || countingChan.mode === 'inverse' || countingChan.mode === 'countdown';
+              const nextNumAfterReset = isReverseMode ? (targetResetNumber - 1) : (targetResetNumber + 1);
+
               const errorEmbed = new EmbedBuilder()
                 .setTitle('💥 ERREUR DE COMPTAGE !')
-                .setDescription(`${reason}\n\nLe compteur a été réinitialisé à **${targetResetNumber}** !`)
+                .setDescription(`${reason}\n\nLe compteur a été réinitialisé à **${targetResetNumber}** !\n👉 **Le prochain nombre attendu est ${nextNumAfterReset}**.`)
                 .addFields({ name: '📊 Classement de la session (Top Participants)', value: leaderboardText })
                 .setColor('#E74C3C')
                 .setTimestamp();
 
-              await message.react(emojiError).catch(() => {});
+              const reactEmoji = safeEmoji(emojiError) || '❌';
+              await message.react(reactEmoji).catch(() => {});
+
               await message.channel.send({ embeds: [errorEmbed] }).catch(err => {
                 console.error('Erreur envoi message reset embed:', err);
-                message.channel.send(`💥 **ERREUR DE COMPTAGE !** ${reason}\nLe compteur a été réinitialisé à **${targetResetNumber}** !`).catch(() => {});
+                message.channel.send(`💥 **ERREUR DE COMPTAGE !** ${reason}\nLe compteur a été réinitialisé à **${targetResetNumber}** ! (Prochain nombre: **${nextNumAfterReset}**)`).catch(() => {});
               });
             } catch (err) {
               console.error('Erreur executeReset:', err);
@@ -212,7 +221,8 @@ module.exports = {
             const userChance = findUserChanceItem(guildId, userId);
 
             if (userChance && userChance.quantity > 0) {
-              await message.react(emojiError).catch(() => {});
+              const reactEmoji = safeEmoji(emojiError) || '❌';
+              await message.react(reactEmoji).catch(() => {});
 
               const promptEmbed = new EmbedBuilder()
                 .setTitle(`⚠️ ERREUR DE COMPTAGE !`)
@@ -221,22 +231,28 @@ module.exports = {
                 .setFooter({ text: 'Clique sur le bouton ci-dessous pour utiliser ta chance.' })
                 .setTimestamp();
 
+              const btnChanceEmoji = safeEmoji(emojiChance) || '🍀';
+              const btnErrorEmoji = safeEmoji(emojiError) || '❌';
+
               const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                   .setCustomId(`counting_use_chance:${message.channel.id}:${userId}`)
                   .setLabel(`Utiliser 1x Chance (${userChance.quantity})`)
                   .setStyle(ButtonStyle.Success)
-                  .setEmoji(emojiChance),
+                  .setEmoji(btnChanceEmoji),
                 new ButtonBuilder()
                   .setCustomId(`counting_decline_chance:${message.channel.id}:${userId}`)
                   .setLabel('Accepter la réinitialisation')
                   .setStyle(ButtonStyle.Danger)
-                  .setEmoji(emojiError)
+                  .setEmoji(btnErrorEmoji)
               );
 
-              const promptMsg = await message.reply({ embeds: [promptEmbed], components: [row] }).catch(err => {
-                console.error('Erreur envoi prompt Chance de comptage:', err);
-                return null;
+              let promptMsg = await message.reply({ embeds: [promptEmbed], components: [row] }).catch(async (err) => {
+                console.warn('Reply direct prompt echoue, tentative fallback channel.send:', err.message);
+                return await message.channel.send({ content: `<@${userId}>`, embeds: [promptEmbed], components: [row] }).catch(err2 => {
+                  console.error('Erreur fallback channel.send prompt Chance:', err2.message);
+                  return null;
+                });
               });
 
               if (promptMsg) {
@@ -305,8 +321,11 @@ module.exports = {
               }
             }
 
+            const reactSuccess = safeEmoji(emojiSuccess) || '✅';
+            const reactHighscore = safeEmoji(emojiHighscore) || '🏆';
+
             if (isReverseMode && nextNumber === 0) {
-              await message.react(emojiHighscore).catch(() => {});
+              await message.react(reactHighscore).catch(() => {});
               
               const stats = getCountingStats(message.channel.id);
               const medals = ['🥇', '🥈', '🥉'];
@@ -332,9 +351,9 @@ module.exports = {
               await message.channel.send({ embeds: [victoryEmbed] }).catch(() => {});
             } else {
               if (isNewRecord) {
-                await message.react(emojiHighscore).catch(() => {});
+                await message.react(reactHighscore).catch(() => {});
               } else {
-                await message.react(emojiSuccess).catch(() => {});
+                await message.react(reactSuccess).catch(() => {});
               }
               db.prepare('UPDATE counting_channels SET current_number = ?, last_user_id = ?, high_score = ? WHERE channel_id = ?')
                 .run(nextNumber, userId, newHighScore, message.channel.id);
