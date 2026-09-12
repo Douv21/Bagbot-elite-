@@ -159,28 +159,36 @@ module.exports = {
           const emojiChance = countingChan.emoji_chance || '🍀';
 
           const executeReset = async (reason) => {
-            const stats = getCountingStats(message.channel.id);
-            const medals = ['🥇', '🥈', '🥉'];
-            let leaderboardText = '*(Aucun chiffre validé dans cette session)*';
-            if (stats && stats.length > 0) {
-              leaderboardText = stats.map((r, i) => {
-                const prefix = medals[i] || `**#${i + 1}**`;
-                return `${prefix} <@${r.user_id}> — **${r.count}** nombre${r.count > 1 ? 's' : ''} validé${r.count > 1 ? 's' : ''}`;
-              }).join('\n');
+            try {
+              const stats = getCountingStats(message.channel.id);
+              const medals = ['🥇', '🥈', '🥉'];
+              let leaderboardText = '*(Aucun chiffre validé dans cette session)*';
+              if (stats && stats.length > 0) {
+                leaderboardText = stats.map((r, i) => {
+                  const prefix = medals[i] || `**#${i + 1}**`;
+                  return `${prefix} <@${r.user_id}> — **${r.count}** nombre${r.count > 1 ? 's' : ''} validé${r.count > 1 ? 's' : ''}`;
+                }).join('\n');
+              }
+
+              resetCountingStats(message.channel.id);
+              const targetResetNumber = (countingChan.start_number !== undefined && countingChan.start_number !== null) ? countingChan.start_number : 0;
+              db.prepare('UPDATE counting_channels SET current_number = ?, last_user_id = NULL WHERE channel_id = ?').run(targetResetNumber, message.channel.id);
+
+              const errorEmbed = new EmbedBuilder()
+                .setTitle('💥 ERREUR DE COMPTAGE !')
+                .setDescription(`${reason}\n\nLe compteur a été réinitialisé à **${targetResetNumber}** !`)
+                .addFields({ name: '📊 Classement de la session (Top Participants)', value: leaderboardText })
+                .setColor('#E74C3C')
+                .setTimestamp();
+
+              await message.react(emojiError).catch(() => {});
+              await message.channel.send({ embeds: [errorEmbed] }).catch(err => {
+                console.error('Erreur envoi message reset embed:', err);
+                message.channel.send(`💥 **ERREUR DE COMPTAGE !** ${reason}\nLe compteur a été réinitialisé à **${targetResetNumber}** !`).catch(() => {});
+              });
+            } catch (err) {
+              console.error('Erreur executeReset:', err);
             }
-
-            resetCountingStats(message.channel.id);
-            db.prepare('UPDATE counting_channels SET current_number = start_number, last_user_id = NULL WHERE channel_id = ?').run(message.channel.id);
-
-            const errorEmbed = new EmbedBuilder()
-              .setTitle('💥 ERREUR DE COMPTAGE !')
-              .setDescription(`${reason}\n\nLe compteur a été réinitialisé à **${countingChan.start_number}** !`)
-              .addFields({ name: '📊 Classement de la session (Top Participants)', value: leaderboardText })
-              .setColor('#E74C3C')
-              .setTimestamp();
-
-            await message.react(emojiError).catch(() => {});
-            await message.reply({ embeds: [errorEmbed] }).catch(() => {});
             return false;
           };
 
@@ -200,7 +208,7 @@ module.exports = {
           };
 
           const sendCountingErrorEmbed = async (reason) => {
-            // Vérifier si l'utilisateur possède une Chance de Comptage dans son inventaire (flexible sans sensible à la casse/émojis)
+            // Vérifier si l'utilisateur possède une Chance de Comptage dans son inventaire (flexible multi-serveur, sans sensible à la casse/émojis)
             const userChance = findUserChanceItem(guildId, userId);
 
             if (userChance && userChance.quantity > 0) {
@@ -226,7 +234,10 @@ module.exports = {
                   .setEmoji(emojiError)
               );
 
-              const promptMsg = await message.reply({ embeds: [promptEmbed], components: [row] }).catch(() => null);
+              const promptMsg = await message.reply({ embeds: [promptEmbed], components: [row] }).catch(err => {
+                console.error('Erreur envoi prompt Chance de comptage:', err);
+                return null;
+              });
 
               if (promptMsg) {
                 const timerId = setTimeout(async () => {
@@ -245,12 +256,13 @@ module.exports = {
                   userChance,
                   reason
                 });
+                return true;
+              } else {
+                return await executeReset(reason);
               }
-
-              return true;
             }
 
-            return executeReset(reason);
+            return await executeReset(reason);
           };
 
           if (proposedNumber === null || isNaN(proposedNumber)) {
