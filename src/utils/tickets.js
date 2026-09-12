@@ -87,10 +87,12 @@ async function sendOrUpdateTicketPanel(panelId, client, forceResend = false) {
         .setPlaceholder('Sélectionnez une catégorie pour ouvrir un ticket...');
 
       const selectOptions = options.map(opt => {
+        let desc = opt.menu_description || opt.description || `Ouvrir un ticket pour : ${opt.label}`;
+        if (desc.length > 100) desc = desc.substring(0, 97) + '...';
         const item = {
           label: opt.label,
           value: opt.value,
-          description: `Ouvrir un ticket pour : ${opt.label}`
+          description: desc
         };
         if (opt.emoji) {
           item.emoji = opt.emoji;

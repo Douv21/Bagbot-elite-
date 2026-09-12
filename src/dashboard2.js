@@ -3644,7 +3644,7 @@ app.post('/api/config/tickets/options/add', async (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button, require_age_verification, min_age_required, age_verified_role_id, age_verification_log_channel } = req.body || {};
+    const { id, label, value, emoji, button_style, category_id, required_role_id, support_roles, ping_users, description, menu_description, member_roles_add, member_roles_remove, certify_roles_add, certify_roles_remove, show_member_button, show_certify_button, require_age_verification, min_age_required, age_verified_role_id, age_verification_log_channel } = req.body || {};
     if (!label || !value) return res.status(400).json({ error: 'Libellé et valeur requis' });
 
     const optionData = {
@@ -3657,6 +3657,7 @@ app.post('/api/config/tickets/options/add', async (req, res) => {
       support_roles: Array.isArray(support_roles) ? support_roles : [],
       ping_users: Array.isArray(ping_users) ? ping_users : [],
       description: description || null,
+      menu_description: menu_description || null,
       member_roles_add: Array.isArray(member_roles_add) ? member_roles_add : [],
       member_roles_remove: Array.isArray(member_roles_remove) ? member_roles_remove : [],
       certify_roles_add: Array.isArray(certify_roles_add) ? certify_roles_add : [],
