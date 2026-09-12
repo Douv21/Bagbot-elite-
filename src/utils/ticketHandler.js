@@ -74,9 +74,12 @@ async function handleTicketInteraction(interaction, client) {
       .setMaxValues(1);
 
     const opts = availableOptions.slice(0, 25).map(opt => {
+      let desc = opt.menu_description || opt.description || `Ouvrir un ticket pour : ${opt.label}`;
+      if (desc.length > 100) desc = desc.substring(0, 97) + '...';
       const item = {
         label: opt.label,
-        value: opt.value
+        value: opt.value,
+        description: desc
       };
       if (opt.emoji) {
         item.emoji = opt.emoji;

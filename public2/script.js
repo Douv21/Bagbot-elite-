@@ -1629,7 +1629,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('ticket_opt_category').value = opt.category_id || '';
         document.getElementById('ticket_opt_view_role').value = opt.required_role_id || '';
         document.getElementById('ticket_opt_description').value = opt.description || '';
-        document.getElementById('ticket_opt_menu_description').value = opt.menu_description || '';
+        document.getElementById('ticket_opt_menu_description').value = opt.menu_description || opt.description || '';
         document.getElementById('ticket_opt_image_url').value = opt.image_url || '';
         document.getElementById('ticket_opt_show_member').checked = opt.show_member_button !== 0;
         document.getElementById('ticket_opt_show_certify').checked = opt.show_certify_button !== 0;
