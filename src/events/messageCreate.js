@@ -139,152 +139,154 @@ module.exports = {
         // Formatage français (suppression des espaces de milliers, remplacement de la virgule par un point)
         const contentStr = contentRaw.replace(/\s+/g, '').replace(',', '.');
         
-        // Ne traiter que les tentatives avec au moins un chiffre et sans lettres (A à Z)
-        if (/[0-9]/.test(contentStr) && !/[a-zA-Z]/.test(contentStr)) {
-          let proposedNumber = null;
-          
-          if (countingChan.mode === 'math') {
-            proposedNumber = evaluateMath(contentRaw);
-          } else {
-            if (/^-?[0-9.]+$/.test(contentStr)) {
-              proposedNumber = parseFloat(contentStr);
-            }
+        let proposedNumber = null;
+        if (countingChan.mode === 'math') {
+          proposedNumber = evaluateMath(contentRaw);
+        } else {
+          if (/^-?[0-9.]+$/.test(contentStr)) {
+            proposedNumber = parseFloat(contentStr);
           }
+        }
 
-          const { incrementCountingStat, getCountingStats, resetCountingStats } = require('../database/db');
+        const { incrementCountingStat, getCountingStats, resetCountingStats } = require('../database/db');
 
-          const safeEmoji = (emojiStr) => {
-            if (!emojiStr || typeof emojiStr !== 'string') return null;
-            const trimmed = emojiStr.trim();
-            if (!trimmed.includes(':')) return trimmed;
-            const match = trimmed.match(/<a?:(\w+):(\d+)>/);
-            if (match) return { name: match[1], id: match[2] };
-            return null;
-          };
+        const emojiSuccess = countingChan.emoji_success || '✅';
+        const emojiError = countingChan.emoji_error || '❌';
+        const emojiHighscore = countingChan.emoji_highscore || '🏆';
+        const emojiChance = countingChan.emoji_chance || '🍀';
 
-          const executeReset = async (reason) => {
-            try {
-              const stats = getCountingStats(message.channel.id);
-              const medals = ['🥇', '🥈', '🥉'];
-              let leaderboardText = '*(Aucun chiffre validé dans cette session)*';
-              if (stats && stats.length > 0) {
-                leaderboardText = stats.map((r, i) => {
-                  const prefix = medals[i] || `**#${i + 1}**`;
-                  return `${prefix} <@${r.user_id}> — **${r.count}** nombre${r.count > 1 ? 's' : ''} validé${r.count > 1 ? 's' : ''}`;
-                }).join('\n');
-              }
+        const safeEmoji = (emojiStr) => {
+          if (!emojiStr || typeof emojiStr !== 'string') return null;
+          const trimmed = emojiStr.trim();
+          if (!trimmed.includes(':')) return trimmed;
+          const match = trimmed.match(/<a?:(\w+):(\d+)>/);
+          if (match) return { name: match[1], id: match[2] };
+          return null;
+        };
 
-              resetCountingStats(message.channel.id);
-              const targetResetNumber = (countingChan.start_number !== undefined && countingChan.start_number !== null) ? countingChan.start_number : 0;
-              db.prepare('UPDATE counting_channels SET current_number = ?, last_user_id = NULL WHERE channel_id = ?').run(targetResetNumber, message.channel.id);
-
-              const isReverseMode = countingChan.mode === 'reverse' || countingChan.mode === 'reversed' || countingChan.mode === 'inverse' || countingChan.mode === 'countdown';
-              const nextNumAfterReset = isReverseMode ? (targetResetNumber - 1) : (targetResetNumber + 1);
-
-              const errorEmbed = new EmbedBuilder()
-                .setTitle('💥 ERREUR DE COMPTAGE !')
-                .setDescription(`${reason}\n\nLe compteur a été réinitialisé à **${targetResetNumber}** !\n👉 **Le prochain nombre attendu est ${nextNumAfterReset}**.`)
-                .addFields({ name: '📊 Classement de la session (Top Participants)', value: leaderboardText })
-                .setColor('#E74C3C')
-                .setTimestamp();
-
-              const reactEmoji = safeEmoji(emojiError) || '❌';
-              await message.react(reactEmoji).catch(() => {});
-
-              await message.channel.send({ embeds: [errorEmbed] }).catch(err => {
-                console.error('Erreur envoi message reset embed:', err);
-                message.channel.send(`💥 **ERREUR DE COMPTAGE !** ${reason}\nLe compteur a été réinitialisé à **${targetResetNumber}** ! (Prochain nombre: **${nextNumAfterReset}**)`).catch(() => {});
-              });
-            } catch (err) {
-              console.error('Erreur executeReset:', err);
+        const executeReset = async (reason) => {
+          try {
+            const stats = getCountingStats(message.channel.id);
+            const medals = ['🥇', '🥈', '🥉'];
+            let leaderboardText = '*(Aucun chiffre validé dans cette session)*';
+            if (stats && stats.length > 0) {
+              leaderboardText = stats.map((r, i) => {
+                const prefix = medals[i] || `**#${i + 1}**`;
+                return `${prefix} <@${r.user_id}> — **${r.count}** nombre${r.count > 1 ? 's' : ''} validé${r.count > 1 ? 's' : ''}`;
+              }).join('\n');
             }
-            return false;
-          };
 
-          const findUserChanceItem = (gId, uId) => {
-            let userItems = db.prepare("SELECT rowid, guild_id, user_id, quantity, item_name FROM inventory WHERE guild_id = ? AND user_id = ? AND quantity > 0").all(gId, uId);
-            if (!userItems || userItems.length === 0) {
-              userItems = db.prepare("SELECT rowid, guild_id, user_id, quantity, item_name FROM inventory WHERE user_id = ? AND quantity > 0").all(uId);
-            }
-            if (!userItems || userItems.length === 0) return null;
-            return userItems.find(item => {
-              const name = (item.item_name || '').toLowerCase();
-              return (name.includes('chance') || name.includes('joker')) && (name.includes('comptage') || name.includes('compte') || name.includes('rebours'));
-            }) || userItems.find(item => {
-              const name = (item.item_name || '').toLowerCase();
-              return name.includes('chance') || name.includes('joker');
+            resetCountingStats(message.channel.id);
+            const targetResetNumber = (countingChan.start_number !== undefined && countingChan.start_number !== null) ? countingChan.start_number : 0;
+            db.prepare('UPDATE counting_channels SET current_number = ?, last_user_id = NULL WHERE channel_id = ?').run(targetResetNumber, message.channel.id);
+
+            const isReverseMode = countingChan.mode === 'reverse' || countingChan.mode === 'reversed' || countingChan.mode === 'inverse' || countingChan.mode === 'countdown';
+            const nextNumAfterReset = isReverseMode ? (targetResetNumber - 1) : (targetResetNumber + 1);
+
+            const errorEmbed = new EmbedBuilder()
+              .setTitle('💥 ERREUR DE COMPTAGE !')
+              .setDescription(`${reason}\n\nLe compteur a été réinitialisé à **${targetResetNumber}** !\n👉 **Le prochain nombre attendu est ${nextNumAfterReset}**.`)
+              .addFields({ name: '📊 Classement de la session (Top Participants)', value: leaderboardText })
+              .setColor('#E74C3C')
+              .setTimestamp();
+
+            const reactEmoji = safeEmoji(emojiError) || '❌';
+            await message.react(reactEmoji).catch(() => {});
+
+            await message.channel.send({ embeds: [errorEmbed] }).catch(err => {
+              console.error('Erreur envoi message reset embed:', err);
+              message.channel.send(`💥 **ERREUR DE COMPTAGE !** ${reason}\nLe compteur a été réinitialisé à **${targetResetNumber}** ! (Prochain nombre: **${nextNumAfterReset}**)`).catch(() => {});
             });
-          };
-
-          const sendCountingErrorEmbed = async (reason) => {
-            // Vérifier si l'utilisateur possède une Chance de Comptage dans son inventaire (flexible multi-serveur, sans sensible à la casse/émojis)
-            const userChance = findUserChanceItem(guildId, userId);
-
-            if (userChance && userChance.quantity > 0) {
-              const reactEmoji = safeEmoji(emojiError) || '❌';
-              await message.react(reactEmoji).catch(() => {});
-
-              const promptEmbed = new EmbedBuilder()
-                .setTitle(`⚠️ ERREUR DE COMPTAGE !`)
-                .setDescription(`${reason}\n\n<@${userId}>, tu possèdes **${userChance.quantity}x ${emojiChance} ${userChance.item_name}** dans ton inventaire !\n\n*Souhaites-tu utiliser 1x Chance pour sauver la session et maintenir le compteur à **${countingChan.current_number}** ?*\n⏰ *Tu as 15 secondes pour faire ton choix.*`)
-                .setColor('#F1C40F')
-                .setFooter({ text: 'Clique sur le bouton ci-dessous pour utiliser ta chance.' })
-                .setTimestamp();
-
-              const btnChanceEmoji = safeEmoji(emojiChance) || '🍀';
-              const btnErrorEmoji = safeEmoji(emojiError) || '❌';
-
-              const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                  .setCustomId(`counting_use_chance:${message.channel.id}:${userId}`)
-                  .setLabel(`Utiliser 1x Chance (${userChance.quantity})`)
-                  .setStyle(ButtonStyle.Success)
-                  .setEmoji(btnChanceEmoji),
-                new ButtonBuilder()
-                  .setCustomId(`counting_decline_chance:${message.channel.id}:${userId}`)
-                  .setLabel('Accepter la réinitialisation')
-                  .setStyle(ButtonStyle.Danger)
-                  .setEmoji(btnErrorEmoji)
-              );
-
-              let promptMsg = await message.reply({ embeds: [promptEmbed], components: [row] }).catch(async (err) => {
-                console.warn('Reply direct prompt echoue, tentative fallback channel.send:', err.message);
-                return await message.channel.send({ content: `<@${userId}>`, embeds: [promptEmbed], components: [row] }).catch(err2 => {
-                  console.error('Erreur fallback channel.send prompt Chance:', err2.message);
-                  return null;
-                });
-              });
-
-              if (promptMsg) {
-                const timerId = setTimeout(async () => {
-                  try {
-                    global.pendingCountingErrors.delete(`${message.channel.id}:${userId}`);
-                    await promptMsg.edit({ content: '⏳ *Temps écoulé (15s). La réinitialisation du compteur a été appliquée.*', components: [] }).catch(() => null);
-                    await executeReset(reason);
-                  } catch (_) {}
-                }, 15000);
-
-                global.pendingCountingErrors = global.pendingCountingErrors || new Map();
-                global.pendingCountingErrors.set(`${message.channel.id}:${userId}`, {
-                  timerId,
-                  promptMsg,
-                  countingChan,
-                  userChance,
-                  reason
-                });
-                return true;
-              } else {
-                return await executeReset(reason);
-              }
-            }
-
-            return await executeReset(reason);
-          };
-
-          if (proposedNumber === null || isNaN(proposedNumber)) {
-            await sendCountingErrorEmbed("Ce n'est pas un nombre valide.");
-            return;
+          } catch (err) {
+            console.error('Erreur executeReset:', err);
           }
+          return false;
+        };
+
+        const findUserChanceItem = (gId, uId) => {
+          let userItems = db.prepare("SELECT rowid, guild_id, user_id, quantity, item_name FROM inventory WHERE guild_id = ? AND user_id = ? AND quantity > 0").all(gId, uId);
+          if (!userItems || userItems.length === 0) {
+            userItems = db.prepare("SELECT rowid, guild_id, user_id, quantity, item_name FROM inventory WHERE user_id = ? AND quantity > 0").all(uId);
+          }
+          if (!userItems || userItems.length === 0) return null;
+          return userItems.find(item => {
+            const name = (item.item_name || '').toLowerCase();
+            return (name.includes('chance') || name.includes('joker')) && (name.includes('comptage') || name.includes('compte') || name.includes('rebours'));
+          }) || userItems.find(item => {
+            const name = (item.item_name || '').toLowerCase();
+            return name.includes('chance') || name.includes('joker');
+          });
+        };
+
+        const sendCountingErrorEmbed = async (reason) => {
+          // Vérifier si l'utilisateur possède une Chance de Comptage dans son inventaire (flexible multi-serveur, sans sensible à la casse/émojis)
+          const userChance = findUserChanceItem(guildId, userId);
+
+          if (userChance && userChance.quantity > 0) {
+            const reactEmoji = safeEmoji(emojiError) || '❌';
+            await message.react(reactEmoji).catch(() => {});
+
+            const promptEmbed = new EmbedBuilder()
+              .setTitle(`⚠️ ERREUR DE COMPTAGE !`)
+              .setDescription(`${reason}\n\n<@${userId}>, tu possèdes **${userChance.quantity}x ${emojiChance} ${userChance.item_name}** dans ton inventaire !\n\n*Souhaites-tu utiliser 1x Chance pour sauver la session et maintenir le compteur à **${countingChan.current_number}** ?*\n⏰ *Tu as 15 secondes pour faire ton choix.*`)
+              .setColor('#F1C40F')
+              .setFooter({ text: 'Clique sur le bouton ci-dessous pour utiliser ta chance.' })
+              .setTimestamp();
+
+            const btnChanceEmoji = safeEmoji(emojiChance) || '🍀';
+            const btnErrorEmoji = safeEmoji(emojiError) || '❌';
+
+            const row = new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId(`counting_use_chance:${message.channel.id}:${userId}`)
+                .setLabel(`Utiliser 1x Chance (${userChance.quantity})`)
+                .setStyle(ButtonStyle.Success)
+                .setEmoji(btnChanceEmoji),
+              new ButtonBuilder()
+                .setCustomId(`counting_decline_chance:${message.channel.id}:${userId}`)
+                .setLabel('Accepter la réinitialisation')
+                .setStyle(ButtonStyle.Danger)
+                .setEmoji(btnErrorEmoji)
+            );
+
+            let promptMsg = await message.reply({ embeds: [promptEmbed], components: [row] }).catch(async (err) => {
+              console.warn('Reply direct prompt echoue, tentative fallback channel.send:', err.message);
+              return await message.channel.send({ content: `<@${userId}>`, embeds: [promptEmbed], components: [row] }).catch(err2 => {
+                console.error('Erreur fallback channel.send prompt Chance:', err2.message);
+                return null;
+              });
+            });
+
+            if (promptMsg) {
+              const timerId = setTimeout(async () => {
+                try {
+                  global.pendingCountingErrors.delete(`${message.channel.id}:${userId}`);
+                  await promptMsg.edit({ content: '⏳ *Temps écoulé (15s). La réinitialisation du compteur a été appliquée.*', components: [] }).catch(() => null);
+                  await executeReset(reason);
+                } catch (_) {}
+              }, 15000);
+
+              global.pendingCountingErrors = global.pendingCountingErrors || new Map();
+              global.pendingCountingErrors.set(`${message.channel.id}:${userId}`, {
+                timerId,
+                promptMsg,
+                countingChan,
+                userChance,
+                reason
+              });
+              return true;
+            } else {
+              return await executeReset(reason);
+            }
+          }
+
+          return await executeReset(reason);
+        };
+
+        if (proposedNumber === null || isNaN(proposedNumber)) {
+          await sendCountingErrorEmbed(`Ce n'est pas un nombre valide (tu as écrit **${contentRaw}**).`);
+          return;
+        }
 
           if (countingChan.last_user_id === userId) {
             await sendCountingErrorEmbed(`<@${userId}>, tu ne peux pas compter deux fois de suite !`);
@@ -367,7 +369,6 @@ module.exports = {
           return;
         }
       }
-    }
 
     // --- FILTRAGE ET ANONYMISATION DES COMMENTAIRES DE CONFESSIONS ---
     if (message.channel.isThread()) {
