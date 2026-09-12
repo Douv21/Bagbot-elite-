@@ -130,6 +130,11 @@ module.exports = {
     if (!message.channel.isThread() && !message.system) {
       const countingChan = db.prepare('SELECT * FROM counting_channels WHERE guild_id = ? AND channel_id = ?').get(guildId, message.channel.id);
       if (countingChan) {
+        // Ignorer si un choix de Chance de comptage est déjà en cours dans ce salon
+        if (global.pendingCountingErrors && Array.from(global.pendingCountingErrors.keys()).some(k => k.startsWith(`${message.channel.id}:`))) {
+          return;
+        }
+
         const contentStr = message.content.trim();
         
         // Ignorer les messages contenant des lettres (A à Z)
@@ -177,16 +182,28 @@ module.exports = {
             return false;
           };
 
+          const findUserChanceItem = (gId, uId) => {
+            const userItems = db.prepare("SELECT quantity, item_name FROM inventory WHERE guild_id = ? AND user_id = ? AND quantity > 0").all(gId, uId);
+            if (!userItems || userItems.length === 0) return null;
+            return userItems.find(item => {
+              const name = (item.item_name || '').toLowerCase();
+              return (name.includes('chance') || name.includes('joker')) && (name.includes('comptage') || name.includes('compte') || name.includes('rebours'));
+            }) || userItems.find(item => {
+              const name = (item.item_name || '').toLowerCase();
+              return name.includes('chance') || name.includes('joker');
+            });
+          };
+
           const sendCountingErrorEmbed = async (reason) => {
-            // Vérifier si l'utilisateur possède une Chance de Comptage dans son inventaire
-            const userChance = db.prepare("SELECT quantity, item_name FROM inventory WHERE guild_id = ? AND user_id = ? AND (item_name LIKE '%chance%comptage%' OR item_name LIKE '%joker%comptage%') AND quantity > 0").get(guildId, userId);
+            // Vérifier si l'utilisateur possède une Chance de Comptage dans son inventaire (flexible sans sensible à la casse/émojis)
+            const userChance = findUserChanceItem(guildId, userId);
 
             if (userChance && userChance.quantity > 0) {
               await message.react(emojiError).catch(() => {});
 
               const promptEmbed = new EmbedBuilder()
                 .setTitle(`⚠️ ERREUR DE COMPTAGE !`)
-                .setDescription(`${reason}\n\n<@${userId}>, tu possèdes **${userChance.quantity}x ${emojiChance} Chance(s) de Comptage** dans ton inventaire !\n\n*Souhaites-tu utiliser 1x Chance pour sauver la session et maintenir le compteur à **${countingChan.current_number}** ?*\n⏰ *Tu as 15 secondes pour faire ton choix.*`)
+                .setDescription(`${reason}\n\n<@${userId}>, tu possèdes **${userChance.quantity}x ${emojiChance} ${userChance.item_name}** dans ton inventaire !\n\n*Souhaites-tu utiliser 1x Chance pour sauver la session et maintenir le compteur à **${countingChan.current_number}** ?*\n⏰ *Tu as 15 secondes pour faire ton choix.*`)
                 .setColor('#F1C40F')
                 .setFooter({ text: 'Clique sur le bouton ci-dessous pour utiliser ta chance.' })
                 .setTimestamp();
@@ -209,6 +226,7 @@ module.exports = {
               if (promptMsg) {
                 const timerId = setTimeout(async () => {
                   try {
+                    global.pendingCountingErrors.delete(`${message.channel.id}:${userId}`);
                     await promptMsg.edit({ content: '⏳ *Temps écoulé (15s). La réinitialisation du compteur a été appliquée.*', components: [] }).catch(() => null);
                     await executeReset(reason);
                   } catch (_) {}
@@ -240,9 +258,11 @@ module.exports = {
             return;
           }
 
+          const isReverseMode = countingChan.mode === 'reverse' || countingChan.mode === 'reversed' || countingChan.mode === 'inverse' || countingChan.mode === 'countdown';
+
           let isCorrect = false;
           let nextNumber = 0;
-          if (countingChan.mode === 'reverse') {
+          if (isReverseMode) {
             nextNumber = countingChan.current_number - 1;
             isCorrect = (proposedNumber === nextNumber);
           } else {
@@ -255,7 +275,7 @@ module.exports = {
 
             let newHighScore = countingChan.high_score;
             let isNewRecord = false;
-            if (countingChan.mode === 'reverse') {
+            if (isReverseMode) {
               const currentProgress = countingChan.start_number - nextNumber;
               if (currentProgress > countingChan.high_score) {
                 newHighScore = currentProgress;
@@ -268,7 +288,7 @@ module.exports = {
               }
             }
 
-            if (countingChan.mode === 'reverse' && nextNumber === 0) {
+            if (isReverseMode && nextNumber === 0) {
               await message.react(emojiHighscore).catch(() => {});
               
               const stats = getCountingStats(message.channel.id);
@@ -303,7 +323,7 @@ module.exports = {
                 .run(nextNumber, userId, newHighScore, message.channel.id);
             }
           } else {
-            const expected = countingChan.mode === 'reverse' 
+            const expected = isReverseMode
               ? (countingChan.current_number - 1) 
               : (countingChan.current_number + 1);
             await sendCountingErrorEmbed(`Le nombre attendu était **${expected}** (tu as écrit **${proposedNumber}**).`);

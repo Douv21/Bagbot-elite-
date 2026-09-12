@@ -730,7 +730,14 @@ client.on('interactionCreate', async interaction => {
       const { EmbedBuilder } = require('discord.js');
 
       if (action === 'counting_use_chance') {
-        const userChance = db.prepare("SELECT quantity, item_name FROM inventory WHERE guild_id = ? AND user_id = ? AND (item_name LIKE '%chance%comptage%' OR item_name LIKE '%joker%comptage%') AND quantity > 0").get(interaction.guildId, targetUserId);
+        const userItems = db.prepare("SELECT quantity, item_name FROM inventory WHERE guild_id = ? AND user_id = ? AND quantity > 0").all(interaction.guildId, targetUserId);
+        const userChance = (userItems || []).find(item => {
+          const name = (item.item_name || '').toLowerCase();
+          return (name.includes('chance') || name.includes('joker')) && (name.includes('comptage') || name.includes('compte') || name.includes('rebours'));
+        }) || (userItems || []).find(item => {
+          const name = (item.item_name || '').toLowerCase();
+          return name.includes('chance') || name.includes('joker');
+        });
 
         if (!userChance || userChance.quantity <= 0) {
           return interaction.reply({ content: '❌ Vous n\'avez plus de Chance de Comptage dans votre inventaire !', ephemeral: true });
@@ -742,13 +749,19 @@ client.on('interactionCreate', async interaction => {
           db.prepare("DELETE FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?").run(interaction.guildId, targetUserId, userChance.item_name);
         }
 
+        // Réinitialiser last_user_id à NULL pour permettre à n'importe quel membre de continuer
+        db.prepare('UPDATE counting_channels SET last_user_id = NULL WHERE channel_id = ?').run(channelId);
+
         const countingChan = db.prepare('SELECT * FROM counting_channels WHERE channel_id = ?').get(channelId);
         const remaining = userChance.quantity - 1;
         const emojiChance = countingChan ? (countingChan.emoji_chance || '🍀') : '🍀';
 
+        const isReverseMode = countingChan && (countingChan.mode === 'reverse' || countingChan.mode === 'reversed' || countingChan.mode === 'inverse' || countingChan.mode === 'countdown');
+        const nextExpected = countingChan ? (isReverseMode ? countingChan.current_number - 1 : countingChan.current_number + 1) : 0;
+
         const chanceEmbed = new EmbedBuilder()
           .setTitle(`${emojiChance} CHANCE DE COMPTAGE UTILISÉE !`)
-          .setDescription(`<@${targetUserId}> a choisi d'utiliser **1x ${emojiChance} Chance de Comptage** de son inventaire !\n\nLe compte est préservé à **${countingChan ? countingChan.current_number : 0}**. Vous pouvez continuer à compter à partir du nombre suivant !`)
+          .setDescription(`<@${targetUserId}> a choisi d'utiliser **1x ${emojiChance} ${userChance.item_name}** de son inventaire !\n\nLe compteur est sauvé et reste à **${countingChan ? countingChan.current_number : 0}** !\n👉 Le prochain nombre attendu est **${nextExpected}**.`)
           .setColor('#2ECC71')
           .setFooter({ text: `Chances restantes pour ${interaction.user.username} : ${remaining}` })
           .setTimestamp();
