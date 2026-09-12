@@ -135,14 +135,16 @@ module.exports = {
           return;
         }
 
-        const contentStr = message.content.trim();
+        const contentRaw = message.content.trim();
+        // Formatage français (suppression des espaces de milliers, remplacement de la virgule par un point)
+        const contentStr = contentRaw.replace(/\s+/g, '').replace(',', '.');
         
-        // Ignorer les messages contenant des lettres (A à Z)
-        if (!/[a-zA-Z]/.test(contentStr)) {
+        // Ne traiter que les tentatives avec au moins un chiffre et sans lettres (A à Z)
+        if (/[0-9]/.test(contentStr) && !/[a-zA-Z]/.test(contentStr)) {
           let proposedNumber = null;
           
           if (countingChan.mode === 'math') {
-            proposedNumber = evaluateMath(contentStr);
+            proposedNumber = evaluateMath(contentRaw);
           } else {
             if (/^-?[0-9.]+$/.test(contentStr)) {
               proposedNumber = parseFloat(contentStr);
@@ -183,7 +185,10 @@ module.exports = {
           };
 
           const findUserChanceItem = (gId, uId) => {
-            const userItems = db.prepare("SELECT quantity, item_name FROM inventory WHERE guild_id = ? AND user_id = ? AND quantity > 0").all(gId, uId);
+            let userItems = db.prepare("SELECT rowid, guild_id, user_id, quantity, item_name FROM inventory WHERE guild_id = ? AND user_id = ? AND quantity > 0").all(gId, uId);
+            if (!userItems || userItems.length === 0) {
+              userItems = db.prepare("SELECT rowid, guild_id, user_id, quantity, item_name FROM inventory WHERE user_id = ? AND quantity > 0").all(uId);
+            }
             if (!userItems || userItems.length === 0) return null;
             return userItems.find(item => {
               const name = (item.item_name || '').toLowerCase();

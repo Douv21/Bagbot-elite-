@@ -730,7 +730,10 @@ client.on('interactionCreate', async interaction => {
       const { EmbedBuilder } = require('discord.js');
 
       if (action === 'counting_use_chance') {
-        const userItems = db.prepare("SELECT quantity, item_name FROM inventory WHERE guild_id = ? AND user_id = ? AND quantity > 0").all(interaction.guildId, targetUserId);
+        let userItems = db.prepare("SELECT guild_id, quantity, item_name FROM inventory WHERE guild_id = ? AND user_id = ? AND quantity > 0").all(interaction.guildId, targetUserId);
+        if (!userItems || userItems.length === 0) {
+          userItems = db.prepare("SELECT guild_id, quantity, item_name FROM inventory WHERE user_id = ? AND quantity > 0").all(targetUserId);
+        }
         const userChance = (userItems || []).find(item => {
           const name = (item.item_name || '').toLowerCase();
           return (name.includes('chance') || name.includes('joker')) && (name.includes('comptage') || name.includes('compte') || name.includes('rebours'));
@@ -744,9 +747,9 @@ client.on('interactionCreate', async interaction => {
         }
 
         if (userChance.quantity > 1) {
-          db.prepare("UPDATE inventory SET quantity = quantity - 1 WHERE guild_id = ? AND user_id = ? AND item_name = ?").run(interaction.guildId, targetUserId, userChance.item_name);
+          db.prepare("UPDATE inventory SET quantity = quantity - 1 WHERE guild_id = ? AND user_id = ? AND item_name = ?").run(userChance.guild_id, targetUserId, userChance.item_name);
         } else {
-          db.prepare("DELETE FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?").run(interaction.guildId, targetUserId, userChance.item_name);
+          db.prepare("DELETE FROM inventory WHERE guild_id = ? AND user_id = ? AND item_name = ?").run(userChance.guild_id, targetUserId, userChance.item_name);
         }
 
         // Réinitialiser last_user_id à NULL pour permettre à n'importe quel membre de continuer
