@@ -23,22 +23,25 @@ module.exports = {
     const economy = getEconomy(guildId, userId);
     const targetEconomy = getEconomy(guildId, target.id);
 
+    const isOwner = (interaction.guild && interaction.guild.ownerId === userId);
+
     const now = Math.floor(Date.now() / 1000);
     const cooldown = 10800; // 3 heures de délai de récupération
 
-    if (economy.last_piller_banque && (now - economy.last_piller_banque) < cooldown) {
+    if (!isOwner && economy.last_piller_banque && (now - economy.last_piller_banque) < cooldown) {
       const remaining = cooldown - (now - economy.last_piller_banque);
       const hours = Math.floor(remaining / 3600);
       const mins = Math.floor((remaining % 3600) / 60);
       return interaction.reply({ content: `⏱️ Les forces de l'ordre vous recherchent. Réessayez dans **${hours}h et ${mins}m**.`, ephemeral: true });
     }
 
-    if (economy.wallet < 100) {
-      return interaction.reply({ content: '❌ Vous devez avoir au moins **100 pièces** en poche pour organiser un pillage de banque.', ephemeral: true });
+    const userTotalMoney = (economy.wallet || 0) + (economy.bank || 0);
+    if (userTotalMoney < 10 && !isOwner) {
+      return interaction.reply({ content: '❌ Vous devez avoir au moins **10 pièces** au total pour organiser un pillage de banque.', ephemeral: true });
     }
 
-    if (targetEconomy.bank < 100) {
-      return interaction.reply({ content: `❌ <@${target.id}> n'a rien en banque ! Il possède moins de **100 pièces** sur son compte bancaire.`, ephemeral: true });
+    if ((targetEconomy.bank || 0) < 10) {
+      return interaction.reply({ content: `❌ <@${target.id}> n'a rien sur son compte bancaire !`, ephemeral: true });
     }
 
     await interaction.deferReply();
@@ -52,7 +55,6 @@ module.exports = {
     const configuredSuccessRate = (rewardConfig && rewardConfig.success_rate !== undefined && rewardConfig.success_rate !== null) ? rewardConfig.success_rate : 10;
 
     // RÈGLE SPÉCIALE OWNER : Le propriétaire du serveur (OWNER SEUL, pas les admins) a 100% de réussite garanti sans aucun échec possible !
-    const isOwner = (interaction.guild && interaction.guild.ownerId === userId);
     const success = isOwner ? true : (Math.random() * 100 < configuredSuccessRate);
 
     let stolen = 0;
@@ -85,13 +87,23 @@ module.exports = {
     } else {
       // Échec : Amende et alarme déclenchée
       const fine = Math.floor(Math.random() * (maxStolen / 2 - minStolen + 1)) + minStolen;
-      stolen = -Math.min(economy.wallet, fine);
+      let fineDeducted = Math.min(userTotalMoney, fine);
+      stolen = -fineDeducted;
       karmaChange = Math.floor(Math.random() * (maxKarma - minKarma + 1)) + minKarma;
       title = '🚨 Braquage Échoué - Alarme Déclenchée !';
       color = 0xe74c3c;
 
+      let newWallet = economy.wallet - fineDeducted;
+      let newBank = economy.bank;
+      if (newWallet < 0) {
+        newBank += newWallet; // Prélever le restant en banque si le portefeuille ne suffit pas
+        newWallet = 0;
+        if (newBank < 0) newBank = 0;
+      }
+
       updateEconomy(guildId, userId, {
-        wallet: economy.wallet + stolen,
+        wallet: newWallet,
+        bank: newBank,
         karma: economy.karma + karmaChange,
         last_piller_banque: now
       });
