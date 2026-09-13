@@ -51,53 +51,62 @@ module.exports = {
     const maxKarma = rewardConfig ? rewardConfig.max_karma : -1;
 
     const success = Math.random() < 0.45; // 45% de chance
-    let stolen = 0;
+    let amountMoney = 0;
     let karmaChange = 0;
     let title = '';
     let color = 0x000000;
 
+    const currentEco = getEconomy(guildId, userId);
+    const currentTargetEco = getEconomy(guildId, target.id);
+    const userWallet = currentEco.wallet || 0;
+    const targetWallet = currentTargetEco.wallet || 0;
+
     if (success) {
       // Voler un pourcentage du portefeuille, MAIS plafonné strictement par les réglages Dashboard
       const percent = Math.floor(Math.random() * 26) + 10;
-      const rawStolen = Math.floor((targetEconomy.wallet * percent) / 100);
-      stolen = Math.max(minStolen, Math.min(rawStolen, maxStolen));
-      if (targetEconomy.wallet < stolen) {
-        stolen = targetEconomy.wallet;
+      const rawStolen = Math.floor((targetWallet * percent) / 100);
+      let stolen = Math.max(minStolen, Math.min(rawStolen, maxStolen));
+      if (targetWallet < stolen) {
+        stolen = Math.max(0, targetWallet);
       }
+      amountMoney = stolen;
+
       karmaChange = Math.floor(Math.random() * (maxKarma - minKarma + 1)) + minKarma;
       title = '💸 Vol Réussi !';
       color = 0x2ecc71;
 
       updateEconomy(guildId, userId, {
-        wallet: economy.wallet + stolen,
-        karma: economy.karma + karmaChange,
+        wallet: userWallet + stolen,
+        karma: (currentEco.karma || 0) + karmaChange,
         last_rob: now
       });
 
       updateEconomy(guildId, target.id, {
-        wallet: targetEconomy.wallet - stolen
+        wallet: Math.max(0, targetWallet - stolen)
       });
     } else {
       // Payer une amende à la cible
       const fine = Math.floor(Math.random() * (maxStolen - minStolen + 1)) + minStolen;
-      stolen = -Math.min(economy.wallet, fine);
+      const fineDeducted = Math.min(userWallet, fine);
+      amountMoney = -fineDeducted;
+
       karmaChange = Math.floor(Math.random() * (maxKarma - minKarma + 1)) + minKarma;
       title = '👮 Pris la main dans le sac !';
       color = 0xe74c3c;
 
       updateEconomy(guildId, userId, {
-        wallet: economy.wallet + stolen,
-        karma: economy.karma + karmaChange,
+        wallet: Math.max(0, userWallet - fineDeducted),
+        karma: (currentEco.karma || 0) + karmaChange,
         last_rob: now
       });
 
       updateEconomy(guildId, target.id, {
-        wallet: targetEconomy.wallet - stolen
+        wallet: targetWallet + fineDeducted
       });
     }
 
     const extraContext = `Cible du vol: ${targetMember ? targetMember.displayName : target.username}.`;
-    const aiPhrase = await generateAiEconomyPhrase('voler', interaction.member, stolen, karmaChange, success, guildId, extraContext);
+    const aiPhrase = await generateAiEconomyPhrase('voler', interaction.member, amountMoney, karmaChange, success, guildId, extraContext);
 
     const gifs = getActionGifs(guildId, 'voler');
     let gifUrl = null;
@@ -119,12 +128,12 @@ module.exports = {
 
     if (success) {
       embed.addFields(
-        { name: '💰 Pièces volées', value: `+${stolen} pièces`, inline: true },
+        { name: '💰 Pièces volées', value: `+${amountMoney} pièces`, inline: true },
         { name: '✨ Karma', value: `${karmaChange} karma`, inline: true }
       );
     } else {
       embed.addFields(
-        { name: '💰 Amende versée', value: `${stolen} pièces`, inline: true },
+        { name: '💰 Amende versée', value: `${amountMoney} pièces`, inline: true },
         { name: '✨ Karma', value: `${karmaChange} karma`, inline: true }
       );
     }

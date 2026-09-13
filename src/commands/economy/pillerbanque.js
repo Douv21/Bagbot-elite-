@@ -57,44 +57,53 @@ module.exports = {
     // RÈGLE SPÉCIALE OWNER : Le propriétaire du serveur (OWNER SEUL, pas les admins) a 100% de réussite garanti sans aucun échec possible !
     const success = isOwner ? true : (Math.random() * 100 < configuredSuccessRate);
 
-    let stolen = 0;
+    let amountMoney = 0;
     let karmaChange = 0;
     let title = '';
     let color = 0x000000;
 
+    const currentEco = getEconomy(guildId, userId);
+    const currentTargetEco = getEconomy(guildId, target.id);
+    const userWallet = currentEco.wallet || 0;
+    const userBank = currentEco.bank || 0;
+    const targetBank = currentTargetEco.bank || 0;
+
     if (success) {
       // Pillage réussi de la banque de la cible
       const percent = Math.floor(Math.random() * 21) + 10; // 10% à 30% du solde bancaire
-      const rawStolen = Math.floor((targetEconomy.bank * percent) / 100);
-      stolen = Math.max(minStolen, Math.min(rawStolen, maxStolen));
-      if (targetEconomy.bank < stolen) {
-        stolen = targetEconomy.bank;
+      const rawStolen = Math.floor((targetBank * percent) / 100);
+      let stolen = Math.max(minStolen, Math.min(rawStolen, maxStolen));
+      if (targetBank < stolen) {
+        stolen = targetBank;
       }
+      amountMoney = stolen;
 
       karmaChange = Math.floor(Math.random() * (maxKarma - minKarma + 1)) + minKarma;
       title = '🏦 Pillage de Banque Réussi !';
       color = 0x2ecc71;
 
       updateEconomy(guildId, userId, {
-        wallet: economy.wallet + stolen,
-        karma: economy.karma + karmaChange,
+        wallet: userWallet + stolen,
+        karma: (currentEco.karma || 0) + karmaChange,
         last_piller_banque: now
       });
 
       updateEconomy(guildId, target.id, {
-        bank: targetEconomy.bank - stolen
+        bank: Math.max(0, targetBank - stolen)
       });
     } else {
       // Échec : Amende et alarme déclenchée
       const fine = Math.floor(Math.random() * (maxStolen / 2 - minStolen + 1)) + minStolen;
-      let fineDeducted = Math.min(userTotalMoney, fine);
-      stolen = -fineDeducted;
+      const totalUserMoney = userWallet + userBank;
+      const fineDeducted = Math.min(totalUserMoney, fine);
+      amountMoney = -fineDeducted;
+
       karmaChange = Math.floor(Math.random() * (maxKarma - minKarma + 1)) + minKarma;
       title = '🚨 Braquage Échoué - Alarme Déclenchée !';
       color = 0xe74c3c;
 
-      let newWallet = economy.wallet - fineDeducted;
-      let newBank = economy.bank;
+      let newWallet = userWallet - fineDeducted;
+      let newBank = userBank;
       if (newWallet < 0) {
         newBank += newWallet; // Prélever le restant en banque si le portefeuille ne suffit pas
         newWallet = 0;
@@ -104,13 +113,13 @@ module.exports = {
       updateEconomy(guildId, userId, {
         wallet: newWallet,
         bank: newBank,
-        karma: economy.karma + karmaChange,
+        karma: (currentEco.karma || 0) + karmaChange,
         last_piller_banque: now
       });
     }
 
     const extraContext = `Pillage de banque ciblant : ${targetMember ? targetMember.displayName : target.username}.`;
-    const aiPhrase = await generateAiEconomyPhrase('piller_banque', interaction.member, stolen, karmaChange, success, guildId, extraContext);
+    const aiPhrase = await generateAiEconomyPhrase('piller_banque', interaction.member, amountMoney, karmaChange, success, guildId, extraContext);
 
     const gifs = getActionGifs(guildId, 'piller_banque');
     let gifUrl = null;
@@ -136,12 +145,12 @@ module.exports = {
 
     if (success) {
       embed.addFields(
-        { name: '💰 Pièces pillées de la banque', value: `+${stolen} pièces`, inline: true },
+        { name: '💰 Pièces pillées de la banque', value: `+${amountMoney} pièces`, inline: true },
         { name: '✨ Karma', value: `${karmaChange} karma`, inline: true }
       );
     } else {
       embed.addFields(
-        { name: '💰 Amende d\'échec', value: `${stolen} pièces`, inline: true },
+        { name: '💰 Amende d\'échec', value: `${amountMoney} pièces`, inline: true },
         { name: '✨ Karma', value: `${karmaChange} karma`, inline: true }
       );
     }
