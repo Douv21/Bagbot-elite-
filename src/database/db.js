@@ -26,6 +26,12 @@ function initDatabase() {
   try {
     db.prepare('ALTER TABLE economy ADD COLUMN last_daily INTEGER DEFAULT 0').run();
   } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE economy ADD COLUMN last_piller_banque INTEGER DEFAULT 0').run();
+  } catch (e) {}
+  try {
+    db.prepare('ALTER TABLE action_rewards ADD COLUMN success_rate REAL DEFAULT NULL').run();
+  } catch (e) {}
 
   db.prepare(`
     CREATE TABLE IF NOT EXISTS karma_config (
@@ -1765,22 +1771,32 @@ const getActionReward = (guildId, actionName) => {
   if (!reward) {
     let defMinMoney = 5, defMaxMoney = 15;
     let defMinKarma = 1, defMaxKarma = 3;
+    let defSuccessRate = 100;
     
     if (actionName === 'daily') {
       defMinMoney = 500; defMaxMoney = 1000;
       defMinKarma = 0; defMaxKarma = 0;
+      defSuccessRate = 100;
     } else if (actionName === 'travailler') {
       defMinMoney = 100; defMaxMoney = 300;
       defMinKarma = 1; defMaxKarma = 1;
+      defSuccessRate = 100;
     } else if (actionName === 'pecher') {
       defMinMoney = 25; defMaxMoney = 400;
       defMinKarma = 1; defMaxKarma = 1;
+      defSuccessRate = 100;
     } else if (actionName === 'voler') {
       defMinMoney = 50; defMaxMoney = 250;
       defMinKarma = -3; defMaxKarma = -1;
+      defSuccessRate = 45;
     } else if (actionName === 'crime') {
       defMinMoney = 200; defMaxMoney = 500;
       defMinKarma = -2; defMaxKarma = -1;
+      defSuccessRate = 50;
+    } else if (actionName === 'piller_banque' || actionName === 'piller-banque') {
+      defMinMoney = 200; defMaxMoney = 2000;
+      defMinKarma = -10; defMaxKarma = -5;
+      defSuccessRate = 10; // Taux de réussite très bas (10%) par défaut pour le pillage de banque
     }
 
     reward = {
@@ -1789,18 +1805,26 @@ const getActionReward = (guildId, actionName) => {
       min_money: defMinMoney,
       max_money: defMaxMoney,
       min_karma: defMinKarma,
-      max_karma: defMaxKarma
+      max_karma: defMaxKarma,
+      success_rate: defSuccessRate
     };
+  } else {
+    if (reward.success_rate === undefined || reward.success_rate === null) {
+      if (actionName === 'piller_banque' || actionName === 'piller-banque') reward.success_rate = 10;
+      else if (actionName === 'voler') reward.success_rate = 45;
+      else if (actionName === 'crime') reward.success_rate = 50;
+      else reward.success_rate = 100;
+    }
   }
   return reward;
 };
 
 const updateActionReward = (guildId, actionName, rewards) => {
-  const { min_money, max_money, min_karma, max_karma } = rewards;
+  const { min_money, max_money, min_karma, max_karma, success_rate } = rewards;
   return db.prepare(`
-    INSERT OR REPLACE INTO action_rewards (guild_id, action_name, min_money, max_money, min_karma, max_karma)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(guildId, actionName, min_money, max_money, min_karma, max_karma);
+    INSERT OR REPLACE INTO action_rewards (guild_id, action_name, min_money, max_money, min_karma, max_karma, success_rate)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(guildId, actionName, min_money, max_money, min_karma, max_karma, success_rate !== undefined && success_rate !== null ? parseFloat(success_rate) : 10);
 };
 
 const getAllActionRewards = (guildId) => {

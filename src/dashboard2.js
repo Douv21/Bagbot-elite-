@@ -3621,7 +3621,7 @@ app.post('/api/config/action-rewards', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { action_name, min_money, max_money, min_karma, max_karma } = req.body || {};
+    const { action_name, min_money, max_money, min_karma, max_karma, success_rate } = req.body || {};
     if (!action_name) return res.status(400).json({ error: 'Nom de l\'action requis' });
 
     const { updateActionReward } = require('./database/db');
@@ -3629,7 +3629,8 @@ app.post('/api/config/action-rewards', (req, res) => {
       min_money: parseInt(min_money) || 0,
       max_money: parseInt(max_money) || 0,
       min_karma: parseInt(min_karma) || 0,
-      max_karma: parseInt(max_karma) || 0
+      max_karma: parseInt(max_karma) || 0,
+      success_rate: success_rate !== undefined && success_rate !== null ? parseFloat(success_rate) : 10
     });
 
     res.json({ success: true });

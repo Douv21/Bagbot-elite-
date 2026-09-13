@@ -2830,6 +2830,29 @@ document.addEventListener('DOMContentLoaded', () => {
   const actionRewardsList = document.getElementById('action-rewards-list');
 
   if (formActionRewards) {
+    const selActionName = document.getElementById('reward_action_name');
+    if (selActionName) {
+      selActionName.addEventListener('change', () => {
+        const act = selActionName.value;
+        const srInput = document.getElementById('reward_success_rate');
+        if (srInput) {
+          if (act === 'piller_banque') {
+            srInput.value = 10;
+            document.getElementById('reward_min_money').value = 200;
+            document.getElementById('reward_max_money').value = 2000;
+            document.getElementById('reward_min_karma').value = -10;
+            document.getElementById('reward_max_karma').value = -5;
+          } else if (act === 'voler') {
+            srInput.value = 45;
+          } else if (act === 'crime') {
+            srInput.value = 50;
+          } else {
+            srInput.value = 100;
+          }
+        }
+      });
+    }
+
     formActionRewards.addEventListener('submit', (e) => {
       e.preventDefault();
       const action_name = document.getElementById('reward_action_name').value;
@@ -2837,11 +2860,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const max_money = parseInt(document.getElementById('reward_max_money').value) || 0;
       const min_karma = parseInt(document.getElementById('reward_min_karma').value) || 0;
       const max_karma = parseInt(document.getElementById('reward_max_karma').value) || 0;
+      const success_rate = parseFloat(document.getElementById('reward_success_rate').value) || 10;
 
       fetch('/api/config/action-rewards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action_name, min_money, max_money, min_karma, max_karma })
+        body: JSON.stringify({ action_name, min_money, max_money, min_karma, max_karma, success_rate })
       })
         .then(res => res.json())
         .then(data => {
@@ -2868,17 +2892,19 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderActionRewards(rewards) {
     if (!actionRewardsList) return;
     if (!rewards || rewards.length === 0) {
-      actionRewardsList.innerHTML = '<tr><td colspan="4" class="text-center">Aucune personnalisation spécifique. (Gains par défaut : 5-15 pièces, 1-3 karma)</td></tr>';
+      actionRewardsList.innerHTML = '<tr><td colspan="5" class="text-center">Aucune personnalisation spécifique. (Gains par défaut : 5-15 pièces, 1-3 karma)</td></tr>';
       return;
     }
 
     actionRewardsList.innerHTML = '';
     rewards.forEach(rew => {
       const tr = document.createElement('tr');
+      const sRateText = (rew.success_rate !== undefined && rew.success_rate !== null) ? `${rew.success_rate}%` : '100%';
       tr.innerHTML = `
         <td><strong>/${rew.action_name}</strong></td>
         <td>💰 <strong>${rew.min_money}</strong> à <strong>${rew.max_money}</strong> pièces</td>
         <td>✨ <strong>${rew.min_karma}</strong> à <strong>${rew.max_karma}</strong> karma</td>
+        <td>🎯 <strong>${sRateText}</strong></td>
         <td><button class="btn btn-danger btn-delete-action-reward" data-action="${rew.action_name}"><i class="fa-solid fa-trash-can"></i> Réinitialiser</button></td>
       `;
 
