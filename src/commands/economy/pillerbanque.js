@@ -72,7 +72,7 @@ module.exports = {
       }
 
       karmaChange = Math.floor(Math.random() * (maxKarma - minKarma + 1)) + minKarma;
-      title = isOwner ? '👑 Pillage de Banque Parfait (Privilège Owner) !' : '🏦 Pillage de Banque Réussi !';
+      title = '🏦 Pillage de Banque Réussi !';
       color = 0x2ecc71;
 
       updateEconomy(guildId, userId, {
