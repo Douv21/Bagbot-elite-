@@ -3945,25 +3945,58 @@ async function checkExpiredTemporaryRoles(client) {
   }
 }
 
+const activeBumpProcessing = new Set();
+const recentBumpNotifiedGuilds = new Map();
+
 async function checkBumpReminders(client) {
   try {
     const now = Math.floor(Date.now() / 1000);
     const { getBumpConfig, db } = require('./database/db');
     const expiredReminders = db.prepare('SELECT * FROM bump_reminders WHERE next_bump_at <= ?').all(now);
 
+    if (!expiredReminders || expiredReminders.length === 0) return;
+
+    // Grouper les rappels expirés par serveur (guild_id) pour éviter les doublons de messages
+    const remindersByGuild = new Map();
     for (const reminder of expiredReminders) {
+      if (!remindersByGuild.has(reminder.guild_id)) {
+        remindersByGuild.set(reminder.guild_id, []);
+      }
+      remindersByGuild.get(reminder.guild_id).push(reminder);
+    }
+
+    for (const [guildId, guildReminders] of remindersByGuild.entries()) {
+      // Nettoyer les rappels expirés en DB immédiatement pour tous les bots de ce serveur
+      for (const rem of guildReminders) {
+        db.prepare('DELETE FROM bump_reminders WHERE guild_id = ? AND bot_name = ?').run(rem.guild_id, rem.bot_name);
+      }
+
+      // Empêcher l'envoi de plusieurs messages de rappel pour le même serveur dans une fenêtre de 10 minutes (600s)
+      const lastNotified = recentBumpNotifiedGuilds.get(guildId) || 0;
+      if (now - lastNotified < 600) {
+        continue;
+      }
+
+      const lockKey = `guild_${guildId}`;
+      if (activeBumpProcessing.has(lockKey)) continue;
+      activeBumpProcessing.add(lockKey);
+
       try {
-        const guild = client.guilds.cache.get(reminder.guild_id);
+        recentBumpNotifiedGuilds.set(guildId, now);
+
+        const guild = client.guilds.cache.get(guildId);
         if (guild) {
-          const bumpConfig = getBumpConfig(reminder.guild_id);
-          const channelId = bumpConfig.reminder_channel || reminder.channel_id;
+          const bumpConfig = getBumpConfig(guildId);
+          const channelId = bumpConfig.reminder_channel || guildReminders[0].channel_id;
           const channel = guild.channels.cache.get(channelId);
 
           if (channel) {
             const roleMention = bumpConfig.reminder_role ? `<@&${bumpConfig.reminder_role}>` : '';
+            const botNamesList = [...new Set(guildReminders.map(r => r.bot_name.toUpperCase()))].join(' / ');
+            
             const { generateAiBumpPhrase } = require('./utils/aiActionHelper');
-            const aiMessage = await generateAiBumpPhrase(reminder.bot_name, reminder.guild_id);
-            const desc = aiMessage || `✨ Il est temps de bump le serveur avec le bot **${reminder.bot_name.toUpperCase()}** !`;
+            const aiMessage = await generateAiBumpPhrase(botNamesList, guildId);
+            const desc = aiMessage || `✨ Il est temps de bump le serveur avec le bot **${botNamesList}** !`;
 
             const embed = new EmbedBuilder()
               .setTitle('🔔 Rappel de Bump !')
@@ -3978,9 +4011,9 @@ async function checkBumpReminders(client) {
           }
         }
       } catch (err) {
-        console.error(`Erreur d'envoi du rappel de bump pour le serveur ${reminder.guild_id}:`, err);
+        console.error(`Erreur d'envoi du rappel de bump pour le serveur ${guildId}:`, err);
       } finally {
-        db.prepare('DELETE FROM bump_reminders WHERE guild_id = ? AND bot_name = ?').run(reminder.guild_id, reminder.bot_name);
+        activeBumpProcessing.delete(lockKey);
       }
     }
   } catch (err) {

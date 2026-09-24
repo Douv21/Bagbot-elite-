@@ -25,28 +25,63 @@ module.exports = {
       const isSlashBump = message.interaction && message.interaction.commandName === 'bump';
       
       if (isDisboard || isSlashBump) {
-        const botName = isDisboard ? 'disboard' : message.author.username.toLowerCase();
-        let shouldBump = false;
-        
-        if (isSlashBump) {
-          shouldBump = true;
-        } else if (isDisboard) {
-          const embeds = message.embeds;
-          const desc = embeds && embeds[0] && embeds[0].description ? embeds[0].description.toLowerCase() : '';
-          const content = message.content.toLowerCase();
-          if (desc.includes('bump effectué') || desc.includes('bump done') || content.includes('bump effectué') || content.includes('bump done') || desc.includes('page du serveur') || content.includes('page du serveur')) {
+        const botName = isDisboard ? 'disboard' : (message.author ? message.author.username.toLowerCase() : 'bumpbot');
+
+        // Extraction complète du contenu textuel du message et des embeds
+        const embeds = message.embeds || [];
+        const embedText = embeds.map(e => `${e.title || ''} ${e.description || ''} ${e.fields ? e.fields.map(f => `${f.name} ${f.value}`).join(' ') : ''}`).join(' ').toLowerCase();
+        const fullText = `${message.content || ''} ${embedText}`.toLowerCase();
+
+        // 1. Détecter si le message signale un échec, une erreur ou un cooldown
+        const isErrorOrCooldown = 
+          fullText.includes('veuillez patienter') ||
+          fullText.includes('please wait') ||
+          fullText.includes('cooldown') ||
+          fullText.includes('délai de récupération') ||
+          fullText.includes('minutes avant') ||
+          fullText.includes('seconds before') ||
+          fullText.includes('secondes avant') ||
+          fullText.includes('tu dois attendre') ||
+          fullText.includes('patienter encore') ||
+          fullText.includes('already bumped') ||
+          fullText.includes('déjà été bump');
+
+        if (!isErrorOrCooldown) {
+          let shouldBump = false;
+
+          // 2. Détecter les mots-clés de succès de bump
+          const hasSuccessKeywords = 
+            fullText.includes('bump effectué') ||
+            fullText.includes('bump done') ||
+            fullText.includes('page du serveur') ||
+            fullText.includes('server bumped') ||
+            fullText.includes('bumped!') ||
+            fullText.includes('bumped !') ||
+            fullText.includes('voir la fiche') ||
+            fullText.includes('disboard.org/server') ||
+            fullText.includes('disboard.org') ||
+            fullText.includes('salut !');
+
+          if (hasSuccessKeywords || isSlashBump) {
             shouldBump = true;
           }
-        }
 
-        if (shouldBump) {
-          const nextBump = Math.floor(Date.now() / 1000) + 7200; // 2 heures de cooldown (7200s)
-          db.prepare(`
-            INSERT OR REPLACE INTO bump_reminders (guild_id, bot_name, next_bump_at, channel_id)
-            VALUES (?, ?, ?, ?)
-          `).run(message.guild.id, botName, nextBump, message.channel.id);
-          
-          await message.react('🔔').catch(() => {});
+          if (shouldBump) {
+            const nextBump = Math.floor(Date.now() / 1000) + 7200; // 2 heures de cooldown (7200s)
+            const nowSec = Math.floor(Date.now() / 1000);
+
+            // Vérifier si un rappel récent a déjà été enregistré pour ce bot dans la dernière minute (évite la ré-exécution sur embeds/édits)
+            const existing = db.prepare('SELECT next_bump_at FROM bump_reminders WHERE guild_id = ? AND bot_name = ?').get(message.guild.id, botName);
+            
+            if (!existing || (existing.next_bump_at - nowSec < 7140)) {
+              db.prepare(`
+                INSERT OR REPLACE INTO bump_reminders (guild_id, bot_name, next_bump_at, channel_id)
+                VALUES (?, ?, ?, ?)
+              `).run(message.guild.id, botName, nextBump, message.channel.id);
+              
+              await message.react('🔔').catch(() => {});
+            }
+          }
         }
       }
     } catch (e) {
