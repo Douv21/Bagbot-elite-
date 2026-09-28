@@ -60,7 +60,7 @@ async function callGroqApi(apiKey, model, systemPrompt, userPrompt, temperature 
           temperature,
           max_tokens: maxTokens
         }),
-        signal: AbortSignal.timeout(15000)
+        signal: AbortSignal.timeout(3500)
       });
 
       if (response.ok) {
@@ -208,7 +208,7 @@ async function callGeminiApi(apiKey, model, systemPrompt, userPrompt, temperatur
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(15000)
+    signal: AbortSignal.timeout(3500)
   });
 
   if (!response.ok) {
@@ -224,7 +224,7 @@ async function callGeminiApi(apiKey, model, systemPrompt, userPrompt, temperatur
 }
 
 /**
- * Appelle une instance locale ou distante Ollama (avec timeout rapide de 3s et fallback LAN/Public)
+ * Appelle une instance locale ou distante Ollama (avec timeout rapide de 2.5s et fallback LAN/Public)
  */
 async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperature = 0.7, maxTokens = 1000, messagesHistory = null) {
   const hostsToTry = [
@@ -239,10 +239,7 @@ async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperatu
 
   const modelsToTry = [
     model || 'qwen2.5:0.5b',
-    'qwen2.5:0.5b',
-    'smollm2:1.7b',
-    'smollm:360m',
-    'tinyllama:latest'
+    'qwen2.5:0.5b'
   ].filter(Boolean);
 
   const uniqueHosts = [...new Set(hostsToTry)];
@@ -278,7 +275,7 @@ async function callOllamaApi(hostUrl, model, systemPrompt, userPrompt, temperatu
               num_predict: maxTokens
             }
           }),
-          signal: AbortSignal.timeout(20000) // Timeout de 20 secondes adapté au processeur de la Freebox VM
+          signal: AbortSignal.timeout(2500) // Timeout ultra-rapide de 2.5 secondes
         });
 
         if (response.ok) {

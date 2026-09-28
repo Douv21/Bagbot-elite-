@@ -1,6 +1,13 @@
 const { getMemberGender, getGenderInstruction } = require('./genderHelper');
 const { generateAiCompletion } = require('./aiManager');
 
+function generateAiCompletionWithTimeout(params, timeoutMs = 2500) {
+  return Promise.race([
+    generateAiCompletion(params),
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`AI Timeout (${timeoutMs}ms)`)), timeoutMs))
+  ]);
+}
+
 const NSFW_ACTIONS = [
   '69', 'attrape', 'batailleoreiller', 'branler', 'collier', 'deshabiller', 'doigter',
   'fuck', 'lecher', 'mordre', 'mouiller', 'ordonner', 'orgasme', 'orgie', 'punir',
@@ -67,7 +74,7 @@ async function generateAiActionPhrase(actionName, actionDescription, authorMembe
       ? `Phrase d'action amusante (max 200 caractères) : ${authorName} (${author.gender}) réalise "${safeActionDisplay}" (${safeDescription}) en solo. Accords parfaits. Pas de guillemets. Uniquement la phrase.`
       : `Phrase d'action amusante (max 200 caractères) : ${authorName} (${author.gender}) fait "${safeActionDisplay}" (${safeDescription}) à ${targetName} (${target.gender}). Accords parfaits. Pas de guillemets. Uniquement la phrase.`;
     try {
-      const res = await generateAiCompletion({ guildId, category: 'text', systemPrompt, userPrompt, temperature: 0.9, maxTokens: 220 });
+      const res = await generateAiCompletionWithTimeout({ guildId, category: 'text', systemPrompt, userPrompt, temperature: 0.9, maxTokens: 220 }, 2500);
       if (res && !isRefusalText(res)) return res.replace(/^["']|["']$/g, '');
     } catch (err) {
       console.warn('[AI Action Helper SFW]', err.message);
@@ -76,21 +83,18 @@ async function generateAiActionPhrase(actionName, actionDescription, authorMembe
   }
 
   // ── Prompt NSFW : Groq uniquement, framing fiction neutre ──────────────────
-  // On utilise safeActionDisplay (euphémismes) → Groq ne détecte pas de contenu adulte
-  // Si Groq refuse quand même → null → phrases statiques explicites de l'action file
   const systemPrompt = `Tu es un auteur de romans de fiction populaires. Tu écris des courtes scènes intenses, passionnées et cinématiques entre personnages adultes consentants.`;
   const userPrompt = isSolo
     ? `Courte scène narrative (max 200 caractères) : ${authorName} (${author.gender}) vit un moment intense de "${safeActionDisplay}". Phrase directe et expressive. Pas de guillemets. Uniquement la phrase.`
     : `Courte scène narrative (max 200 caractères) : ${authorName} (${author.gender}) et ${targetName} (${target.gender}) partagent un moment de "${safeActionDisplay}". Accords parfaits. Pas de guillemets. Uniquement la phrase.`;
 
   try {
-    const res = await generateAiCompletion({ guildId, category: 'text', systemPrompt, userPrompt, temperature: 0.95, maxTokens: 220 });
+    const res = await generateAiCompletionWithTimeout({ guildId, category: 'text', systemPrompt, userPrompt, temperature: 0.95, maxTokens: 220 }, 2500);
     if (res && !isRefusalText(res)) return res.replace(/^["']|["']$/g, '');
   } catch (err) {
     console.warn('[AI Action Helper NSFW]', err.message);
   }
 
-  // Groq refusé → null = phrases statiques explicites de l'action prennent le relais
   return null;
 }
 
@@ -104,14 +108,14 @@ Le ton doit être particulièrement sensuel, torride, audacieux et complice.
 Ne mets aucun guillemet ni ponctuation superflue. Réponds uniquement par la phrase générée.`;
 
   try {
-    const res = await generateAiCompletion({
+    const res = await generateAiCompletionWithTimeout({
       guildId,
       category: 'text',
       systemPrompt,
       userPrompt,
       temperature: 0.9,
       maxTokens: lengthLimit
-    });
+    }, 2500);
     return res ? res.replace(/^["']|["']$/g, '') : null;
   } catch (err) {
     console.warn('[Sensual Text] Error:', err.message);
@@ -133,14 +137,14 @@ Le message doit célébrer le désir, la séduction, le charme et la passion ent
 Fais des accords de genre parfaits. Ne mets aucun guillemet. Réponds uniquement avec le texte du message.`;
 
   try {
-    const res = await generateAiCompletion({
+    const res = await generateAiCompletionWithTimeout({
       guildId,
       category: 'text',
       systemPrompt,
       userPrompt,
       temperature: 0.95,
       maxTokens: 250
-    });
+    }, 2500);
     return res ? res.replace(/^["']|["']$/g, '') : null;
   } catch (err) {
     console.warn('[AI Gift Helper] Error:', err.message);
@@ -162,14 +166,14 @@ ${extraContext ? `Détails supplémentaires: ${extraContext}` : ''}
 Fais des accords de genre parfaits. Ne mets aucun guillemet. Ne commence pas par "Voici la phrase". Réponds uniquement avec le texte immersif généré.`;
 
   try {
-    const res = await generateAiCompletion({
+    const res = await generateAiCompletionWithTimeout({
       guildId: gId,
       category: 'text',
       systemPrompt,
       userPrompt,
       temperature: 0.9,
       maxTokens: 220
-    });
+    }, 2500);
     return res ? res.replace(/^["']|["']$/g, '') : null;
   } catch (err) {
     console.warn('[AI Economy Helper] Error:', err.message);
@@ -185,14 +189,14 @@ async function generateAiBoostPhrase(member, guildId = null) {
   const userPrompt = `Rédige un message de remerciement épique, festif et chaleureux (max 250 caractères) pour ${userName} qui vient de booster le serveur avec Nitro. Mets en valeur son geste héroïque pour la communauté avec des emojis festifs (🚀, 💖, 💎, ✨, 🔥). Ne mets pas de guillemets autour de la phrase.`;
 
   try {
-    const res = await generateAiCompletion({
+    const res = await generateAiCompletionWithTimeout({
       guildId: gId,
       category: 'text',
       systemPrompt,
       userPrompt,
       temperature: 0.9,
       maxTokens: 250
-    });
+    }, 2500);
     if (res) return res.replace(/^["']|["']$/g, '');
   } catch (err) {
     console.warn('[AI Boost Helper] Error:', err.message);
@@ -209,14 +213,14 @@ async function generateAiDropPhrase(dropType, amount, authorMember, guildId = nu
   const userPrompt = `Rédige un court message d'annonce d'événement largage / drop de ${amount} ${unit} offert par ${authorName} (max 180 caractères). Sois motivant, festif et incitatif pour inciter les membres à cliquer rapidement sur le bouton de réclamation. Ne mets pas de guillemets.`;
 
   try {
-    const res = await generateAiCompletion({
+    const res = await generateAiCompletionWithTimeout({
       guildId: gId,
       category: 'text',
       systemPrompt,
       userPrompt,
       temperature: 0.9,
       maxTokens: 200
-    });
+    }, 2500);
     if (res) return res.replace(/^["']|["']$/g, '');
   } catch (err) {
     console.warn('[AI Drop Helper] Error:', err.message);
@@ -229,14 +233,14 @@ async function generateAiBumpPhrase(botName, guildId = null) {
   const userPrompt = `Rédige un message de rappel de bump original et incitatif (max 220 caractères) pour informer que le délai de bump avec **${(botName || 'Disboard').toUpperCase()}** est écoulé et que le serveur peut être bumpé à nouveau ! Sois motivant avec des emojis (🔔, 🚀, ✨, 🔥). Ne mets pas de guillemets autour du texte.`;
 
   try {
-    const res = await generateAiCompletion({
+    const res = await generateAiCompletionWithTimeout({
       guildId,
       category: 'text',
       systemPrompt,
       userPrompt,
       temperature: 0.9,
       maxTokens: 250
-    });
+    }, 2500);
     if (res) return res.replace(/^["']|["']$/g, '');
   } catch (err) {
     console.warn('[AI Bump Helper] Error:', err.message);
