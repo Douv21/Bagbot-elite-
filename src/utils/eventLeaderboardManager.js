@@ -93,7 +93,7 @@ async function syncDraftbotCandies(guild, maxMessagesPerChannel = 150) {
 
   try {
     const channels = await guild.channels.fetch();
-    const textChannels = channels.filter(c => c && c.isTextBased() && c.viewable);
+    const textChannels = channels.filter(c => c && c.isTextBased());
 
     for (const [id, ch] of textChannels) {
       try {
