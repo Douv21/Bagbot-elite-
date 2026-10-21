@@ -85,11 +85,12 @@ function resetEventDrops(guildId, eventType = null) {
  * Scanne les messages du serveur pour récupérer les bonbons distribués par DraftBot
  * et les ajoute/synchronise dans la table inventory
  */
-async function syncDraftbotCandies(guild, maxMessagesPerChannel = 150) {
+async function syncDraftbotCandies(guild, maxMessagesPerChannel = 100) {
   if (!guild) return { success: false, error: "Serveur invalide" };
 
   const candyTotals = {};
   const logs = [];
+  const fetchLimit = Math.min(100, Math.max(1, maxMessagesPerChannel));
 
   try {
     const channels = await guild.channels.fetch();
@@ -97,18 +98,18 @@ async function syncDraftbotCandies(guild, maxMessagesPerChannel = 150) {
 
     for (const [id, ch] of textChannels) {
       try {
-        const messages = await ch.messages.fetch({ limit: maxMessagesPerChannel });
+        const messages = await ch.messages.fetch({ limit: fetchLimit });
         for (const [mid, msg] of messages) {
           const embedText = msg.embeds.map(e => (e.title || '') + ' ' + (e.description || '') + ' ' + (e.fields || []).map(f => f.name + ' ' + f.value).join(' ')).join(' ');
           const fullText = (msg.content || '') + ' ' + embedText;
 
           if (fullText.includes('Bonbon') || fullText.includes('bonbon')) {
             // Pattern 1: <@id> vient de gagner [le drop d'objet]..., **X Bonbons ...** ont été ajoutés à son inventaire !
-            const m1 = fullText.match(/<@!?(\d+)>\s+vient de gagner.*?[\*\_]{2}(\d+)\s+Bonbon/i);
+            const m1 = fullText.match(/<@!?(\d+)>\s+vient de gagner.*?[\*\_]{2}(\d+)\s+Bonbon/is);
             // Pattern 2: **X Bonbons ...** ont été ajoutés à l'inventaire de <@id>
-            const m2 = fullText.match(/[\*\_]{2}(\d+)\s+Bonbon[^\*\_]*[\*\_]{2}\s+ont été ajoutés à l'inventaire de\s+<@!?(\d+)>/i);
+            const m2 = fullText.match(/[\*\_]{2}(\d+)\s+Bonbon[^\*\_]*[\*\_]{2}\s+ont été ajoutés à l'inventaire de\s+<@!?(\d+)>/is);
             // Pattern 3: **X Bonbons ...** ont été retirés de l'inventaire de <@id>
-            const m3 = fullText.match(/[\*\_]{2}(\d+)\s+Bonbon[^\*\_]*[\*\_]{2}\s+ont été retirés de l'inventaire de\s+<@!?(\d+)>/i);
+            const m3 = fullText.match(/[\*\_]{2}(\d+)\s+Bonbon[^\*\_]*[\*\_]{2}\s+ont été retirés de l'inventaire de\s+<@!?(\d+)>/is);
 
             if (m1) {
               const uid = m1[1];
