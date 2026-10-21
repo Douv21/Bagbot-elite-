@@ -941,9 +941,22 @@ function initDatabase() {
       allowed_channels TEXT DEFAULT '',
       drop_chance INTEGER DEFAULT 5,
       drop_mode TEXT DEFAULT 'message',
-      last_drop_at INTEGER DEFAULT 0
+      last_drop_at INTEGER DEFAULT 0,
+      drop_duration_seconds INTEGER DEFAULT 60
     )
   `).run();
+
+  try {
+    db.prepare("ALTER TABLE event_drop_config ADD COLUMN drop_duration_seconds INTEGER DEFAULT 60").run();
+  } catch (_) {}
+
+  try {
+    db.prepare("ALTER TABLE shop_config ADD COLUMN shop_channel_id TEXT").run();
+  } catch (_) {}
+
+  try {
+    db.prepare("ALTER TABLE shop_config ADD COLUMN shop_message_id TEXT").run();
+  } catch (_) {}
 
   // 19. Localisation des membres
   db.prepare(`
@@ -1447,19 +1460,24 @@ const getShopConfig = (guildId) => {
     row = { guild_id: guildId, private_suite_category_id: null, suite_channel_prefix: '👑┆suite-' };
   }
   return {
+    guildId: row.guild_id,
     privateSuiteCategoryId: row.private_suite_category_id || '',
-    suiteChannelPrefix: row.suite_channel_prefix || '👑┆suite-'
+    suiteChannelPrefix: row.suite_channel_prefix || '👑┆suite-',
+    shopChannelId: row.shop_channel_id || '',
+    shopMessageId: row.shop_message_id || ''
   };
 };
 
-const updateShopConfig = (guildId, privateSuiteCategoryId, suiteChannelPrefix) => {
+const updateShopConfig = (guildId, privateSuiteCategoryId, suiteChannelPrefix, shopChannelId = null, shopMessageId = null) => {
   db.prepare(`
-    INSERT INTO shop_config (guild_id, private_suite_category_id, suite_channel_prefix)
-    VALUES (?, ?, ?)
+    INSERT INTO shop_config (guild_id, private_suite_category_id, suite_channel_prefix, shop_channel_id, shop_message_id)
+    VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(guild_id) DO UPDATE SET
-      private_suite_category_id = EXCLUDED.private_suite_category_id,
-      suite_channel_prefix = EXCLUDED.suite_channel_prefix
-  `).run(guildId, privateSuiteCategoryId || null, suiteChannelPrefix || '👑┆suite-');
+      private_suite_category_id = COALESCE(EXCLUDED.private_suite_category_id, shop_config.private_suite_category_id),
+      suite_channel_prefix = COALESCE(EXCLUDED.suite_channel_prefix, shop_config.suite_channel_prefix),
+      shop_channel_id = COALESCE(EXCLUDED.shop_channel_id, shop_config.shop_channel_id),
+      shop_message_id = COALESCE(EXCLUDED.shop_message_id, shop_config.shop_message_id)
+  `).run(guildId, privateSuiteCategoryId || null, suiteChannelPrefix || '👑┆suite-', shopChannelId || null, shopMessageId || null);
 };
 
 const addTemporaryRole = (guildId, userId, roleId, expiresAt) => {
@@ -2998,18 +3016,19 @@ function getEventDropConfig(guildId) {
     db.prepare('INSERT OR IGNORE INTO event_drop_config (guild_id) VALUES (?)').run(guildId);
     row = db.prepare('SELECT * FROM event_drop_config WHERE guild_id = ?').get(guildId);
   }
-  return row || {
+  return {
     guild_id: guildId,
-    is_active: 0,
-    event_type: 'bonbon',
-    custom_name: 'Objet Spécial',
-    custom_emoji: '✨',
-    min_quantity: 1,
-    max_quantity: 5,
-    allowed_channels: '',
-    drop_chance: 5,
-    drop_mode: 'message',
-    last_drop_at: 0
+    is_active: row?.is_active || 0,
+    event_type: row?.event_type || 'bonbon',
+    custom_name: row?.custom_name || 'Objet Spécial',
+    custom_emoji: row?.custom_emoji || '✨',
+    min_quantity: row?.min_quantity !== undefined && row?.min_quantity !== null ? row.min_quantity : 1,
+    max_quantity: row?.max_quantity !== undefined && row?.max_quantity !== null ? row.max_quantity : 5,
+    allowed_channels: row?.allowed_channels || '',
+    drop_chance: row?.drop_chance !== undefined && row?.drop_chance !== null ? row.drop_chance : 5,
+    drop_mode: row?.drop_mode || 'message',
+    last_drop_at: row?.last_drop_at || 0,
+    drop_duration_seconds: row?.drop_duration_seconds !== undefined && row?.drop_duration_seconds !== null ? row.drop_duration_seconds : 60
   };
 }
 
@@ -3025,13 +3044,15 @@ function updateEventDropConfig(guildId, data = {}) {
   const allowedChans = data.allowed_channels !== undefined ? data.allowed_channels : current.allowed_channels;
   const dropChance = data.drop_chance !== undefined ? Math.max(1, parseInt(data.drop_chance, 10) || 5) : current.drop_chance;
   const dropMode = data.drop_mode || current.drop_mode || 'message';
+  const dropDuration = data.drop_duration_seconds !== undefined ? Math.max(5, parseInt(data.drop_duration_seconds, 10) || 60) : (current.drop_duration_seconds || 60);
 
   db.prepare(`
     UPDATE event_drop_config
     SET is_active = ?, event_type = ?, custom_name = ?, custom_emoji = ?,
-        min_quantity = ?, max_quantity = ?, allowed_channels = ?, drop_chance = ?, drop_mode = ?
+        min_quantity = ?, max_quantity = ?, allowed_channels = ?, drop_chance = ?, drop_mode = ?,
+        drop_duration_seconds = ?
     WHERE guild_id = ?
-  `).run(isActive, eventType, customName, customEmoji, minQty, maxQty, allowedChans, dropChance, dropMode, guildId);
+  `).run(isActive, eventType, customName, customEmoji, minQty, maxQty, allowedChans, dropChance, dropMode, dropDuration, guildId);
 
   return getEventDropConfig(guildId);
 }

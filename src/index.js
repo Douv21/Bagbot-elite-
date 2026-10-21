@@ -1818,8 +1818,9 @@ apiApp.post('/bot/event-drop/trigger', async (req, res) => {
       custom_emoji: customEmoji !== undefined ? customEmoji : baseConfig.custom_emoji
     };
 
+    const { durationSeconds } = req.body;
     const { spawnEventDrop } = require('./utils/eventDropManager');
-    const msg = await spawnEventDrop(targetChannel, runtimeConfig, quantity ? parseInt(quantity, 10) : null);
+    const msg = await spawnEventDrop(targetChannel, runtimeConfig, quantity ? parseInt(quantity, 10) : null, null, durationSeconds ? parseInt(durationSeconds, 10) : null);
 
     if (msg) {
       return res.json({ success: true, channelId: targetChannel.id, messageId: msg.id });
@@ -1828,6 +1829,56 @@ apiApp.post('/bot/event-drop/trigger', async (req, res) => {
     }
   } catch (err) {
     console.error('Erreur API bot trigger event drop:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+apiApp.post('/bot/shop/refresh', async (req, res) => {
+  try {
+    const { guildId, channelId, messageId } = req.body;
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Serveur introuvable sur le bot' });
+
+    const { getShopConfig, updateShopConfig } = require('./database/db');
+    const cfg = getShopConfig(guildId);
+    const targetChannelId = channelId || cfg.shopChannelId || '1388811531902517281';
+    const channel = targetChannelId ? guild.channels.cache.get(targetChannelId) : null;
+    if (!channel || !channel.isTextBased()) {
+      return res.status(404).json({ error: 'Salon de boutique introuvable' });
+    }
+
+    const boutiqueCmd = client.commands.get('boutique');
+    if (!boutiqueCmd || !boutiqueCmd.generateBoutiquePayload) {
+      return res.status(500).json({ error: 'Module boutique non disponible' });
+    }
+
+    const payload = boutiqueCmd.generateBoutiquePayload(guild, null, 'all');
+
+    let targetMessageId = messageId || cfg.shopMessageId || '1557287507387752460';
+    let message = null;
+    if (targetMessageId) {
+      message = await channel.messages.fetch(targetMessageId).catch(() => null);
+    }
+
+    if (!message) {
+      // Rechercher le dernier message du bot avec la boutique
+      const recent = await channel.messages.fetch({ limit: 50 }).catch(() => null);
+      if (recent) {
+        message = recent.find(m => m.author.id === client.user.id && m.embeds.length > 0 && m.embeds[0].title && m.embeds[0].title.includes('𝔅𝔬𝔲𝔱𝔦𝔦𝔲𝔢'));
+      }
+    }
+
+    if (message) {
+      await message.edit(payload);
+      updateShopConfig(guildId, cfg.privateSuiteCategoryId, cfg.suiteChannelPrefix, channel.id, message.id);
+      return res.json({ success: true, updated: true, messageId: message.id, channelId: channel.id });
+    } else {
+      const newMsg = await channel.send(payload);
+      updateShopConfig(guildId, cfg.privateSuiteCategoryId, cfg.suiteChannelPrefix, channel.id, newMsg.id);
+      return res.json({ success: true, created: true, messageId: newMsg.id, channelId: channel.id });
+    }
+  } catch (err) {
+    console.error('Erreur API bot refresh boutique:', err);
     return res.status(500).json({ error: err.message });
   }
 });

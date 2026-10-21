@@ -37,6 +37,12 @@ module.exports = {
       option.setName('emoji_custom')
         .setDescription('Émoji de l\'objet personnalisé (Si événement Personnalisé)')
         .setRequired(false))
+    .addIntegerOption(option =>
+      option.setName('duree')
+        .setDescription('Temps limite en secondes avant expiration (Optionnel: défaut selon config/60s)')
+        .setRequired(false)
+        .setMinValue(5)
+        .setMaxValue(3600))
     .setDMPermission(false),
 
   description: "Lancer un drop d'événement spécial (Admin/Modo)",
@@ -62,6 +68,7 @@ module.exports = {
     const targetChannel = interaction.options.getChannel('salon', false) || interaction.channel;
     const customNameInput = interaction.options.getString('nom_custom', false);
     const customEmojiInput = interaction.options.getString('emoji_custom', false);
+    const durationInput = interaction.options.getInteger('duree', false);
 
     const baseConfig = getEventDropConfig(guildId);
 
@@ -69,12 +76,13 @@ module.exports = {
       ...baseConfig,
       event_type: eventInput || baseConfig.event_type || 'bonbon',
       custom_name: customNameInput || baseConfig.custom_name || 'Objet Spécial',
-      custom_emoji: customEmojiInput || baseConfig.custom_emoji || '✨'
+      custom_emoji: customEmojiInput || baseConfig.custom_emoji || '✨',
+      drop_duration_seconds: durationInput || baseConfig.drop_duration_seconds || 60
     };
 
     await interaction.deferReply({ ephemeral: true });
 
-    const msg = await spawnEventDrop(targetChannel, runtimeConfig, qtyInput, interaction.member);
+    const msg = await spawnEventDrop(targetChannel, runtimeConfig, qtyInput, interaction.member, durationInput);
 
     if (msg) {
       return interaction.editReply({

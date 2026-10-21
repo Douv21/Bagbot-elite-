@@ -803,6 +803,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const shopCfg = config.shop_config || {};
         safeSetVal('private_suite_category_id', shopCfg.privateSuiteCategoryId);
         safeSetVal('suite_channel_prefix', shopCfg.suiteChannelPrefix || '👑┆suite-');
+        safeSetVal('shop_channel_id', shopCfg.shopChannelId || '');
         
         if (typeof updateXpCurvePreview === 'function') {
           try { updateXpCurvePreview(); } catch (e) {}
@@ -2752,7 +2753,33 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const private_suite_category_id = document.getElementById('private_suite_category_id').value;
       const suite_channel_prefix = document.getElementById('suite_channel_prefix').value;
-      saveConfig('/api/config/shop-settings', { private_suite_category_id, suite_channel_prefix });
+      const shop_channel_id = document.getElementById('shop_channel_id')?.value || '';
+      saveConfig('/api/config/shop-settings', { private_suite_category_id, suite_channel_prefix, shop_channel_id });
+    });
+  }
+
+  // Bouton d'actualisation manuelle de la boutique sur Discord
+  const btnRefreshShop = document.getElementById('btn-refresh-discord-shop');
+  if (btnRefreshShop) {
+    btnRefreshShop.addEventListener('click', () => {
+      btnRefreshShop.disabled = true;
+      btnRefreshShop.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mise à jour...';
+      fetch('/api/config/shop/refresh-discord', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          btnRefreshShop.disabled = false;
+          btnRefreshShop.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Mettre à jour la boutique sur Discord';
+          if (data.success) {
+            showToast('✅ Boutique Discord actualisée avec succès !');
+          } else {
+            showToast('❌ Erreur: ' + (data.error || 'Impossible de mettre à jour'), true);
+          }
+        })
+        .catch(err => {
+          btnRefreshShop.disabled = false;
+          btnRefreshShop.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Mettre à jour la boutique sur Discord';
+          showToast('❌ Erreur: ' + err.message, true);
+        });
     });
   }
 
@@ -3118,13 +3145,13 @@ document.addEventListener('DOMContentLoaded', () => {
       tr.querySelector('.btn-save-price').addEventListener('click', () => {
         const input = tr.querySelector('.shop-price-input');
         const newPrice = parseInt(input.value);
-        updateShopItemPrice(item.item_name, newPrice);
+        updateShopItemPrice(item.item_name, newPrice, item.rowid);
       });
 
       // Event listener pour supprimer
       if (!isSuite) {
         tr.querySelector('.btn-delete-shop').addEventListener('click', () => {
-          deleteShopItem(item.item_name);
+          deleteShopItem(item.item_name, item.rowid);
         });
       }
 
@@ -3132,7 +3159,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function updateShopItemPrice(item_name, price) {
+  function updateShopItemPrice(item_name, price, rowid = null) {
     if (isNaN(price) || price < 0) {
       showToast('Veuillez entrer un prix valide.', true);
       return;
@@ -3141,7 +3168,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetch('/api/config/shop/update-price', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ item_name, price })
+      body: JSON.stringify({ item_name, price, rowid })
     })
       .then(res => res.json())
       .then(resData => {
@@ -3155,19 +3182,21 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(err => showToast(err.message, true));
   }
 
-  function deleteShopItem(item_name) {
+  function deleteShopItem(item_name, rowid = null) {
     if (!confirm(`Voulez-vous vraiment supprimer "${item_name}" de la boutique ?`)) return;
 
     fetch('/api/config/shop/delete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ item_name })
+      body: JSON.stringify({ item_name, rowid })
     })
       .then(res => res.json())
       .then(resData => {
         if (resData.success) {
           loadGuildConfiguration();
           showToast('Objet supprimé de la boutique !');
+        } else {
+          showToast('Erreur: ' + (resData.error || 'Impossible de supprimer'), true);
         }
       })
       .catch(console.error);
@@ -9839,6 +9868,7 @@ async function loadEventDropConfig(guildId) {
       safeSetVal('event_drop_chance', cfg.drop_chance !== undefined ? cfg.drop_chance : 5);
       safeSetVal('event_min_qty', cfg.min_quantity !== undefined ? cfg.min_quantity : 1);
       safeSetVal('event_max_qty', cfg.max_quantity !== undefined ? cfg.max_quantity : 5);
+      safeSetVal('event_drop_duration', cfg.drop_duration_seconds !== undefined ? cfg.drop_duration_seconds : 60);
       safeSetVal('event_custom_name', cfg.custom_name || 'Objet Spécial');
       safeSetVal('event_custom_emoji', cfg.custom_emoji || '✨');
     }
@@ -9912,6 +9942,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const dropChance = parseInt(document.getElementById('event_drop_chance')?.value, 10) || 5;
       const minQty = parseInt(document.getElementById('event_min_qty')?.value, 10) || 1;
       const maxQty = parseInt(document.getElementById('event_max_qty')?.value, 10) || 5;
+      const dropDuration = parseInt(document.getElementById('event_drop_duration')?.value, 10) || 60;
       const customName = document.getElementById('event_custom_name')?.value?.trim() || 'Objet Spécial';
       const customEmoji = document.getElementById('event_custom_emoji')?.value?.trim() || '✨';
 
@@ -9929,6 +9960,7 @@ document.addEventListener('DOMContentLoaded', () => {
             drop_chance: dropChance,
             min_quantity: minQty,
             max_quantity: maxQty,
+            drop_duration_seconds: dropDuration,
             custom_name: customName,
             custom_emoji: customEmoji,
             allowed_channels: allowedChannels.join(',')

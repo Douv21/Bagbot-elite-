@@ -45,9 +45,8 @@ const categoryInfo = {
   autres: { name: '🎁 Autres & Privilèges', emoji: '🎁' }
 };
 
-async function renderBoutiqueCatalog(interaction, activeCategory = 'all', isUpdate = false) {
-  const guildId = interaction.guild.id;
-  const userId = interaction.user.id;
+function generateBoutiquePayload(guild, userId = null, activeCategory = 'all') {
+  const guildId = guild.id;
 
   const { ensureDefaultShopItems } = require('../../database/db');
   ensureDefaultShopItems(guildId);
@@ -59,7 +58,7 @@ async function renderBoutiqueCatalog(interaction, activeCategory = 'all', isUpda
     if (filteredItems.length === 0) filteredItems = allItems;
   }
 
-  const discount = getKarmaDiscount(guildId, userId);
+  const discount = userId ? getKarmaDiscount(guildId, userId) : 0;
   const karmaText = discount > 0 
     ? `🔥 **Privilège Karma Séducteur :** Réduction exclusive de **-${Math.round(discount * 100)}%** sur tout le catalogue !`
     : `✨ *Augmentez votre Karma pour débloquer jusqu'à **-20%** de réduction sur vos achats passionnés.*`;
@@ -69,14 +68,14 @@ async function renderBoutiqueCatalog(interaction, activeCategory = 'all', isUpda
   const embed = new EmbedBuilder()
     .setTitle(`🍷 🛍️ 𝔅𝔬𝔲𝔱𝔦𝔦𝔲𝔢 𝔓𝔯𝔢𝔪𝔦𝔲𝔪 & 𝔖𝔢𝔫𝔰𝔲𝔢𝔩𝔩𝔢 💋 👑`)
     .setDescription(
-      `💋 **Bienvenue dans le Boudoir Exclusif de ${interaction.guild.name}**\n\n` +
+      `💋 **Bienvenue dans le Boudoir Exclusif de ${guild.name}**\n\n` +
       `📌 **Catégorie active :** ${catMeta.emoji} **${catMeta.name}** (${filteredItems.length} article${filteredItems.length > 1 ? 's' : ''})\n\n` +
       `${karmaText}\n\n` +
       `👇 *Naviguez dans les catégories ci-dessous ou choisissez un plaisir dans le menu déroulant :*`
     )
     .setColor('#E74C3C')
-    .setThumbnail(interaction.guild.iconURL({ dynamic: true }) || 'https://cdn.discordapp.com/embed/avatars/0.png')
-    .setFooter({ text: '💋 Désirs Exclusifs, Ambiances Sensuelles & Passion • Boutique VIP', iconURL: interaction.guild.iconURL({ dynamic: true }) })
+    .setThumbnail(guild.iconURL({ dynamic: true }) || 'https://cdn.discordapp.com/embed/avatars/0.png')
+    .setFooter({ text: '💋 Désirs Exclusifs, Ambiances Sensuelles & Passion • Boutique VIP', iconURL: guild.iconURL({ dynamic: true }) })
     .setTimestamp();
 
   filteredItems.slice(0, 15).forEach(item => {
@@ -120,12 +119,15 @@ async function renderBoutiqueCatalog(interaction, activeCategory = 'all', isUpda
       .addOptions(selectOptions)
   );
 
-  const components = [btnRow1, btnRow2, selectRow];
+  return { embeds: [embed], components: [btnRow1, btnRow2, selectRow] };
+}
 
+async function renderBoutiqueCatalog(interaction, activeCategory = 'all', isUpdate = false) {
+  const payload = generateBoutiquePayload(interaction.guild, interaction.user.id, activeCategory);
   if (isUpdate || interaction.isButton()) {
-    return interaction.update({ embeds: [embed], components });
+    return interaction.update(payload);
   } else {
-    return interaction.reply({ embeds: [embed], components });
+    return interaction.reply(payload);
   }
 }
 
@@ -134,6 +136,7 @@ module.exports = {
     .setName('boutique')
     .setDescription('Accéder au boudoir & catalogue VIP exclusif')
     .setDMPermission(false),
+  generateBoutiquePayload,
   renderBoutiqueCatalog,
   async execute(interaction, selectedItemName = null) {
     const guildId = interaction.guild.id;

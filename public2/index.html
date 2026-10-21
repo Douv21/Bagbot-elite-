@@ -412,6 +412,13 @@
                     <input type="number" id="event_max_qty" class="custom-input" min="1" value="5" placeholder="5">
                   </div>
 
+                  <!-- Temps limite pour ramasser le drop (secondes) -->
+                  <div class="form-group">
+                    <label for="event_drop_duration"><i class="fa-solid fa-stopwatch" style="color: #e74c3c;"></i> Temps limite pour ramasser (secondes) :</label>
+                    <input type="number" id="event_drop_duration" class="custom-input" min="5" max="3600" value="60" placeholder="60">
+                    <small style="color: #8e9297; display: block; margin-top: 4px;">Délai avant expiration du bouton de ramassage (défaut : 60s).</small>
+                  </div>
+
                   <!-- Salons autorisés -->
                   <div class="form-group" style="grid-column: 1 / -1;">
                     <label for="event_allowed_channels"><i class="fa-solid fa-hashtag" style="color: #5865F2;"></i> Salon(s) autorisés pour les drops (sélectionner ou laisser vide pour tous) :</label>
@@ -1747,9 +1754,17 @@
                   <input type="text" id="suite_channel_prefix" class="inner-input" placeholder="ex: 👑┆suite-" value="👑┆suite-">
                   <small class="form-help">Exemples populaires : <code>👑┆suite-</code>, <code>🛋️┆suite-privée-</code>, <code>🏰┆suite-vip-</code>, <code>✨┆suite-luxe-</code></small>
                 </div>
+                <div class="form-group mb-3">
+                  <label for="shop_channel_id">Salon Discord d'affichage de la Boutique :</label>
+                  <select id="shop_channel_id" class="channel-select">
+                    <option value="">-- Aucun salon (défaut : #boutique) --</option>
+                  </select>
+                  <small class="form-help">Salon où le message officiel de la boutique est automatiquement mis à jour lors de vos modifications.</small>
+                </div>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                   <button type="submit" class="btn btn-save" style="flex: 1;"><i class="fa-solid fa-floppy-disk"></i> Enregistrer les paramètres de la boutique</button>
                   <button type="button" id="btn-sync-suite-channels" class="btn" style="background: rgba(155, 89, 182, 0.8); color: white;"><i class="fa-solid fa-rotate"></i> Resynchroniser les salons existants</button>
+                  <button type="button" id="btn-refresh-discord-shop" class="btn" style="background: linear-gradient(135deg, #e74c3c, #c0392b); color: white;"><i class="fa-solid fa-arrows-rotate"></i> Mettre à jour la boutique sur Discord</button>
                 </div>
               </form>
             </div>

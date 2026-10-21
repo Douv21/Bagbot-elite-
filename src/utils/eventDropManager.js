@@ -59,7 +59,7 @@ function getEventItemDetails(config, customNameInput = null, customEmojiInput = 
   };
 }
 
-async function spawnEventDrop(channel, config, requestedQuantity = null, triggeredByMember = null) {
+async function spawnEventDrop(channel, config, requestedQuantity = null, triggeredByMember = null, overrideDuration = null) {
   if (!channel || !channel.isTextBased()) return null;
 
   const minQty = Math.max(1, config.min_quantity || 1);
@@ -70,6 +70,9 @@ async function spawnEventDrop(channel, config, requestedQuantity = null, trigger
     quantity = Math.floor(Math.random() * (maxQty - minQty + 1)) + minQty;
   }
 
+  const durationSeconds = Math.max(5, parseInt(overrideDuration || config.drop_duration_seconds, 10) || 60);
+  const expireTimestamp = Math.floor(Date.now() / 1000) + durationSeconds;
+
   const itemDetails = getEventItemDetails(config);
   const guildId = channel.guild.id;
 
@@ -78,11 +81,12 @@ async function spawnEventDrop(channel, config, requestedQuantity = null, trigger
     .setDescription(
       `🎉 **ALERTE LARGAGE ÉVÉNEMENT !**\n\n` +
       `**${quantity}x ${itemDetails.item_name}** viennent d'apparaître dans <#${channel.id}> !\n\n` +
-      `⚡ *Soyez le premier à cliquer sur le bouton ci-dessous pour les ramasser et les ajouter à votre inventaire !*`
+      `⚡ *Soyez le premier à cliquer sur le bouton ci-dessous pour les ramasser et les ajouter à votre inventaire avant la fin du temps imparti !*`
     )
     .setColor(itemDetails.color)
     .addFields(
       { name: "📦 Contenu du largage", value: `\`${quantity}x ${itemDetails.item_name}\``, inline: true },
+      { name: "⏱️ Temps restant", value: `<t:${expireTimestamp}:R>`, inline: true },
       { name: "⚠️ Statut", value: "🟢 En attente d'un ramasseur...", inline: true }
     )
     .setFooter({ text: `${channel.guild.name} • Événement Spécial` })
@@ -109,7 +113,7 @@ async function spawnEventDrop(channel, config, requestedQuantity = null, trigger
     db.prepare('UPDATE event_drop_config SET last_drop_at = ? WHERE guild_id = ?').run(Math.floor(Date.now() / 1000), guildId);
   } catch (_) {}
 
-  const collector = message.createMessageComponentCollector({ time: 300000 }); // 5 minutes
+  const collector = message.createMessageComponentCollector({ time: durationSeconds * 1000 });
   let claimed = false;
 
   collector.on('collect', async (btnInteraction) => {
@@ -170,12 +174,12 @@ async function spawnEventDrop(channel, config, requestedQuantity = null, trigger
         .setColor("#95A5A6")
         .setFields(
           { name: "📦 Contenu expiré", value: `\`${quantity}x ${itemDetails.item_name}\``, inline: true },
-          { name: "⚠️ Statut", value: "❌ Expiré (personne n'a ramassé à temps)", inline: true }
+          { name: "⚠️ Statut", value: "❌ Expiré (temps écoulé)", inline: true }
         );
 
       const disabledButton = ButtonBuilder.from(button)
         .setDisabled(true)
-        .setLabel("Largage Expiré")
+        .setLabel("Largage Expiré (Temps écoulé)")
         .setStyle(ButtonStyle.Secondary);
 
       await message.edit({ embeds: [expiredEmbed], components: [new ActionRowBuilder().addComponents(disabledButton)] }).catch(() => {});

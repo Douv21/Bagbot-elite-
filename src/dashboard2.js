@@ -1071,12 +1071,17 @@ app.post('/api/config/shop-settings', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { private_suite_category_id, suite_channel_prefix } = req.body || {};
+    const { private_suite_category_id, suite_channel_prefix, shop_channel_id } = req.body || {};
     const { updateShopConfig } = require('./database/db');
-    updateShopConfig(guildId, private_suite_category_id || null, suite_channel_prefix || '👑┆suite-');
+    updateShopConfig(guildId, private_suite_category_id || null, suite_channel_prefix || '👑┆suite-', shop_channel_id || null);
 
     const botApiPort = process.env.BOT_API_PORT || 49605;
     fetch(`http://127.0.0.1:${botApiPort}/bot/sync-channels-hook`, { method: 'POST' }).catch(() => {});
+    fetch(`http://127.0.0.1:${botApiPort}/bot/shop/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guildId, channelId: shop_channel_id || null })
+    }).catch(() => {});
 
     res.json({ success: true });
   } catch (error) {
@@ -1160,6 +1165,13 @@ app.post('/api/config/shop/add', (req, res) => {
       reward_karma || 0
     );
 
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    fetch(`http://127.0.0.1:${botApiPort}/bot/shop/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guildId })
+    }).catch(() => {});
+
     res.json({ success: true });
   } catch (error) {
     console.error(error);
@@ -1173,12 +1185,29 @@ app.post('/api/config/shop/delete', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { item_name } = req.body || {};
+    const { item_name, rowid } = req.body || {};
     if (item_name && item_name.toLowerCase().startsWith('suite privée')) {
       return res.status(400).json({ error: 'Les suites privées ne peuvent pas être supprimées.' });
     }
 
-    db.prepare('DELETE FROM shop WHERE guild_id = ? AND item_name = ?').run(guildId, item_name);
+    db.prepare(`
+      DELETE FROM shop
+      WHERE guild_id = ?
+        AND (
+          (? IS NOT NULL AND rowid = ?)
+          OR item_name = ?
+          OR TRIM(item_name) = TRIM(?)
+          OR LOWER(TRIM(item_name)) = LOWER(TRIM(?))
+        )
+    `).run(guildId, rowid || null, rowid || null, item_name, item_name, item_name);
+
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    fetch(`http://127.0.0.1:${botApiPort}/bot/shop/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guildId })
+    }).catch(() => {});
+
     res.json({ success: true });
   } catch (error) {
     console.error(error);
@@ -1192,15 +1221,52 @@ app.post('/api/config/shop/update-price', (req, res) => {
     const guildId = getReqGuildId(req);
     if (!guildId) return res.status(400).json({ error: 'No guild selected' });
 
-    const { item_name, price } = req.body || {};
+    const { item_name, price, rowid } = req.body || {};
     if (!item_name || price === undefined) {
       return res.status(400).json({ error: 'Nom et prix requis' });
     }
 
-    db.prepare('UPDATE shop SET price = ? WHERE guild_id = ? AND item_name = ?').run(price, guildId, item_name);
+    db.prepare(`
+      UPDATE shop SET price = ?
+      WHERE guild_id = ?
+        AND (
+          (? IS NOT NULL AND rowid = ?)
+          OR item_name = ?
+          OR TRIM(item_name) = TRIM(?)
+          OR LOWER(TRIM(item_name)) = LOWER(TRIM(?))
+        )
+    `).run(price, guildId, rowid || null, rowid || null, item_name, item_name, item_name);
+
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    fetch(`http://127.0.0.1:${botApiPort}/bot/shop/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guildId })
+    }).catch(() => {});
+
     res.json({ success: true });
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 7.6 Forcer l'actualisation du message Boutique sur Discord
+app.post('/api/config/shop/refresh-discord', async (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'No guild selected' });
+
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const botRes = await fetch(`http://127.0.0.1:${botApiPort}/bot/shop/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guildId })
+    });
+    const botData = await botRes.json();
+    res.json(botData);
+  } catch (error) {
+    console.error('Erreur refresh-discord shop:', error);
     res.status(500).json({ error: error.message });
   }
 });
