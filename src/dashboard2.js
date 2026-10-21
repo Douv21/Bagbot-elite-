@@ -69,6 +69,7 @@ const {
   getEventDropConfig,
   updateEventDropConfig
 } = require('./database/db');
+const { resetEventDrops } = require('./utils/eventLeaderboardManager');
 
 const app = express();
 const PORT = process.env.DASHBOARD2_PORT || 49602;
@@ -2522,6 +2523,20 @@ app.post('/api/event-drop/trigger', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.post('/api/event-drop/reset', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const { eventType } = req.body || {};
+    const result = resetEventDrops(guildId, eventType || 'bonbon');
+    res.json({ success: true, count: result.count, eventType: result.eventType });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 app.post('/api/config/delete-sondage', (req, res) => {
   try {

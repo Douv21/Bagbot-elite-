@@ -9993,6 +9993,43 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  const btnReset = document.getElementById('btn-reset-event-drop');
+  if (btnReset) {
+    btnReset.addEventListener('click', async () => {
+      const currentGuildId = document.getElementById('guild-select')?.value || (typeof selectedGuildId !== 'undefined' ? selectedGuildId : '');
+      if (!currentGuildId) return showToast('❌ Veuillez sélectionner un serveur.', true);
+
+      const eventType = document.getElementById('event_type_select')?.value || 'bonbon';
+      const eventName = document.getElementById('event_type_select')?.selectedOptions[0]?.text || eventType;
+
+      const confirmed = window.confirm(`⚠️ ATTENTION : Confirmez-vous la remise à zéro complète du classement et des inventaires pour l'événement "${eventName}" ?\n\nCette action est irréversible.`);
+      if (!confirmed) return;
+
+      btnReset.disabled = true;
+      const prevHtml = btnReset.innerHTML;
+      btnReset.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Réinitialisation...';
+
+      try {
+        const res = await fetch(`/api/event-drop/reset?guildId=${currentGuildId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventType })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`🗑️ Classement réinitialisé avec succès (${data.count} entrées purgées) !`);
+        } else {
+          showToast(`❌ Erreur réinitialisation : ${data.error || 'Échec'}`, true);
+        }
+      } catch (err) {
+        showToast(`❌ Erreur réseau : ${err.message}`, true);
+      } finally {
+        btnReset.disabled = false;
+        btnReset.innerHTML = prevHtml;
+      }
+    });
+  }
 });
 
 
