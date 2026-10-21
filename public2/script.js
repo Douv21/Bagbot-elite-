@@ -9868,7 +9868,7 @@ async function loadEventDropConfig(guildId) {
       safeSetVal('event_drop_chance', cfg.drop_chance !== undefined ? cfg.drop_chance : 5);
       safeSetVal('event_min_qty', cfg.min_quantity !== undefined ? cfg.min_quantity : 1);
       safeSetVal('event_max_qty', cfg.max_quantity !== undefined ? cfg.max_quantity : 5);
-      safeSetVal('event_drop_duration', cfg.drop_duration_seconds !== undefined ? cfg.drop_duration_seconds : 60);
+      safeSetVal('event_drop_duration', cfg.drop_duration_seconds !== undefined ? cfg.drop_duration_seconds : 15);
       safeSetVal('event_custom_name', cfg.custom_name || 'Objet Spécial');
       safeSetVal('event_custom_emoji', cfg.custom_emoji || '✨');
     }
@@ -9879,10 +9879,14 @@ async function loadEventDropConfig(guildId) {
     }
 
     const lblChance = document.getElementById('lbl_event_drop_chance');
+    const inputChance = document.getElementById('event_drop_chance');
     if (lblChance) {
       lblChance.innerHTML = cfg.drop_mode === 'timer'
-        ? '<i class="fa-solid fa-clock" style="color: #3498db;"></i> Intervalle minuteur (minutes) :'
+        ? '<i class="fa-solid fa-clock" style="color: #3498db;"></i> Intervalle minuteur (minutes, max 999) :'
         : '<i class="fa-solid fa-percent" style="color: #e67e22;"></i> Chance par message (%) :';
+    }
+    if (inputChance) {
+      inputChance.max = cfg.drop_mode === 'timer' ? 999 : 100;
     }
 
     const allowedSelect = document.getElementById('event_allowed_channels');
@@ -9921,10 +9925,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (selMode) {
     selMode.addEventListener('change', () => {
       const lblChance = document.getElementById('lbl_event_drop_chance');
+      const inputChance = document.getElementById('event_drop_chance');
       if (lblChance) {
         lblChance.innerHTML = selMode.value === 'timer'
-          ? '<i class="fa-solid fa-clock" style="color: #3498db;"></i> Intervalle minuteur (minutes) :'
+          ? '<i class="fa-solid fa-clock" style="color: #3498db;"></i> Intervalle minuteur (minutes, max 999) :'
           : '<i class="fa-solid fa-percent" style="color: #e67e22;"></i> Chance par message (%) :';
+      }
+      if (inputChance) {
+        inputChance.max = selMode.value === 'timer' ? 999 : 100;
       }
     });
   }
@@ -9942,7 +9950,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const dropChance = parseInt(document.getElementById('event_drop_chance')?.value, 10) || 5;
       const minQty = parseInt(document.getElementById('event_min_qty')?.value, 10) || 1;
       const maxQty = parseInt(document.getElementById('event_max_qty')?.value, 10) || 5;
-      const dropDuration = parseInt(document.getElementById('event_drop_duration')?.value, 10) || 60;
+      const dropDuration = parseInt(document.getElementById('event_drop_duration')?.value, 10) || 15;
       const customName = document.getElementById('event_custom_name')?.value?.trim() || 'Objet Spécial';
       const customEmoji = document.getElementById('event_custom_emoji')?.value?.trim() || '✨';
 

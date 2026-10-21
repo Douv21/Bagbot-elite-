@@ -942,12 +942,12 @@ function initDatabase() {
       drop_chance INTEGER DEFAULT 5,
       drop_mode TEXT DEFAULT 'message',
       last_drop_at INTEGER DEFAULT 0,
-      drop_duration_seconds INTEGER DEFAULT 60
+      drop_duration_seconds INTEGER DEFAULT 15
     )
   `).run();
 
   try {
-    db.prepare("ALTER TABLE event_drop_config ADD COLUMN drop_duration_seconds INTEGER DEFAULT 60").run();
+    db.prepare("ALTER TABLE event_drop_config ADD COLUMN drop_duration_seconds INTEGER DEFAULT 15").run();
   } catch (_) {}
 
   try {
@@ -3028,7 +3028,7 @@ function getEventDropConfig(guildId) {
     drop_chance: row?.drop_chance !== undefined && row?.drop_chance !== null ? row.drop_chance : 5,
     drop_mode: row?.drop_mode || 'message',
     last_drop_at: row?.last_drop_at || 0,
-    drop_duration_seconds: row?.drop_duration_seconds !== undefined && row?.drop_duration_seconds !== null ? row.drop_duration_seconds : 60
+    drop_duration_seconds: row?.drop_duration_seconds !== undefined && row?.drop_duration_seconds !== null ? row.drop_duration_seconds : 15
   };
 }
 
@@ -3042,9 +3042,9 @@ function updateEventDropConfig(guildId, data = {}) {
   const minQty = data.min_quantity !== undefined ? Math.max(1, parseInt(data.min_quantity, 10) || 1) : current.min_quantity;
   const maxQty = data.max_quantity !== undefined ? Math.max(minQty, parseInt(data.max_quantity, 10) || 5) : current.max_quantity;
   const allowedChans = data.allowed_channels !== undefined ? data.allowed_channels : current.allowed_channels;
-  const dropChance = data.drop_chance !== undefined ? Math.max(1, parseInt(data.drop_chance, 10) || 5) : current.drop_chance;
+  const dropChance = data.drop_chance !== undefined ? Math.max(1, Math.min(999, parseInt(data.drop_chance, 10) || 5)) : current.drop_chance;
   const dropMode = data.drop_mode || current.drop_mode || 'message';
-  const dropDuration = data.drop_duration_seconds !== undefined ? Math.max(5, parseInt(data.drop_duration_seconds, 10) || 60) : (current.drop_duration_seconds || 60);
+  const dropDuration = data.drop_duration_seconds !== undefined ? Math.max(5, parseInt(data.drop_duration_seconds, 10) || 15) : (current.drop_duration_seconds || 15);
 
   db.prepare(`
     UPDATE event_drop_config

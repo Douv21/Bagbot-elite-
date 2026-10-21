@@ -39,7 +39,7 @@ module.exports = {
         .setRequired(false))
     .addIntegerOption(option =>
       option.setName('duree')
-        .setDescription('Temps limite en secondes avant expiration (Optionnel: défaut selon config/60s)')
+        .setDescription('Temps limite en secondes avant expiration (Optionnel: défaut selon config/15s)')
         .setRequired(false)
         .setMinValue(5)
         .setMaxValue(3600))
@@ -77,7 +77,7 @@ module.exports = {
       event_type: eventInput || baseConfig.event_type || 'bonbon',
       custom_name: customNameInput || baseConfig.custom_name || 'Objet Spécial',
       custom_emoji: customEmojiInput || baseConfig.custom_emoji || '✨',
-      drop_duration_seconds: durationInput || baseConfig.drop_duration_seconds || 60
+      drop_duration_seconds: durationInput || baseConfig.drop_duration_seconds || 15
     };
 
     await interaction.deferReply({ ephemeral: true });

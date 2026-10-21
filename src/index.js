@@ -688,6 +688,33 @@ client.on('interactionCreate', async interaction => {
   if (interaction.isButton()) {
     const customId = interaction.customId;
 
+    if (customId.startsWith('claim_event_drop_')) {
+      const parts = customId.split('_');
+      // Format: claim_event_drop_<expireTimestamp>_<timestamp>
+      const expireTimestamp = parseInt(parts[3], 10);
+      const nowSec = Math.floor(Date.now() / 1000);
+
+      if (expireTimestamp && nowSec > expireTimestamp) {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({
+            content: "❌ Trop tard... Ce largage a expiré (temps limite écoulé) !",
+            ephemeral: true
+          }).catch(() => {});
+        }
+        try {
+          if (interaction.message && interaction.message.editable) {
+            const disabledButton = new ButtonBuilder()
+              .setCustomId('claim_event_drop_expired')
+              .setLabel("Largage Expiré (Temps écoulé)")
+              .setStyle(ButtonStyle.Secondary)
+              .setDisabled(true);
+            await interaction.message.edit({ components: [new ActionRowBuilder().addComponents(disabledButton)] }).catch(() => {});
+          }
+        } catch (_) {}
+        return;
+      }
+    }
+
     if (customId.startsWith('boutique_buy_self:')) {
       const itemName = customId.replace('boutique_buy_self:', '');
       const boutiqueCmd = client.commands.get('boutique');
@@ -1728,8 +1755,9 @@ client.once('ready', async () => {
     setInterval(() => checkKarmaWeeklyResets(client), 60000);
     checkKarmaWeeklyResets(client);
 
-    // Vérification des drops d'événements par minuteur (toutes les 60s)
-    setInterval(() => checkTimerEventDrops(client), 60000);
+    // Vérification des drops d'événements par minuteur (toutes les 30s)
+    setInterval(() => checkTimerEventDrops(client), 30000);
+    checkTimerEventDrops(client);
 
     // Mettre en cache tous les membres de tous les serveurs au démarrage
     client.guilds.cache.forEach(guild => {
@@ -1895,21 +1923,43 @@ async function checkTimerEventDrops(client) {
         const intervalSecs = intervalMins * 60;
         
         if (nowSec - (config.last_drop_at || 0) >= intervalSecs) {
+          const botMember = guild.members.me || guild.members.cache.get(client.user.id) || await guild.members.fetch(client.user.id).catch(() => null);
+          if (!botMember) continue;
+
           const allowed = config.allowed_channels ? config.allowed_channels.split(',').map(c => c.trim()).filter(Boolean) : [];
           let targetChannel = null;
 
           if (allowed.length > 0) {
+            const validAllowed = [];
             for (const chanId of allowed) {
               const chan = guild.channels.cache.get(chanId);
-              if (chan && chan.isTextBased() && chan.permissionsFor(guild.members.me).has(PermissionFlagsBits.SendMessages)) {
-                targetChannel = chan;
-                break;
+              if (chan && chan.isTextBased() && chan.permissionsFor(botMember)?.has(PermissionFlagsBits.SendMessages)) {
+                validAllowed.push(chan);
               }
+            }
+            if (validAllowed.length > 0) {
+              targetChannel = validAllowed[Math.floor(Math.random() * validAllowed.length)];
             }
           }
 
           if (!targetChannel) {
-            targetChannel = guild.channels.cache.find(c => c.isTextBased() && c.permissionsFor(guild.members.me).has(PermissionFlagsBits.SendMessages));
+            const candidates = guild.channels.cache.filter(c => 
+              c.isTextBased() && 
+              c.type === 0 && // GuildText
+              c.permissionsFor(botMember)?.has(PermissionFlagsBits.SendMessages) &&
+              !c.name.toLowerCase().includes('log') &&
+              !c.name.toLowerCase().includes('ticket') &&
+              !c.name.toLowerCase().includes('admin') &&
+              !c.name.toLowerCase().includes('staff') &&
+              !c.name.toLowerCase().includes('regle') &&
+              !c.name.toLowerCase().includes('annonces')
+            );
+            if (candidates.size > 0) {
+              const candArr = Array.from(candidates.values());
+              targetChannel = candArr[Math.floor(Math.random() * candArr.length)];
+            } else {
+              targetChannel = guild.channels.cache.find(c => c.isTextBased() && c.permissionsFor(botMember)?.has(PermissionFlagsBits.SendMessages));
+            }
           }
 
           if (targetChannel) {

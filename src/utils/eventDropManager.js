@@ -70,7 +70,7 @@ async function spawnEventDrop(channel, config, requestedQuantity = null, trigger
     quantity = Math.floor(Math.random() * (maxQty - minQty + 1)) + minQty;
   }
 
-  const durationSeconds = Math.max(5, parseInt(overrideDuration || config.drop_duration_seconds, 10) || 60);
+  const durationSeconds = Math.max(5, parseInt(overrideDuration || config.drop_duration_seconds, 10) || 15);
   const expireTimestamp = Math.floor(Date.now() / 1000) + durationSeconds;
 
   const itemDetails = getEventItemDetails(config);
@@ -93,7 +93,7 @@ async function spawnEventDrop(channel, config, requestedQuantity = null, trigger
     .setTimestamp();
 
   const button = new ButtonBuilder()
-    .setCustomId(`claim_event_drop_${Date.now()}`)
+    .setCustomId(`claim_event_drop_${expireTimestamp}_${Date.now()}`)
     .setLabel(`Ramasser (${quantity}x ${itemDetails.raw_name})`)
     .setEmoji(itemDetails.emoji)
     .setStyle(ButtonStyle.Success);
@@ -117,6 +117,11 @@ async function spawnEventDrop(channel, config, requestedQuantity = null, trigger
   let claimed = false;
 
   collector.on('collect', async (btnInteraction) => {
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (nowSec > expireTimestamp) {
+      return btnInteraction.reply({ content: "❌ Trop tard... Ce largage a expiré (temps limite écoulé) !", ephemeral: true });
+    }
+
     if (claimed) {
       return btnInteraction.reply({ content: "❌ Trop tard... Quelqu'un d'autre a ramassé les objets avant toi !", ephemeral: true });
     }
