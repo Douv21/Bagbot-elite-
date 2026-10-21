@@ -173,6 +173,8 @@ document.addEventListener('DOMContentLoaded', () => {
         loadCasinoConfig();
       } else if (tabId === 'tab-modules') {
         loadGuildModules();
+      } else if (tabId === 'tab-event-drops') {
+        loadEventDropConfig();
       } else if (tabId === 'tab-map') {
         const guildId = guildSelect ? guildSelect.value : '';
         const mapIframe = document.getElementById('map-iframe');
@@ -420,6 +422,12 @@ document.addEventListener('DOMContentLoaded', () => {
       loadStarConfigAndLeaderboard(guildId);
     } catch (e) {
       console.error('Erreur chargement star config:', e);
+    }
+
+    try {
+      loadEventDropConfig(guildId);
+    } catch (e) {
+      console.error('Erreur chargement event drop config:', e);
     }
   }
 
@@ -9803,5 +9811,189 @@ window.handleImgUpload = async function(event, targetInputId) {
     if (typeof showToast === 'function') showToast(`❌ Erreur réseau : ${err.message}`, true);
   }
 };
+
+// ==========================================
+// SYSTÈME DE DROPS D'ÉVÉNEMENTS (Halloween, Noël, Pâques, Custom...)
+// ==========================================
+
+async function loadEventDropConfig(guildId) {
+  const currentGuildId = guildId || document.getElementById('guild-select')?.value || (typeof selectedGuildId !== 'undefined' ? selectedGuildId : '');
+  if (!currentGuildId) return;
+
+  try {
+    const res = await fetch(`/api/event-drop/config?guildId=${currentGuildId}`);
+    if (!res.ok) return;
+    const cfg = await res.json();
+    if (!cfg) return;
+
+    if (typeof safeSetCheck === 'function') {
+      safeSetCheck('event_drop_active', cfg.is_active === 1);
+    } else {
+      const el = document.getElementById('event_drop_active');
+      if (el) el.checked = cfg.is_active === 1;
+    }
+
+    if (typeof safeSetVal === 'function') {
+      safeSetVal('event_type_select', cfg.event_type || 'bonbon');
+      safeSetVal('event_drop_mode', cfg.drop_mode || 'message');
+      safeSetVal('event_drop_chance', cfg.drop_chance !== undefined ? cfg.drop_chance : 5);
+      safeSetVal('event_min_qty', cfg.min_quantity !== undefined ? cfg.min_quantity : 1);
+      safeSetVal('event_max_qty', cfg.max_quantity !== undefined ? cfg.max_quantity : 5);
+      safeSetVal('event_custom_name', cfg.custom_name || 'Objet Spécial');
+      safeSetVal('event_custom_emoji', cfg.custom_emoji || '✨');
+    }
+
+    const customFields = document.getElementById('custom_event_fields');
+    if (customFields) {
+      customFields.style.display = cfg.event_type === 'custom' ? 'block' : 'none';
+    }
+
+    const lblChance = document.getElementById('lbl_event_drop_chance');
+    if (lblChance) {
+      lblChance.innerHTML = cfg.drop_mode === 'timer'
+        ? '<i class="fa-solid fa-clock" style="color: #3498db;"></i> Intervalle minuteur (minutes) :'
+        : '<i class="fa-solid fa-percent" style="color: #e67e22;"></i> Chance par message (%) :';
+    }
+
+    const allowedSelect = document.getElementById('event_allowed_channels');
+    if (allowedSelect) {
+      let allowedChannels = [];
+      if (typeof cfg.allowed_channels === 'string') {
+        try {
+          allowedChannels = JSON.parse(cfg.allowed_channels);
+        } catch (e) {
+          allowedChannels = cfg.allowed_channels.split(',').map(s => s.trim()).filter(Boolean);
+        }
+      } else if (Array.isArray(cfg.allowed_channels)) {
+        allowedChannels = cfg.allowed_channels;
+      }
+
+      Array.from(allowedSelect.options).forEach(opt => {
+        opt.selected = allowedChannels.includes(opt.value) || allowedChannels.includes(String(opt.value));
+      });
+      if (allowedSelect.syncCustomSelect) allowedSelect.syncCustomSelect();
+    }
+  } catch (err) {
+    console.error('Erreur chargement event drop config:', err);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const selType = document.getElementById('event_type_select');
+  if (selType) {
+    selType.addEventListener('change', () => {
+      const customFields = document.getElementById('custom_event_fields');
+      if (customFields) customFields.style.display = selType.value === 'custom' ? 'block' : 'none';
+    });
+  }
+
+  const selMode = document.getElementById('event_drop_mode');
+  if (selMode) {
+    selMode.addEventListener('change', () => {
+      const lblChance = document.getElementById('lbl_event_drop_chance');
+      if (lblChance) {
+        lblChance.innerHTML = selMode.value === 'timer'
+          ? '<i class="fa-solid fa-clock" style="color: #3498db;"></i> Intervalle minuteur (minutes) :'
+          : '<i class="fa-solid fa-percent" style="color: #e67e22;"></i> Chance par message (%) :';
+      }
+    });
+  }
+
+  const formDrop = document.getElementById('form-event-drop-config');
+  if (formDrop) {
+    formDrop.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const currentGuildId = document.getElementById('guild-select')?.value || (typeof selectedGuildId !== 'undefined' ? selectedGuildId : '');
+      if (!currentGuildId) return showToast('❌ Veuillez sélectionner un serveur.', true);
+
+      const isActive = document.getElementById('event_drop_active')?.checked ? 1 : 0;
+      const eventType = document.getElementById('event_type_select')?.value || 'bonbon';
+      const dropMode = document.getElementById('event_drop_mode')?.value || 'message';
+      const dropChance = parseInt(document.getElementById('event_drop_chance')?.value, 10) || 5;
+      const minQty = parseInt(document.getElementById('event_min_qty')?.value, 10) || 1;
+      const maxQty = parseInt(document.getElementById('event_max_qty')?.value, 10) || 5;
+      const customName = document.getElementById('event_custom_name')?.value?.trim() || 'Objet Spécial';
+      const customEmoji = document.getElementById('event_custom_emoji')?.value?.trim() || '✨';
+
+      const allowedSelect = document.getElementById('event_allowed_channels');
+      const allowedChannels = allowedSelect ? Array.from(allowedSelect.selectedOptions).map(o => o.value).filter(Boolean) : [];
+
+      try {
+        const res = await fetch(`/api/event-drop/save?guildId=${currentGuildId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            is_active: isActive,
+            event_type: eventType,
+            drop_mode: dropMode,
+            drop_chance: dropChance,
+            min_quantity: minQty,
+            max_quantity: maxQty,
+            custom_name: customName,
+            custom_emoji: customEmoji,
+            allowed_channels: allowedChannels.join(',')
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('✅ Configuration des Drops d\'Événements enregistrée !');
+        } else {
+          showToast(`❌ Erreur : ${data.error || 'Impossible de sauvegarder'}`, true);
+        }
+      } catch (err) {
+        showToast(`❌ Erreur réseau : ${err.message}`, true);
+      }
+    });
+  }
+
+  const btnTrigger = document.getElementById('btn-trigger-manual-event-drop');
+  if (btnTrigger) {
+    btnTrigger.addEventListener('click', async () => {
+      const currentGuildId = document.getElementById('guild-select')?.value || (typeof selectedGuildId !== 'undefined' ? selectedGuildId : '');
+      if (!currentGuildId) return showToast('❌ Veuillez sélectionner un serveur.', true);
+
+      const eventType = document.getElementById('event_type_select')?.value || 'bonbon';
+      const minQty = parseInt(document.getElementById('event_min_qty')?.value, 10) || 1;
+      const maxQty = parseInt(document.getElementById('event_max_qty')?.value, 10) || 5;
+      const qty = Math.floor(Math.random() * (Math.max(minQty, maxQty) - minQty + 1)) + minQty;
+      const customName = document.getElementById('event_custom_name')?.value?.trim() || 'Objet Spécial';
+      const customEmoji = document.getElementById('event_custom_emoji')?.value?.trim() || '✨';
+
+      const allowedSelect = document.getElementById('event_allowed_channels');
+      const allowed = allowedSelect ? Array.from(allowedSelect.selectedOptions).map(o => o.value).filter(Boolean) : [];
+      const channelId = allowed.length > 0 ? allowed[Math.floor(Math.random() * allowed.length)] : null;
+
+      btnTrigger.disabled = true;
+      const prevHtml = btnTrigger.innerHTML;
+      btnTrigger.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Lancement en cours...';
+
+      try {
+        const res = await fetch(`/api/event-drop/trigger?guildId=${currentGuildId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channelId,
+            eventType,
+            quantity: qty,
+            customName,
+            customEmoji
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`🎉 Drop immédiat lancé dans le salon <#${data.channelId}> !`);
+        } else {
+          showToast(`❌ Erreur drop : ${data.error || 'Échec du largage'}`, true);
+        }
+      } catch (err) {
+        showToast(`❌ Erreur réseau : ${err.message}`, true);
+      } finally {
+        btnTrigger.disabled = false;
+        btnTrigger.innerHTML = prevHtml;
+      }
+    });
+  }
+});
+
 
 

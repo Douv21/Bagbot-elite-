@@ -928,6 +928,23 @@ function initDatabase() {
     )
   `).run();
 
+  // 26. Configuration des Drops d'Événements (Halloween, Noël, Pâques, St-Valentin, Custom)
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS event_drop_config (
+      guild_id TEXT PRIMARY KEY,
+      is_active INTEGER DEFAULT 0,
+      event_type TEXT DEFAULT 'bonbon',
+      custom_name TEXT DEFAULT 'Objet Spécial',
+      custom_emoji TEXT DEFAULT '✨',
+      min_quantity INTEGER DEFAULT 1,
+      max_quantity INTEGER DEFAULT 5,
+      allowed_channels TEXT DEFAULT '',
+      drop_chance INTEGER DEFAULT 5,
+      drop_mode TEXT DEFAULT 'message',
+      last_drop_at INTEGER DEFAULT 0
+    )
+  `).run();
+
   // 19. Localisation des membres
   db.prepare(`
     CREATE TABLE IF NOT EXISTS member_locations (
@@ -2948,7 +2965,9 @@ module.exports = {
   getRecurringEmbeds,
   addRecurringEmbed,
   deleteRecurringEmbed,
-  toggleRecurringEmbed
+  toggleRecurringEmbed,
+  getEventDropConfig,
+  updateEventDropConfig
 };
 
 function getRecurringEmbeds(guildId) {
@@ -2971,4 +2990,48 @@ function deleteRecurringEmbed(guildId, id) {
 
 function toggleRecurringEmbed(guildId, id, isActive) {
   return db.prepare('UPDATE recurring_embeds SET is_active = ? WHERE guild_id = ? AND id = ?').run(isActive ? 1 : 0, guildId, id);
+}
+
+function getEventDropConfig(guildId) {
+  let row = db.prepare('SELECT * FROM event_drop_config WHERE guild_id = ?').get(guildId);
+  if (!row) {
+    db.prepare('INSERT OR IGNORE INTO event_drop_config (guild_id) VALUES (?)').run(guildId);
+    row = db.prepare('SELECT * FROM event_drop_config WHERE guild_id = ?').get(guildId);
+  }
+  return row || {
+    guild_id: guildId,
+    is_active: 0,
+    event_type: 'bonbon',
+    custom_name: 'Objet Spécial',
+    custom_emoji: '✨',
+    min_quantity: 1,
+    max_quantity: 5,
+    allowed_channels: '',
+    drop_chance: 5,
+    drop_mode: 'message',
+    last_drop_at: 0
+  };
+}
+
+function updateEventDropConfig(guildId, data = {}) {
+  getEventDropConfig(guildId); // Assure l'existence
+  const current = getEventDropConfig(guildId);
+  const isActive = data.is_active !== undefined ? (data.is_active ? 1 : 0) : current.is_active;
+  const eventType = data.event_type || current.event_type || 'bonbon';
+  const customName = data.custom_name !== undefined ? data.custom_name : current.custom_name;
+  const customEmoji = data.custom_emoji !== undefined ? data.custom_emoji : current.custom_emoji;
+  const minQty = data.min_quantity !== undefined ? Math.max(1, parseInt(data.min_quantity, 10) || 1) : current.min_quantity;
+  const maxQty = data.max_quantity !== undefined ? Math.max(minQty, parseInt(data.max_quantity, 10) || 5) : current.max_quantity;
+  const allowedChans = data.allowed_channels !== undefined ? data.allowed_channels : current.allowed_channels;
+  const dropChance = data.drop_chance !== undefined ? Math.max(1, parseInt(data.drop_chance, 10) || 5) : current.drop_chance;
+  const dropMode = data.drop_mode || current.drop_mode || 'message';
+
+  db.prepare(`
+    UPDATE event_drop_config
+    SET is_active = ?, event_type = ?, custom_name = ?, custom_emoji = ?,
+        min_quantity = ?, max_quantity = ?, allowed_channels = ?, drop_chance = ?, drop_mode = ?
+    WHERE guild_id = ?
+  `).run(isActive, eventType, customName, customEmoji, minQty, maxQty, allowedChans, dropChance, dropMode, guildId);
+
+  return getEventDropConfig(guildId);
 }

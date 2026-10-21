@@ -211,6 +211,7 @@
             <div class="subcategory-title">Récompenses</div>
             <button class="tab-btn" data-tab="tab-role-boosters"><i class="fa-solid fa-rocket" style="color: #F47FFF;"></i> Rôles Boosters <span class="nav-badge badge-purple">BOOST</span></button>
             <button class="tab-btn" data-tab="tab-shop"><i class="fa-solid fa-shop"></i> Boutique & Suites</button>
+            <button class="tab-btn" data-tab="tab-event-drops"><i class="fa-solid fa-gift" style="color: #ff7518;"></i> Drops d'Événements <span class="nav-badge badge-gold">EVENT</span></button>
           </div>
           <div class="sidebar-subcategory">
             <div class="subcategory-title">Réputation</div>
@@ -348,6 +349,104 @@
                 </form>
               </div>
             </div>
+          </div>
+
+          <!-- Tab: Event Drops (Halloween, Noël, Pâques, St-Valentin, Custom...) -->
+          <div id="tab-event-drops" class="tab-content">
+            <h2 class="section-title"><i class="fa-solid fa-gift" style="color: #ff7518;"></i> Drops d'Événements Spéciaux (Halloween, Noël, Pâques, Custom...)</h2>
+            <div class="card glass mb-4">
+              <p style="color: #b9bbbe; font-size: 0.9rem;">
+                Configurez des largages d'objets saisonniers automatiques ou personnalisés (Bonbons d'Halloween, Cadeaux de Noël, Chocolats de Pâques, Cœurs de la St-Valentin, ou événement sur-mesure). Les membres s'affrontent pour être les premiers à cliquer et ajouter les friandises/cadeaux à leur inventaire !
+              </p>
+            </div>
+
+            <form id="form-event-drop-config" class="inner-form">
+              <div class="card glass mb-4" style="padding: 24px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                  
+                  <!-- Option Actif / Inactif -->
+                  <div class="form-group" style="grid-column: 1 / -1;">
+                    <label class="custom-checkbox-container" style="color: #fff; font-weight: 700; font-size: 1.05rem;">
+                      <input type="checkbox" id="event_drop_active">
+                      <span class="checkmark"></span>
+                      Activer les drops automatiques d'événements
+                    </label>
+                  </div>
+
+                  <!-- Événement sélectionné -->
+                  <div class="form-group">
+                    <label for="event_type_select"><i class="fa-solid fa-calendar-star" style="color: #f1c40f;"></i> Choix de l'Événement :</label>
+                    <select id="event_type_select" class="custom-select" style="width: 100%;">
+                      <option value="bonbon">🍬 Bonbons d'Halloween 🎃</option>
+                      <option value="cadeau">🎁 Cadeaux de Noël 🎄</option>
+                      <option value="chocolat">🍫 Chocolats de Pâques 🐣</option>
+                      <option value="coeur">💖 Cœurs de la St-Valentin 💌</option>
+                      <option value="custom">✨ Événement Personnalisé (Sur-mesure)</option>
+                    </select>
+                  </div>
+
+                  <!-- Mode de déclenchement (Message % vs Minuteur) -->
+                  <div class="form-group">
+                    <label for="event_drop_mode"><i class="fa-solid fa-bolt" style="color: #3498db;"></i> Mode d'apparition :</label>
+                    <select id="event_drop_mode" class="custom-select" style="width: 100%;">
+                      <option value="message">💬 % de chance par message actif</option>
+                      <option value="timer">⏱️ Intervalle fixe en minutes</option>
+                    </select>
+                  </div>
+
+                  <!-- Valeur (Chance % ou Minutes) -->
+                  <div class="form-group">
+                    <label for="event_drop_chance" id="lbl_event_drop_chance"><i class="fa-solid fa-percent" style="color: #e67e22;"></i> Chance par message (%) :</label>
+                    <input type="number" id="event_drop_chance" class="custom-input" min="1" max="100" value="5" placeholder="5">
+                  </div>
+
+                  <!-- Quantité minimale (De ...) -->
+                  <div class="form-group">
+                    <label for="event_min_qty"><i class="fa-solid fa-arrow-down-short-wide" style="color: #2ecc71;"></i> Quantité Minimale (De...) :</label>
+                    <input type="number" id="event_min_qty" class="custom-input" min="1" value="1" placeholder="1">
+                  </div>
+
+                  <!-- Quantité maximale (... à ...) -->
+                  <div class="form-group">
+                    <label for="event_max_qty"><i class="fa-solid fa-arrow-up-wide-short" style="color: #9b59b6;"></i> Quantité Maximale (...à...) :</label>
+                    <input type="number" id="event_max_qty" class="custom-input" min="1" value="5" placeholder="5">
+                  </div>
+
+                  <!-- Salons autorisés -->
+                  <div class="form-group" style="grid-column: 1 / -1;">
+                    <label for="event_allowed_channels"><i class="fa-solid fa-hashtag" style="color: #5865F2;"></i> Salon(s) autorisés pour les drops (sélectionner ou laisser vide pour tous) :</label>
+                    <select id="event_allowed_channels" class="channel-select custom-select" multiple style="width: 100%; height: 110px;">
+                    </select>
+                    <small style="color: #8e9297; display: block; margin-top: 4px;">Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs salons.</small>
+                  </div>
+
+                  <!-- Champs personnalisés (Affichés si "custom" sélectionné) -->
+                  <div id="custom_event_fields" style="display: none; grid-column: 1 / -1; background: rgba(0,0,0,0.25); padding: 16px; border-radius: 12px; border: 1px solid rgba(241, 196, 15, 0.3);">
+                    <h4 style="color: #f1c40f; margin: 0 0 12px 0;"><i class="fa-solid fa-wand-magic-sparkles"></i> Configuration de l'Objet Personnalisé</h4>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px;">
+                      <div class="form-group">
+                        <label for="event_custom_name">Nom de l'objet (ex: Lampion de Fête) :</label>
+                        <input type="text" id="event_custom_name" class="custom-input" placeholder="Lampion de Fête" value="Objet Spécial">
+                      </div>
+                      <div class="form-group">
+                        <label for="event_custom_emoji">Émoji de l'objet (ex: 🏮) :</label>
+                        <input type="text" id="event_custom_emoji" class="custom-input" placeholder="🏮" value="✨">
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
+                  <button type="submit" class="btn btn-save" style="background: #ff7518; color: #fff; font-weight: 700; padding: 12px 24px;">
+                    <i class="fa-solid fa-floppy-disk"></i> Enregistrer la Configuration
+                  </button>
+                  <button type="button" id="btn-trigger-manual-event-drop" class="btn" style="background: rgba(46, 204, 113, 0.2); border: 1px solid rgba(46, 204, 113, 0.5); color: #2ecc71; font-weight: 700; padding: 12px 20px;">
+                    <i class="fa-solid fa-paper-plane"></i> Lancer un Drop Immédiat en Direct
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
 
           <!-- Tab: Boost Annoucements -->

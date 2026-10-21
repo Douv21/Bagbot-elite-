@@ -65,7 +65,9 @@ const {
   updateAiKey,
   deleteAiKey,
   getAiConfig,
-  updateAiConfig
+  updateAiConfig,
+  getEventDropConfig,
+  updateEventDropConfig
 } = require('./database/db');
 
 const app = express();
@@ -2461,6 +2463,61 @@ app.post('/api/google-forms/webhook', async (req, res) => {
     }
 
     res.json({ success: true, message: 'Réponse transmise avec succès au Bot Discord !' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- API DROPS D'ÉVÉNEMENT (HALLOWEEN, NOËL, PÂQUES, ST-VALENTIN, CUSTOM) ---
+app.get('/api/event-drop/config', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+    const config = getEventDropConfig(guildId);
+    res.json(config);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/event-drop/save', (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+    const updated = updateEventDropConfig(guildId, req.body);
+    res.json({ success: true, config: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/event-drop/trigger', async (req, res) => {
+  try {
+    const guildId = getReqGuildId(req);
+    if (!guildId) return res.status(400).json({ error: 'Aucun serveur sélectionné' });
+
+    const { channelId, eventType, quantity, customName, customEmoji } = req.body || {};
+    const botApiPort = process.env.BOT_API_PORT || 49605;
+    const botResponse = await fetch(`http://127.0.0.1:${botApiPort}/bot/event-drop/trigger`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        guildId,
+        channelId: channelId || null,
+        eventType: eventType || null,
+        quantity: quantity || null,
+        customName: customName || null,
+        customEmoji: customEmoji || null
+      })
+    }).catch(() => null);
+
+    if (!botResponse || !botResponse.ok) {
+      const errText = botResponse ? await botResponse.text() : 'Le bot n\'est pas en ligne';
+      return res.status(500).json({ error: `Erreur du bot : ${errText}` });
+    }
+
+    const data = await botResponse.json();
+    res.json({ success: true, channelId: data.channelId, messageId: data.messageId });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

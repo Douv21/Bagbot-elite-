@@ -93,6 +93,35 @@ module.exports = {
     const guildId = message.guild.id;
     const userId = message.author.id;
 
+    // --- SYSTÈME AUTOMATIQUE DE DROPS D'ÉVÉNEMENT (HALLOWEEN, NOËL, PÂQUES...) ---
+    try {
+      const { getEventDropConfig } = require('../database/db');
+      const eventConfig = getEventDropConfig(guildId);
+
+      if (eventConfig && eventConfig.is_active === 1 && (eventConfig.drop_mode === 'message' || !eventConfig.drop_mode)) {
+        const allowed = eventConfig.allowed_channels ? eventConfig.allowed_channels.split(',').map(c => c.trim()).filter(Boolean) : [];
+        const isChanAllowed = allowed.length === 0 || allowed.includes(message.channel.id) || (message.channel.parentId && allowed.includes(message.channel.parentId));
+
+        if (isChanAllowed) {
+          global.lastAutoEventDropChannelMap = global.lastAutoEventDropChannelMap || new Map();
+          const lastDropTime = global.lastAutoEventDropChannelMap.get(message.channel.id) || 0;
+          const nowSec = Math.floor(Date.now() / 1000);
+
+          // Cooldown minimum de 2 minutes par salon entre deux drops automatiques
+          if (nowSec - lastDropTime > 120) {
+            const chance = eventConfig.drop_chance !== undefined ? eventConfig.drop_chance : 5;
+            if (Math.random() * 100 < chance) {
+              global.lastAutoEventDropChannelMap.set(message.channel.id, nowSec);
+              const { spawnEventDrop } = require('../utils/eventDropManager');
+              spawnEventDrop(message.channel, eventConfig);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Erreur drop événement messageCreate:', e);
+    }
+
     // --- ACCÈS DYNAMIQUE SILENCIEUX AUX SUITES PRIVÉES & TICKETS SUR MENTION (PING) ---
     try {
       const { getPrivateSuiteByChannel, getActiveTicket } = require('../database/db');

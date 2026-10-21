@@ -1728,6 +1728,9 @@ client.once('ready', async () => {
     setInterval(() => checkKarmaWeeklyResets(client), 60000);
     checkKarmaWeeklyResets(client);
 
+    // Vérification des drops d'événements par minuteur (toutes les 60s)
+    setInterval(() => checkTimerEventDrops(client), 60000);
+
     // Mettre en cache tous les membres de tous les serveurs au démarrage
     client.guilds.cache.forEach(guild => {
       guild.members.fetch()
@@ -1780,6 +1783,95 @@ const parseEmojiForDiscord = (emojiStr, roleId, guild) => {
 
   return targetEmoji;
 };
+
+apiApp.post('/bot/event-drop/trigger', async (req, res) => {
+  try {
+    const { guildId, channelId, eventType, quantity, customName, customEmoji } = req.body;
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ error: 'Serveur introuvable sur le bot' });
+
+    const { getEventDropConfig } = require('./database/db');
+    const baseConfig = getEventDropConfig(guildId);
+
+    let targetChannel = null;
+    if (channelId) {
+      targetChannel = guild.channels.cache.get(channelId);
+    }
+    if (!targetChannel) {
+      const allowed = baseConfig.allowed_channels ? baseConfig.allowed_channels.split(',').map(c => c.trim()).filter(Boolean) : [];
+      if (allowed.length > 0) {
+        targetChannel = guild.channels.cache.get(allowed[0]);
+      }
+    }
+    if (!targetChannel) {
+      targetChannel = guild.channels.cache.find(c => c.isTextBased() && c.permissionsFor(guild.members.me).has(PermissionFlagsBits.SendMessages));
+    }
+
+    if (!targetChannel) {
+      return res.status(400).json({ error: 'Aucun salon textuel valide trouvé pour envoyer le drop' });
+    }
+
+    const runtimeConfig = {
+      ...baseConfig,
+      event_type: eventType || baseConfig.event_type || 'bonbon',
+      custom_name: customName !== undefined ? customName : baseConfig.custom_name,
+      custom_emoji: customEmoji !== undefined ? customEmoji : baseConfig.custom_emoji
+    };
+
+    const { spawnEventDrop } = require('./utils/eventDropManager');
+    const msg = await spawnEventDrop(targetChannel, runtimeConfig, quantity ? parseInt(quantity, 10) : null);
+
+    if (msg) {
+      return res.json({ success: true, channelId: targetChannel.id, messageId: msg.id });
+    } else {
+      return res.status(500).json({ error: 'Échec de la génération du largage d\'événement' });
+    }
+  } catch (err) {
+    console.error('Erreur API bot trigger event drop:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+async function checkTimerEventDrops(client) {
+  try {
+    const { getEventDropConfig } = require('./database/db');
+    const nowSec = Math.floor(Date.now() / 1000);
+
+    for (const [guildId, guild] of client.guilds.cache.entries()) {
+      const config = getEventDropConfig(guildId);
+      if (config && config.is_active === 1 && config.drop_mode === 'timer') {
+        const intervalMins = Math.max(1, config.drop_chance || 30);
+        const intervalSecs = intervalMins * 60;
+        
+        if (nowSec - (config.last_drop_at || 0) >= intervalSecs) {
+          const allowed = config.allowed_channels ? config.allowed_channels.split(',').map(c => c.trim()).filter(Boolean) : [];
+          let targetChannel = null;
+
+          if (allowed.length > 0) {
+            for (const chanId of allowed) {
+              const chan = guild.channels.cache.get(chanId);
+              if (chan && chan.isTextBased() && chan.permissionsFor(guild.members.me).has(PermissionFlagsBits.SendMessages)) {
+                targetChannel = chan;
+                break;
+              }
+            }
+          }
+
+          if (!targetChannel) {
+            targetChannel = guild.channels.cache.find(c => c.isTextBased() && c.permissionsFor(guild.members.me).has(PermissionFlagsBits.SendMessages));
+          }
+
+          if (targetChannel) {
+            const { spawnEventDrop } = require('./utils/eventDropManager');
+            await spawnEventDrop(targetChannel, config);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Erreur verification timer event drops:', err);
+  }
+}
 
 apiApp.post('/bot/send-autorole', async (req, res) => {
   try {
