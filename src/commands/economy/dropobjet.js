@@ -1,6 +1,51 @@
 const { SlashCommandBuilder, PermissionsBitField, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits } = require("discord.js");
 const { db, getEconomy, updateEconomy, ensureDefaultShopItems, getShopConfig, getPrivateSuite, updatePrivateSuiteExpiry, addPrivateSuite } = require("../../database/db");
 
+/**
+ * Garantit la présence du panneau de gestion dans une suite privée.
+ * Ne modifie jamais les permissions existantes ni la liste des invités.
+ */
+async function ensurePrivateSuitePanel(channel) {
+  if (!channel || !channel.isTextBased() || !channel.messages) return false;
+
+  try {
+    const recentMessages = await channel.messages.fetch({ limit: 100 });
+    const hasManagementPanel = recentMessages.some(message =>
+      message.author?.id === channel.client.user.id &&
+      message.components?.some(row => {
+        const ids = row.components.map(component => component.customId);
+        return ids.includes('suite_invite_btn') && ids.includes('suite_exclude_btn');
+      })
+    );
+
+    if (hasManagementPanel) return true;
+
+    const panelEmbed = new EmbedBuilder()
+      .setTitle('🔑 🛋️ Panneau de Contrôle & Gestion de la Suite')
+      .setDescription('Utilisez les boutons ci-dessous pour accorder ou retirer l\'accès à vos invités privilégiés.')
+      .setColor('#9B59B6');
+
+    const panelRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('suite_invite_btn')
+        .setLabel('Inviter un membre')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('➕'),
+      new ButtonBuilder()
+        .setCustomId('suite_exclude_btn')
+        .setLabel('Exclure un membre')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('➖')
+    );
+
+    await channel.send({ embeds: [panelEmbed], components: [panelRow] });
+    return true;
+  } catch (error) {
+    console.error('[DropObjet] Impossible de vérifier ou publier le panneau de suite privée:', error);
+    return false;
+  }
+}
+
 module.exports = {
   name: "dropobjet",
 
@@ -171,11 +216,14 @@ module.exports = {
 
         const existingSuite = getPrivateSuite(guildId, winner.id);
         if (existingSuite) {
-          const txtChan = interaction.guild.channels.cache.get(existingSuite.text_channel_id);
+          const txtChan = interaction.guild.channels.cache.get(existingSuite.text_channel_id) ||
+            await interaction.guild.channels.fetch(existingSuite.text_channel_id).catch(() => null);
           if (txtChan) {
             const newExpiry = Math.max(Date.now(), existingSuite.expires_at) + durationMs;
             updatePrivateSuiteExpiry(guildId, winner.id, newExpiry);
             await txtChan.send(`🎉 **<@${winner.id}> a remporté un drop de prolongation de Suite Privée de ${durationLabel} !**\nNouvelle date d'expiration : <t:${Math.floor(newExpiry / 1000)}:F>.`).catch(() => null);
+            // Répare aussi les anciennes suites créées par drop sans panneau de gestion.
+            await ensurePrivateSuitePanel(txtChan);
             suiteMsg = `\n👑 Votre Suite Privée a été prolongée de **${durationLabel}** !`;
           }
         } else {
@@ -224,6 +272,8 @@ module.exports = {
               .setTimestamp();
 
             await textChannel.send({ embeds: [welcomeEmbed] }).catch(() => null);
+            // Les suites obtenues par drop reçoivent le même panneau que celles de la boutique.
+            await ensurePrivateSuitePanel(textChannel);
             suiteMsg = `\n👑 Votre nouvelle Suite Privée VIP a été créée : <#${textChannel.id}> !`;
           } catch (e) {
             console.error('[DropObjet] Erreur création suite privée:', e);
